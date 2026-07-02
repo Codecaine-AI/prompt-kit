@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha256Hex } from "./sha256";
 
 import { ensurePromptNodeIds } from "../nodes/ids";
 import type {
@@ -106,9 +106,7 @@ export function canonicalizePrompt(doc: PromptDocument): string {
  * Content address for a PromptDocument: `"pk1-" + sha256hex(canonicalBytes)`.
  */
 export function hashPrompt(doc: PromptDocument): string {
-  const digest = createHash("sha256")
-    .update(canonicalizePrompt(doc), "utf8")
-    .digest("hex");
+  const digest = sha256Hex(canonicalizePrompt(doc));
   return `${PROMPT_HASH_PREFIX}${digest}`;
 }
 
