@@ -61,3 +61,14 @@ but editing should generally happen through the structured prompt source or a UI
 that edits the structured prompt object. Hand-editing the rendered text creates a
 second source of truth and breaks transforms, validation, and stable ids.
 
+## Direction
+
+An editing UI that follows this rule exists — it presents the rendered XML as an
+editable projection while committing every gesture to the structured document.
+It is being relocated into this package behind React-only entry points, with
+React as an optional peer dependency. See
+[20-implementation/20-editor/00-overview.md](../20-implementation/20-editor/00-overview.md)
+for its architecture and
+[20-implementation/20-editor/70-package-split.md](../20-implementation/20-editor/70-package-split.md)
+for the migration state and what it means for the boundary described above.
+

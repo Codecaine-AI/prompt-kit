@@ -19,7 +19,7 @@ docs/
 ├── 00-overview.md          (this file) Documentation entry point
 ├── 00-foundation/          Purpose, boundaries, and authoring principles
 ├── 10-system-design/       AST, rendering, transforms, validation, and kernel boundary
-└── 20-implementation/      Current source tree and development notes
+└── 20-implementation/      Current source tree, editing UI, and development notes
 ```
 
 ## Layers
@@ -38,4 +38,5 @@ boundary.
 ### [20-implementation/00-overview.md](20-implementation/00-overview.md)
 
 Read this layer when changing source code. It maps the current package modules,
-public exports, tests, and development commands.
+public exports, tests, and development commands, and documents the prompt-editing
+UI architecture built on top of them.

@@ -49,3 +49,13 @@ interface PromptEditorModel {
 The model is intentionally minimal. Rich editing behavior can grow around the
 canonical prompt object without putting UI framework code inside prompt-kit.
 
+## Direction
+
+A full prompt-editing UI has since been built on these models, and is being
+relocated into this package behind separate `./ui/react` and friends
+specifiers with React as an optional peer dependency. See
+[20-editor/00-overview.md](../20-editor/00-overview.md) for its architecture and
+[20-editor/70-package-split.md](../20-editor/70-package-split.md) for the
+migration state. The boundary statement above needs revising to describe that
+arrangement.
+

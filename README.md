@@ -1,8 +1,9 @@
 # @codecaine-ai/prompt-kit
 
-Prompt-kit is the headless prompt authoring package for Codecaine agents. It
-turns typed prompt objects into readable prompt text while keeping the source
-structured enough to validate, transform, preview, and compose.
+Prompt-kit is the prompt authoring package for Codecaine agents. It turns typed
+prompt objects into readable prompt text while keeping the source structured
+enough to validate, transform, preview, and compose — and it ships the UI an
+author edits them through.
 
 It provides:
 
@@ -11,9 +12,34 @@ It provides:
 - XML-tagged Markdown rendering
 - prompt transforms
 - validation diagnostics
-- lightweight UI preview models
+- headless UI models (tree, selection, undoable steps)
+- the React authoring surface: the XML editor, node inspector, prompt lab
+  shell, style model, and read-only prompt view
 
 The Agent Kernel consumes prompt-kit, but prompt-kit does not depend on the kernel.
+
+## Entry points
+
+| Import | Contents |
+| --- | --- |
+| `@codecaine-ai/prompt-kit` | AST, builders, renderers, transforms, validation |
+| `@codecaine-ai/prompt-kit/ui` | Headless UI models — no React, no DOM |
+| `@codecaine-ai/prompt-kit/ui/react` | Every React export below, in one import |
+| `@codecaine-ai/prompt-kit/ui/prompt-flow` | `PromptFlowXml`, `PromptFlowInspector` |
+| `@codecaine-ai/prompt-kit/ui/lab` | `PromptInlineLab`, `PromptStyleRail`, undo history |
+| `@codecaine-ai/prompt-kit/ui/style` | Persisted style settings + `usePromptStyleSettings` |
+| `@codecaine-ai/prompt-kit/ui/surface` | Editor metrics, palette, XML highlighting |
+| `@codecaine-ai/prompt-kit/ui/view` | `PromptView` — read-only prompt rendering |
+
+React is a peer dependency, and the components are unstyled beyond Tailwind
+utility classes: the host app supplies the Tailwind layer and the semantic
+token variables they resolve against. See the styling contract at the top of
+`src/ui/react.ts`.
+
+The editor UI's architecture is documented in
+`docs/20-implementation/20-editor/`. `EDITOR-UI-HANDOFF.md` carries the working
+state — what was built, known bugs, pending decisions, and the traps worth
+knowing before touching it.
 
 ## Quick Start
 
@@ -90,15 +116,16 @@ SDK integration, or subagent orchestration. Those are kernel responsibilities.
 The intended split is:
 
 - `@codecaine-ai/prompt-kit`: structured prompts, builders, renderers,
-  transforms, validation, and preview/editor models.
+  transforms, validation, editor models, and the authoring UI.
 - Agent Kernel: agent definitions, runtime context, tool binding, Pi sessions,
   traces, and viewer integration.
 
 ## Development
 
-From the workspace root:
+From this repository's root:
 
 ```bash
-bun run typecheck:prompt-kit
-bun test ./packages/prompt-kit/src
+bun install
+bun run typecheck
+bun test src
 ```

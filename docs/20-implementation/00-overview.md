@@ -20,6 +20,8 @@ renderers, transforms, validation, and lightweight UI models.
 ├── 00-overview.md       (this file) Implementation entry point
 ├── 10-src/              Source package documentation
 │   └── 00-overview.md
+├── 20-editor/           Prompt-editing UI architecture
+│   └── 00-overview.md
 └── 99-appendix/         Development and operational notes
     └── 00-overview.md
 ```
@@ -50,6 +52,13 @@ export * from "./renderers";
 
 Documents the source tree and links to implementation notes for nodes, builders,
 templates, renderers, transforms, validation, and UI models.
+
+### [20-editor/00-overview.md](20-editor/00-overview.md)
+
+Documents the prompt-editing UI built on this package: the editing model,
+keyboard model, structural steps, presentation contract, application shell,
+block vocabulary, and the current package split. That UI is implemented in the
+host viewer package rather than here.
 
 ### [99-appendix/00-overview.md](99-appendix/00-overview.md)
 
