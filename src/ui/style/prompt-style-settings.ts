@@ -1,12 +1,19 @@
 import type { CSSProperties } from "react";
 
+import { PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH } from "../surface/editor-surface";
+
 export type PromptMonoFontFamily =
 	| "system"
 	| "sf-mono"
 	| "jetbrains-mono"
 	| "ibm-plex-mono";
 
-export type PromptStylePresetId = "dense" | "balanced" | "reading";
+export type PromptStylePresetId =
+	| "dense"
+	| "balanced"
+	| "reading"
+	| "painted"
+	| "classic";
 export type PromptRowShading = "none" | "rules" | "zebra";
 
 /**
@@ -23,6 +30,8 @@ export interface PromptStyleSettings {
 	indentWidth: number;
 	contentWidth: number;
 	gutterWidth: number;
+	landmarkFontScale: number;
+	gapRamp: number;
 
 	showLineNumbers: boolean;
 	showGuides: boolean;
@@ -36,10 +45,14 @@ export interface PromptStyleSettings {
 
 	tagPunctuationColor: string;
 	tagNameColor: string;
+	tagLandmarkColor: string;
+	tagSublandmarkColor: string;
 	attributeNameColor: string;
 	attributeValueColor: string;
 	variableColor: string;
 	referenceColor: string;
+	inlineCodeColor: string;
+	inlineChipOpacity: number;
 	listMarkerColor: string;
 
 	guideColor: string;
@@ -73,7 +86,7 @@ export interface PromptStyleStorage {
 
 export const PROMPT_STYLE_STORAGE_KEY = "agentKernel.promptEditorStyle.v1";
 
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 
 const FONT_STACKS: Record<PromptMonoFontFamily, string> = {
 	system:
@@ -97,24 +110,36 @@ const BALANCED_SETTINGS: PromptStyleSettings = {
 	// would wrap far more than it needs to.
 	contentWidth: 136,
 	gutterWidth: 56,
+	landmarkFontScale: 1.08,
+	gapRamp: 1,
 
-	showLineNumbers: true,
+	// Off by default: the flow renders a structured document, not source code.
+	// Node ids, targeting rings, and quoted ranges are the address system;
+	// numbers are a competing code-editor affordance that eats the left edge
+	// and crowds the drag grip. Their one legitimate use — correlating with
+	// the Raw view line-for-line (the xml-line-model invariant) — stays
+	// available behind this toggle.
+	showLineNumbers: false,
 	showGuides: true,
-	rowShading: "zebra",
+	rowShading: "none",
 
 	surfaceColor: "#1E1E1E",
-	foregroundColor: "#E4E4E2",
+	foregroundColor: "#D4D6D3",
 	gutterColor: "#1E1E1E",
-	lineNumberColor: "#5F6672",
+	lineNumberColor: "#454A51",
 	activeLineNumberColor: "#C6CCD2",
 
-	tagPunctuationColor: "#6E7681",
-	tagNameColor: "#B48EC7",
+	tagPunctuationColor: "#4B5057",
+	tagNameColor: "#9D8AAF",
+	tagLandmarkColor: "#BC9AD3",
+	tagSublandmarkColor: "#A992BE",
 	attributeNameColor: "#85AECB",
-	attributeValueColor: "#C09A78",
+	attributeValueColor: "#AB8E70",
 	variableColor: "#D9C578",
-	referenceColor: "#5FBCA5",
-	listMarkerColor: "#7E8590",
+	referenceColor: "#58A794",
+	inlineCodeColor: "#5FBCA5",
+	inlineChipOpacity: 0.08,
+	listMarkerColor: "#565C64",
 
 	guideColor: "#FFFFFF",
 	guideOpacity: 0.1,
@@ -132,7 +157,7 @@ const BALANCED_SETTINGS: PromptStyleSettings = {
 	hoverOpacity: 0.05,
 
 	gripColor: "#8A919C",
-	gripSize: 14,
+	gripSize: 20,
 	gripOpacity: 0.5,
 	dropIndicatorColor: "#4D9DE0",
 	dropIndicatorWidth: 2,
@@ -140,17 +165,7 @@ const BALANCED_SETTINGS: PromptStyleSettings = {
 };
 
 function withPresetOverrides(
-	overrides: Pick<
-		PromptStyleSettings,
-		| "fontSize"
-		| "lineHeight"
-		| "letterSpacing"
-		| "indentWidth"
-		| "contentWidth"
-		| "gutterWidth"
-		| "rowShading"
-		| "ruleOpacity"
-	>,
+	overrides: Partial<PromptStyleSettings>,
 ): PromptStyleSettings {
 	return { ...BALANCED_SETTINGS, ...overrides };
 }
@@ -184,6 +199,40 @@ export const PROMPT_STYLE_PRESETS: Readonly<
 		gutterWidth: 60,
 		rowShading: "none",
 		ruleOpacity: 0.025,
+	}),
+	// The full syntax palette from the "painted landmarks" exploration: one
+	// purple family for structure with hierarchy carried by brightness.
+	painted: withPresetOverrides({
+		foregroundColor: "#D4D6D3",
+		tagPunctuationColor: "#6E7681",
+		tagNameColor: "#9A7CAC",
+		tagLandmarkColor: "#CBA6DE",
+		tagSublandmarkColor: "#B48EC7",
+		attributeNameColor: "#85AECB",
+		attributeValueColor: "#C09A78",
+		variableColor: "#CFBC74",
+		listMarkerColor: "#6C737B",
+		lineNumberColor: "#5F6672",
+	}),
+	// The surface exactly as it looked before the landmark redesign: every
+	// new capability sits at its neutral value — including the code-editor
+	// line-number gutter, which the classic look always carried.
+	classic: withPresetOverrides({
+		showLineNumbers: true,
+		rowShading: "zebra",
+		foregroundColor: "#E4E4E2",
+		lineNumberColor: "#5F6672",
+		tagPunctuationColor: "#6E7681",
+		tagNameColor: "#B48EC7",
+		tagLandmarkColor: "#B48EC7",
+		tagSublandmarkColor: "#B48EC7",
+		attributeValueColor: "#C09A78",
+		referenceColor: "#5FBCA5",
+		inlineCodeColor: "#E4E4E2",
+		inlineChipOpacity: 0,
+		listMarkerColor: "#7E8590",
+		landmarkFontScale: 1,
+		gapRamp: 0,
 	}),
 };
 
@@ -315,6 +364,13 @@ export function normalizePromptStyleSettings(
 			36,
 			96,
 		),
+		landmarkFontScale: numberInRange(
+			source.landmarkFontScale,
+			defaults.landmarkFontScale,
+			1,
+			1.2,
+		),
+		gapRamp: numberInRange(source.gapRamp, defaults.gapRamp, 0, 1),
 
 		showLineNumbers: booleanOr(
 			source.showLineNumbers,
@@ -347,6 +403,14 @@ export function normalizePromptStyleSettings(
 			defaults.tagPunctuationColor,
 		),
 		tagNameColor: colorOr(source.tagNameColor, defaults.tagNameColor),
+		tagLandmarkColor: colorOr(
+			source.tagLandmarkColor,
+			defaults.tagLandmarkColor,
+		),
+		tagSublandmarkColor: colorOr(
+			source.tagSublandmarkColor,
+			defaults.tagSublandmarkColor,
+		),
 		attributeNameColor: colorOr(
 			source.attributeNameColor,
 			defaults.attributeNameColor,
@@ -357,6 +421,16 @@ export function normalizePromptStyleSettings(
 		),
 		variableColor: colorOr(source.variableColor, defaults.variableColor),
 		referenceColor: colorOr(source.referenceColor, defaults.referenceColor),
+		inlineCodeColor: colorOr(
+			source.inlineCodeColor,
+			defaults.inlineCodeColor,
+		),
+		inlineChipOpacity: numberInRange(
+			source.inlineChipOpacity,
+			defaults.inlineChipOpacity,
+			0,
+			0.3,
+		),
 		listMarkerColor: colorOr(
 			source.listMarkerColor,
 			defaults.listMarkerColor,
@@ -503,6 +577,15 @@ export function savePromptStyleSettings(
 	}
 }
 
+/** Graded blank-line height: ramp 0 collapses every gap to one line-height. */
+function gapHeight(
+	lineHeight: number,
+	extraPx: number,
+	ramp: number,
+): number {
+	return Math.round((lineHeight + extraPx * ramp) * 2) / 2;
+}
+
 function hexWithOpacity(color: string, opacity: number): string {
 	const red = Number.parseInt(color.slice(1, 3), 16);
 	const green = Number.parseInt(color.slice(3, 5), 16);
@@ -526,7 +609,13 @@ export function promptStyleVars(settings: PromptStyleSettings): CSSProperties {
 		"--prompt-editor-letter-spacing": `${value.letterSpacing}em`,
 		"--prompt-editor-indent-width": `${value.indentWidth}px`,
 		"--prompt-editor-content-width": `${value.contentWidth}ch`,
-		"--prompt-editor-gutter-width": `${value.gutterWidth}px`,
+		// With numbers off the gutter collapses to what the drag grip and block
+		// affordances actually need; the content's left edge moves left with it.
+		// Every gutter consumer (row gutter, indent guides, drop indicator,
+		// grip cluster) reads this one variable, so geometry stays consistent.
+		"--prompt-editor-gutter-width": value.showLineNumbers
+			? `${value.gutterWidth}px`
+			: PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH,
 		"--prompt-editor-show-line-numbers": value.showLineNumbers ? "1" : "0",
 		"--prompt-editor-show-guides": value.showGuides ? "1" : "0",
 		"--prompt-editor-show-rules": value.rowShading === "rules" ? "1" : "0",
@@ -551,11 +640,32 @@ export function promptStyleVars(settings: PromptStyleSettings): CSSProperties {
 
 		"--prompt-editor-syntax-punctuation": value.tagPunctuationColor,
 		"--prompt-editor-syntax-tag": value.tagNameColor,
+		"--prompt-editor-syntax-tag-landmark": value.tagLandmarkColor,
+		"--prompt-editor-syntax-tag-sublandmark": value.tagSublandmarkColor,
 		"--prompt-editor-syntax-attribute": value.attributeNameColor,
 		"--prompt-editor-syntax-value": value.attributeValueColor,
 		"--prompt-editor-syntax-variable": value.variableColor,
 		"--prompt-editor-syntax-reference": value.referenceColor,
 		"--prompt-editor-syntax-list-marker": value.listMarkerColor,
+		"--prompt-editor-inline-code": value.inlineCodeColor,
+		"--prompt-editor-inline-chip-opacity": String(value.inlineChipOpacity),
+		"--prompt-editor-inline-chip-bg": hexWithOpacity(
+			value.inlineCodeColor,
+			value.inlineChipOpacity,
+		),
+		"--prompt-editor-landmark-font-scale": String(value.landmarkFontScale),
+		"--prompt-editor-gap-height-base": `${value.lineHeight}px`,
+		"--prompt-editor-gap-height-sub": `${gapHeight(
+			value.lineHeight,
+			32,
+			value.gapRamp,
+		)}px`,
+		"--prompt-editor-gap-height-top": `${gapHeight(
+			value.lineHeight,
+			64,
+			value.gapRamp,
+		)}px`,
+		"--prompt-editor-landmark-pad": `${Math.round(8 * value.gapRamp)}px`,
 
 		"--prompt-editor-guide-color": value.guideColor,
 		"--prompt-editor-guide-opacity": String(value.guideOpacity),

@@ -28,7 +28,8 @@ while it is being relocated into this package; see
 ├── 40-presentation-contract.md CSS variable contract and style settings
 ├── 50-application-shell.md     Statusbar, inspector, outline, autosave, history
 ├── 60-block-vocabulary.md      Creatable blocks versus the full node set
-└── 70-package-split.md         What lives where today and where it is headed
+├── 70-package-split.md         What lives where today and where it is headed
+└── 80-interaction-model.md     Drag handles, marquee selection, the Command gesture language
 ```
 
 ## Contents

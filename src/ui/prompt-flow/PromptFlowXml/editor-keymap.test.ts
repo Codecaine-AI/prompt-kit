@@ -273,6 +273,71 @@ describe("Enter on a section tag", () => {
 });
 
 /* --------------------------------------------------------------- *
+ * Backspace
+ * --------------------------------------------------------------- */
+
+// With the per-item remove × gone, the keyboard IS the item-delete path:
+// Backspace in an emptied item removes exactly that item (or the whole list
+// when it was the last one), and Backspace at the start of a non-empty item
+// merges it into the one above. These press the real keymap end-to-end.
+describe("Backspace on a list item", () => {
+	test("removes an emptied item, keeping the list when others remain", () => {
+		const before = doc(bullets("one", ""));
+		const pressed = press(
+			before,
+			{ nodeId: id.bullets(1), itemIndex: 1 },
+			"Backspace",
+			{ value: "", caret: 0 },
+		);
+
+		expectOneTransaction(before, pressed);
+		expect(pressed.text).toBe("- one");
+		expect(pressed.prevented).toBe(true);
+		// The caret lands on the previous item, ready to keep deleting.
+		expect(pressed.moved).toEqual({
+			nodeId: id.bullets(1),
+			itemIndex: 0,
+			caret: "end",
+		});
+	});
+
+	test("removes the whole list with its last emptied item", () => {
+		const before = doc(
+			{ type: "paragraph", content: ["keep"] },
+			bullets(""),
+		);
+		const pressed = press(
+			before,
+			{ nodeId: id.bullets(1), itemIndex: 0 },
+			"Backspace",
+			{ value: "", caret: 0 },
+		);
+
+		expectOneTransaction(before, pressed);
+		// Only the paragraph survives — an empty list would render nothing.
+		expect(pressed.text).toBe("keep");
+	});
+
+	test("merges a non-empty item into the previous one at caret 0", () => {
+		const before = doc(bullets("one", "two"));
+		const pressed = press(
+			before,
+			{ nodeId: id.bullets(1), itemIndex: 1 },
+			"Backspace",
+			{ value: "two", caret: 0 },
+		);
+
+		expectOneTransaction(before, pressed);
+		expect(pressed.text).toBe("- onetwo");
+		expect(pressed.moved).toEqual({
+			nodeId: id.bullets(1),
+			itemIndex: 0,
+			caret: 3,
+		});
+	});
+});
+
+/* --------------------------------------------------------------- *
  * Tab / Shift+Tab
  * --------------------------------------------------------------- */
 

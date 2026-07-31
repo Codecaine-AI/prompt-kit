@@ -1,11 +1,14 @@
-// Slice: quiet wayfinding column — one row per top-level section, active row
-// tracks scroll position, click scrolls the editor to the section. Derived
-// from the shared line model (computeLandmarks rows); purely presentational —
+// Slice: quiet wayfinding column — one row per top-level section (and one
+// indented row per depth-1 container inside it), names only: the column is a
+// map of the document, and numeric/sparkline chrome pulled it toward being a
+// chart. The active row tracks scroll position; click scrolls the editor to
+// the section. Derived from the shared line model — purely presentational,
 // never touches rendered text, hashes, or saves.
 //
 // The column is a margin of the document, not a pane rail: it shares the
 // editor's background, type, and line grid, so a row occupies exactly one
-// editor line and the first row sits on the buffer's first line.
+// editor line and the first row sits on the buffer's first line. Nothing in
+// it draws a border; spacing and the shared hairline do the separation.
 "use client";
 
 import cn from "classnames";
@@ -15,16 +18,46 @@ import {
 	EDITOR_COLORS,
 	EDITOR_METRICS,
 } from "../../surface/editor-surface";
+import type { XmlLine } from "../xml-line-model";
 
 export interface OutlineSection {
 	/** Row index (in the line model) of the section's opening tag. */
 	row: number;
-	/** Bare tag name, e.g. "purpose". */
+	/** Owning node id — stable identity for keys across edits. */
+	nodeId: string;
+	/** The section's `name` attribute when present, else its bare tag name. */
 	label: string;
+	/** Nesting depth of the open tag: 0 = landmark, 1 = indented child. */
+	depth: number;
 }
 
 /** One editor line per row, never below a comfortable pointer target. */
 const ROW_HEIGHT = `max(22px, ${EDITOR_METRICS.lineHeight})`;
+
+/**
+ * Wayfinding label for one open-tag line. A tag like `<phase name="plan">`
+ * is named by its `name` attribute — five phases all labeled "phase" is no
+ * map — falling back to the bare tag; non-section containers (example,
+ * context usage) read the leading word out of their rendered tag text.
+ */
+export function outlineSectionLabel(line: XmlLine): string {
+	const node = line.node;
+	if (node.type === "section") {
+		const name = node.attrs?.name;
+		if (name !== null && name !== undefined) {
+			const text = String(name).trim();
+			if (text.length > 0) return text;
+		}
+		return node.tag;
+	}
+	return (
+		line.text
+			.trim()
+			.replace(/^<\/?/, "")
+			.replace(/\/?>$/, "")
+			.split(/\s+/)[0] ?? ""
+	);
+}
 
 export function SectionOutline({
 	sections,
@@ -39,7 +72,7 @@ export function SectionOutline({
 	return (
 		<nav
 			aria-label="Prompt sections"
-			className="flex w-36 shrink-0 flex-col overflow-y-auto overscroll-contain pb-4 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5 hover:[&::-webkit-scrollbar-thumb]:bg-white/15"
+			className="flex w-48 shrink-0 flex-col overflow-y-auto overscroll-contain pb-4 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5 hover:[&::-webkit-scrollbar-thumb]:bg-white/15"
 			style={
 				{
 					background: EDITOR_COLORS.bg,
@@ -59,13 +92,14 @@ export function SectionOutline({
 				const active = section.row === activeRow;
 				return (
 					<button
-						key={`${section.row}:${section.label}`}
+						key={`${section.nodeId}:${section.row}`}
 						type="button"
 						onClick={() => onSelect(section)}
 						aria-current={active ? "location" : undefined}
 						className={cn(
-							"relative flex shrink-0 items-center px-3 text-left text-[11px] leading-none transition-colors",
+							"relative flex shrink-0 items-center gap-2 pr-3 text-left text-[11px] leading-none transition-colors",
 							"hover:bg-[var(--prompt-outline-hover)] focus-visible:bg-[var(--prompt-outline-hover)] focus-visible:outline-none",
+							section.depth > 0 ? "pl-6" : "pl-3",
 							active
 								? "text-foreground"
 								: "text-muted-foreground/70 hover:text-foreground",
@@ -82,7 +116,9 @@ export function SectionOutline({
 								style={{ background: EDITOR_COLORS.selectionAccent }}
 							/>
 						)}
-						<span className="truncate">{section.label}</span>
+						<span className="min-w-0 flex-initial truncate">
+							{section.label}
+						</span>
 					</button>
 				);
 			})}

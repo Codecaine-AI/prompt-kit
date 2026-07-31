@@ -43,9 +43,18 @@ describe("prompt editor surface contract", () => {
 			letterSpacing: "var(--prompt-editor-letter-spacing, 0em)",
 			indentWidth: "var(--prompt-editor-indent-width, 2ch)",
 			contentWidth: "var(--prompt-editor-content-width, 136ch)",
-			gutterWidth: "var(--prompt-editor-gutter-width, 5ch)",
-			gripSize: "var(--prompt-editor-grip-size, 14px)",
+			gutterWidth: "var(--prompt-editor-gutter-width, 36px)",
+			gripSize: "var(--prompt-editor-grip-size, 20px)",
+			itemGripSize: "var(--prompt-editor-item-grip-size, 14px)",
 			dropLineWidth: "var(--prompt-editor-drop-line-width, 2px)",
+			landmarkFontScale: "var(--prompt-editor-landmark-font-scale, 1.08)",
+			landmarkPad: "var(--prompt-editor-landmark-pad, 8px)",
+			gapHeightBase:
+				"var(--prompt-editor-gap-height-base, var(--prompt-editor-line-height, 22px))",
+			gapHeightSub:
+				"var(--prompt-editor-gap-height-sub, calc(var(--prompt-editor-line-height, 22px) + 32px))",
+			gapHeightTop:
+				"var(--prompt-editor-gap-height-top, calc(var(--prompt-editor-line-height, 22px) + 64px))",
 		});
 		expect(EDITOR_COLORS).toEqual({
 			bg: "var(--prompt-editor-bg, var(--editor-bg, #1E1E1E))",
@@ -65,6 +74,13 @@ describe("prompt editor surface contract", () => {
 			syntaxPunctuation:
 				"var(--prompt-editor-syntax-punctuation, #6E7681)",
 			syntaxTag: "var(--prompt-editor-syntax-tag, #B48EC7)",
+			syntaxTagLandmark:
+				"var(--prompt-editor-syntax-tag-landmark, #BC9AD3)",
+			syntaxTagSublandmark:
+				"var(--prompt-editor-syntax-tag-sublandmark, #A992BE)",
+			inlineCode: "var(--prompt-editor-inline-code, #5FBCA5)",
+			inlineChipBg:
+				"var(--prompt-editor-inline-chip-bg, rgb(95 188 165 / 0.08))",
 			syntaxAttribute:
 				"var(--prompt-editor-syntax-attribute, #85AECB)",
 			syntaxValue: "var(--prompt-editor-syntax-value, #C09A78)",

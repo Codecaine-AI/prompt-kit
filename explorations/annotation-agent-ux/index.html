@@ -1,0 +1,1468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt annotation → agent edit loop — UX exploration</title>
+<style>
+  /* ---------------------------------------------------------------
+     Design tokens — VS Code Dark+ family, 21px line grid.
+     Companion doc: docs/.drafts/2026-07-31-annotation-agent-ux-session.md
+     --------------------------------------------------------------- */
+  :root {
+    --bg: #1e1e1e;
+    --bg-panel: #181818;
+    --bg-deep: #141414;
+    --bg-raise: #232323;
+    --border: #2b2b2b;
+    --border-soft: #262626;
+    --fg: #d4d4d4;
+    --muted: #8b949e;
+    --faint: #5a5f66;
+    --tag: #569cd6;
+    --accent: #58a6ff;
+    --teal: #4ec9b0;
+    --amber: #d29922;
+    --add-fg: #3fb950;
+    --del-fg: #f85149;
+    --add-bg: rgba(63, 185, 80, 0.13);
+    --del-bg: rgba(248, 81, 73, 0.13);
+    --add-em: rgba(63, 185, 80, 0.34);
+    --del-em: rgba(248, 81, 73, 0.34);
+    --mono: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", monospace;
+    --grid: 21px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: var(--grid);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  button { font-family: var(--mono); font-size: 12px; cursor: pointer; }
+  input, textarea { font-family: var(--mono); font-size: 12px; color: var(--fg); }
+
+  /* ---------- top bar ---------- */
+  #topbar {
+    height: 42px; flex: 0 0 42px;
+    display: flex; align-items: center; gap: 14px;
+    padding: 0 14px;
+    background: var(--bg-panel);
+    border-bottom: 1px solid var(--border);
+  }
+  #topbar .agent-name { font-weight: 600; letter-spacing: 0.02em; }
+  .hash-chip {
+    font-size: 11px; color: var(--teal);
+    background: rgba(78, 201, 176, 0.09);
+    border: 1px solid rgba(78, 201, 176, 0.25);
+    border-radius: 999px; padding: 1px 9px;
+    transition: background 200ms;
+  }
+  .hash-chip.bump { background: rgba(78, 201, 176, 0.3); }
+  #modes {
+    display: flex; border: 1px solid var(--border); border-radius: 7px;
+    overflow: hidden; margin-left: 10px;
+  }
+  #modes button {
+    background: transparent; color: var(--muted); border: 0;
+    padding: 4px 14px; border-right: 1px solid var(--border);
+  }
+  #modes button:last-child { border-right: 0; }
+  #modes button.active { background: var(--bg-raise); color: var(--fg); }
+  #modes button:disabled { opacity: 0.35; cursor: not-allowed; }
+  #topbar .spacer { flex: 1; }
+  #annCount { color: var(--muted); font-size: 12px; }
+  #legendBtn {
+    width: 24px; height: 24px; border-radius: 999px;
+    border: 1px solid var(--border); background: transparent; color: var(--muted);
+  }
+  #legendBtn:hover { color: var(--fg); border-color: var(--faint); }
+
+  /* ---------- main row ---------- */
+  #main { flex: 1; display: flex; min-height: 0; }
+  #centerScroll { flex: 1; overflow: auto; min-width: 0; position: relative; }
+
+  #banner {
+    position: sticky; top: 0; z-index: 30;
+    margin: 10px 16px 0;
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(88, 166, 255, 0.08);
+    border: 1px solid rgba(88, 166, 255, 0.35);
+    border-radius: 8px; padding: 8px 12px;
+  }
+  #banner .msg { color: var(--accent); }
+  #banner button {
+    background: var(--accent); color: #0b1826; border: 0;
+    border-radius: 6px; padding: 4px 12px; font-weight: 600;
+  }
+  #banner button.ok { background: var(--add-fg); color: #06210d; }
+  #banner button.ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); font-weight: 400; }
+  #banner .msg { cursor: pointer; }
+
+  /* ---------- prompt surface ---------- */
+  #surfaceWrap { position: relative; padding: 18px 0 60px; }
+  .line { display: flex; height: var(--grid); white-space: pre; }
+  .line .gut {
+    flex: 0 0 52px; text-align: right; padding-right: 18px;
+    color: var(--faint); user-select: none; font-size: 11px;
+  }
+  .line .txt { color: var(--fg); }
+  .line .txt .tag { color: var(--tag); }
+  .line .txt .dash { color: var(--tag); }
+  .line.blank .txt { min-width: 1px; }
+  #surfaceWrap.annotate .line { cursor: pointer; }
+  #surfaceWrap.annotate ::selection { background: transparent; }
+
+  /* targeting ring + chip (mirrors @codecaine-ai/annotations TARGETING_CSS) */
+  #ring {
+    position: absolute; pointer-events: none; z-index: 20;
+    border: 1.5px dotted var(--accent); border-radius: 5px;
+    opacity: 0;
+    transition: top 120ms, left 120ms, width 120ms, height 120ms, opacity 120ms;
+  }
+  #ring.on { opacity: 1; }
+  #ring.pinned { border-style: solid; }
+  #ring.dragging { border-style: dashed; }
+  #ring.flash { animation: ringflash 900ms ease-out; }
+  @keyframes ringflash {
+    0% { box-shadow: 0 0 0 6px rgba(88, 166, 255, 0.35); }
+    100% { box-shadow: 0 0 0 0 rgba(88, 166, 255, 0); }
+  }
+  #chip {
+    position: absolute; pointer-events: none; z-index: 21;
+    font-size: 10px; letter-spacing: 0.04em;
+    background: var(--accent); color: #0b1826;
+    border-radius: 4px; padding: 1px 7px;
+    opacity: 0; transition: opacity 120ms;
+    white-space: nowrap;
+  }
+  #chip.on { opacity: 1; }
+
+  /* inline composer — spawns above the annotated block, in document flow */
+  #composer {
+    margin: 4px 0 10px 46px; width: min(560px, calc(100% - 80px));
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 9px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+    padding: 10px;
+  }
+  #composer textarea {
+    width: 100%; min-height: 58px; resize: vertical;
+    background: var(--bg-deep); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 9px; outline: none;
+  }
+  #composer textarea:focus { border-color: var(--accent); }
+  #composer .foot { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  #composer .hint { color: var(--faint); font-size: 10px; flex: 1; }
+  #composer .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 4px 10px; }
+  #composer .btn-primary { background: var(--accent); color: #0b1826; border: 0; border-radius: 6px; padding: 4px 12px; font-weight: 600; }
+
+  /* ---------- inline review: the diff lands in the file ---------- */
+  .line.del { background: var(--del-bg); }
+  .line.del .gut { color: var(--del-fg); }
+  .line.del .txt { color: var(--muted); }
+  .line.add { background: var(--add-bg); }
+  .line.add .gut { color: var(--add-fg); }
+  .line.del .em { background: var(--del-em); border-radius: 2px; }
+  .line.add .em { background: var(--add-em); border-radius: 2px; color: var(--fg); }
+  .abar {
+    display: flex; align-items: center; gap: 10px;
+    margin: 8px 0 5px 46px; width: min(560px, calc(100% - 80px));
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg-raise); padding: 5px 10px;
+  }
+  .abar .note {
+    color: var(--muted); font-size: 11px; flex: 1;
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  }
+  .btn-accept { background: var(--add-fg); color: #06210d; border: 0; border-radius: 6px; padding: 3px 12px; font-weight: 600; }
+  .btn-reject { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 3px 10px; }
+
+  /* Q9 — inline agent thread, pinned in the file */
+  .tbar {
+    display: flex; flex-direction: column; gap: 6px;
+    margin: 8px 0 5px 46px; width: min(560px, calc(100% - 80px));
+    border: 1px solid rgba(210, 153, 34, 0.45); border-left-width: 3px;
+    border-radius: 8px; background: var(--bg-raise); padding: 7px 10px;
+  }
+  .tbar .trow { display: flex; align-items: baseline; gap: 8px; }
+  .tbar .ttext { color: var(--fg); font-size: 12px; flex: 1; white-space: normal; line-height: 17px; }
+  .tbar .treply { display: flex; gap: 6px; }
+  .tbar .treply input { flex: 1; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; outline: none; }
+  .tbar .treply input:focus { border-color: var(--amber); }
+  .tbar .treply button { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 2px 10px; }
+  .alias.a { color: var(--amber); border-color: rgba(210, 153, 34, 0.45); }
+
+  /* Q10 — move source marker */
+  .mbar {
+    display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+    margin: 6px 0 2px 46px; font-size: 11px; color: var(--del-fg);
+    border: 1px dashed rgba(248, 81, 73, 0.4); border-radius: 6px;
+    background: var(--del-bg); padding: 2px 10px;
+  }
+  .mbar:hover { border-style: solid; }
+
+  /* Q11 — compact queue rail */
+  #rail.compact { flex: 0 0 220px; }
+  #rail.compact #docMsg { display: none; }
+  .qrow {
+    display: flex; align-items: center; gap: 8px; height: 26px;
+    padding: 0 6px; border-radius: 6px; cursor: pointer; overflow: hidden;
+  }
+  .qrow:hover { background: var(--bg-raise); }
+  .qrow .qtxt { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qdot { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 999px; background: var(--faint); }
+  .qdot.open { background: var(--accent); }
+  .qdot.waiting { background: var(--amber); animation: pulse 1.4s infinite; }
+  .qdot.ready { background: var(--teal); }
+  .qdot.applied { background: var(--add-fg); }
+  .qdot.declined, .qdot.resolved { background: var(--faint); }
+
+  .dcard .show {
+    background: var(--bg-deep); border: 1px solid var(--border); color: var(--accent);
+    border-radius: 6px; padding: 2px 12px; font-size: 11px;
+  }
+  .dcard .show:hover { border-color: var(--accent); }
+
+  /* ---------- right rail (REQUESTS) ---------- */
+  #rail {
+    flex: 0 0 400px; display: flex; flex-direction: column; min-height: 0;
+    background: var(--bg-panel); border-left: 1px solid var(--border);
+    transition: flex-basis 200ms;
+  }
+  #rail.collapsed { flex: 0 0 36px; }
+  #rail.collapsed > *:not(#railHead) { display: none; }
+  #rail.collapsed #railHead { writing-mode: vertical-rl; height: 100%; padding: 12px 0; border-bottom: 0; justify-content: flex-start; gap: 10px; }
+  #rail.collapsed #railHead .count { display: none; }
+  #railHead {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 12px; height: 36px; flex: 0 0 auto;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted); font-size: 11px; letter-spacing: 0.14em;
+  }
+  #railHead .count { background: var(--bg-raise); border-radius: 999px; padding: 0 8px; font-size: 10px; }
+  #railHead .spacer { flex: 1; }
+  #railHead button { background: transparent; border: 0; color: var(--faint); font-size: 13px; }
+  #railHead button:hover { color: var(--fg); }
+  #docMsg { padding: 10px 12px; border-bottom: 1px solid var(--border-soft); }
+  #docMsg input {
+    width: 100%; background: var(--bg-deep); border: 1px solid var(--border);
+    border-radius: 7px; padding: 6px 10px; outline: none;
+  }
+  #docMsg input:focus { border-color: var(--accent); }
+  #sessionStrip { padding: 6px 12px; border-bottom: 1px solid var(--border-soft); display: none; }
+  #sessionStrip.on { display: block; }
+  #sessionStrip .s-line { color: var(--muted); font-size: 11px; height: 18px; overflow: hidden; }
+  #sessionStrip .s-line.latest { color: var(--accent); }
+  #sessionStrip .s-line.latest.running::after { content: "…"; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: 0.2; } }
+  #cards { flex: 1; overflow: auto; padding: 10px 12px; }
+  .card {
+    border: 1px solid var(--border); border-radius: 9px;
+    padding: 9px 11px; margin-bottom: 10px; background: var(--bg);
+    cursor: pointer;
+  }
+  .card:hover { border-color: var(--faint); }
+  .card.waiting { border-color: var(--amber); }
+  .card .row1 { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+  .alias {
+    font-size: 10px; font-weight: 700; color: var(--accent);
+    border: 1px solid rgba(88, 166, 255, 0.4); border-radius: 4px; padding: 0 5px;
+  }
+  .badge { font-size: 10px; border-radius: 999px; padding: 0 8px; }
+  .badge.open { color: var(--accent); background: rgba(88, 166, 255, 0.12); }
+  .badge.waiting { color: var(--amber); background: rgba(210, 153, 34, 0.14); animation: pulse 1.4s infinite; }
+  .badge.ready { color: var(--teal); background: rgba(78, 201, 176, 0.13); }
+  .badge.applied { color: var(--add-fg); background: rgba(63, 185, 80, 0.13); }
+  .badge.declined, .badge.resolved { color: var(--muted); background: var(--bg-raise); }
+  .card .undo {
+    margin-left: auto; background: transparent; border: 1px solid var(--border);
+    color: var(--muted); border-radius: 6px; padding: 0 8px; font-size: 10px;
+  }
+  .card .body { font-size: 12px; }
+  .thread { border-left: 2px solid var(--border); margin-top: 7px; padding-left: 9px; }
+  .reply { font-size: 11px; margin-bottom: 4px; }
+  .reply .who { color: var(--faint); }
+  .reply .who.agent { color: var(--teal); }
+  .reply-box { display: flex; gap: 6px; margin-top: 6px; }
+  .reply-box input { flex: 1; background: var(--bg-deep); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; outline: none; }
+  .reply-box input:focus { border-color: var(--amber); }
+  .reply-box button { background: var(--bg-raise); border: 1px solid var(--border); color: var(--fg); border-radius: 6px; padding: 2px 10px; }
+  #railFoot { flex: 0 0 auto; border-top: 1px solid var(--border); padding: 10px 12px; }
+  #railFoot input {
+    width: 100%; background: var(--bg-deep); border: 1px solid var(--border);
+    border-radius: 7px; padding: 6px 10px; outline: none; margin-bottom: 8px;
+  }
+  #applyBtn {
+    width: 100%; background: var(--accent); color: #0b1826; border: 0;
+    border-radius: 7px; padding: 7px 0; font-weight: 700; font-size: 13px;
+  }
+  #applyBtn:disabled { background: var(--bg-raise); color: var(--faint); cursor: not-allowed; }
+
+  /* ---------- bottom dock ---------- */
+  #dock {
+    flex: 0 0 auto; background: var(--bg-panel);
+    border-top: 1px solid var(--border); display: flex; flex-direction: column;
+  }
+  #dockHandle { height: 4px; cursor: ns-resize; flex: 0 0 4px; }
+  #dockHandle:hover { background: var(--accent); }
+  #dockTabs {
+    display: flex; align-items: center; height: 32px; flex: 0 0 32px;
+    padding: 0 8px; gap: 2px; border-bottom: 1px solid var(--border-soft);
+  }
+  #dockTabs button.tab {
+    background: transparent; border: 0; color: var(--muted);
+    padding: 0 12px; height: 100%; font-size: 11px; letter-spacing: 0.1em;
+    border-bottom: 2px solid transparent;
+  }
+  #dockTabs button.tab.active { color: var(--fg); border-bottom-color: var(--accent); }
+  #dockTabs .tab .n { color: var(--faint); margin-left: 4px; }
+  #dockTabs .spacer { flex: 1; }
+  #dockCollapse { background: transparent; border: 0; color: var(--faint); font-size: 13px; }
+  #dockCollapse:hover { color: var(--fg); }
+  #dockBody { overflow: auto; padding: 10px 14px; }
+  #dock.collapsed #dockBody, #dock.collapsed #dockHandle { display: none; }
+  .dcard {
+    display: flex; gap: 12px; align-items: baseline;
+    border: 1px solid var(--border-soft); border-radius: 8px;
+    padding: 8px 12px; margin-bottom: 8px; background: var(--bg);
+  }
+  .dcard .dtitle { font-weight: 600; flex: 0 0 300px; }
+  .dcard .dwhy { color: var(--muted); font-size: 12px; flex: 1; }
+  .pill { border-radius: 999px; padding: 1px 10px; font-size: 10px; border: 1px solid; background: transparent; }
+  .pill.proposed { color: var(--accent); border-color: rgba(88, 166, 255, 0.5); }
+  .pill.committed { color: var(--add-fg); border-color: rgba(63, 185, 80, 0.5); }
+  .pill.contested { color: var(--del-fg); border-color: rgba(248, 81, 73, 0.5); }
+  .pill.open { color: var(--amber); border-color: rgba(210, 153, 34, 0.5); }
+  .pill.answered { color: var(--add-fg); border-color: rgba(63, 185, 80, 0.5); }
+  .logline { font-size: 12px; color: var(--muted); height: var(--grid); white-space: pre; }
+  .logline .t { color: var(--faint); margin-right: 12px; }
+  .logline .hl { color: var(--fg); }
+
+  /* ---------- statusbar ---------- */
+  #statusbar {
+    height: 26px; flex: 0 0 26px;
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 14px; font-size: 11px;
+    background: var(--bg-deep); border-top: 1px solid var(--border);
+    color: var(--muted);
+  }
+  #statusbar .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--accent); display: inline-block; margin-right: 6px; }
+  #statusbar .hint { flex: 1; color: var(--faint); }
+
+  /* ---------- legend ---------- */
+  #legend {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #legend .panel {
+    width: 560px; max-height: 80vh; overflow: auto;
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px 26px;
+  }
+  #legend h2 { margin: 0 0 6px; font-size: 14px; }
+  #legend h3 { margin: 16px 0 4px; font-size: 12px; color: var(--accent); letter-spacing: 0.08em; }
+  #legend p, #legend li { color: var(--muted); font-size: 12px; line-height: 18px; }
+  #legend .close { float: right; background: transparent; border: 0; color: var(--muted); font-size: 15px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <span class="agent-name">layout-editor</span>
+  <span class="hash-chip" id="hashChip">pk1-7f1bc2eb</span>
+  <div id="modes">
+    <button data-mode="edit">Edit</button>
+    <button data-mode="annotate" class="active">Annotate</button>
+  </div>
+  <span class="spacer"></span>
+  <span id="annCount">0 requests</span>
+  <button id="legendBtn" title="What is this?">?</button>
+</header>
+
+<div id="main">
+  <div id="centerScroll">
+    <div id="banner" class="hidden">
+      <span class="msg" id="bannerMsg" title="Jump to next change"></span>
+      <button class="ok" id="acceptAllBtn">Accept all</button>
+      <button class="ghost" id="discardBtn">Discard</button>
+    </div>
+    <div id="surfaceWrap" class="annotate">
+      <div id="surface"></div>
+      <div id="ring"></div>
+      <div id="chip"></div>
+      <div id="composer" class="hidden"></div>
+    </div>
+  </div>
+
+  <aside id="rail">
+    <div id="railHead">
+      <span>REQUESTS</span><span class="count" id="railCount">0</span>
+      <span class="spacer"></span>
+      <button id="railCompact" title="Toggle queue view (Q11)">⇄</button>
+      <button id="railCollapse" title="Collapse">▸</button>
+    </div>
+    <div id="docMsg"><input id="docMsgInput" placeholder="Message the whole prompt… (Enter)" /></div>
+    <div id="sessionStrip"></div>
+    <div id="cards"></div>
+    <div id="railFoot">
+      <input id="globalComment" placeholder="Anything else for this run…" />
+      <button id="applyBtn">Apply 0 notes</button>
+    </div>
+  </aside>
+</div>
+
+<div id="dock">
+  <div id="dockHandle"></div>
+  <div id="dockTabs">
+    <button class="tab active" data-tab="decisions">DECISIONS<span class="n" id="nDecisions"></span></button>
+    <button class="tab" data-tab="questions">OPEN QUESTIONS<span class="n" id="nQuestions"></span></button>
+    <button class="tab" data-tab="demos">DEMOS<span class="n" id="nDemos"></span></button>
+    <button class="tab" data-tab="log">SESSION LOG<span class="n" id="nLog"></span></button>
+    <span class="spacer"></span>
+    <button id="dockCollapse" title="Collapse dock">▾</button>
+  </div>
+  <div id="dockBody"></div>
+</div>
+
+<footer id="statusbar">
+  <span><span class="dot" id="modeDot"></span><span id="modeName">annotate</span></span>
+  <span class="hint" id="modeHint"></span>
+  <span id="saveState">~2.4k tokens · saved</span>
+</footer>
+
+<div id="legend" class="hidden">
+  <div class="panel">
+    <button class="close" id="legendClose">✕</button>
+    <h2>Prompt annotation → agent edit loop</h2>
+    <p>Interactive mockup of the design session in
+    <code>docs/.drafts/2026-07-31-annotation-agent-ux-session.md</code>. Everything is
+    simulated client-side; the point is to feel the loop, not to be real.</p>
+    <h3>ANNOTATE</h3>
+    <p>Hover blocks for the targeting ring; click and the composer opens inline,
+    directly above what you clicked (⌘⏎ submits, Esc cancels). What you click is the
+    target — no scope picker. Drag across text for a range target — the real lab
+    requires ⌘-drag; here plain drag works. The top rail input messages the whole
+    document (same queue, document target).</p>
+    <h3>THE RUN</h3>
+    <p>"Apply N notes" starts one agent session over every open request (R1, R2…).
+    The scripted demo: the agent asks a clarifying question on R2 (reply to unblock
+    it — it keeps working the others), then stages its edits. Nothing touches the
+    "live" prompt until you accept.</p>
+    <h3>INLINE REVIEW</h3>
+    <p>Staged changes land in the file itself: red/green diff lines in place, each
+    with a small action bar (R-alias + note + Accept/Reject). Accept/reject is per
+    request, not per hunk. Accept advances the revision hash and the text becomes
+    real; Undo lives on the request card in the rail. You can keep annotating while
+    a draft is staged.</p>
+    <h3>THE DOCK</h3>
+    <p>Secondary dock: the session's design decisions and open questions as live
+    artifacts — click a pill to cycle its status (persisted locally). The DEMOS tab
+    stages the three open UX questions (inline agent threads, inline structural
+    moves, queue-overview rail) so you can compare them in place. The log tab
+    records every loop event, timestamped.</p>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   State
+   ===================================================================== */
+const HASHES = ["pk1-7f1bc2eb", "pk1-3c91d0aa", "pk1-9e42b7f1", "pk1-5b17c44e", "pk1-2d80a611"];
+const T0 = performance.now();
+
+const state = {
+  mode: "annotate",
+  hashIdx: 0,
+  requests: [],          // {id, alias, target, quote, body, status, thread:[], proposal}
+  nextAlias: 1,
+  running: false,
+  compactRail: false,
+  sessionLines: [],
+  pinned: null,          // pinned target while composer open
+  hoverTarget: null,
+  dragging: false,
+  suppressClick: false,
+};
+
+/* =====================================================================
+   Prompt model — blocks own hand-wrapped lines; the agent "edits" these.
+   ===================================================================== */
+const PROMPT = [
+  { tag: "purpose", blocks: [
+    { id: "pu-p1", kind: "paragraph", lines: [
+      "As agent capability grows, its interaction surfaces matter more. The",
+      "UI and UX determine how people inspect agent work, guide it, and",
+      "change the same state.",
+    ]},
+    { id: "pu-b1", kind: "bullet", lines: ["- Each surface makes intelligence legible through a typed artifact."] },
+    { id: "pu-b2", kind: "bullet", lines: ["- Humans and agents share one source of truth."] },
+    { id: "pu-b3", kind: "bullet", lines: [
+      "- Both can read and change that source through interfaces suited to",
+      "  their work.",
+    ]},
+  ]},
+  { tag: "workflow", blocks: [
+    { id: "wf-s1", kind: "step", lines: [
+      "1. Read the open requests before touching the document. Each request",
+      "   is an annotation with an alias (R1, R2, ...).",
+    ]},
+    { id: "wf-s2", kind: "step", lines: [
+      "2. Propose edits as structural steps against the current revision,",
+      "   never as rewritten markdown.",
+    ]},
+    { id: "wf-s3", kind: "step", lines: [
+      "3. Resolve every request individually: done with a note, or declined",
+      "   with a reason.",
+    ]},
+    { id: "wf-s4", kind: "step", lines: [
+      "4. When a request is ambiguous, open a question thread on it and",
+      "   keep working the others.",
+    ]},
+  ]},
+  { tag: "tone", blocks: [
+    { id: "to-b1", kind: "bullet", lines: ["- Plain language. Short sentences. No marketing verbs."] },
+    { id: "to-b2", kind: "bullet", lines: ['- Name the artifact you are changing; never say "the content".'] },
+    { id: "to-b3", kind: "bullet", lines: ["- Prefer one concrete example over three abstract claims."] },
+  ]},
+  { tag: "constraints", blocks: [
+    { id: "co-b1", kind: "bullet", lines: ["- Never edit the rendered markdown directly; it is a build artifact."] },
+    { id: "co-b2", kind: "bullet", lines: [
+      "- Every proposal must validate against the declared variables before",
+      "  it is shown to a reviewer.",
+    ]},
+    { id: "co-b3", kind: "bullet", lines: [
+      "- Apply edits to the live document immediately; the registry reloads",
+      "  the prompt on save.",
+    ]},
+    { id: "co-b4", kind: "bullet", lines: [
+      "- Keep node ids stable across conversions; identity is the undo",
+      "  contract.",
+    ]},
+  ]},
+];
+
+const KIND_LABEL = { paragraph: "paragraph", bullet: "bullet", step: "step" };
+
+function findBlock(id) {
+  for (const s of PROMPT) for (const b of s.blocks) if (b.id === id) return { section: s, block: b };
+  return null;
+}
+
+/* Authored proposals for the scripted demo; anything else gets a generic one. */
+const AUTHORED = {
+  "pu-p1": {
+    newLines: [
+      "The lab surface, the request queue, and the staged diff review are",
+      "the interfaces where people inspect agent work, guide it, and",
+      "change the same prompt document.",
+    ],
+    displayOld: [
+      "«As agent capability grows, its interaction surfaces matter more.» The",
+      "«UI and UX determine» how people inspect agent work, guide it, and",
+      "change the same «state.»",
+    ],
+    displayNew: [
+      "«The lab surface, the request queue, and the staged diff review are»",
+      "«the interfaces where» people inspect agent work, guide it, and",
+      "change the same «prompt document.»",
+    ],
+    note: "Named the three concrete surfaces; dropped the marketing framing.",
+  },
+  "co-b3": {
+    newLines: [
+      "- Stage edits as a draft for review; the registry reloads the prompt",
+      "  only after a reviewer accepts the revision.",
+    ],
+    displayOld: [
+      "- «Apply edits to the live document immediately»; the registry «reloads»",
+      "  «the prompt on save.»",
+    ],
+    displayNew: [
+      "- «Stage edits as a draft for review»; the registry «reloads the prompt»",
+      "  «only after a reviewer accepts the revision.»",
+    ],
+    note: "Reconciled with staged review: autosave never ships agent edits.",
+  },
+};
+
+/* =====================================================================
+   Surface rendering (strict 21px grid, line numbers)
+   ===================================================================== */
+let LINES = []; // {n?, text, section, blockId, cls, del?, add?} | {kind:"abar", req, blockId, section}
+
+function pendingFor(blockId) {
+  return state.requests.find((r) => r.status === "ready" && r.proposal &&
+    r.proposal.type !== "move" && r.proposal.blockId === blockId);
+}
+function threadFor(blockId) {
+  return state.requests.find((r) => r.status === "waiting" &&
+    r.target.blockId === blockId && (r.kind === "question" || r.kind === "note"));
+}
+function moveSourceFor(blockId) {
+  return state.requests.find((r) => r.status === "ready" && r.proposal &&
+    r.proposal.type === "move" && r.proposal.blockId === blockId);
+}
+function movesTo(tag) {
+  return state.requests.filter((r) => r.status === "ready" && r.proposal &&
+    r.proposal.type === "move" && r.proposal.toTag === tag);
+}
+
+function buildLines() {
+  LINES = [];
+  let n = 1;
+  const push = (entry) => {
+    if (!entry.kind && !entry.del) entry.n = n++;
+    LINES.push(entry);
+  };
+  PROMPT.forEach((s, si) => {
+    if (si > 0) push({ text: "", section: null, blockId: null, cls: "blank" });
+    push({ text: "<" + s.tag + ">", section: s.tag, blockId: null, cls: "tag" });
+    s.blocks.forEach((b, bi) => {
+      const prev = s.blocks[bi - 1];
+      if (prev && prev.kind !== b.kind) push({ text: "", section: s.tag, blockId: null, cls: "blank" });
+      const tq = threadFor(b.id);
+      if (tq) push({ kind: "tbar", req: tq, section: s.tag, blockId: b.id });
+      const mv = moveSourceFor(b.id);
+      const req = pendingFor(b.id);
+      if (mv) {
+        push({ kind: "mbar", req: mv, section: s.tag, blockId: b.id });
+        b.lines.forEach((ln) => push({ text: ln, section: s.tag, blockId: b.id, cls: b.kind, del: true }));
+      } else if (req) {
+        push({ kind: "abar", req, section: s.tag, blockId: b.id });
+        req.proposal.displayOld.forEach((t) => push({ text: t, section: s.tag, blockId: b.id, cls: b.kind, del: true }));
+        req.proposal.displayNew.forEach((t) => push({ text: t, section: s.tag, blockId: b.id, cls: b.kind, add: true }));
+      } else {
+        b.lines.forEach((ln) => push({ text: ln, section: s.tag, blockId: b.id, cls: b.kind }));
+      }
+    });
+    movesTo(s.tag).forEach((mv) => {
+      const mb = findBlock(mv.proposal.blockId).block;
+      push({ kind: "abar", req: mv, section: s.tag, blockId: mv.proposal.blockId, move: true });
+      mb.lines.forEach((ln) => push({ text: ln, section: s.tag, blockId: mv.proposal.blockId, cls: mb.kind, add: true }));
+    });
+    push({ text: "</" + s.tag + ">", section: s.tag, blockId: null, cls: "tag" });
+  });
+}
+
+function esc(t) {
+  return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function lineHtml(l) {
+  let t = esc(l.text);
+  if (l.cls === "tag") t = '<span class="tag">' + t + "</span>";
+  else t = t.replace(/^(\s*)(- |\d+\. )/, '$1<span class="dash">$2</span>');
+  return t;
+}
+
+function renderSurface() {
+  if (state.pinned) closeComposer();
+  buildLines();
+  const el = document.getElementById("surface");
+  el.innerHTML = LINES.map((l) => {
+    if (l.kind === "abar") {
+      const r = l.req;
+      return '<div class="abar" data-block="' + l.blockId + '"><span class="alias ' +
+        (r.author === "agent" ? "a" : "") + '">' + r.alias + "</span>" +
+        '<span class="note">' + esc(r.proposal.note) + "</span>" +
+        '<button class="btn-reject" data-reject="' + r.id + '">Reject</button>' +
+        '<button class="btn-accept" data-accept="' + r.id + '">Accept</button></div>';
+    }
+    if (l.kind === "tbar") {
+      const r = l.req;
+      const lastAgent = [...r.thread].reverse().find((m) => m.who === "agent");
+      return '<div class="tbar" data-block="' + l.blockId + '"><div class="trow">' +
+        '<span class="alias ' + (r.author === "agent" ? "a" : "") + '">' + r.alias + "</span>" +
+        '<span class="ttext">' + esc(lastAgent ? lastAgent.body : r.body) + "</span></div>" +
+        '<div class="treply"><input placeholder="Reply to ' + r.alias + '…" data-treply="' + r.id + '" />' +
+        '<button data-treplybtn="' + r.id + '">Reply</button></div></div>';
+    }
+    if (l.kind === "mbar") {
+      const r = l.req;
+      return '<div class="mbar" data-jump="' + r.id + '">' + r.alias +
+        " · moved to &lt;" + r.proposal.toTag + "&gt; ↓ — click to review</div>";
+    }
+    const cls = "line" + (l.cls === "blank" ? " blank" : "") + (l.del ? " del" : "") + (l.add ? " add" : "");
+    const gut = l.del ? "−" : (l.add ? "+" : l.n);
+    const txt = (l.del || l.add)
+      ? emHtml(l.text).replace(/^(\s*)(- |\d+\. )/, '$1<span class="dash">$2</span>')
+      : lineHtml(l);
+    return '<div class="' + cls + '"' + (l.n ? ' data-n="' + l.n + '"' : "") +
+      (l.blockId ? ' data-block="' + l.blockId + '"' : "") +
+      (l.section ? ' data-section="' + l.section + '"' : "") +
+      '><span class="gut">' + gut + '</span><span class="txt">' + txt + "</span></div>";
+  }).join("");
+  el.querySelectorAll("[data-accept]").forEach((b) =>
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      acceptProposal(state.requests.find((r) => r.id === b.dataset.accept));
+    }));
+  el.querySelectorAll("[data-reject]").forEach((b) =>
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      rejectProposal(state.requests.find((r) => r.id === b.dataset.reject));
+    }));
+  el.querySelectorAll("[data-treplybtn]").forEach((b) =>
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const input = el.querySelector('[data-treply="' + b.dataset.treplybtn + '"]');
+      sendReplyText(b.dataset.treplybtn, input.value.trim());
+    }));
+  el.querySelectorAll("[data-treply]").forEach((i) =>
+    i.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendReplyText(i.dataset.treply, i.value.trim());
+      e.stopPropagation();
+    }));
+  el.querySelectorAll("[data-jump]").forEach((m) =>
+    m.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const bar = el.querySelector('[data-accept="' + m.dataset.jump + '"]');
+      if (bar) bar.closest(".abar").scrollIntoView({ block: "center", behavior: "smooth" });
+    }));
+}
+
+/* =====================================================================
+   Targets, ring, chip
+   ===================================================================== */
+function targetLabel(t) {
+  if (!t) return "";
+  if (t.type === "doc") return "document";
+  if (t.type === "section") return "section · " + t.tag;
+  if (t.type === "range") return "selection · " + (findBlock(t.blockId)?.section.tag || "document");
+  const f = findBlock(t.blockId);
+  return (KIND_LABEL[f.block.kind] || "block") + " · " + f.section.tag;
+}
+function targetKey(t) {
+  return t.type + ":" + (t.blockId || t.tag || "doc");
+}
+function elementsFor(t) {
+  const wrap = document.getElementById("surface");
+  if (t.type === "doc") return [...wrap.querySelectorAll(".line")];
+  if (t.type === "section") return [...wrap.querySelectorAll('.line[data-section="' + t.tag + '"]')];
+  return [...wrap.querySelectorAll('.line[data-block="' + t.blockId + '"]')];
+}
+function rectFor(t) {
+  const els = elementsFor(t).filter((e) => !e.classList.contains("blank"));
+  if (!els.length) return null;
+  let top = Infinity, left = Infinity, right = 0, bottom = 0;
+  for (const el of els) {
+    const txt = el.querySelector(".txt");
+    top = Math.min(top, el.offsetTop);
+    bottom = Math.max(bottom, el.offsetTop + el.offsetHeight);
+    left = Math.min(left, el.offsetLeft + txt.offsetLeft);
+    right = Math.max(right, el.offsetLeft + txt.offsetLeft + txt.offsetWidth);
+  }
+  return { top: top - 3, left: left - 6, width: right - left + 12, height: bottom - top + 6 };
+}
+
+const ring = document.getElementById("ring");
+const chip = document.getElementById("chip");
+
+function moveRing(rect, label, pinned) {
+  if (!rect) { hideRing(); return; }
+  ring.style.top = rect.top + "px";
+  ring.style.left = rect.left + "px";
+  ring.style.width = rect.width + "px";
+  ring.style.height = rect.height + "px";
+  ring.classList.add("on");
+  ring.classList.toggle("pinned", !!pinned);
+  chip.textContent = label;
+  const chipTop = rect.top - 24;
+  chip.style.top = (chipTop < 2 ? rect.top + 4 : chipTop) + "px";
+  chip.style.left = rect.left + "px";
+  chip.classList.add("on");
+}
+function hideRing() {
+  ring.classList.remove("on", "pinned", "dragging");
+  chip.classList.remove("on");
+}
+function flashTarget(t) {
+  const els = elementsFor(t);
+  if (els.length) els[0].scrollIntoView({ block: "center", behavior: "smooth" });
+  setTimeout(() => {
+    moveRing(rectFor(t), targetLabel(t), true);
+    ring.classList.remove("flash"); void ring.offsetWidth; ring.classList.add("flash");
+    setTimeout(() => { if (!state.pinned) hideRing(); }, 1200);
+  }, 260);
+}
+
+/* =====================================================================
+   Annotate mode: hover, click-to-pin, drag-to-range
+   ===================================================================== */
+const surfaceWrap = document.getElementById("surfaceWrap");
+
+function hoverTargetFromEvent(e) {
+  if (e.target.closest(".abar") || e.target.closest(".tbar") ||
+      e.target.closest(".mbar") || e.target.closest("#composer")) return null;
+  const line = e.target.closest(".line");
+  if (!line || line.classList.contains("del") || line.classList.contains("add")) return null;
+  if (line.dataset.block) return { type: "block", blockId: line.dataset.block };
+  if (line.dataset.section && !line.classList.contains("blank")) return { type: "section", tag: line.dataset.section };
+  return null;
+}
+
+surfaceWrap.addEventListener("mousemove", (e) => {
+  if (state.mode !== "annotate" || state.pinned) return;
+  if (state.dragging) { updateDragRing(); return; }
+  const t = hoverTargetFromEvent(e);
+  state.hoverTarget = t;
+  if (t) moveRing(rectFor(t), targetLabel(t), false); else hideRing();
+});
+surfaceWrap.addEventListener("mouseleave", () => {
+  if (!state.pinned && !state.dragging) hideRing();
+});
+
+/* drag → range target (real lab: ⌘-drag; here plain drag) */
+let dragStart = null;
+surfaceWrap.addEventListener("mousedown", (e) => {
+  if (state.mode !== "annotate" || state.pinned) return;
+  if (e.target.closest("#composer")) return;
+  dragStart = { x: e.clientX, y: e.clientY, line: e.target.closest(".line") };
+  state.dragging = false;
+});
+document.addEventListener("mousemove", (e) => {
+  if (!dragStart) return;
+  if (!state.dragging && Math.hypot(e.clientX - dragStart.x, e.clientY - dragStart.y) > 6) {
+    state.dragging = true;
+    ring.classList.add("dragging");
+  }
+});
+function updateDragRing() {
+  const sel = window.getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return;
+  const r = sel.getRangeAt(0).getBoundingClientRect();
+  const w = surfaceWrap.getBoundingClientRect();
+  moveRing({ top: r.top - w.top - 3, left: r.left - w.left - 6, width: r.width + 12, height: r.height + 6 },
+    "selection", false);
+  ring.classList.add("dragging");
+}
+document.addEventListener("mouseup", () => {
+  if (!dragStart) return;
+  const wasDragging = state.dragging;
+  const startLine = dragStart.line;
+  dragStart = null;
+  state.dragging = false;
+  ring.classList.remove("dragging");
+  if (!wasDragging || state.mode !== "annotate") return;
+  const sel = window.getSelection();
+  const text = sel.toString().replace(/\s+/g, " ").trim();
+  sel.removeAllRanges();
+  state.suppressClick = true;
+  setTimeout(() => (state.suppressClick = false), 0);
+  if (text.length < 3 || !startLine) { hideRing(); return; }
+  const blockId = startLine.dataset.block ||
+    (findFirstBlockOfSection(startLine.dataset.section) || {}).id;
+  if (!blockId) { hideRing(); return; }
+  openComposer({ type: "range", blockId, quote: text });
+});
+function findFirstBlockOfSection(tag) {
+  const s = PROMPT.find((x) => x.tag === tag);
+  return s ? s.blocks[0] : null;
+}
+
+surfaceWrap.addEventListener("click", (e) => {
+  if (state.mode !== "annotate" || state.suppressClick) return;
+  if (e.target.closest("#composer")) return;
+  if (state.pinned) { closeComposer(); return; }
+  const t = hoverTargetFromEvent(e);
+  if (t) openComposer(t);
+});
+
+/* =====================================================================
+   Inline composer — spawns above the target, in document flow.
+   What you click is the target; no scope widening.
+   ===================================================================== */
+const composer = document.getElementById("composer");
+
+function openComposer(target) {
+  state.pinned = target;
+  composer.innerHTML =
+    '<textarea id="composerText" placeholder="What should the agent do here?"></textarea>' +
+    '<div class="foot"><span class="hint">⌘⏎ to submit · esc to cancel</span>' +
+    '<button class="btn-ghost" id="composerCancel">Cancel</button>' +
+    '<button class="btn-primary" id="composerSubmit">Annotate</button></div>';
+  const anchor = elementsFor(target)[0];
+  anchor.parentElement.insertBefore(composer, anchor);
+  composer.classList.remove("hidden");
+  moveRing(rectFor(target), targetLabel(target), true);
+  composer.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  composer.querySelector("#composerCancel").addEventListener("click", (e) => {
+    e.stopPropagation(); closeComposer();
+  });
+  composer.querySelector("#composerSubmit").addEventListener("click", (e) => {
+    e.stopPropagation(); submitComposer();
+  });
+  const ta = composer.querySelector("#composerText");
+  ta.focus();
+  ta.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") submitComposer();
+  });
+}
+
+function closeComposer() {
+  composer.classList.add("hidden");
+  surfaceWrap.appendChild(composer);
+  state.pinned = null;
+  hideRing();
+}
+
+function submitComposer() {
+  const body = document.getElementById("composerText").value.trim();
+  if (!body) return;
+  const t = state.pinned;
+  addRequest(t, body, t.type === "range" ? t.quote : null);
+  closeComposer();
+}
+
+/* =====================================================================
+   Requests (the queue)
+   ===================================================================== */
+function addRequest(target, body, quote, author, aliasOverride) {
+  const alias = aliasOverride || "R" + state.nextAlias++;
+  const req = { id: alias, alias, target, quote, body, status: "open", thread: [],
+    proposal: null, author: author || "you", kind: null };
+  state.requests.push(req);
+  log(alias + " created on " + targetLabel(target), true);
+  renderRail();
+  return req;
+}
+
+function openCount() {
+  return state.requests.filter((r) => r.status === "open").length;
+}
+
+const cardsEl = document.getElementById("cards");
+
+function badge(r) {
+  const map = { open: "open", waiting: "waiting on you", ready: "proposal ready", applied: "applied", declined: "declined", resolved: "resolved" };
+  return '<span class="badge ' + r.status + '">' + map[r.status] + "</span>";
+}
+
+function renderRail() {
+  document.getElementById("railCount").textContent = state.requests.length;
+  document.getElementById("annCount").textContent =
+    state.requests.length + " request" + (state.requests.length === 1 ? "" : "s");
+  const btn = document.getElementById("applyBtn");
+  const n = openCount();
+  btn.textContent = n ? "Apply " + n + " note" + (n === 1 ? "" : "s") : "Ask";
+  btn.disabled = state.running || n === 0;
+
+  document.getElementById("rail").classList.toggle("compact", state.compactRail);
+  if (state.compactRail) {
+    cardsEl.innerHTML = state.requests.map((r) =>
+      '<div class="qrow" data-id="' + r.id + '"><span class="alias ' +
+      (r.author === "agent" ? "a" : "") + '">' + r.alias + "</span>" +
+      '<span class="qdot ' + r.status + '"></span>' +
+      '<span class="qtxt">' + esc(r.body) + "</span></div>"
+    ).join("");
+    cardsEl.querySelectorAll(".qrow").forEach((c) =>
+      c.addEventListener("click", () => {
+        const r = state.requests.find((x) => x.id === c.dataset.id);
+        if (r) flashTarget(r.target);
+      }));
+    return;
+  }
+  cardsEl.innerHTML = state.requests.map((r) => {
+    let h = '<div class="card ' + (r.status === "waiting" ? "waiting" : "") + '" data-id="' + r.id + '">';
+    h += '<div class="row1"><span class="alias">' + r.alias + "</span>" + badge(r) +
+      (r.status === "applied" ? '<button class="undo" data-undo="' + r.id + '">Undo</button>' : "") +
+      "</div>";
+    h += '<div class="body">' + esc(r.body) + "</div>";
+    if (r.thread.length) {
+      h += '<div class="thread">' + r.thread.map((m) =>
+        '<div class="reply"><span class="who ' + m.who + '">' + m.who + " · </span>" + esc(m.body) + "</div>"
+      ).join("") + "</div>";
+    }
+    if (r.status === "waiting") {
+      h += '<div class="reply-box"><input placeholder="Reply to unblock ' + r.alias + '…" data-reply="' + r.id + '" />' +
+        '<button data-replybtn="' + r.id + '">Reply</button></div>';
+    }
+    h += "</div>";
+    return h;
+  }).join("");
+
+  cardsEl.querySelectorAll(".card").forEach((c) =>
+    c.addEventListener("click", (e) => {
+      if (e.target.closest(".reply-box") || e.target.closest("[data-undo]")) return;
+      const r = state.requests.find((x) => x.id === c.dataset.id);
+      if (r) flashTarget(r.target);
+    }));
+  cardsEl.querySelectorAll("[data-undo]").forEach((b) =>
+    b.addEventListener("click", () => undoProposal(state.requests.find((r) => r.id === b.dataset.undo))));
+  cardsEl.querySelectorAll("[data-replybtn]").forEach((b) =>
+    b.addEventListener("click", () => sendReply(b.dataset.replybtn)));
+  cardsEl.querySelectorAll("[data-reply]").forEach((i) =>
+    i.addEventListener("keydown", (e) => { if (e.key === "Enter") sendReply(i.dataset.reply); }));
+}
+
+function sendReplyText(id, text) {
+  if (!text) return;
+  const r = state.requests.find((x) => x.id === id);
+  r.thread.push({ who: "you", body: text });
+  r.status = "open";
+  log(r.alias + " · you replied", false);
+  renderSurface(); renderRail();
+  if (r.kind === "note") {
+    setTimeout(() => {
+      r.thread.push({ who: "agent", body: "Agreed — I’ll treat validation as the harder rule and adjust <tone> in the next draft." });
+      r.status = "resolved";
+      log(r.alias + " · resolved", false);
+      renderSurface(); renderRail();
+    }, 900);
+    return;
+  }
+  setTimeout(() => {
+    r.thread.push({ who: "agent", body: "Got it — staged." });
+    makeProposal(r);
+    r.status = "ready";
+    log(r.alias + " · proposal staged inline", true);
+    renderSurface(); renderRail(); updateBanner();
+  }, 1000);
+}
+
+function sendReply(id) {
+  const input = cardsEl.querySelector('[data-reply="' + id + '"]');
+  sendReplyText(id, input.value.trim());
+}
+
+/* document-level message input */
+document.getElementById("docMsgInput").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  const v = e.target.value.trim();
+  if (!v) return;
+  addRequest({ type: "doc" }, v, null);
+  e.target.value = "";
+});
+
+/* rail collapse + queue view */
+document.getElementById("railCompact").addEventListener("click", () => {
+  state.compactRail = !state.compactRail;
+  log("Rail → " + (state.compactRail ? "queue overview (Q11)" : "full cards"), false);
+  renderRail();
+});
+document.getElementById("railCollapse").addEventListener("click", () => {
+  const rail = document.getElementById("rail");
+  rail.classList.toggle("collapsed");
+  document.getElementById("railCollapse").textContent = rail.classList.contains("collapsed") ? "◂" : "▸";
+});
+
+/* =====================================================================
+   Run simulation
+   ===================================================================== */
+const strip = document.getElementById("sessionStrip");
+function pushSession(msg, running) {
+  state.sessionLines.push(msg);
+  strip.classList.add("on");
+  const last = state.sessionLines.slice(-4);
+  strip.innerHTML = last.map((m, i) =>
+    '<div class="s-line ' + (i === last.length - 1 ? "latest " + (running ? "running" : "") : "") + '">' + esc(m) + "</div>"
+  ).join("");
+}
+
+document.getElementById("applyBtn").addEventListener("click", () => {
+  if (state.running || openCount() === 0) return;
+  const g = document.getElementById("globalComment");
+  if (g.value.trim()) { addRequest({ type: "doc" }, g.value.trim(), null); g.value = ""; }
+  runAgent();
+});
+
+function runAgent() {
+  state.running = true;
+  const open = state.requests.filter((r) => r.status === "open");
+  log("Run started (" + open.length + " request" + (open.length === 1 ? "" : "s") + ") · base " + HASHES[state.hashIdx], true);
+  pushSession("Session started · base " + HASHES[state.hashIdx], true);
+  renderRail();
+
+  const questioned = open.find((r) => r.target.blockId === "co-b3");
+  const rest = open.filter((r) => r !== questioned);
+
+  setTimeout(() => pushSession("Reading prompt + " + open.length + " requests…", true), 700);
+
+  setTimeout(() => {
+    if (questioned) {
+      questioned.thread.push({ who: "agent", body:
+        "Autosave writes the live prompt ~1.5s after edits — should this rule instead say “agent edits are staged for review”? (yes/no)" });
+      questioned.status = "waiting";
+      questioned.kind = "question";
+      pushSession(questioned.alias + " · asked a question", true);
+      log(questioned.alias + " · agent asked a question (inline)", true);
+      renderSurface();
+      renderRail();
+    }
+  }, 1600);
+
+  setTimeout(() => {
+    for (const r of rest) {
+      if (r.target.type === "doc") {
+        r.thread.push({ who: "agent", body: "Read the whole document; folded this into the draft summary." });
+        r.status = "resolved";
+        log(r.alias + " · resolved (document note)", false);
+      } else {
+        makeProposal(r);
+        r.status = "ready";
+        pushSession(r.alias + " · proposal staged inline", true);
+        log(r.alias + " · proposal staged inline", true);
+      }
+    }
+    renderSurface();
+    renderRail();
+  }, 2500);
+
+  setTimeout(() => {
+    state.running = false;
+    const n = pendingProposals().length;
+    pushSession("Draft ready · " + n + " inline proposal" + (n === 1 ? "" : "s"), false);
+    renderRail();
+    updateBanner();
+  }, 3300);
+}
+
+function pendingProposals() {
+  return state.requests.filter((r) => r.status === "ready" && r.proposal);
+}
+
+function updateBanner() {
+  const n = pendingProposals().length;
+  const banner = document.getElementById("banner");
+  if (n) {
+    document.getElementById("bannerMsg").textContent =
+      "Agent draft — " + n + " inline change" + (n === 1 ? "" : "s") + " staged, nothing saved";
+    banner.classList.remove("hidden");
+  } else banner.classList.add("hidden");
+  setSaveState();
+}
+document.getElementById("acceptAllBtn").addEventListener("click", () =>
+  pendingProposals().slice().forEach(acceptProposal));
+document.getElementById("discardBtn").addEventListener("click", discardDraft);
+document.getElementById("bannerMsg").addEventListener("click", () => {
+  const bar = document.querySelector(".abar");
+  if (bar) bar.scrollIntoView({ block: "center", behavior: "smooth" });
+});
+
+/* =====================================================================
+   Proposals + diffs
+   ===================================================================== */
+function proposalBlockId(r) {
+  if (r.target.type === "section") return findFirstBlockOfSection(r.target.tag).id;
+  return r.target.blockId;
+}
+
+function makeProposal(r) {
+  const blockId = proposalBlockId(r);
+  const f = findBlock(blockId);
+  const a = AUTHORED[blockId];
+  if (a) {
+    r.proposal = { blockId, oldLines: f.block.lines.slice(), newLines: a.newLines.slice(),
+      displayOld: a.displayOld, displayNew: a.displayNew, note: a.note };
+  } else {
+    const old = f.block.lines.slice();
+    const nw = old.slice();
+    const lastIdx = nw.length - 1;
+    nw[lastIdx] = nw[lastIdx].replace(/\.\s*$/, "") + " — stated concretely.";
+    const dNew = nw.slice();
+    dNew[lastIdx] = dNew[lastIdx].replace(" — stated concretely.", " «— stated concretely.»");
+    r.proposal = { blockId, oldLines: old, newLines: nw, displayOld: old.slice(), displayNew: dNew,
+      note: "Tightened per " + r.alias + "." };
+  }
+}
+
+function emHtml(t) {
+  return esc(t).replace(/«/g, '<span class="em">').replace(/»/g, "</span>");
+}
+
+function acceptProposal(r) {
+  const p = r.proposal;
+  if (p.type === "move") {
+    const from = PROMPT.find((s) => s.blocks.some((b) => b.id === p.blockId));
+    const idx = from.blocks.findIndex((b) => b.id === p.blockId);
+    const blk = from.blocks.splice(idx, 1)[0];
+    p.undoFrom = { tag: from.tag, idx };
+    PROMPT.find((s) => s.tag === p.toTag).blocks.push(blk);
+  } else {
+    findBlock(p.blockId).block.lines = p.newLines.slice();
+  }
+  r.status = "applied";
+  state.hashIdx = Math.min(state.hashIdx + 1, HASHES.length - 1);
+  setHash();
+  renderSurface();
+  r.thread.push({ who: "agent", body: "Applied as one transaction → " + HASHES[state.hashIdx] });
+  log(r.alias + " accepted → " + HASHES[state.hashIdx], true);
+  flashTarget({ type: "block", blockId: p.blockId });
+  renderRail(); updateBanner();
+}
+
+function undoProposal(r) {
+  const p = r.proposal;
+  if (p.type === "move") {
+    const to = PROMPT.find((s) => s.tag === p.toTag);
+    const idx = to.blocks.findIndex((b) => b.id === p.blockId);
+    const blk = to.blocks.splice(idx, 1)[0];
+    PROMPT.find((s) => s.tag === p.undoFrom.tag).blocks.splice(p.undoFrom.idx, 0, blk);
+  } else {
+    findBlock(p.blockId).block.lines = p.oldLines.slice();
+  }
+  r.status = "ready";
+  state.hashIdx = Math.max(state.hashIdx - 1, 0);
+  setHash();
+  renderSurface();
+  r.thread.push({ who: "you", body: "Undid the transaction." });
+  log(r.alias + " undone → " + HASHES[state.hashIdx], true);
+  renderRail(); updateBanner();
+}
+
+function rejectProposal(r) {
+  r.status = "declined";
+  r.thread.push({ who: "agent", body: "Declined — closing this request." });
+  log(r.alias + " rejected", false);
+  renderSurface(); renderRail(); updateBanner();
+}
+
+function discardDraft() {
+  for (const r of pendingProposals()) { r.proposal = null; r.status = "open"; }
+  log("Draft discarded · all requests reopened", true);
+  renderSurface(); renderRail(); updateBanner();
+}
+
+function setHash() {
+  const chipEl = document.getElementById("hashChip");
+  chipEl.textContent = HASHES[state.hashIdx];
+  chipEl.classList.add("bump");
+  setTimeout(() => chipEl.classList.remove("bump"), 400);
+  setSaveState();
+}
+
+/* =====================================================================
+   Modes + statusbar
+   ===================================================================== */
+const HINTS = {
+  edit: "Editing disabled in this mockup — inline agent diffs still show here.",
+  annotate: "Hover a block · click → composer opens inline above it · drag for a range (real lab: ⌘-drag)",
+};
+
+function setMode(m) {
+  state.mode = m;
+  closeComposer();
+  document.querySelectorAll("#modes button").forEach((b) =>
+    b.classList.toggle("active", b.dataset.mode === m));
+  surfaceWrap.classList.toggle("annotate", m === "annotate");
+  document.getElementById("modeName").textContent = m;
+  document.getElementById("modeHint").textContent = HINTS[m];
+  updateBanner();
+  log("Mode → " + m, false);
+}
+document.querySelectorAll("#modes button").forEach((b) =>
+  b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+function setSaveState() {
+  const n = pendingProposals().length;
+  document.getElementById("saveState").textContent =
+    "~2.4k tokens · " + (n ? "agent draft — not saved" : "saved · " + HASHES[state.hashIdx]);
+}
+
+/* =====================================================================
+   Dock: decisions / open questions / session log
+   ===================================================================== */
+const DECISIONS = [
+  { id: "d7", title: "Review is a state of the file, not a mode", st: "committed", why: "Ford-confirmed: composer inline above the target (⌘K style), no scope bubbles, diffs land in place with per-request action bars. Review mode deleted." },
+  { id: "d9", title: "Write-through per Accept", st: "committed", why: "Ford-decided: Cursor ⌘K feel — each accept lands on disk immediately as its own revision." },
+  { id: "d8", title: "Live-only annotation sidecar", st: "committed", why: "Ford's lean: sidecar holds open annotations only — anchors go stale; agent-run history belongs to traces + the prompt_revisions chain." },
+  { id: "d1", title: "Agent edits the AST", why: "Emits PromptStep transactions, never text — patchId = transaction, undo = revertSteps, validation is an automatic retry loop." },
+  { id: "d2", title: "Adopt canvas’s session/queue model", why: "R-aliases, batch “Apply N notes”, per-request resolution; the agent asks via non-blocking threads instead of stalling." },
+  { id: "d10", title: "One agent per batch by default", why: "Whole-prompt context beats per-request agents (they collide). Fan out only for request groups with provably disjoint node targets — the AST makes that check static." },
+  { id: "d4", title: "Accept/reject per request, not per hunk", why: "Structural steps (moves) don’t decompose into hunks; “R1 caused these hunks” is more legible anyway." },
+  { id: "d5", title: "Pierre FileDiff renders the diff", why: "Rendered-text diff with the driving annotation injected inline (HUNK style); same component serves revision compare." },
+  { id: "d6", title: "Edit-only first", why: "No catalog create API exists; “new prompt” is a template-seeded conversation later, not an annotation flow." },
+];
+const QUESTIONS = [
+  { id: "q1", title: "baseHash drift while you type", why: "Human edits during an agent run — rebase policy? Id-based updates rebase cleanly; path-based inserts don’t." },
+  { id: "q2", title: "Accept-all: squash or n revisions?", why: "Per-accept write-through is decided; does Accept-all mint one revision or one per request?" },
+  { id: "q3", title: "Inline threads: default variant", why: "Agent notes always inline (Q9 demo), or inline only while unresolved and archived to the rail after?" },
+  { id: "q4", title: "Moves inline, beyond the demo", why: "Q10 covers one block between two sections. Multi-block moves, reorders within a section, move+edit combos — how far does inline rendering stretch?" },
+  { id: "q5", title: "Rail fate", why: "Full cards vs queue overview (Q11) as the default — or does the queue collapse into the dock entirely?" },
+  { id: "q6", title: "Where the session layer lives", why: "Lift pendingNotes / R-aliases / resolve semantics into @codecaine-ai/annotations so prompt-kit, docs, canvas share it." },
+  { id: "q7", title: "Revision stats in review", why: "Stats key by revision hash — after accepting, the next runs measure whether the edit helped. Show it in the review UI?" },
+  { id: "q8", title: "Silent target widening", why: "Cross-block drags auto-widen to a common ancestor with no breadcrumb to override. Probably fine — confirm." },
+];
+const DEMOS = [
+  { id: "q9", title: "Q9 · Inline agent threads", btn: "Show",
+    why: "Message the whole prompt; the agent pins a placed note (A1) exactly where the issue is. The thread lives in the file — amber bar, reply inline — not just in the rail." },
+  { id: "q10", title: "Q10 · Structural move, inline", btn: "Show",
+    why: "The agent moves a bullet between sections: red + “moved to” marker at the source, green lines + one action bar at the destination. One transaction, node id kept." },
+  { id: "q11", title: "Q11 · Rail as queue overview", btn: "Toggle",
+    why: "If composing, review, and threads are all inline, the rail can shrink to a jump list + Apply. Toggle it (also the ⇄ button in the rail header) and feel the difference." },
+];
+
+function demoQ9() {
+  const existing = state.requests.find((r) => r.alias === "A1");
+  if (existing) { flashTarget(existing.target); return; }
+  const doc = addRequest({ type: "doc" }, "Check the prompt for internal contradictions.");
+  log("Q9 demo · document message sent", true);
+  setTimeout(() => {
+    doc.thread.push({ who: "agent", body: "Found one — pinned A1 on <constraints>." });
+    doc.status = "resolved";
+    const a = addRequest({ type: "block", blockId: "co-b2" },
+      "<tone> says “prefer one concrete example”, but examples that include variables fail this validation rule. Which wins?",
+      null, "agent", "A1");
+    a.kind = "note";
+    a.status = "waiting";
+    log("A1 · agent pinned an inline note on <constraints>", true);
+    renderSurface(); renderRail();
+    flashTarget(a.target);
+  }, 900);
+}
+
+function demoQ10() {
+  const existing = state.requests.find((r) => r.proposal && r.proposal.type === "move");
+  if (existing) { flashTarget(existing.target); return; }
+  const r = addRequest({ type: "block", blockId: "to-b3" },
+    "This is example guidance, not tone — move it into <constraints>.");
+  r.author = "agent";
+  r.proposal = { type: "move", blockId: "to-b3", toTag: "constraints",
+    note: "Move from <tone> · 1 transaction (remove + insert, node id kept)" };
+  r.status = "ready";
+  log(r.alias + " · move staged inline (tone → constraints)", true);
+  renderSurface(); renderRail(); updateBanner();
+  flashTarget(r.target);
+}
+
+function demoQ11() {
+  state.compactRail = !state.compactRail;
+  log("Rail → " + (state.compactRail ? "queue overview (Q11)" : "full cards"), false);
+  renderRail();
+}
+const DEMO_FNS = { q9: demoQ9, q10: demoQ10, q11: demoQ11 };
+
+const DECISION_STATES = ["proposed", "committed", "contested"];
+const QUESTION_STATES = ["open", "answered"];
+const LS_D = "annotation-agent-ux.decisions.v1";
+const LS_Q = "annotation-agent-ux.questions.v2"; // v2: question set remapped 2026-07-31
+
+function lsGet(k) { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch { return {}; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+
+let dockTab = "decisions";
+const LOG = [];
+
+function log(msg, highlight) {
+  const s = Math.floor((performance.now() - T0) / 1000);
+  const t = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  LOG.push({ t, msg, highlight });
+  document.getElementById("nLog").textContent = LOG.length;
+  if (dockTab === "log") renderDock();
+}
+
+function renderDock() {
+  const body = document.getElementById("dockBody");
+  document.querySelectorAll("#dockTabs .tab").forEach((b) =>
+    b.classList.toggle("active", b.dataset.tab === dockTab));
+  document.getElementById("nDecisions").textContent = DECISIONS.length;
+  document.getElementById("nQuestions").textContent = QUESTIONS.length;
+  document.getElementById("nDemos").textContent = DEMOS.length;
+
+  if (dockTab === "demos") {
+    body.innerHTML = DEMOS.map((d) =>
+      '<div class="dcard"><span class="dtitle">' + esc(d.title) + "</span>" +
+      '<span class="dwhy">' + esc(d.why) + "</span>" +
+      '<button class="show" data-demo="' + d.id + '">' + d.btn + "</button></div>"
+    ).join("");
+    body.querySelectorAll("[data-demo]").forEach((b) =>
+      b.addEventListener("click", () => DEMO_FNS[b.dataset.demo]()));
+    return;
+  }
+  if (dockTab === "log") {
+    body.innerHTML = LOG.map((l) =>
+      '<div class="logline"><span class="t">' + l.t + "</span>" +
+      (l.highlight ? '<span class="hl">' + esc(l.msg) + "</span>" : esc(l.msg)) + "</div>"
+    ).join("") || '<div class="logline">Nothing yet — annotate something.</div>';
+    body.scrollTop = body.scrollHeight;
+    return;
+  }
+  const items = dockTab === "decisions" ? DECISIONS : QUESTIONS;
+  const states = dockTab === "decisions" ? DECISION_STATES : QUESTION_STATES;
+  const lsKey = dockTab === "decisions" ? LS_D : LS_Q;
+  const saved = lsGet(lsKey);
+  body.innerHTML = items.map((d) => {
+    const st = saved[d.id] || d.st || states[0];
+    return '<div class="dcard"><span class="dtitle">' + esc(d.title) + "</span>" +
+      '<span class="dwhy">' + esc(d.why) + "</span>" +
+      '<button class="pill ' + st + '" data-pill="' + d.id + '">' + st + "</button></div>";
+  }).join("");
+  body.querySelectorAll("[data-pill]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const cur = lsGet(lsKey);
+      const now = states[(states.indexOf(cur[b.dataset.pill] || states[0]) + 1) % states.length];
+      cur[b.dataset.pill] = now;
+      lsSet(lsKey, cur);
+      const item = items.find((x) => x.id === b.dataset.pill);
+      log((dockTab === "decisions" ? "Decision" : "Question") + " “" + item.title + "” → " + now, false);
+      renderDock();
+    }));
+}
+
+document.querySelectorAll("#dockTabs .tab").forEach((b) =>
+  b.addEventListener("click", () => { dockTab = b.dataset.tab; renderDock(); }));
+document.getElementById("dockCollapse").addEventListener("click", () => {
+  const dock = document.getElementById("dock");
+  dock.classList.toggle("collapsed");
+  document.getElementById("dockCollapse").textContent = dock.classList.contains("collapsed") ? "▴" : "▾";
+});
+
+/* dock resize */
+(() => {
+  const body = document.getElementById("dockBody");
+  body.style.height = "220px";
+  const handle = document.getElementById("dockHandle");
+  let startY = 0, startH = 0, resizing = false;
+  handle.addEventListener("mousedown", (e) => { resizing = true; startY = e.clientY; startH = body.offsetHeight; e.preventDefault(); });
+  document.addEventListener("mousemove", (e) => {
+    if (!resizing) return;
+    body.style.height = Math.max(60, Math.min(window.innerHeight * 0.6, startH + (startY - e.clientY))) + "px";
+  });
+  document.addEventListener("mouseup", () => (resizing = false));
+})();
+
+/* =====================================================================
+   Legend + keyboard
+   ===================================================================== */
+document.getElementById("legendBtn").addEventListener("click", () =>
+  document.getElementById("legend").classList.toggle("hidden"));
+document.getElementById("legendClose").addEventListener("click", () =>
+  document.getElementById("legend").classList.add("hidden"));
+document.getElementById("legend").addEventListener("click", (e) => {
+  if (e.target.id === "legend") document.getElementById("legend").classList.add("hidden");
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if (!document.getElementById("legend").classList.contains("hidden"))
+      document.getElementById("legend").classList.add("hidden");
+    else if (state.pinned) closeComposer();
+  }
+});
+
+/* =====================================================================
+   Boot: preloaded R1 + R2 so the rail is never empty
+   ===================================================================== */
+renderSurface();
+addRequest(
+  { type: "range", blockId: "pu-p1",
+    quote: "As agent capability grows, its interaction surfaces matter more." },
+  "This reads like marketing copy — make it concrete about what the surfaces are.",
+  "As agent capability grows, its interaction surfaces matter more.");
+addRequest(
+  { type: "block", blockId: "co-b3" },
+  "This rule contradicts how autosave works — reconcile.", null);
+setMode("annotate");
+setSaveState();
+renderDock();
+log("Mockup loaded · R1 + R2 preloaded · press ? for the legend", true);
+</script>
+</body>
+</html>

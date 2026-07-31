@@ -1,7 +1,6 @@
 // Slice: the single left-edge [⋮⋮] affordance pinned to a block.
 "use client";
 
-import cn from "classnames";
 import { GripVertical } from "lucide-react";
 import type { PromptBlockNode } from "../../../index";
 import type { PromptBlockNodeType } from "../../editors";
@@ -10,19 +9,20 @@ import {
 	EDITOR_COLORS,
 	EDITOR_METRICS,
 } from "../../surface/editor-surface";
+import { dragHandleRailWidth } from "./drag-handle";
 import { BlockMenu } from "./BlockMenu";
 
 /**
- * The single left-edge affordance for a block, pinned at its first line just
- * inside the gutter. It holds ONE control — [⋮⋮], the drag handle whose click
- * opens a compact block menu. Creating blocks is a typing gesture (Enter, or
- * the slash menu), so there is no insert button competing for the same few
- * pixels. The affordance stays visible while the block is selected.
+ * The BLOCK-kind drag handle, mounted on the block's first row only while the
+ * block is the resolved handle unit (see resolveDragHandleUnit — at most one
+ * handle exists at a time). It holds ONE control — [⋮⋮], the drag handle whose
+ * motionless click opens a compact block menu. Creating blocks is a typing
+ * gesture (Enter, or the slash menu), so there is no insert button competing
+ * for the same few pixels.
  */
 export function BlockCluster({
 	node,
-	gutterWidth,
-	visible,
+	indentCh,
 	menuOpen,
 	canInsertChild,
 	onToggleMenu,
@@ -34,8 +34,8 @@ export function BlockCluster({
 	onDragHandleDown,
 }: {
 	node: PromptBlockNode;
-	gutterWidth: string;
-	visible: boolean;
+	/** Leading indent (spaces) of the block's first row — drives the handle x. */
+	indentCh: number;
 	menuOpen: boolean;
 	canInsertChild: boolean;
 	onToggleMenu: () => void;
@@ -48,19 +48,24 @@ export function BlockCluster({
 }) {
 	return (
 		<div
-			className={cn(
-				"absolute top-0 z-20 flex items-center justify-end",
-				visible ? "visible opacity-100" : "invisible opacity-0",
-			)}
+			// Editor-affordance stamp: annotate mode hides everything carrying
+			// `data-prompt-affordance` via the lab's injected stylesheet, so the
+			// grip/menu can never be grabbed while targeting. Behavior-neutral in
+			// edit mode.
+			data-prompt-affordance="block-cluster"
+			data-prompt-handle-indent={indentCh}
+			className="absolute top-0 z-20 flex items-center justify-end"
 			style={{
-				// The affordance lives ENTIRELY inside the gutter (it may cover the
-				// hidden line number's space) so it can never overlap body text,
-				// whatever the row's indent depth. Right-aligned at the gutter's
-				// right edge, clear of the gutter's own right padding.
+				// The handle floats in the whitespace immediately LEFT of the
+				// block's content: the rail runs from the row's left edge to just
+				// short of the block's first character (gutter + body padding +
+				// the row's own indent), and the grip right-aligns inside it.
+				// For a top-level block that is the classic gutter position — the
+				// gutter IS its left edge. Absolutely positioned: it never
+				// displaces or overlaps text.
 				left: 0,
-				width: `calc(${gutterWidth} - 0.25ch)`,
+				width: dragHandleRailWidth(indentCh),
 				height: EDITOR_METRICS.lineHeight,
-				transition: visible ? "opacity 120ms ease-out" : "none",
 			}}
 			onClick={(event) => event.stopPropagation()}
 		>
@@ -78,14 +83,19 @@ export function BlockCluster({
 				}}
 				title="Drag, or click for block menu"
 				aria-label="Block handle and menu"
-				className="prompt-editor-grip pointer-events-auto flex min-h-5 w-4 cursor-grab touch-none items-center justify-center rounded-[2px] hover:bg-white/10 active:cursor-grabbing"
+				// Docs-viewer drag-handle feel: the hit box is a padded rounded
+				// button meaningfully larger than the glyph it frames (28px wide by
+				// a full line-height tall around the ~20px grip), with a hover wash
+				// and grab/grabbing cursors. Pointer-down still starts a drag and a
+				// motionless click still opens the block menu.
+				className="prompt-editor-grip pointer-events-auto flex w-7 cursor-grab touch-none items-center justify-center rounded-[3px] hover:bg-white/10 active:cursor-grabbing"
 				style={{
 					height: EDITOR_METRICS.lineHeight,
 					color: EDITOR_COLORS.grip,
 				}}
 			>
 				<GripVertical
-					size={12}
+					size={20}
 					style={{
 						width: EDITOR_METRICS.gripSize,
 						height: EDITOR_METRICS.gripSize,

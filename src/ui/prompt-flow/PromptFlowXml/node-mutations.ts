@@ -22,13 +22,7 @@ import {
 	type PromptStep,
 } from "../../editors";
 
-import {
-	concatInline,
-	removeListItemStep,
-	removeListWithStep,
-	resolveListRootId,
-	setListItemContentStep,
-} from "../list-item-steps";
+import { concatInline, setListItemContentStep } from "../list-item-steps";
 import { updateNode } from "../PromptFlowShared";
 import type { PromptFlowViewProps } from "../types";
 import type { XmlLine } from "../xml-line-model";
@@ -86,40 +80,6 @@ export function retagSection(
 	updateNode(prompt, entry, onPromptChange, (current) =>
 		current.type === "section" ? { ...current, tag } : current,
 	);
-}
-
-/**
- * Removes the item this line represents. When it's the only item in a
- * top-level list (which HAS a tree entry), the whole list block is removed
- * instead — an empty list would render nothing and orphan the block.
- */
-export function removeListItemOrList(
-	prompt: PromptDocument,
-	line: XmlLine,
-	entry: PromptEditorTreeEntry | undefined,
-	onPromptChange: PromptFlowViewProps["onPromptChange"],
-	removeBlock: (entry: PromptEditorTreeEntry) => void,
-): void {
-	const node = line.node;
-	if (node.type !== "bulletList" && node.type !== "orderedList") return;
-	const itemIndex = line.itemIndex ?? 0;
-	if (node.items.length <= 1) {
-		// Removing the last item removes the list itself — an empty list would
-		// render nothing and orphan the node. Tree-addressable lists go through
-		// removeBlock (which also picks the next selection); nested lists are
-		// deleted from their parent item via removeListWithStep.
-		if (entry && resolveListRootId(prompt, line.nodeId) === line.nodeId) {
-			removeBlock(entry);
-			return;
-		}
-		const removed = removeListWithStep(prompt, line.nodeId);
-		if (removed.step) {
-			onPromptChange(removed.prompt, undefined, [removed.step]);
-		}
-		return;
-	}
-	const result = removeListItemStep(prompt, line.nodeId, itemIndex);
-	if (result.step) onPromptChange(result.prompt, line.nodeId, [result.step]);
 }
 
 export interface ParagraphStepsResult {

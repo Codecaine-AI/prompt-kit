@@ -39,8 +39,9 @@ descendants can observe style changes on it.
 | `--prompt-editor-letter-spacing` | `0em` | Row and editor tracking |
 | `--prompt-editor-indent-width` | `2ch` | Visual width of one renderer indent unit |
 | `--prompt-editor-content-width` | `136ch` | Measure of the buffer column |
-| `--prompt-editor-gutter-width` | `5ch` | Line-number gutter width |
-| `--prompt-editor-grip-size` | `14px` | Drag-handle size |
+| `--prompt-editor-gutter-width` | `36px` (collapsed) | Gutter width; hosts widen it when line numbers are on |
+| `--prompt-editor-grip-size` | `20px` | Block drag-handle glyph size |
+| `--prompt-editor-item-grip-size` | `14px` | List-item drag-handle glyph size (smaller = item, larger = block) |
 | `--prompt-editor-drop-line-width` | `2px` | Drop-indicator thickness |
 
 ### Visibility
@@ -53,6 +54,13 @@ descendants can observe style changes on it.
 | `--prompt-editor-guides-display` | `block` / `none` | Indent-guide display |
 | `--prompt-editor-show-line-numbers` | `0` / `1` | Gutter number visibility |
 | `--prompt-editor-line-numbers-display` | `block` / `none` | Gutter number display |
+
+Line numbers default OFF (`showLineNumbers: false` in the balanced settings):
+the flow renders a structured document whose address system is node ids and
+targeting rings, not source lines. The style rail's "Line numbers" toggle (and
+the `classic` preset) restores the numbered gutter, which then tracks the Raw
+view line-for-line. With numbers off the gutter collapses to the width the
+drag affordances need.
 
 ### Color
 

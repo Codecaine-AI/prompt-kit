@@ -1,5 +1,5 @@
 ---
-covers: The prompt lab shell around the editing surface, including view tabs, token counts, undo and redo, the collapsible inspector, the section outline, and the autosave contract.
+covers: The prompt lab shell around the editing surface, including view tabs, token counts, the annotate mode toggle, the collapsible inspector, the section outline, and the autosave contract.
 concepts: [shell, statusbar, inspector, autosave, history]
 design_refs: [10-system-design/50-validation-contract.md, 10-system-design/60-kernel-boundary.md]
 ---
@@ -15,7 +15,7 @@ history, the save lifecycle, and the panes; the surface owns only editing.
 
 | Region | Contents |
 |--------|----------|
-| Left, top | Statusbar: view tabs, token count, diagnostics, undo/redo, autosave status |
+| Left, top | Statusbar: view tabs, token count, diagnostics, autosave status, Annotate toggle |
 | Left, body | The editing surface, or the read-only context surface |
 | Left, edge | Section outline column, when the pane is wide enough |
 | Right | Collapsible tabbed inspector: AGENT, DETAILS, REVISIONS |
@@ -30,7 +30,9 @@ context previews all arrive as props or callbacks.
 surface. The context view replaces it with a read-only render of the assembled
 context on the same editor surface — same gutter, grid, and shading tokens —
 with no hover, insert, or drag affordances. Undo, redo, and save are inert while
-the context view is active, because the context is not editable.
+the context view is active, because the context is not editable. The context
+view carries the same section outline column as the system view, derived from
+the assembled context's tags, so jumping between sections works in both.
 
 The statusbar's token count follows the active view: the rendered prompt in the
 system view, the assembled context in the context view.
@@ -145,12 +147,17 @@ React tree, which is exactly the moment an author reaches for undo. The listener
 is scoped by a guard: it runs for events inside the lab, or when nothing at all
 holds focus.
 
+The keyboard is the only undo surface: the statusbar carries no undo/redo
+buttons. With a structural selection active and no editor open, Backspace or
+Delete removes the selected run as one undoable transaction (see
+[80-interaction-model.md](80-interaction-model.md)).
+
 ## Module Map
 
 | File | Responsibility |
 |------|----------------|
 | `lab/index.tsx` | Shell composition, history wiring, autosave gating, shortcuts |
-| `lab/LabStatusBar.tsx` | View tabs, token count, diagnostics, undo/redo, save status |
+| `lab/LabStatusBar.tsx` | View tabs, token count, diagnostics, save status, Annotate toggle |
 | `lab/LabInspector.tsx` | Tab strip, collapse, persisted preference |
 | `lab/AgentZone.tsx` | AGENT tab manifest fields |
 | `lab/ContextSurface.tsx` | Read-only assembled-context view |

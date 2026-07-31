@@ -89,13 +89,15 @@ export function ItemRow({
 					// Same click→caret surface every other editable row uses. Item
 					// text renders without the row's indent or its marker, so the
 					// display prefix is 0 and a click offset maps straight onto the
-					// editable value.
+					// editable value. Item content is built from the model's inline
+					// content (never escaped), so no entity decode — but it DOES get
+					// the inline treatments: `<tag>` tokens take the tag palette and
+					// `code` spans chip, same as prose rows.
 					<RowText
 						line={line}
 						editable
 						text={itemContentText(node, itemIndex)}
 						displayPrefix={0}
-						highlight={false}
 						onStartEdit={onStartEdit}
 					/>
 				)}

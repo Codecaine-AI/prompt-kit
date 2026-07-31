@@ -15,7 +15,17 @@ import { EDITOR_COLORS, promptEditorIndentForSpaces } from "./editor-surface";
 const TAG_REGEX =
 	/<\/?([a-zA-Z_][\w_-]*)((?:\s+[a-zA-Z_][\w_-]*(?:=(?:'[^']*'|"[^"]*"|[^\s>]*))?)*)\s*(\/)?>/g;
 const ATTR_REGEX = /([a-zA-Z_][\w_-]*)(?:=('[^']*'|"[^"]*"|[^\s>]*))?/g;
-const INLINE_TOKEN_REGEX = /\{\{([^{}]+)\}\}/g;
+// Inline reading cues inside content: {{variable}} / {{ns:reference}} tokens
+// (group 1) and `backtick` code spans (group 2). One combined pattern keeps
+// highlightInlineTokens and countInlinePieces in lockstep.
+const INLINE_TOKEN_REGEX = /\{\{([^{}]+)\}\}|`([^`]+)`/g;
+
+// Backtick ticks dim to half strength only while chips are visible: the same
+// chip-opacity token that paints the chip drives the ticks, so a host that
+// zeroes it (classic preset) gets plain full-opacity text back. Any working
+// chip opacity (≥ 0.005) saturates the clamp at the designed 0.5 dim.
+const TICK_OPACITY =
+	"calc(1 - clamp(0, var(--prompt-editor-inline-chip-opacity, 0.08) * 100, 0.5))";
 
 /** True when the text contains at least one XML-ish tag worth highlighting. */
 export function hasXmlTags(content: string | null | undefined): boolean {
@@ -127,18 +137,50 @@ function highlightInlineTokens(text: string, firstKey: number): React.ReactNode[
 		if (match.index > lastIndex) {
 			result.push(<span key={key++}>{text.slice(lastIndex, match.index)}</span>);
 		}
-		result.push(
-			<span
-				key={key++}
-				style={{
-					color: match[1]?.includes(":")
-						? EDITOR_COLORS.syntaxReference
-						: EDITOR_COLORS.syntaxVariable,
-				}}
-			>
-				{match[0]}
-			</span>,
-		);
+		if (match[2] !== undefined) {
+			// `code` span: the ticks AND the inner text stay in the DOM byte-for-
+			// byte; the chip is paint only. Horizontal padding is cancelled by an
+			// equal negative margin so the mono column grid never shifts, and the
+			// ticks dim inside the chip instead of leaving the text.
+			result.push(
+				<span
+					key={key++}
+					style={{
+						color: EDITOR_COLORS.inlineCode,
+						background: EDITOR_COLORS.inlineChipBg,
+						borderRadius: 4,
+						padding: "1px 2px",
+						marginInline: "-2px",
+					}}
+				>
+					<span style={{ opacity: TICK_OPACITY }}>`</span>
+					{match[2]}
+					<span style={{ opacity: TICK_OPACITY }}>`</span>
+				</span>,
+			);
+		} else {
+			const isReference = match[1]?.includes(":");
+			result.push(
+				<span
+					key={key++}
+					style={
+						isReference
+							? { color: EDITOR_COLORS.syntaxReference }
+							: {
+									color: EDITOR_COLORS.syntaxVariable,
+									// Template variables get a chip tinted from their own
+									// ink; the host dials it with one opacity token.
+									background: `color-mix(in srgb, var(--prompt-editor-syntax-variable, #D9C578) calc(var(--prompt-editor-inline-chip-opacity, 0.08) * 100%), transparent)`,
+									borderRadius: 4,
+									padding: "1px 2px",
+									marginInline: "-2px",
+								}
+					}
+				>
+					{match[0]}
+				</span>,
+			);
+		}
 		lastIndex = match.index + match[0].length;
 	}
 	if (lastIndex < text.length) {
@@ -147,9 +189,13 @@ function highlightInlineTokens(text: string, firstKey: number): React.ReactNode[
 	return result.length > 0 ? result : [<span key={key}>{text}</span>];
 }
 
+/**
+ * Upper bound on the React keys highlightInlineTokens consumes for `text`.
+ * MUST count the same combined token pattern the renderer walks: each match
+ * (variable OR backtick span) contributes a token piece plus, at most, one
+ * preceding plain piece; one final plain piece may follow the last token.
+ */
 function countInlinePieces(text: string): number {
 	const matches = text.match(INLINE_TOKEN_REGEX)?.length ?? 0;
-	// Each match contributes a token plus, at most, one preceding plain piece.
-	// One final plain piece may follow the last token.
 	return Math.max(1, matches * 2 + 1);
 }

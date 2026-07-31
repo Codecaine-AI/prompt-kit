@@ -15,8 +15,11 @@ import {
 import {
 	insertListItemStep,
 	mergeListItemsStep,
+	moveListItemStep,
+	moveListItemsStep,
 	nestListItemStep,
 	removeListItemStep,
+	removeListItemsStep,
 	setListItemContentStep,
 	splitListItemStep,
 	unnestListItemStep,
@@ -327,5 +330,238 @@ describe("split / merge — the Enter and Backspace pair", () => {
 		const split = splitListItemStep(before, "list1", 0, "hello ", "world");
 		const merged = mergeListItemsStep(split.prompt, "list1", 1);
 		expect(canonicalizePrompt(merged.prompt)).toBe(canonicalizePrompt(before));
+	});
+});
+
+describe("moveListItemStep (drag-drop reorder)", () => {
+	test("moves an item down: slot named in ORIGINAL indexing", () => {
+		const before = bulletDoc("a", "b", "c");
+		// Slot 2 = "before the item currently at index 2" — a lands between b, c.
+		const result = moveListItemStep(before, "list1", 0, 2);
+		expect(result.step).toBeDefined();
+		expect(result.focusItemIndex).toBe(1);
+		expect(firstList(result.prompt).items.map((i) => i.content)).toEqual([
+			["b"],
+			["a"],
+			["c"],
+		]);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("moves an item up and to the end", () => {
+		const before = bulletDoc("a", "b", "c");
+		const up = moveListItemStep(before, "list1", 2, 0);
+		expect(firstList(up.prompt).items.map((i) => i.content)).toEqual([
+			["c"],
+			["a"],
+			["b"],
+		]);
+		expectRoundTrip(before, up.step!, up.prompt);
+		// Slot items.length = after the last item.
+		const toEnd = moveListItemStep(before, "list1", 0, 3);
+		expect(firstList(toEnd.prompt).items.map((i) => i.content)).toEqual([
+			["b"],
+			["c"],
+			["a"],
+		]);
+		expectRoundTrip(before, toEnd.step!, toEnd.prompt);
+	});
+
+	test("dropping into either boundary around the item itself is a no-op", () => {
+		const before = bulletDoc("a", "b", "c");
+		// Before itself and immediately after itself both leave order unchanged,
+		// so no step is emitted and nothing enters the undo log.
+		expect(moveListItemStep(before, "list1", 1, 1).step).toBeUndefined();
+		expect(moveListItemStep(before, "list1", 1, 2).step).toBeUndefined();
+	});
+
+	test("out-of-range source is a no-op; out-of-range slot clamps", () => {
+		const before = bulletDoc("a", "b");
+		expect(moveListItemStep(before, "list1", 5, 0).step).toBeUndefined();
+		const clamped = moveListItemStep(before, "list1", 0, 99);
+		expect(firstList(clamped.prompt).items.map((i) => i.content)).toEqual([
+			["b"],
+			["a"],
+		]);
+	});
+
+	test("a multi-line item moves as a unit: nested children ride along", () => {
+		const before = docWith({
+			type: "bulletList",
+			id: "list1",
+			items: [
+				item("first", [
+					{
+						type: "bulletList",
+						id: "nested1",
+						items: [item("child")],
+					} as BulletListNode,
+				]),
+				item("second"),
+			],
+		});
+		const result = moveListItemStep(before, "list1", 0, 2);
+		const items = firstList(result.prompt).items;
+		expect(items.map((i) => i.content)).toEqual([["second"], ["first"]]);
+		const nested = items[1]!.children?.[0] as BulletListNode;
+		expect(nested.items.map((i) => i.content)).toEqual([["child"]]);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("reorders a NESTED list through its addressable ancestor", () => {
+		const before = docWith({
+			type: "bulletList",
+			id: "list1",
+			items: [
+				item("parent", [
+					{
+						type: "bulletList",
+						id: "nested1",
+						items: [item("x"), item("y")],
+					} as BulletListNode,
+				]),
+			],
+		});
+		const result = moveListItemStep(before, "nested1", 0, 2);
+		expect(result.step).toBeDefined();
+		// The step is one invertible update on the tree-addressable outer list.
+		expect(result.step!.op).toBe("update");
+		expect((result.step! as { id: string }).id).toBe("list1");
+		const nested = firstList(result.prompt).items[0]!
+			.children![0] as BulletListNode;
+		expect(nested.items.map((i) => i.content)).toEqual([["y"], ["x"]]);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+});
+
+describe("moveListItemsStep (group drag-drop reorder)", () => {
+	test("moves a contiguous run forward in order as one invertible step", () => {
+		const before = bulletDoc("a", "b", "c", "d", "e");
+		// Items 1..2 ("b","c") to the slot before "e" (original index 4).
+		const result = moveListItemsStep(before, "list1", 1, 2, 4);
+		expect(result.step).toBeDefined();
+		expect(firstList(result.prompt).items.map((i) => i.content)).toEqual([
+			["a"],
+			["d"],
+			["b"],
+			["c"],
+			["e"],
+		]);
+		expect(result.focusItemIndex).toBe(2);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("moves a run backward keeping order", () => {
+		const before = bulletDoc("a", "b", "c", "d");
+		// Items 2..3 ("c","d") to the front.
+		const result = moveListItemsStep(before, "list1", 2, 2, 0);
+		expect(firstList(result.prompt).items.map((i) => i.content)).toEqual([
+			["c"],
+			["d"],
+			["a"],
+			["b"],
+		]);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("count 1 behaves exactly like moveListItemStep", () => {
+		const before = bulletDoc("a", "b", "c");
+		const single = moveListItemStep(before, "list1", 0, 2);
+		const run = moveListItemsStep(before, "list1", 0, 1, 2);
+		expect(canonicalizePrompt(run.prompt)).toBe(
+			canonicalizePrompt(single.prompt),
+		);
+	});
+
+	test("no-ops on the run's own edges and on slots inside the run", () => {
+		const before = bulletDoc("a", "b", "c", "d", "e");
+		// Leading edge, trailing edge: putting the run back where it is.
+		expect(moveListItemsStep(before, "list1", 1, 2, 1).step).toBeUndefined();
+		expect(moveListItemsStep(before, "list1", 1, 2, 3).step).toBeUndefined();
+		// A slot strictly inside the lifted run has no meaning.
+		expect(moveListItemsStep(before, "list1", 1, 2, 2).step).toBeUndefined();
+	});
+
+	test("no-ops when the run is out of range or empty", () => {
+		const before = bulletDoc("a", "b", "c");
+		expect(moveListItemsStep(before, "list1", 2, 2, 0).step).toBeUndefined();
+		expect(moveListItemsStep(before, "list1", -1, 2, 0).step).toBeUndefined();
+		expect(moveListItemsStep(before, "list1", 0, 0, 2).step).toBeUndefined();
+	});
+
+	test("clamps a beyond-the-end slot to append", () => {
+		const before = bulletDoc("a", "b", "c", "d");
+		const result = moveListItemsStep(before, "list1", 0, 2, 99);
+		expect(firstList(result.prompt).items.map((i) => i.content)).toEqual([
+			["c"],
+			["d"],
+			["a"],
+			["b"],
+		]);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("each item's nested children ride along with the run", () => {
+		const before = bulletDoc("a", "b", "c");
+		const withChildren = docWith({
+			...firstList(before),
+			items: [
+				item("a"),
+				item("b", [
+					{
+						type: "bulletList",
+						id: "nested-in-b",
+						items: [item("b1")],
+					} as BulletListNode,
+				]),
+				item("c"),
+			],
+		});
+		const result = moveListItemsStep(withChildren, "list1", 1, 2, 0);
+		const list = firstList(result.prompt);
+		expect(list.items.map((i) => i.content)).toEqual([["b"], ["c"], ["a"]]);
+		expect(list.items[0]!.children).toHaveLength(1);
+		expectRoundTrip(withChildren, result.step!, result.prompt);
+	});
+});
+
+describe("removeListItemsStep (structural-selection run delete)", () => {
+	test("removes a contiguous run as ONE invertible update step", () => {
+		const before = bulletDoc("a", "b", "c", "d", "e");
+		const result = removeListItemsStep(before, "list1", 1, 3);
+		const list = firstList(result.prompt);
+		expect(list.items.map((i) => i.content)).toEqual([["a"], ["e"]]);
+		expect(result.focusItemIndex).toBe(0);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("nested children of removed items come back on undo", () => {
+		const before = docWith({
+			type: "bulletList",
+			id: "list1",
+			items: [
+				item("a"),
+				item("b", [
+					{
+						type: "bulletList",
+						id: "nested-in-b",
+						items: [item("b1")],
+					} as BulletListNode,
+				]),
+				item("c"),
+			],
+		});
+		const result = removeListItemsStep(before, "list1", 1, 2);
+		expect(firstList(result.prompt).items.map((i) => i.content)).toEqual([
+			["a"],
+		]);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("out-of-range runs are no-ops", () => {
+		const before = bulletDoc("a", "b");
+		expect(removeListItemsStep(before, "list1", 1, 2).step).toBeUndefined();
+		expect(removeListItemsStep(before, "list1", -1, 1).step).toBeUndefined();
+		expect(removeListItemsStep(before, "list1", 0, 0).step).toBeUndefined();
 	});
 });

@@ -190,4 +190,4 @@ position falls back to caret-at-end, never caret-at-zero.
 | `PromptFlowXml/click-caret.ts` | Click point to caret offset |
 | `PromptFlowXml/caret-rect.ts` | Caret viewport box for the slash menu anchor |
 | `PromptFlowXml/node-geometry.ts` | Row ranges, indent guides, landmarks, measured row offsets |
-| `PromptFlowXml/drag-controller.tsx` | Pointer-drag reorder with ghost, insertion line, drop flash |
+| `PromptFlowXml/drag-controller.tsx` | Pointer-drag reorder with ghost, insertion line, drop flash — blocks, items, and selected runs (see [80-interaction-model.md](80-interaction-model.md)) |

@@ -150,6 +150,10 @@ export function GrowTextArea({
 			className="m-0 min-h-4 w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-mono outline-none"
 			style={{
 				...editorTypeStyle,
+				// The row body owns the font size (landmark open tags scale theirs
+				// up); everywhere else the inherited size IS the metric, so the
+				// editor never changes glyph size when the caret arrives.
+				fontSize: "inherit",
 				minHeight: EDITOR_METRICS.lineHeight,
 				color: color ?? EDITOR_COLORS.fg,
 			}}

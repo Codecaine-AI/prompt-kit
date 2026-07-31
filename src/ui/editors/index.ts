@@ -318,6 +318,16 @@ function collectBlockEntries(
   });
 }
 
+/**
+ * Human label for one block node — `<tag>` for sections, the node type
+ * otherwise. The inspector tree entries carry the same string (see
+ * `PromptEditorTreeEntry.label`); exported so overlay layers (annotation
+ * targeting chips) name nodes exactly the way the inspector does.
+ */
+export function promptBlockLabel(node: PromptBlockNode): string {
+  return labelForBlock(node);
+}
+
 function labelForBlock(node: PromptBlockNode): string {
   switch (node.type) {
     case "section":

@@ -232,6 +232,97 @@ export function removeListItemStep(
 }
 
 /**
+ * Removes the CONTIGUOUS run of `count` items starting at `fromIndex` — the
+ * structural-selection delete for an item run, as ONE invertible update step
+ * on the containing list. Like `removeListItemStep`, removing every item
+ * leaves the list node empty; callers wanting the whole list gone on an
+ * all-items removal special-case that with `removeListWithStep` first (the
+ * same empty-list rule the keymap applies).
+ */
+export function removeListItemsStep(
+	prompt: PromptDocument,
+	listId: string,
+	fromIndex: number,
+	count: number,
+): ListItemStepResult {
+	let focus = fromIndex;
+	const result = updateListByIdWithStep(prompt, listId, (node) => {
+		if (count <= 0) return node;
+		if (fromIndex < 0 || fromIndex + count > node.items.length) return node;
+		const items = [...node.items];
+		items.splice(fromIndex, count);
+		focus = Math.max(0, Math.min(fromIndex - 1, items.length - 1));
+		return withItems(node, items);
+	});
+	return { prompt: result.prompt, step: result.step, focusItemIndex: focus };
+}
+
+/**
+ * Moves the item at `fromIndex` to the insertion slot `toSlot`, both in the
+ * list's ORIGINAL indexing: slot `k` means "immediately before the item that
+ * currently sits at index k", and slot `items.length` means "after the last
+ * item". This matches how the drag layer names drop boundaries, so the caller
+ * never has to pre-adjust for the removal shifting later indices.
+ *
+ * The whole reorder is one update to the containing list node — a single
+ * invertible step, so a drag-drop undoes in one action exactly like a block
+ * move. The item's nested children ride along untouched (items move as whole
+ * subtrees), which is what makes a multi-line item drag as a unit.
+ */
+export function moveListItemStep(
+	prompt: PromptDocument,
+	listId: string,
+	fromIndex: number,
+	toSlot: number,
+): ListItemStepResult {
+	return moveListItemsStep(prompt, listId, fromIndex, 1, toSlot);
+}
+
+/**
+ * Moves the CONTIGUOUS run of `count` items starting at `fromIndex` to the
+ * insertion slot `toSlot`, preserving their order — the group-drag seam.
+ * `toSlot` speaks the same "slot in the list's ORIGINAL indexing" language as
+ * `moveListItemStep`; a slot strictly inside the moved run (`fromIndex <
+ * toSlot < fromIndex + count`) is not a place the group can land, so it is a
+ * no-op (the drag layer never offers those slots).
+ *
+ * Like the single-item move, the whole reorder is one update to the containing
+ * list node — a single invertible step, so a six-bullet drag undoes in one
+ * action. Each item's nested children ride along untouched.
+ */
+export function moveListItemsStep(
+	prompt: PromptDocument,
+	listId: string,
+	fromIndex: number,
+	count: number,
+	toSlot: number,
+): ListItemStepResult {
+	let focus = fromIndex;
+	const result = updateListByIdWithStep(prompt, listId, (node) => {
+		if (count <= 0) return node;
+		if (fromIndex < 0 || fromIndex + count > node.items.length) return node;
+		let insert = Math.max(0, Math.min(toSlot, node.items.length));
+		if (insert > fromIndex) {
+			// A slot inside the run has no meaning once the run is lifted out.
+			if (insert < fromIndex + count) return node;
+			// Removing the run first shifts every later slot left by its length.
+			insert -= count;
+		}
+		if (insert === fromIndex) return node;
+		const items = [...node.items];
+		const moving = items.splice(fromIndex, count);
+		items.splice(insert, 0, ...moving);
+		focus = insert;
+		return withItems(node, items);
+	});
+	return {
+		prompt: result.prompt,
+		step: result.step,
+		focusItemIndex: focus,
+	};
+}
+
+/**
  * Nests the item at `itemIndex` under the previous sibling item, moving it into
  * a child list of the *same list type*. If the previous item already has a
  * trailing child list of that type, the item is appended to it; otherwise a new

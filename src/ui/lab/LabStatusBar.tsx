@@ -1,12 +1,13 @@
 "use client";
 
 // Lab statusbar: LEFT holds wayfinding (view tabs and the active view's token
-// count); RIGHT holds editing state (undo/redo, autosave status) and the
+// count); RIGHT holds editing state (autosave status) and the
 // collapsed-inspector affordance. Validity surfaces only through the save
-// status here — diagnostics detail lives in the DETAILS tab.
+// status here — diagnostics detail lives in the DETAILS tab. Undo/redo are
+// keyboard-only (⌘Z / ⌘⇧Z, bound in the lab root) — no statusbar buttons.
 
 import cn from "classnames";
-import { PanelRightOpen, Redo2, Undo2 } from "lucide-react";
+import { MessageSquarePlus, PanelRightOpen } from "lucide-react";
 
 export type LabView = "system" | "context";
 
@@ -16,8 +17,6 @@ export interface LabStatusBarProps {
   /** Token estimate for the ACTIVE view (system prompt or assembled context). */
   tokenCount: number;
   errorCount: number;
-  canUndo: boolean;
-  canRedo: boolean;
   dirty: boolean;
   hasSave: boolean;
   savePending: boolean;
@@ -25,10 +24,11 @@ export interface LabStatusBarProps {
   saveErrors?: string[];
   lastSavedAt?: Date;
   inspectorCollapsed: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
+  /** Whether the lab is in annotate mode (the ANNOTATE toggle's pressed state). */
+  annotateMode: boolean;
   onRetrySave: () => void;
   onOpenInspector: () => void;
+  onToggleAnnotate: () => void;
 }
 
 export function LabStatusBar({
@@ -36,8 +36,6 @@ export function LabStatusBar({
   onViewChange,
   tokenCount,
   errorCount,
-  canUndo,
-  canRedo,
   dirty,
   hasSave,
   savePending,
@@ -45,10 +43,10 @@ export function LabStatusBar({
   saveErrors = [],
   lastSavedAt,
   inspectorCollapsed,
-  onUndo,
-  onRedo,
+  annotateMode,
   onRetrySave,
   onOpenInspector,
+  onToggleAnnotate,
 }: LabStatusBarProps) {
   const inContext = view === "context";
 
@@ -88,25 +86,6 @@ export function LabStatusBar({
       <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1">
         {!inContext && (
           <>
-            <IconButton
-              onClick={onUndo}
-              disabled={!canUndo}
-              title="Undo (mod+z)"
-              ariaLabel="Undo"
-            >
-              <Undo2 size={13} />
-            </IconButton>
-            <IconButton
-              onClick={onRedo}
-              disabled={!canRedo}
-              title="Redo (mod+shift+z)"
-              ariaLabel="Redo"
-            >
-              <Redo2 size={13} />
-            </IconButton>
-
-            <span aria-hidden className="mx-1 h-4 w-px bg-border" />
-
             <AutosaveStatus
               dirty={dirty}
               errorCount={errorCount}
@@ -118,8 +97,28 @@ export function LabStatusBar({
               retryDisabled={errorCount > 0 || !hasSave}
               onRetry={onRetrySave}
             />
+            <span aria-hidden className="mx-1 h-4 w-px bg-border" />
           </>
         )}
+
+        {/* MODE toggle: annotate swaps the right-hand inspector for the
+            annotations pane. Always visible — annotate mode is a lab-wide
+            mode, not an editing control. */}
+        <button
+          type="button"
+          onClick={onToggleAnnotate}
+          aria-pressed={annotateMode}
+          title={annotateMode ? "Exit annotate mode" : "Enter annotate mode"}
+          className={cn(
+            "ml-1 inline-flex h-6 shrink-0 items-center gap-1.5 rounded-[2px] border px-2 text-[11px] transition-colors",
+            annotateMode
+              ? "border-status-info/40 bg-status-info-fill/30 text-status-info"
+              : "border-border bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+          )}
+        >
+          <MessageSquarePlus size={13} />
+          Annotate
+        </button>
 
         {inspectorCollapsed && (
           <button
@@ -232,33 +231,6 @@ function AutosaveStatus({
       saved
       {lastSavedAt ? ` ${formatSaveTime(lastSavedAt)}` : ""}
     </span>
-  );
-}
-
-function IconButton({
-  onClick,
-  disabled,
-  title,
-  ariaLabel,
-  children,
-}: {
-  onClick: () => void;
-  disabled: boolean;
-  title: string;
-  ariaLabel: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="inline-flex h-6 w-6 items-center justify-center rounded-[2px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
-      title={title}
-      aria-label={ariaLabel}
-    >
-      {children}
-    </button>
   );
 }
 

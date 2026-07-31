@@ -8,7 +8,7 @@ import type { PromptEditorTreeEntry } from "../../editors";
 import { EDITOR_METRICS } from "../../surface/editor-surface";
 import { highlightXmlLine } from "../../surface/xml-highlight";
 import type { PromptFlowViewProps } from "../types";
-import type { XmlLine } from "../xml-line-model";
+import { decodeXmlEntities, type XmlLine } from "../xml-line-model";
 import { caretForRowClick, lineIndentLength } from "./click-caret";
 import { GrowTextArea, type EditorAriaAttributes } from "./GrowTextArea";
 import { commitEdit, editorValueForLine } from "./node-mutations";
@@ -26,6 +26,7 @@ export function RowText({
 	text,
 	displayPrefix,
 	highlight = true,
+	decodeEntities = false,
 	onSelect,
 	onStartEdit,
 }: {
@@ -42,13 +43,21 @@ export function RowText({
 	 * value. Defaults to the line's own indent; list-item content passes 0.
 	 */
 	displayPrefix?: number;
-	/** XML syntax coloring. Off for list-item content, which is prose. */
+	/** XML/inline-token coloring (tags, {{vars}}, `code` chips). */
 	highlight?: boolean;
+	/**
+	 * Decode XML entities for DISPLAY (prose rows whose model text the renderer
+	 * escaped): the read view then shows `<state>` exactly like edit mode does,
+	 * and inline `<tag>` tokens pick up the tag highlight. The annotate-mode
+	 * offset walk mirrors this policy via `lineRendersDecodedEntities`.
+	 */
+	decodeEntities?: boolean;
 	onSelect?: () => void;
 	/** Enters edit mode with the caret at the clicked character. */
 	onStartEdit: (caret: number | "end") => void;
 }) {
-	const shown = text ?? line.text;
+	const raw = text ?? line.text;
+	const shown = decodeEntities ? decodeXmlEntities(raw) : raw;
 	const prefix = displayPrefix ?? lineIndentLength(line);
 	// An empty row still needs a clickable, full-height text box.
 	const display =

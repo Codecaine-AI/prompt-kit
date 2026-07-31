@@ -22,6 +22,8 @@ const PRESET_OPTIONS = [
   { id: "dense", label: "Dense" },
   { id: "balanced", label: "Balanced" },
   { id: "reading", label: "Reading" },
+  { id: "painted", label: "Painted" },
+  { id: "classic", label: "Classic" },
 ] as const;
 
 const ROW_SHADING_OPTIONS: Array<{
@@ -105,7 +107,7 @@ export function PromptStyleRail({
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-3">
         <RailSection title="Preset">
           <div
-            className="grid h-9 grid-cols-3 overflow-hidden rounded border border-border"
+            className="grid grid-cols-3 auto-rows-[34px] overflow-hidden rounded border border-border"
             role="group"
             aria-label="Prompt style preset"
           >
@@ -120,7 +122,7 @@ export function PromptStyleRail({
                   aria-pressed={active}
                   onClick={() => onChange({ ...preset })}
                   className={[
-                    "border-r border-border px-2 text-[11px] transition-colors last:border-r-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-status-info-border",
+                    "border-r border-b border-border px-2 text-[11px] transition-colors last:border-r-0 [&:nth-child(3n)]:border-r-0 [&:nth-last-child(-n+2)]:border-b-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-status-info-border",
                     active
                       ? "bg-status-info-fill/35 text-status-info"
                       : "bg-background/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground",
@@ -216,6 +218,25 @@ export function PromptStyleRail({
             unit="px"
             onChange={(value) => update("gutterWidth", value)}
           />
+          <RangeField
+            label="Landmark scale"
+            value={settings.landmarkFontScale}
+            min={1}
+            max={1.2}
+            step={0.01}
+            unit="×"
+            fractionDigits={2}
+            onChange={(value) => update("landmarkFontScale", value)}
+          />
+          <RangeField
+            label="Section gap ramp"
+            value={settings.gapRamp}
+            min={0}
+            max={1}
+            step={0.05}
+            percent
+            onChange={(value) => update("gapRamp", value)}
+          />
           <div className="space-y-1">
             <ToggleField
               label="Line numbers"
@@ -282,6 +303,16 @@ export function PromptStyleRail({
               onChange={(value) => update("tagNameColor", value)}
             />
             <ColorField
+              label="Landmark tag"
+              value={settings.tagLandmarkColor}
+              onChange={(value) => update("tagLandmarkColor", value)}
+            />
+            <ColorField
+              label="Sub-landmark tag"
+              value={settings.tagSublandmarkColor}
+              onChange={(value) => update("tagSublandmarkColor", value)}
+            />
+            <ColorField
               label="Attribute"
               value={settings.attributeNameColor}
               onChange={(value) => update("attributeNameColor", value)}
@@ -300,6 +331,11 @@ export function PromptStyleRail({
               label="Reference"
               value={settings.referenceColor}
               onChange={(value) => update("referenceColor", value)}
+            />
+            <ColorField
+              label="Inline code"
+              value={settings.inlineCodeColor}
+              onChange={(value) => update("inlineCodeColor", value)}
             />
             <ColorField
               label="List marker"
@@ -325,6 +361,15 @@ export function PromptStyleRail({
             step={0.01}
             percent
             onChange={(value) => update("guideOpacity", value)}
+          />
+          <RangeField
+            label="Inline chip opacity"
+            value={settings.inlineChipOpacity}
+            min={0}
+            max={0.3}
+            step={0.01}
+            percent
+            onChange={(value) => update("inlineChipOpacity", value)}
           />
           <div className="space-y-1">
             <ColorField

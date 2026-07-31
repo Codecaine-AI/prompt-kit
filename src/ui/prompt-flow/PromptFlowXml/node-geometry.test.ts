@@ -47,3 +47,68 @@ describe("trimPaintedNodeRange", () => {
 		expect(trimPaintedNodeRange(lines, { start: 0, end: 1 })).toBeUndefined();
 	});
 });
+
+describe("computeItemRanges", () => {
+	it("covers each item's marker row plus its nested child rows, innermost included", async () => {
+		const { buildXmlLineModel } = await import("../xml-line-model");
+		const { computeItemRanges } = await import("./node-geometry");
+		const prompt = {
+			kind: "prompt" as const,
+			schemaVersion: "prompt-kit/v1" as const,
+			id: "item-ranges",
+			nodes: [
+				{
+					type: "bulletList" as const,
+					id: "list-1",
+					items: [
+						{
+							type: "listItem" as const,
+							id: "item-a",
+							content: ["alpha"],
+							children: [
+								{
+									type: "paragraph" as const,
+									id: "para-a",
+									content: ["alpha detail"],
+								},
+								{
+									type: "bulletList" as const,
+									id: "list-2",
+									items: [
+										{
+											type: "listItem" as const,
+											id: "item-a1",
+											content: ["alpha child"],
+										},
+									],
+								},
+							],
+						},
+						{ type: "listItem" as const, id: "item-b", content: ["beta"] },
+					],
+				},
+			],
+		};
+		const lines = buildXmlLineModel(prompt).lines;
+		const ranges = computeItemRanges(lines);
+
+		const rowOf = (predicate: (line: (typeof lines)[number]) => boolean) =>
+			lines.findIndex(predicate);
+		const itemARow = rowOf((line) => line.itemId === "item-a");
+		const itemA1Row = rowOf((line) => line.itemId === "item-a1");
+		const itemBRow = rowOf((line) => line.itemId === "item-b");
+		const paraRow = rowOf((line) => line.nodeId === "para-a");
+
+		// item-a's extent: its marker row through its LAST descendant row (the
+		// nested list's item), NOT the sibling item-b — the whole multi-line
+		// unit an item drag lifts, dims, and ghosts.
+		expect(ranges.get("item-a")).toEqual({ start: itemARow, end: itemA1Row });
+		expect(itemARow).toBeLessThan(paraRow);
+		expect(paraRow).toBeLessThan(itemA1Row);
+		expect(itemA1Row).toBeLessThan(itemBRow);
+		// Single-line items span exactly their own row.
+		expect(ranges.get("item-b")).toEqual({ start: itemBRow, end: itemBRow });
+		// The nested item is its own innermost extent.
+		expect(ranges.get("item-a1")).toEqual({ start: itemA1Row, end: itemA1Row });
+	});
+});

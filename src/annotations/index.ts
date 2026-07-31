@@ -1,0 +1,26 @@
+export {
+  promptAnnotationSchema,
+  promptNodeTargetAdapter,
+  promptRangeTargetAdapter,
+  targetForNode,
+  type Annotation,
+  type AnnotationAgentRun,
+  type AnnotationReply,
+  type AnnotationsDocument,
+  type DanglingTarget,
+  type PromptAnnotation,
+  type PromptAnnotationIntent,
+  type PromptAnnotationsDocument,
+  type PromptAnnotationStatus,
+  type PromptAnnotationTarget,
+  type PromptNodeTarget,
+  type PromptRangeTarget,
+  type ValidationIssue,
+  type ValidationResult,
+} from "./schema";
+
+export {
+  createAnnotationStore,
+  type AnnotationStoreAddInput,
+  type PromptAnnotationStore,
+} from "./store";

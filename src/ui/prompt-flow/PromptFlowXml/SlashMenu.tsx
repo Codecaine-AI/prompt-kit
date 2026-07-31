@@ -151,6 +151,11 @@ export function SlashMenu({
 			id={SLASH_MENU_LISTBOX_ID}
 			role="listbox"
 			aria-label="Insert block"
+			// Editor-affordance stamp: annotate mode CSS-hides everything carrying
+			// `data-prompt-affordance`. The menu only mounts mid-edit, which
+			// annotate mode blocks — this is belt-and-suspenders for a menu left
+			// open across the mode switch.
+			data-prompt-affordance="slash-menu"
 			// Keep focus — and the caret — in the textarea. Preventing the
 			// default of the bubbled mousedown is what stops the focus change.
 			onMouseDown={(event) => event.preventDefault()}

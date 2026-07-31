@@ -37,21 +37,28 @@ describe("prompt style presets", () => {
 			indentWidth: 20,
 			contentWidth: 136,
 			gutterWidth: 56,
-			showLineNumbers: true,
+			landmarkFontScale: 1.08,
+			gapRamp: 1,
+			// Off by default: the flow is a structured document, not source code.
+			showLineNumbers: false,
 			showGuides: true,
-			rowShading: "zebra",
+			rowShading: "none",
 			surfaceColor: "#1E1E1E",
-			foregroundColor: "#E4E4E2",
+			foregroundColor: "#D4D6D3",
 			gutterColor: "#1E1E1E",
-			lineNumberColor: "#5F6672",
+			lineNumberColor: "#454A51",
 			activeLineNumberColor: "#C6CCD2",
-			tagPunctuationColor: "#6E7681",
-			tagNameColor: "#B48EC7",
+			tagPunctuationColor: "#4B5057",
+			tagNameColor: "#9D8AAF",
+			tagLandmarkColor: "#BC9AD3",
+			tagSublandmarkColor: "#A992BE",
 			attributeNameColor: "#85AECB",
-			attributeValueColor: "#C09A78",
+			attributeValueColor: "#AB8E70",
 			variableColor: "#D9C578",
-			referenceColor: "#5FBCA5",
-			listMarkerColor: "#7E8590",
+			referenceColor: "#58A794",
+			inlineCodeColor: "#5FBCA5",
+			inlineChipOpacity: 0.08,
+			listMarkerColor: "#565C64",
 			guideColor: "#FFFFFF",
 			guideOpacity: 0.1,
 			ruleColor: "#FFFFFF",
@@ -66,7 +73,7 @@ describe("prompt style presets", () => {
 			hoverColor: "#FFFFFF",
 			hoverOpacity: 0.05,
 			gripColor: "#8A919C",
-			gripSize: 14,
+			gripSize: 20,
 			gripOpacity: 0.5,
 			dropIndicatorColor: "#4D9DE0",
 			dropIndicatorWidth: 2,
@@ -75,11 +82,13 @@ describe("prompt style presets", () => {
 		expect(PROMPT_STYLE_DEFAULTS).toEqual(PROMPT_STYLE_PRESETS.balanced);
 	});
 
-	test("exports three complete, independently normalizable presets", () => {
+	test("exports five complete, independently normalizable presets", () => {
 		expect(Object.keys(PROMPT_STYLE_PRESETS)).toEqual([
 			"dense",
 			"balanced",
 			"reading",
+			"painted",
+			"classic",
 		]);
 		expect(PROMPT_STYLE_PRESETS.dense).toEqual({
 			...PROMPT_STYLE_DEFAULTS,
@@ -101,6 +110,26 @@ describe("prompt style presets", () => {
 			contentWidth: 88,
 			gutterWidth: 60,
 			rowShading: "none",
+			ruleOpacity: 0.025,
+		});
+		expect(PROMPT_STYLE_PRESETS.classic).toEqual({
+			...PROMPT_STYLE_DEFAULTS,
+			// The pre-redesign look always carried the code-editor gutter.
+			showLineNumbers: true,
+			rowShading: "zebra",
+			foregroundColor: "#E4E4E2",
+			lineNumberColor: "#5F6672",
+			tagPunctuationColor: "#6E7681",
+			tagNameColor: "#B48EC7",
+			tagLandmarkColor: "#B48EC7",
+			tagSublandmarkColor: "#B48EC7",
+			attributeValueColor: "#C09A78",
+			referenceColor: "#5FBCA5",
+			inlineCodeColor: "#E4E4E2",
+			inlineChipOpacity: 0,
+			listMarkerColor: "#7E8590",
+			landmarkFontScale: 1,
+			gapRamp: 0,
 		});
 
 		const expectedKeys = Object.keys(PROMPT_STYLE_DEFAULTS).sort();
@@ -140,9 +169,10 @@ describe("normalizePromptStyleSettings", () => {
 			normalizePromptStyleSettings({ contentWidth: 999 }).contentWidth,
 		).toBe(180);
 		expect(normalized.gutterWidth).toBe(96);
-		expect(normalized.showLineNumbers).toBe(true);
+		// Non-boolean input falls back to the default: off.
+		expect(normalized.showLineNumbers).toBe(false);
 		expect(normalized.showGuides).toBe(false);
-		expect(normalized.rowShading).toBe("zebra");
+		expect(normalized.rowShading).toBe("none");
 		expect(normalized.surfaceColor).toBe("#AABBCC");
 		expect(normalized.foregroundColor).toBe(
 			PROMPT_STYLE_DEFAULTS.foregroundColor,
@@ -201,13 +231,13 @@ describe("prompt style persistence", () => {
 		savePromptStyleSettings(settings, storage);
 		const raw = storage.entries.get(PROMPT_STYLE_STORAGE_KEY);
 		expect(raw).toBeDefined();
-		expect(JSON.parse(raw!).version).toBe(1);
+		expect(JSON.parse(raw!).version).toBe(2);
 		expect(loadPromptStyleSettings(storage)).toEqual(settings);
 	});
 
 	test("removes storage when reset to defaults", () => {
 		const storage = memoryStorage({
-			[PROMPT_STYLE_STORAGE_KEY]: '{"version":1,"settings":{"fontSize":19}}',
+			[PROMPT_STYLE_STORAGE_KEY]: '{"version":2,"settings":{"fontSize":19}}',
 		});
 
 		savePromptStyleSettings(
@@ -219,12 +249,29 @@ describe("prompt style persistence", () => {
 		expect(loadPromptStyleSettings(storage)).toEqual(PROMPT_STYLE_DEFAULTS);
 	});
 
+	test("the line-number toggle persists as an override and round-trips", () => {
+		const storage = memoryStorage();
+
+		// Enabling numbers deviates from the off default, so it persists…
+		savePromptStyleSettings(
+			{ ...PROMPT_STYLE_DEFAULTS, showLineNumbers: true },
+			storage,
+		);
+		expect(storage.entries.has(PROMPT_STYLE_STORAGE_KEY)).toBe(true);
+		expect(loadPromptStyleSettings(storage).showLineNumbers).toBe(true);
+
+		// …and turning them back off returns to defaults, clearing the override.
+		savePromptStyleSettings({ ...PROMPT_STYLE_DEFAULTS }, storage);
+		expect(storage.entries.has(PROMPT_STYLE_STORAGE_KEY)).toBe(false);
+		expect(loadPromptStyleSettings(storage).showLineNumbers).toBe(false);
+	});
+
 	test("falls back safely for corrupt and wrong-version payloads", () => {
 		const corrupt = memoryStorage({
 			[PROMPT_STYLE_STORAGE_KEY]: "{",
 		});
 		const future = memoryStorage({
-			[PROMPT_STYLE_STORAGE_KEY]: '{"version":2,"settings":{"fontSize":20}}',
+			[PROMPT_STYLE_STORAGE_KEY]: '{"version":3,"settings":{"fontSize":20}}',
 		});
 
 		expect(loadPromptStyleSettings(corrupt)).toEqual(PROMPT_STYLE_DEFAULTS);
@@ -276,6 +323,9 @@ describe("promptStyleVars", () => {
 		expect(vars["--prompt-editor-line-numbers-display"]).toBe("none");
 		expect(vars["--prompt-editor-line-number-visibility"]).toBe("hidden");
 		expect(vars["--prompt-editor-show-line-numbers"]).toBe("0");
+		// Numbers off collapses the gutter to the affordance strip, ignoring
+		// the configured (numbers-on) gutter width.
+		expect(vars["--prompt-editor-gutter-width"]).toBe("36px");
 		expect(vars["--prompt-editor-show-rules"]).toBe("1");
 		expect(vars["--prompt-editor-show-zebra"]).toBe("0");
 		expect(vars["--prompt-editor-rules-display"]).toBe("block");
@@ -287,6 +337,65 @@ describe("promptStyleVars", () => {
 		expect(vars["--prompt-editor-drop-line-width"]).toBe("3px");
 		expect(vars["--prompt-editor-selection-accent"]).toBe(
 			PROMPT_STYLE_DEFAULTS.selectionAccentColor,
+		);
+	});
+
+	test("emits landmark, gap, and inline-chip tokens", () => {
+		const vars = promptStyleVars({
+			...PROMPT_STYLE_DEFAULTS,
+			lineHeight: 20,
+			landmarkFontScale: 1.1,
+			gapRamp: 0.5,
+			inlineCodeColor: "#5FBCA5",
+			inlineChipOpacity: 0.1,
+		}) as Record<string, string>;
+
+		expect(vars["--prompt-editor-landmark-font-scale"]).toBe("1.1");
+		expect(vars["--prompt-editor-gap-height-base"]).toBe("20px");
+		expect(vars["--prompt-editor-gap-height-sub"]).toBe("36px");
+		expect(vars["--prompt-editor-gap-height-top"]).toBe("52px");
+		expect(vars["--prompt-editor-syntax-tag-landmark"]).toBe(
+			PROMPT_STYLE_DEFAULTS.tagLandmarkColor,
+		);
+		expect(vars["--prompt-editor-syntax-tag-sublandmark"]).toBe(
+			PROMPT_STYLE_DEFAULTS.tagSublandmarkColor,
+		);
+		expect(vars["--prompt-editor-landmark-pad"]).toBe("4px");
+		expect(vars["--prompt-editor-inline-code"]).toBe("#5FBCA5");
+		expect(vars["--prompt-editor-inline-chip-opacity"]).toBe("0.1");
+		expect(vars["--prompt-editor-inline-chip-bg"]).toBe(
+			"rgb(95 188 165 / 0.1)",
+		);
+
+		const flat = promptStyleVars({
+			...PROMPT_STYLE_DEFAULTS,
+			gapRamp: 0,
+		}) as Record<string, string>;
+		expect(flat["--prompt-editor-gap-height-base"]).toBe("22px");
+		expect(flat["--prompt-editor-gap-height-sub"]).toBe("22px");
+		expect(flat["--prompt-editor-gap-height-top"]).toBe("22px");
+	});
+
+	test("line numbers default off; enabling them restores the numbered gutter", () => {
+		// Default (off): no number column, collapsed gutter.
+		const off = promptStyleVars({
+			...PROMPT_STYLE_DEFAULTS,
+		}) as Record<string, string>;
+		expect(off["--prompt-editor-line-numbers-display"]).toBe("none");
+		expect(off["--prompt-editor-line-number-visibility"]).toBe("hidden");
+		expect(off["--prompt-editor-gutter-width"]).toBe("36px");
+
+		// Toggled on: exactly the classic rendering — visible numbers in the
+		// configured gutter width.
+		const on = promptStyleVars({
+			...PROMPT_STYLE_DEFAULTS,
+			showLineNumbers: true,
+		}) as Record<string, string>;
+		expect(on["--prompt-editor-line-numbers-display"]).toBe("block");
+		expect(on["--prompt-editor-line-number-visibility"]).toBe("visible");
+		expect(on["--prompt-editor-show-line-numbers"]).toBe("1");
+		expect(on["--prompt-editor-gutter-width"]).toBe(
+			`${PROMPT_STYLE_DEFAULTS.gutterWidth}px`,
 		);
 	});
 

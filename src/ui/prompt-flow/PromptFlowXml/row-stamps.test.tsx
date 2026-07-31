@@ -1,0 +1,202 @@
+import { afterEach, describe, expect, it } from "bun:test";
+import { cleanup, fireEvent, render } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import type { PromptDocument } from "../../../index";
+import { createPromptEditorModel } from "../../editors";
+import { buildXmlLineModel } from "../xml-line-model";
+import { PromptFlowXml } from ".";
+import { EDITOR_METRICS } from "../../surface/editor-surface";
+
+afterEach(() => {
+	cleanup();
+});
+
+const prompt: PromptDocument = {
+	kind: "prompt",
+	schemaVersion: "prompt-kit/v1",
+	id: "stamp-doc",
+	nodes: [
+		{
+			type: "section",
+			tag: "context",
+			id: "sec-1",
+			children: [
+				{ type: "paragraph", id: "para-1", content: ["Hello world"] },
+				{
+					type: "bulletList",
+					id: "list-1",
+					items: [{ type: "listItem", id: "item-1", content: ["First"] }],
+				},
+			],
+		},
+		{ type: "codeBlock", id: "code-1", language: "ts", code: "const a = 1;" },
+	],
+};
+
+describe("PromptFlowXml row stamps", () => {
+	it("stamps every row with its role and non-gap rows with their node id", () => {
+		const model = createPromptEditorModel(prompt, {});
+		render(
+			<PromptFlowXml
+				prompt={model.prompt}
+				model={model}
+				onSelectNode={() => {}}
+				onPromptChange={() => {}}
+			/>,
+		);
+
+		const lines = buildXmlLineModel(model.prompt).lines;
+		const rows = Array.from(
+			document.querySelectorAll<HTMLElement>("[data-row-index]"),
+		);
+		expect(rows.length).toBe(lines.length);
+		// The fixture exercises every role, including gap separators.
+		expect(new Set(lines.map((line) => line.role))).toEqual(
+			new Set(["gap", "open", "close", "content", "fence", "item"]),
+		);
+
+		rows.forEach((row, index) => {
+			const line = lines[index]!;
+			expect(row.getAttribute("data-prompt-row-role")).toBe(line.role);
+			if (line.role === "gap") {
+				// Gap rows belong to no node visually — no node id or parent stamp.
+				expect(row.getAttribute("data-prompt-node-id")).toBeNull();
+				expect(row.getAttribute("data-prompt-parent-node-id")).toBeNull();
+			} else {
+				// Item rows stamp the ITEM's own id (bullets are annotation
+				// targets in their own right); every other row keeps its node id.
+				expect(row.getAttribute("data-prompt-node-id")).toBe(
+					line.itemId ?? line.nodeId,
+				);
+				// The parent stamp names the enclosing block (the list for an
+				// item, the section for a nested block; none at the top level).
+				expect(row.getAttribute("data-prompt-parent-node-id")).toBe(
+					line.parentNodeId ?? null,
+				);
+				// Every non-gap row exposes its text region for range mapping.
+				expect(row.querySelector("[data-prompt-row-text]")).toBeTruthy();
+			}
+		});
+	});
+
+	it("renders no line-number column by default; the gutter keeps only its collapsed affordance width", () => {
+		const model = createPromptEditorModel(prompt, {});
+		// Server markup keeps the literal style strings (happy-dom's style
+		// property validation drops `var()` display values on live elements).
+		const host = document.createElement("div");
+		host.innerHTML = renderToStaticMarkup(
+			<PromptFlowXml
+				prompt={model.prompt}
+				model={model}
+				onSelectNode={() => {}}
+				onPromptChange={() => {}}
+			/>,
+		);
+
+		const row = host.querySelector<HTMLElement>('[data-row-index="0"]')!;
+		const gutter = row.querySelector<HTMLElement>(".sticky")!;
+		const number = gutter.querySelector<HTMLElement>("span")!;
+
+		// The number text is always in the tree — enabling numbers is purely a
+		// host style-var flip (the style rail's "Line numbers" toggle), which
+		// restores exactly the classic rendering without a re-render.
+		expect(number.textContent).toBe("1");
+		// Off is the default: without host vars the span's display resolves to
+		// `none`, so the number column does not exist in layout.
+		expect(number.getAttribute("style") ?? "").toContain(
+			"var(--prompt-editor-line-numbers-display, none)",
+		);
+		// The gutter's width is the shared variable with the collapsed fallback:
+		// numbers off leaves just the strip the grip/menu cluster needs.
+		expect(gutter.getAttribute("style") ?? "").toContain(
+			"var(--prompt-editor-gutter-width, 36px)",
+		);
+		// Nothing functional reads the rendered digits: range-to-offset mapping
+		// walks [data-prompt-row-text] regions, and the number lives outside them.
+		expect(number.closest("[data-prompt-row-text]")).toBeNull();
+	});
+
+	it("stamps every editor affordance for annotate-mode hiding", () => {
+		const model = createPromptEditorModel(prompt, {});
+		render(
+			<PromptFlowXml
+				prompt={model.prompt}
+				model={model}
+				onSelectNode={() => {}}
+				onPromptChange={() => {}}
+			/>,
+		);
+
+		// Under the one-handle model (see resolveDragHandleUnit) the block
+		// grip/menu cluster mounts on the hovered block's anchor row — and it
+		// carries the stamp the lab's annotate stylesheet display:none-s.
+		const paragraphRow = document.querySelector<HTMLElement>(
+			'[data-prompt-node-id="para-1"]',
+		)!;
+		fireEvent.mouseEnter(paragraphRow);
+		const cluster = document.querySelector<HTMLElement>(
+			'[data-prompt-affordance="block-cluster"]',
+		);
+		expect(cluster).toBeTruthy();
+		expect(cluster!.querySelector("button")).toBeTruthy();
+	});
+
+	it("renders NO per-item remove × in edit mode — item deletion is Backspace / the block menu", () => {
+		const model = createPromptEditorModel(prompt, {});
+		render(
+			<PromptFlowXml
+				prompt={model.prompt}
+				model={model}
+				onSelectNode={() => {}}
+				onPromptChange={() => {}}
+			/>,
+		);
+
+		// The × was removed outright (not annotate-hidden): hovering an item
+		// row must mount nothing carrying the retired remove-item stamp.
+		const itemRow = document.querySelector<HTMLElement>(
+			'[data-prompt-node-id="item-1"]',
+		)!;
+		fireEvent.mouseOver(itemRow);
+		expect(
+			document.querySelector('[data-prompt-affordance="remove-item"]'),
+		).toBeNull();
+		expect(document.querySelector('[aria-label="Remove list item"]')).toBeNull();
+	});
+
+	it("gives the drag grip a padded hit area around a large glyph", () => {
+		const model = createPromptEditorModel(prompt, {});
+		render(
+			<PromptFlowXml
+				prompt={model.prompt}
+				model={model}
+				onSelectNode={() => {}}
+				onPromptChange={() => {}}
+			/>,
+		);
+
+		// One-handle model: the grip mounts on hover of a block row.
+		fireEvent.mouseEnter(
+			document.querySelector<HTMLElement>('[data-prompt-node-id="para-1"]')!,
+		);
+		const grip = document.querySelector<HTMLElement>(".prompt-editor-grip")!;
+		expect(grip).toBeTruthy();
+		// Hit area: 28px wide (w-7) by a full line-height tall — meaningfully
+		// larger than the glyph it frames, docs-viewer drag-handle style.
+		// (happy-dom drops var() height styles from the live DOM, so the
+		// metrics the styles feed are asserted directly.)
+		expect(grip.className).toContain("w-7");
+		expect(EDITOR_METRICS.lineHeight).toContain(
+			"var(--prompt-editor-line-height, 22px)",
+		);
+		// Grab affordance: cursor grab at rest, grabbing while held.
+		expect(grip.className).toContain("cursor-grab");
+		expect(grip.className).toContain("active:cursor-grabbing");
+		// The glyph itself resolves the grip-size variable with a 20px default.
+		expect(grip.querySelector("svg")).toBeTruthy();
+		expect(EDITOR_METRICS.gripSize).toContain(
+			"var(--prompt-editor-grip-size, 20px)",
+		);
+	});
+});

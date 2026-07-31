@@ -16,6 +16,17 @@ export const LINE_HEIGHT_PX = 22;
 const MONO_FONT_FALLBACK =
 	'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
 
+/**
+ * Gutter width when line numbers are off — the surface's default. The prompt
+ * flow renders a structured document, not source code: node ids, targeting
+ * rings, and quoted ranges are the address system, so the left edge keeps only
+ * what the block affordances need — the 28px grip/menu hit area plus clearance
+ * from the body text. Hosts that enable line numbers (the one legitimate use:
+ * correlating with the Raw view line-for-line) widen the gutter via
+ * `--prompt-editor-gutter-width`.
+ */
+export const PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH = "36px";
+
 /** Runtime type/layout metrics. Values are CSS expressions, not frozen pixels. */
 export const EDITOR_METRICS = {
 	fontFamily: `var(--prompt-editor-font-family, ${MONO_FONT_FALLBACK})`,
@@ -24,9 +35,20 @@ export const EDITOR_METRICS = {
 	letterSpacing: "var(--prompt-editor-letter-spacing, 0em)",
 	indentWidth: "var(--prompt-editor-indent-width, 2ch)",
 	contentWidth: "var(--prompt-editor-content-width, 136ch)",
-	gutterWidth: "var(--prompt-editor-gutter-width, 5ch)",
-	gripSize: "var(--prompt-editor-grip-size, 14px)",
+	gutterWidth: `var(--prompt-editor-gutter-width, ${PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH})`,
+	gripSize: "var(--prompt-editor-grip-size, 20px)",
+	/**
+	 * Glyph size of the per-ITEM drag handle — deliberately smaller than the
+	 * block grip so the affordance hierarchy reads at a glance: big grip in the
+	 * gutter moves the block, small grip at the marker moves that item.
+	 */
+	itemGripSize: "var(--prompt-editor-item-grip-size, 14px)",
 	dropLineWidth: "var(--prompt-editor-drop-line-width, 2px)",
+	landmarkFontScale: "var(--prompt-editor-landmark-font-scale, 1.08)",
+	landmarkPad: "var(--prompt-editor-landmark-pad, 8px)",
+	gapHeightBase: `var(--prompt-editor-gap-height-base, var(--prompt-editor-line-height, ${LINE_HEIGHT_PX}px))`,
+	gapHeightSub: `var(--prompt-editor-gap-height-sub, calc(var(--prompt-editor-line-height, ${LINE_HEIGHT_PX}px) + 32px))`,
+	gapHeightTop: `var(--prompt-editor-gap-height-top, calc(var(--prompt-editor-line-height, ${LINE_HEIGHT_PX}px) + 64px))`,
 } as const;
 
 /** Editor-surface palette with compatibility host tokens and literal fallbacks. */
@@ -48,6 +70,13 @@ export const EDITOR_COLORS = {
 	syntaxPunctuation:
 		"var(--prompt-editor-syntax-punctuation, #6E7681)",
 	syntaxTag: "var(--prompt-editor-syntax-tag, #B48EC7)",
+	syntaxTagLandmark:
+		"var(--prompt-editor-syntax-tag-landmark, #BC9AD3)",
+	syntaxTagSublandmark:
+		"var(--prompt-editor-syntax-tag-sublandmark, #A992BE)",
+	inlineCode: "var(--prompt-editor-inline-code, #5FBCA5)",
+	inlineChipBg:
+		"var(--prompt-editor-inline-chip-bg, rgb(95 188 165 / 0.08))",
 	syntaxAttribute:
 		"var(--prompt-editor-syntax-attribute, #85AECB)",
 	syntaxValue: "var(--prompt-editor-syntax-value, #C09A78)",
