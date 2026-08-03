@@ -15,12 +15,12 @@ renderer is XML-tagged Markdown.
 
 | File | Responsibility |
 |------|----------------|
-| `src/renderers/index.ts` | Renderer barrel export |
-| `src/renderers/xml-markdown/render.ts` | Public `renderXmlMarkdown` function |
-| `src/renderers/xml-markdown/render-node.ts` | Node-specific rendering logic |
-| `src/renderers/xml-markdown/escaping.ts` | XML text and attribute escaping plus tag-name validation |
-| `src/renderers/xml-markdown/indentation.ts` | Indentation helpers |
-| `src/renderers/xml-markdown/render.test.ts` | Renderer behavior tests |
+| `packages/prompt-kit/src/renderers/index.ts` | Renderer barrel export |
+| `packages/prompt-kit/src/renderers/xml-markdown/render.ts` | Public `renderXmlMarkdown` function |
+| `packages/prompt-kit/src/renderers/xml-markdown/render-node.ts` | Node-specific rendering logic |
+| `packages/prompt-kit/src/renderers/xml-markdown/escaping.ts` | XML text and attribute escaping plus tag-name validation |
+| `packages/prompt-kit/src/renderers/xml-markdown/indentation.ts` | Indentation helpers |
+| `packages/prompt-kit/src/renderers/xml-markdown/render.test.ts` | Renderer behavior tests |
 
 ## Rendering Flow
 
@@ -49,4 +49,3 @@ the configured behavior:
 
 Renderer tests currently cover nested sections and lists, variable substitution,
 placeholder fallback, and context usage rendering.
-

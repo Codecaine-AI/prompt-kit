@@ -7,8 +7,9 @@ design_refs: [10-system-design/10-canonical-prompt-object.md]
 
 # Source Modules
 
-The `src/` directory is organized by public capability rather than by runtime
-integration. Each module owns one layer of the prompt document lifecycle.
+The `packages/prompt-kit/src/` directory is organized by public capability
+rather than by runtime integration. Each module owns one layer of the prompt
+document lifecycle.
 
 ---
 
@@ -28,7 +29,7 @@ integration. Each module owns one layer of the prompt document lifecycle.
 ## Source Tree
 
 ```text
-src/
+packages/prompt-kit/src/
 ├── builders/       Authoring helpers that create prompt nodes
 ├── nodes/          Canonical AST types, guards, and definePrompt
 ├── renderers/      PromptDocument to rendered output
@@ -44,4 +45,3 @@ src/
 Start with [10-nodes-and-builders.md](10-nodes-and-builders.md) to understand
 the data model and authoring API. Then read renderer, transform, and validation
 docs based on the behavior you are extending.
-

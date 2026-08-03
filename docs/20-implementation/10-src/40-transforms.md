@@ -15,13 +15,13 @@ document shape and avoid string-based prompt rewriting.
 
 | File | Responsibility |
 |------|----------------|
-| `src/transforms/visit.ts` | Tree traversal and `VisitEntry` paths |
-| `src/transforms/find.ts` | `findNodeById`, `findNodes`, `findSectionsByTag` |
-| `src/transforms/insert.ts` | `insertBeforeId`, `insertAfterId` |
-| `src/transforms/replace.ts` | `replaceNodeById` |
-| `src/transforms/omit.ts` | `omitNodeById` |
-| `src/transforms/tree-utils.ts` | Recursive block mapping helpers |
-| `src/transforms/transforms.test.ts` | Transform behavior tests |
+| `packages/prompt-kit/src/transforms/visit.ts` | Tree traversal and `VisitEntry` paths |
+| `packages/prompt-kit/src/transforms/find.ts` | `findNodeById`, `findNodes`, `findSectionsByTag` |
+| `packages/prompt-kit/src/transforms/insert.ts` | `insertBeforeId`, `insertAfterId` |
+| `packages/prompt-kit/src/transforms/replace.ts` | `replaceNodeById` |
+| `packages/prompt-kit/src/transforms/omit.ts` | `omitNodeById` |
+| `packages/prompt-kit/src/transforms/tree-utils.ts` | Recursive block mapping helpers |
+| `packages/prompt-kit/src/transforms/transforms.test.ts` | Transform behavior tests |
 
 ## Traversal
 
@@ -41,4 +41,3 @@ Transforms target block nodes by id. Inline transforms can be built on top of
 `visitPrompt` when consumers need them, but the core package currently focuses
 on section and block composition because that is the primary prompt substitution
 surface.
-

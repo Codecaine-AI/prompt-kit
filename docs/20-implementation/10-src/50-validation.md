@@ -15,10 +15,10 @@ display in editors, traces, tests, or CI.
 
 | File | Responsibility |
 |------|----------------|
-| `src/validation/validate-tree.ts` | `validatePrompt` implementation |
-| `src/validation/diagnostics.ts` | Diagnostic and result types |
-| `src/validation/index.ts` | Validation barrel export |
-| `src/validation/validate-tree.test.ts` | Validation behavior tests |
+| `packages/prompt-kit/src/validation/validate-tree.ts` | `validatePrompt` implementation |
+| `packages/prompt-kit/src/validation/diagnostics.ts` | Diagnostic and result types |
+| `packages/prompt-kit/src/validation/index.ts` | Validation barrel export |
+| `packages/prompt-kit/src/validation/validate-tree.test.ts` | Validation behavior tests |
 
 ## Validator Flow
 
@@ -43,4 +43,3 @@ The result is considered ok when no diagnostic has `severity: "error"`.
 The validator accepts `declaredVariables` because variables usually belong to
 the host agent definition. This keeps prompt-kit independent while allowing
 host-specific validation.
-

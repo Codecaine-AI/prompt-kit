@@ -8,8 +8,9 @@ design_refs: [10-system-design/60-kernel-boundary.md]
 
 The UI module exposes headless models that host viewers and editors can consume.
 Prompt-kit also provides a full prompt-editing application shell under
-`src/ui/lab`, with React-facing modules isolated behind dedicated package entry
-points and React declared as an optional peer dependency.
+`packages/prompt-kit/src/ui/lab`, with React-facing modules isolated behind
+dedicated package entry points and React declared as an optional peer
+dependency.
 
 ---
 
@@ -17,9 +18,9 @@ points and React declared as an optional peer dependency.
 
 | File | Responsibility |
 |------|----------------|
-| `src/ui/index.ts` | UI barrel export |
-| `src/ui/renderers/index.ts` | `createPromptPreviewModel` |
-| `src/ui/editors/index.ts` | `createPromptEditorModel` |
+| `packages/prompt-kit/src/ui/index.ts` | UI barrel export |
+| `packages/prompt-kit/src/ui/renderers/index.ts` | `createPromptPreviewModel` |
+| `packages/prompt-kit/src/ui/editors/index.ts` | `createPromptEditorModel` |
 
 ## Preview Model
 

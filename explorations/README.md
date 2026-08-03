@@ -8,4 +8,4 @@ This directory holds standalone interactive HTML mockups that drive design sessi
 
 ## Precedent
 
-`editor-readability/` (2026-07-29, nine readability variants) drove the readability overhaul in `src/ui/surface` and was removed 2026-08-03.
+`editor-readability/` (2026-07-29, nine readability variants) drove the readability overhaul in `packages/prompt-kit/src/ui/surface` and was removed 2026-08-03.

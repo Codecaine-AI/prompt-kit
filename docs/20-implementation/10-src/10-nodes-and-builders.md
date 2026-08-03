@@ -15,10 +15,10 @@ that creates those nodes from readable TypeScript.
 
 | File | Responsibility |
 |------|----------------|
-| `src/nodes/types.ts` | Schema version, `PromptDocument`, block nodes, inline nodes, and node unions |
-| `src/nodes/create-node.ts` | `definePrompt` and generic `createNode` helpers |
-| `src/nodes/guards.ts` | Runtime guards for prompt documents, block nodes, list items, and variables |
-| `src/nodes/index.ts` | Node module barrel export |
+| `packages/prompt-kit/src/nodes/types.ts` | Schema version, `PromptDocument`, block nodes, inline nodes, and node unions |
+| `packages/prompt-kit/src/nodes/create-node.ts` | `definePrompt` and generic `createNode` helpers |
+| `packages/prompt-kit/src/nodes/guards.ts` | Runtime guards for prompt documents, block nodes, list items, and variables |
+| `packages/prompt-kit/src/nodes/index.ts` | Node module barrel export |
 
 `definePrompt` sets `kind: "prompt"` and defaults `schemaVersion` to
 `prompt-kit/v1`.
@@ -27,14 +27,14 @@ that creates those nodes from readable TypeScript.
 
 | File | Builders |
 |------|----------|
-| `src/builders/section.ts` | `section` |
-| `src/builders/lists.ts` | `item`, `bulletList`, `orderedList` |
-| `src/builders/text.ts` | `inline`, `paragraph`, `variable`, `reference` |
-| `src/builders/fields.ts` | `field` |
-| `src/builders/examples.ts` | `example` |
-| `src/builders/code.ts` | `codeBlock`, `raw` |
-| `src/builders/context.ts` | `usesContext` |
-| `src/builders/normalize.ts` | string-to-node normalization helpers |
+| `packages/prompt-kit/src/builders/section.ts` | `section` |
+| `packages/prompt-kit/src/builders/lists.ts` | `item`, `bulletList`, `orderedList` |
+| `packages/prompt-kit/src/builders/text.ts` | `inline`, `paragraph`, `variable`, `reference` |
+| `packages/prompt-kit/src/builders/fields.ts` | `field` |
+| `packages/prompt-kit/src/builders/examples.ts` | `example` |
+| `packages/prompt-kit/src/builders/code.ts` | `codeBlock`, `raw` |
+| `packages/prompt-kit/src/builders/context.ts` | `usesContext` |
+| `packages/prompt-kit/src/builders/normalize.ts` | string-to-node normalization helpers |
 
 ## Normalization Pattern
 
@@ -48,4 +48,3 @@ complete AST after construction.
 New node types should be added only when the existing block vocabulary cannot
 represent a common prompt structure. New builders are lower risk because they
 can return existing nodes while improving authoring ergonomics.
-

@@ -5,25 +5,31 @@ concepts: [development, testing, typecheck, exports, integration]
 
 # Development
 
-Prompt-kit is a standalone repository. Its source is self-contained and does
-not import the Agent Kernel.
+Prompt-kit is a Bun workspace. The library source is self-contained and does
+not import the Agent Kernel; the sibling agent harness depends on both the
+library and Agent Kernel.
 
 ---
 
 ## Commands From Repository Root
 
-Install dependencies, typecheck the package, and run its source tests from this
-repository's root:
+Install dependencies from the `Core` root or this repository root. Typecheck
+and test both workspace packages from this repository root:
 
 ```bash
 bun install
 bun run typecheck
-bun test src
+bun run test
 ```
+
+To check only the library, run `bun run --cwd packages/prompt-kit typecheck` or
+`bun run --cwd packages/prompt-kit test`. Replace the cwd with
+`packages/prompt-kit-agent` for the harness; its test script runs
+`bun test ./test ./catalog`, so catalog tests are included.
 
 ## Package Exports
 
-`package.json` exposes ten entry points:
+`packages/prompt-kit/package.json` exposes ten entry points:
 
 ```json
 {
@@ -47,9 +53,11 @@ points expose the React authoring surface and its supporting modules.
 
 ## Repository Boundary
 
-Documentation, package metadata, source, and tests remain self-contained in
-this repository. When a prompt-kit API changes, update this package's docs
-first, then update integration docs when host behavior changes.
+Documentation and working-state notes remain at the repository root. Library
+source and tests live in `packages/prompt-kit`; the agent catalog, authoring
+skill, kernel, and tests live in `packages/prompt-kit-agent`. When a prompt-kit
+API changes, update this package's docs first, then update integration docs when
+host behavior changes.
 
 ## Known issues
 
@@ -73,13 +81,13 @@ first, then update integration docs when host behavior changes.
    `dedupe`/`optimizeDeps` settings, Agent Kernel's root `tsconfig.json` paths
    pinning `@types/react`, and this repository's `react-dedup.ts` Bun test
    preload. Preserve all three.
-3. **Consumer builds hard-code this repository's location and `src/` layout.**
-   Tailwind source paths (`@source` or `content`) and Vite `fs.allow` settings
-   refer to this checkout from `agent-kernel/examples/simple-research-kernel`,
-   `canvas/packages/canvas-agent/src/viewer`, and `observatory/src/ui`. Renaming
-   or moving `src/` breaks all three consumers.
+3. **Consumer builds hard-code this repository's location and package layout.**
+   The Tailwind globs in `agent-kernel/examples/simple-research-kernel`,
+   `canvas/packages/canvas-agent/src/viewer`, and `observatory/src/ui` now point
+   at `prompt-kit/packages/prompt-kit/src/**/*.{ts,tsx}`. Their Vite `fs.allow`
+   settings also refer to this checkout. Moving the package source requires all
+   three consumers to change.
 4. **The development loop spans separate processes.** Canvas uses the viewer
    on `:4830` at `/config` with its harness on `:4820`. The standalone
-   prompt-kit kernel uses `:4850`; start it with `bun run dev:prompt-kit` from
-   `../agent-kernel`. Start Observatory with `bun run dev` from
-   `../observatory`.
+   prompt-kit kernel uses `:4850`; start it with `bun run dev:agent` from this
+   repository root. Start Observatory with `bun run dev` from `../observatory`.

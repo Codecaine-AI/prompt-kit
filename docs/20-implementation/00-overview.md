@@ -7,9 +7,10 @@ design_refs: [10-system-design/10-canonical-prompt-object.md, 10-system-design/3
 
 # Prompt-Kit Implementation
 
-Prompt-kit is implemented as a TypeScript package with a small public API and no
-kernel dependency. The source tree is grouped by AST nodes, builders, templates,
-renderers, transforms, validation, and lightweight UI models.
+Prompt-kit is implemented in `packages/prompt-kit/src/` as a TypeScript package
+with a small public API and no kernel dependency. The source tree is grouped by
+AST nodes, builders, templates, renderers, transforms, validation, and
+lightweight UI models.
 
 ---
 
@@ -57,10 +58,9 @@ templates, renderers, transforms, validation, and UI models.
 
 Documents the prompt-editing UI built on this package: the editing model,
 keyboard model, structural steps, presentation contract, application shell,
-block vocabulary, and the current package split. That UI is implemented in the
-host viewer package rather than here.
+block vocabulary, and the current package split. That UI is implemented in
+`packages/prompt-kit/src/ui/` and consumed by host viewers.
 
 ### [99-appendix/00-overview.md](99-appendix/00-overview.md)
 
 Documents development commands and package-level operational notes.
-

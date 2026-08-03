@@ -98,7 +98,7 @@ The relocation was completed in commit `3002647` and subsequent work:
 
 | Fact | State |
 |------|-------|
-| Modules present under `prompt-kit/src/ui/` | Yes, committed in prompt-kit |
+| Modules present under `packages/prompt-kit/src/ui/` | Yes, committed in prompt-kit |
 | Subpath exports declared in `package.json` | Yes |
 | React declared as an optional peer dependency | Yes |
 | Original copies removed from `agent-kernel/packages/viewer-ui/src/` | Yes |

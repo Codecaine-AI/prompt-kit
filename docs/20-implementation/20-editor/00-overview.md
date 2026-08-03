@@ -11,9 +11,9 @@ A working prompt editor exists for prompt-kit documents. It presents a
 `PromptDocument` as editable XML-tagged Markdown, commits every gesture as a
 transaction step, and never treats the rendered text as a source of truth.
 
-This area documents that editor's architecture. The editor exists in two places
-while it is being relocated into this package; see
-[70-package-split.md](70-package-split.md) for exactly what lives where.
+This area documents that editor's architecture. Its canonical implementation
+lives in `packages/prompt-kit/src/ui/`; see
+[70-package-split.md](70-package-split.md) for the package boundary.
 
 ---
 
@@ -72,8 +72,8 @@ and the seam along which the editing work could move into prompt-kit.
 
 ## Source Map
 
-Paths are relative to this package's `src/ui/`. The same modules exist under
-`agent-kernel/packages/viewer-ui/src/` with a different directory layout; see
+Paths are relative to `packages/prompt-kit/src/ui/`. Host viewers consume these
+modules through prompt-kit's exported UI entry points; see
 [70-package-split.md](70-package-split.md).
 
 | Area | Path |

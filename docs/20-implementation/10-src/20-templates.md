@@ -16,10 +16,10 @@ taxonomy.
 
 | File | Responsibility |
 |------|----------------|
-| `src/templates/task.ts` | `singleOutputPrompt` and `taskSection` |
-| `src/templates/workflow.ts` | `workflowPrompt` |
-| `src/templates/agent.ts` | `agentPrompt` |
-| `src/templates/index.ts` | Template barrel export |
+| `packages/prompt-kit/src/templates/task.ts` | `singleOutputPrompt` and `taskSection` |
+| `packages/prompt-kit/src/templates/workflow.ts` | `workflowPrompt` |
+| `packages/prompt-kit/src/templates/agent.ts` | `agentPrompt` |
+| `packages/prompt-kit/src/templates/index.ts` | Template barrel export |
 
 ## `singleOutputPrompt`
 
@@ -43,4 +43,3 @@ runtime behavior directly.
 Prefer a template when several prompts share the same section skeleton. Prefer
 plain builders when only one prompt needs the shape. Templates should stay broad
 enough to be reused outside one host application.
-
