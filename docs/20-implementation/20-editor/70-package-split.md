@@ -6,9 +6,9 @@ design_refs: [00-foundation/10-purpose-and-boundary.md, 10-system-design/60-kern
 
 # Package Split
 
-The editing UI was built inside `agent-kernel`'s `viewer-ui` package and is
-being relocated into prompt-kit. Both copies exist in the working tree. This
-page records that state rather than pretending either half of it away.
+The editing UI was built inside `agent-kernel`'s `viewer-ui` package and was
+relocated into prompt-kit. The original copies were removed, and host viewers
+now consume prompt-kit's exported UI entry points.
 
 ---
 
@@ -18,8 +18,11 @@ The relocation splits the package's UI surface along a headless/React line.
 
 | Entry | Contents |
 |-------|----------|
+| `@codecaine-ai/prompt-kit` | Core prompt document, rendering, validation, and node APIs |
+| `@codecaine-ai/prompt-kit/annotations` | Headless annotation types and helpers |
 | `@codecaine-ai/prompt-kit/ui` | Editor models, tree, node access, steps, transaction log — no React, no DOM |
-| `@codecaine-ai/prompt-kit/ui/react` | Every React-facing piece, re-exporting the four entries below |
+| `@codecaine-ai/prompt-kit/ui/annotations` | UI-facing annotation models and helpers |
+| `@codecaine-ai/prompt-kit/ui/react` | Every React-facing piece, re-exporting the five entries below |
 | `@codecaine-ai/prompt-kit/ui/prompt-flow` | Editing surface, node inspector, line model, change-handler types |
 | `@codecaine-ai/prompt-kit/ui/lab` | Lab shell, statusbar, inspector, autosave, history, style rail |
 | `@codecaine-ai/prompt-kit/ui/style` | Style settings, presets, variable projection, React hook |
@@ -51,7 +54,7 @@ DOM, and each has its own unit tests.
 | `ui/lab/prompt-lab-history.ts` | Unified undo/redo over steps and metadata |
 | `ui/style/prompt-style-settings.ts` | Settings shape, presets, normalization, variable projection |
 
-Three caveats qualify that list:
+Two caveats qualify that list:
 
 - `prompt-style-settings.ts` type-imports React's `CSSProperties` for the return
   type of `promptStyleVars`. The import is erased at build time; the logic is
@@ -60,10 +63,6 @@ Three caveats qualify that list:
   `PromptFlowXml/node-mutations.ts`, which is a React module. The imported
   function is itself pure, so the dependency is one misplaced helper rather than
   a real coupling.
-- `PromptFlowXml/editor-keymap.ts` is pure decision logic, but its entry point
-  takes a React keyboard event. `PromptFlowXml/click-caret.ts` and
-  `PromptFlowXml/caret-rect.ts` are free of React but require a DOM.
-
 ## React Layer
 
 | Module | Contents |
@@ -95,35 +94,27 @@ Runtime-tunable values are read from `--prompt-editor-*` custom properties; see
 
 ## Migration State
 
-At the time of writing the relocation is uncommitted and incomplete:
+The relocation was completed in commit `3002647` and subsequent work:
 
 | Fact | State |
 |------|-------|
-| Modules present under `prompt-kit/src/ui/` | Yes, as an unstaged copy |
+| Modules present under `prompt-kit/src/ui/` | Yes, committed in prompt-kit |
 | Subpath exports declared in `package.json` | Yes |
 | React declared as an optional peer dependency | Yes |
-| Original copies still in `agent-kernel/packages/viewer-ui/src/` | Yes |
-| Host viewer package importing from the new entry points | No |
+| Original copies removed from `agent-kernel/packages/viewer-ui/src/` | Yes |
+| Host viewer package importing from the new entry points | Yes |
 
-The relocated copies differ from the originals only by import specifier — the
-prompt-kit copies resolve prompt-kit through relative paths instead of the
-package name. Behavior is identical, so everything the rest of this area
-documents applies to both.
-
-Until the host viewer package switches over, `viewer-ui` remains the copy the
-running application uses.
+During relocation, internal imports were adjusted to resolve prompt-kit through
+relative paths instead of the package name. The prompt-kit modules are now the
+canonical implementation used by host applications.
 
 ---
 
 ## Boundary Consequence
 
 [00-foundation/10-purpose-and-boundary.md](../../00-foundation/10-purpose-and-boundary.md)
-and [10-src/60-ui-models.md](../10-src/60-ui-models.md) both state that
-prompt-kit deliberately keeps UI framework code out of the package. The optional
-peer dependency and the separate `./ui/react` specifier soften that boundary
-rather than erasing it: the default and headless entries remain React-free, and
-a consumer that never imports `./ui/react` never pulls React in.
-
-Those two statements still need revising to describe the boundary as it now
-stands. That is a decision about the package's identity rather than an editorial
-cleanup, so it is flagged here rather than made.
+and [10-src/60-ui-models.md](../10-src/60-ui-models.md) describe the boundary as
+it now stands. Prompt-kit includes React UI, but the optional peer dependency
+and separate React-facing specifiers preserve a framework-free default and
+headless surface. A consumer that imports only the core, annotation, or
+headless UI entries does not pull React in.

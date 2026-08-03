@@ -23,8 +23,10 @@ The Agent Kernel consumes prompt-kit, but prompt-kit does not depend on the kern
 | Import | Contents |
 | --- | --- |
 | `@codecaine-ai/prompt-kit` | AST, builders, renderers, transforms, validation |
+| `@codecaine-ai/prompt-kit/annotations` | Headless prompt annotation schema and store |
 | `@codecaine-ai/prompt-kit/ui` | Headless UI models — no React, no DOM |
-| `@codecaine-ai/prompt-kit/ui/react` | Every React export below, in one import |
+| `@codecaine-ai/prompt-kit/ui/annotations` | React `PromptAnnotationsPane` |
+| `@codecaine-ai/prompt-kit/ui/react` | Prompt-flow, lab, style, surface, and view exports; annotations stay separate |
 | `@codecaine-ai/prompt-kit/ui/prompt-flow` | `PromptFlowXml`, `PromptFlowInspector` |
 | `@codecaine-ai/prompt-kit/ui/lab` | `PromptInlineLab`, `PromptStyleRail`, undo history |
 | `@codecaine-ai/prompt-kit/ui/style` | Persisted style settings + `usePromptStyleSettings` |
@@ -37,9 +39,8 @@ token variables they resolve against. See the styling contract at the top of
 `src/ui/react.ts`.
 
 The editor UI's architecture is documented in
-`docs/20-implementation/20-editor/`. `EDITOR-UI-HANDOFF.md` carries the working
-state — what was built, known bugs, pending decisions, and the traps worth
-knowing before touching it.
+`docs/20-implementation/20-editor/`. Working-state notes and active build plans
+live in `docs/.drafts/`.
 
 ## Quick Start
 
@@ -119,6 +120,28 @@ The intended split is:
   transforms, validation, editor models, and the authoring UI.
 - Agent Kernel: agent definitions, runtime context, tool binding, Pi sessions,
   traces, and viewer integration.
+
+## Where things live
+
+Prompt-kit is the library layer. The prompt-editor agent and its runtime
+deliberately live outside this repository: agent-kernel depends on prompt-kit,
+so hosting an agent harness here would invert the dependency.
+
+- Library (this repo): the prompt AST, builders, renderers, transforms,
+  validation, and the authoring UI (`/ui/lab` shell, `/ui/prompt-flow` editor,
+  annotations pane), consumed via the `@codecaine-ai/prompt-kit` export map.
+- Agent bundle: `../agent-kernel/catalog/prompt-editor` — `agent.json`, the agent
+  prompt (authored with prompt-kit itself), context, and state.
+- Runnable kernel: `../agent-kernel/examples/prompt-kit-kernel` — port 4850,
+  started with `bun run dev:prompt-kit` from agent-kernel; registered as the
+  "Prompt Kit" project in `../observatory/registry.json` (`autoLaunch`).
+- Lab wiring: `../agent-kernel/packages/viewer-ui` (`AgentPromptLabContainer`)
+  connects `/ui/lab` to kernel edit sessions.
+- Hosts where the loop is clickable: canvas `/config` (`make traces` in
+  `../canvas`, then http://localhost:4830/config) and Observatory, the global
+  viewer/launcher (`bun run dev` in `../observatory`).
+- Design working state: `docs/.drafts/` (dated session and build-plan docs) and
+  `explorations/` (interactive mockups).
 
 ## Development
 
