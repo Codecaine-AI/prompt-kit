@@ -258,7 +258,7 @@ describe("PromptInlineLab annotate mode", () => {
     expect(chip?.textContent).toBe("Paragraph");
   });
 
-  test("plain hover targets a single bullet; Alt-hover expands to the whole list", () => {
+  test("hover targets exactly what is pointed at — no Alt parent expansion", () => {
     render(<PromptInlineLab prompt={prompt} />);
     fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
 
@@ -274,15 +274,15 @@ describe("PromptInlineLab annotate mode", () => {
       document.querySelector('[data-annotation-ui="hover-chip"]')?.textContent,
     ).toBe("List item");
 
-    // Alt held: the hovered row's PARENT block resolves — chip names the
-    // list, exactly the way the inspector does.
+    // The scope machinery is gone: Alt changes nothing — what you point at
+    // is the target.
     fireEvent.mouseMove(itemRow!, { altKey: true });
     expect(
       document.querySelector('[data-annotation-ui="hover-chip"]')?.textContent,
-    ).toBe("Bullet list");
+    ).toBe("List item");
   });
 
-  test("clicking a node opens the anchored popover and Annotate lands an agent request", async () => {
+  test("clicking a node opens the inline composer and Annotate lands an agent request", async () => {
     const store = createAnnotationStore();
     render(<PromptInlineLab prompt={prompt} annotationStore={store} />);
     fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
@@ -296,11 +296,25 @@ describe("PromptInlineLab annotate mode", () => {
       document.querySelector('[data-annotation-ui="selected-ring"]'),
     ).toBeTruthy();
 
-    // ...and opens the composer popover next to them, labeled like the
-    // inspector. No intent picker — every annotation is an agent request.
+    // ...and opens the composer IN the document flow, directly above the
+    // target's row (⌘K feel) — not a floating popover. No intent picker,
+    // no scope breadcrumb.
     expect(composer()).toBeTruthy();
-    expect(composer()!.textContent).toContain("Paragraph");
+    const slot = document.querySelector('[data-prompt-inline-insert="composer"]');
+    expect(slot).toBeTruthy();
+    const targetRow = document.querySelector(
+      '[data-prompt-node-id="paragraph-1"]',
+    )!;
+    // The composer slot PRECEDES the target row in the surface flow.
+    expect(
+      slot!.compareDocumentPosition(targetRow) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      document.querySelector("[data-prompt-flow-rows]")!.contains(slot),
+    ).toBe(true);
     expect(within(composer()!).queryByText("Note")).toBeNull();
+    expect(composer()!.querySelector("[data-annotation-scope]")).toBeNull();
     submitComposer("Fix the wording here.");
 
     await waitFor(() => {
@@ -331,7 +345,6 @@ describe("PromptInlineLab annotate mode", () => {
     fireEvent.click(document.querySelector('[data-prompt-node-id="item-1"]')!);
 
     expect(composer()).toBeTruthy();
-    expect(composer()!.textContent).toContain("List item");
     submitComposer("Reorder this step.");
 
     await waitFor(() => {
@@ -345,7 +358,7 @@ describe("PromptInlineLab annotate mode", () => {
     expect(store.list()[0].intent).toBe("agent-request");
   });
 
-  test("Alt-clicking a bullet pins the whole LIST", async () => {
+  test("Alt-clicking a bullet still pins the ITEM — no parent expansion", async () => {
     const store = createAnnotationStore();
     render(<PromptInlineLab prompt={prompt} annotationStore={store} />);
     fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
@@ -355,16 +368,16 @@ describe("PromptInlineLab annotate mode", () => {
     });
 
     expect(composer()).toBeTruthy();
-    expect(composer()!.textContent).toContain("Bullet list");
     submitComposer("Merge these bullets.");
 
     await waitFor(() => {
       expect(store.list().length).toBe(1);
     });
+    // What you click is the target: the item itself, Alt or not.
     expect(store.list()[0].target).toEqual({
       kind: "prompt-node",
       docId: "controlled-style-test",
-      nodeId: "list-1",
+      nodeId: "item-2",
     });
   });
 
@@ -459,10 +472,8 @@ describe("PromptInlineLab annotate mode", () => {
       window.getSelection = originalGetSelection;
     }
 
-    // The drag release pins the range target and opens the anchored popover
-    // labeled with the quoted text.
+    // The drag release pins the range target and opens the inline composer.
     expect(composer()).toBeTruthy();
-    expect(composer()!.textContent).toContain('Text "Hello"');
     submitComposer("Tighten this phrase.");
 
     await waitFor(() => {
@@ -528,7 +539,6 @@ describe("PromptInlineLab annotate mode", () => {
     dragSelectHello({ modified: false });
 
     expect(composer()).toBeTruthy();
-    expect(composer()!.textContent).toContain('Text "Hello"');
   });
 
   test("a Cmd+drag across bullets maps to the LIST: ring and composer cover the swath, the ancestor range lands", async () => {
@@ -576,14 +586,11 @@ describe("PromptInlineLab annotate mode", () => {
       window.getSelection = originalGetSelection;
     }
 
-    // Start and end rows are different bullets → the target widens to their
-    // LIST: the composer opens on the swath with the list on the breadcrumb…
+    // Start and end rows are different bullets → the target SILENTLY widens
+    // to their LIST (no breadcrumb, no scope UI — the widening lives in
+    // mapDomRangeToPromptRange)…
     expect(composer()).toBeTruthy();
-    expect(composer()!.textContent).toContain('Text "');
-    expect(
-      composer()!.querySelector('[data-annotation-scope="list-1"]')
-        ?.textContent,
-    ).toBe("Bullet list");
+    expect(composer()!.querySelector("[data-annotation-scope]")).toBeNull();
     // …and the selected ring honestly covers BOTH bullet rows (union of the
     // stubbed rects 10..30, ring inset 3).
     expect(selectedRing()).toBeTruthy();
@@ -794,258 +801,97 @@ describe("PromptInlineLab annotate mode", () => {
   });
 });
 
-describe("PromptInlineLab scope breadcrumb", () => {
-  test("a pinned bullet shows the leaf-first chain and widening re-targets the list", async () => {
-    const store = createAnnotationStore();
-    render(<PromptInlineLab prompt={nestedPrompt} annotationStore={store} />);
+describe("PromptInlineLab inline composer", () => {
+  test("no scope UI exists anywhere in the annotate flow", () => {
+    render(<PromptInlineLab prompt={nestedPrompt} />);
     fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
-
-    // Give the item rows' TEXT regions real geometry so the selected ring's
-    // union rect is observable (happy-dom rects default to zero). The ring
-    // measures the regions, not the full-width rows — display auto-sizes to
-    // the content.
-    stubRect(
-      textRegion(
-        document.querySelector<HTMLElement>('[data-prompt-node-id="item-1"]')!,
-      ),
-      10,
-      10,
-    );
-    stubRect(
-      textRegion(
-        document.querySelector<HTMLElement>('[data-prompt-node-id="item-2"]')!,
-      ),
-      20,
-      10,
-    );
 
     fireEvent.click(document.querySelector('[data-prompt-node-id="item-1"]')!);
     expect(composer()).toBeTruthy();
+    // No breadcrumb segments, no target label header — what you clicked is
+    // the target, full stop.
+    expect(document.querySelector("[data-annotation-scope]")).toBeNull();
 
-    // Leaf-first chain: item → list → section, leaf active.
-    const segments = Array.from(
-      composer()!.querySelectorAll<HTMLElement>("[data-annotation-scope]"),
-    );
-    expect(segments.map((segment) => segment.textContent)).toEqual([
-      "List item",
-      "Bullet list",
-      "<steps>",
-    ]);
-    expect(segments.map((segment) => segment.getAttribute("aria-pressed"))).toEqual(
-      ["true", "false", "false"],
-    );
-    // The selected ring covers just the pinned bullet's row (top 10, h 10,
-    // inset 3).
-    expect(selectedRing()!.style.top).toBe("7px");
-    expect(selectedRing()!.style.height).toBe("16px");
-
-    // Widening to the list re-rings BOTH item rows live (union 10..30) and
-    // moves the active segment.
-    fireEvent.click(composer()!.querySelector('[data-annotation-scope="list-1"]')!);
-    expect(
-      composer()!
-        .querySelector('[data-annotation-scope="list-1"]')!
-        .getAttribute("aria-pressed"),
-    ).toBe("true");
-    expect(selectedRing()!.style.top).toBe("7px");
-    expect(selectedRing()!.style.height).toBe("26px");
-
-    // What submits is the widened target.
-    submitComposer("Merge these steps.");
-    await waitFor(() => {
-      expect(store.list().length).toBe(1);
-    });
-    expect(store.list()[0].target).toEqual({
-      kind: "prompt-node",
-      docId: "nested-scope-test",
-      nodeId: "list-1",
-    });
+    // Clicking the SAME row again does not widen anything — the composer
+    // stays and the eventual submit targets the clicked item (verified by
+    // the submit test below); here we just assert no scope UI ever appears.
+    fireEvent.click(document.querySelector('[data-prompt-node-id="item-1"]')!);
+    expect(document.querySelector("[data-annotation-scope]")).toBeNull();
   });
 
-  test("clicking the same bullet again widens one ancestor level and cycles at the top", async () => {
+  test("⌘⏎ submits the composer; the clicked leaf is what lands", async () => {
     const store = createAnnotationStore();
     render(<PromptInlineLab prompt={nestedPrompt} annotationStore={store} />);
     fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
 
-    // Ring geometry reads the rows' text regions — see the test above.
-    stubRect(
-      textRegion(
-        document.querySelector<HTMLElement>('[data-prompt-node-id="item-1"]')!,
-      ),
-      10,
-      10,
-    );
-    stubRect(
-      textRegion(
-        document.querySelector<HTMLElement>('[data-prompt-node-id="item-2"]')!,
-      ),
-      20,
-      10,
-    );
+    fireEvent.click(document.querySelector('[data-prompt-node-id="item-1"]')!);
+    const textarea = composer()!.querySelector("textarea")!;
+    fireEvent.change(textarea, { target: { value: "Split this step." } });
+    fireEvent.keyDown(textarea, { key: "Enter", metaKey: true });
 
-    const itemRow = document.querySelector<HTMLElement>(
-      '[data-prompt-node-id="item-1"]',
-    )!;
-    const activeScope = () =>
-      composer()!
-        .querySelector('[data-annotation-scope][aria-pressed="true"]')!
-        .getAttribute("data-annotation-scope");
-
-    // First click pins the bullet as the leaf base.
-    fireEvent.click(itemRow);
-    expect(composer()).toBeTruthy();
-    expect(activeScope()).toBe("item-1");
-    expect(selectedRing()!.style.height).toBe("16px");
-
-    // Same row again: widen to the list — ring grows to both item rows.
-    fireEvent.click(itemRow);
-    expect(composer()).toBeTruthy();
-    expect(activeScope()).toBe("list-1");
-    expect(selectedRing()!.style.height).toBe("26px");
-
-    // Again: the section.
-    fireEvent.click(itemRow);
-    expect(activeScope()).toBe("sec-1");
-
-    // At the top the next click cycles back to the leaf.
-    fireEvent.click(itemRow);
-    expect(activeScope()).toBe("item-1");
-    expect(selectedRing()!.style.height).toBe("16px");
-
-    // One more widen, then submit — the widened list target is what lands.
-    fireEvent.click(itemRow);
-    submitComposer("Merge these steps.");
     await waitFor(() => {
       expect(store.list().length).toBe(1);
     });
     expect(store.list()[0].target).toEqual({
       kind: "prompt-node",
       docId: "nested-scope-test",
-      nodeId: "list-1",
+      nodeId: "item-1",
     });
+    expect(composer()).toBeNull();
   });
 
-  test("clicking a different bullet re-pins that row's leaf as a fresh base", () => {
+  test("the composer inserts in flow above the first row of a nested target", () => {
     render(<PromptInlineLab prompt={nestedPrompt} />);
     fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
 
-    const itemOne = document.querySelector<HTMLElement>(
-      '[data-prompt-node-id="item-1"]',
+    fireEvent.click(document.querySelector('[data-prompt-node-id="item-2"]')!);
+    const slot = document.querySelector(
+      '[data-prompt-inline-insert="composer"]',
     )!;
-    const itemTwo = document.querySelector<HTMLElement>(
-      '[data-prompt-node-id="item-2"]',
-    )!;
-    const activeScope = () =>
-      composer()!
-        .querySelector('[data-annotation-scope][aria-pressed="true"]')!
-        .getAttribute("data-annotation-scope");
-
-    // Pin item-1 and widen it to the list via click-again.
-    fireEvent.click(itemOne);
-    fireEvent.click(itemOne);
-    expect(activeScope()).toBe("list-1");
-
-    // A DIFFERENT row is a fresh pin: leaf base item-2, scope reset to it.
-    fireEvent.click(itemTwo);
-    expect(activeScope()).toBe("item-2");
-  });
-
-  test("breadcrumb absolute jumps compose with click-again advances", () => {
-    render(<PromptInlineLab prompt={nestedPrompt} />);
-    fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
-
-    const itemRow = document.querySelector<HTMLElement>(
-      '[data-prompt-node-id="item-1"]',
-    )!;
-    const activeScope = () =>
-      composer()!
-        .querySelector('[data-annotation-scope][aria-pressed="true"]')!
-        .getAttribute("data-annotation-scope");
-
-    // Click-again advances to the list...
-    fireEvent.click(itemRow);
-    fireEvent.click(itemRow);
-    expect(activeScope()).toBe("list-1");
-
-    // ...the breadcrumb jumps back to the leaf (absolute)...
-    fireEvent.click(composer()!.querySelector('[data-annotation-scope="item-1"]')!);
-    expect(activeScope()).toBe("item-1");
-
-    // ...and click-again advances relative to the breadcrumb's level.
-    fireEvent.click(itemRow);
-    expect(activeScope()).toBe("list-1");
-
-    // Breadcrumb to the top, then click-again wraps to the leaf.
-    fireEvent.click(composer()!.querySelector('[data-annotation-scope="sec-1"]')!);
-    expect(activeScope()).toBe("sec-1");
-    fireEvent.click(itemRow);
-    expect(activeScope()).toBe("item-1");
-  });
-
-  test("a range base chains range → node and submits the widened node", async () => {
-    const store = createAnnotationStore();
-    render(<PromptInlineLab prompt={prompt} annotationStore={store} />);
-    fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
-
-    dragSelectHello();
-    expect(composer()).toBeTruthy();
-
-    const segments = Array.from(
-      composer()!.querySelectorAll<HTMLElement>("[data-annotation-scope]"),
-    );
-    expect(segments.map((segment) => segment.textContent)).toEqual([
-      'Text "Hello"',
-      "Paragraph",
-    ]);
-    expect(segments[0].getAttribute("aria-pressed")).toBe("true");
-
-    fireEvent.click(
-      composer()!.querySelector('[data-annotation-scope="paragraph-1"]')!,
-    );
-    submitComposer("Rework this paragraph.");
-
-    await waitFor(() => {
-      expect(store.list().length).toBe(1);
-    });
-    expect(store.list()[0].target).toEqual({
-      kind: "prompt-node",
-      docId: "controlled-style-test",
-      nodeId: "paragraph-1",
-    });
-  });
-
-  test("the range segment restores the exact drag after widening", async () => {
-    const store = createAnnotationStore();
-    render(<PromptInlineLab prompt={prompt} annotationStore={store} />);
-    fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
-
-    dragSelectHello();
-    expect(composer()).toBeTruthy();
-
-    // Widen to the owning node, then click the quote segment to restore the
-    // original range target.
-    fireEvent.click(
-      composer()!.querySelector('[data-annotation-scope="paragraph-1"]')!,
-    );
-    fireEvent.click(composer()!.querySelector('[data-annotation-scope="range"]')!);
+    expect(slot).toBeTruthy();
+    const itemTwo = document.querySelector('[data-prompt-node-id="item-2"]')!;
+    const itemOne = document.querySelector('[data-prompt-node-id="item-1"]')!;
+    // In flow: after item-1, before item-2 — directly above the target.
     expect(
-      composer()!
-        .querySelector('[data-annotation-scope="range"]')!
-        .getAttribute("aria-pressed"),
-    ).toBe("true");
-    submitComposer("Tighten this phrase.");
+      slot.compareDocumentPosition(itemTwo) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      slot.compareDocumentPosition(itemOne) & Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy();
+  });
+
+  test("composer submits route to onSendRequest when the session owns requests", async () => {
+    const sent: Array<{ nodeId: string | null; body: string }> = [];
+    const store = createAnnotationStore();
+    render(
+      <PromptInlineLab
+        prompt={prompt}
+        annotationStore={store}
+        promptEditSession={{
+          requests: [],
+          proposals: [],
+          onSendRequest: (target, body) => {
+            sent.push({
+              nodeId: target && "nodeId" in target ? target.nodeId : null,
+              body,
+            });
+          },
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
+    fireEvent.click(
+      document.querySelector('[data-prompt-node-id="paragraph-1"]')!,
+    );
+    submitComposer("Tighten the opener.");
 
     await waitFor(() => {
-      expect(store.list().length).toBe(1);
+      expect(sent).toEqual([
+        { nodeId: "paragraph-1", body: "Tighten the opener." },
+      ]);
     });
-    expect(store.list()[0].target).toEqual({
-      kind: "prompt-range",
-      docId: "controlled-style-test",
-      nodeId: "paragraph-1",
-      start: 0,
-      end: 5,
-      quote: "Hello",
-    });
+    // The container owns request creation — nothing lands in the store.
+    expect(store.list().length).toBe(0);
   });
 });
 

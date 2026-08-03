@@ -3,7 +3,7 @@
 "use client";
 
 import cn from "classnames";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PromptBlockNode } from "../../../index";
 import {
 	editableTextToInline,
@@ -86,7 +86,15 @@ import {
 	convertParagraphToStep,
 	type ConvertParagraphTarget,
 } from "./structure-steps";
+import {
+	InlineInsertSlot,
+	StagedRegionView,
+	type PromptFlowInlineInsert,
+	type PromptFlowStagedRegion,
+} from "./StagedRows";
 import { XmlRow } from "./XmlRow";
+
+export type { PromptFlowInlineInsert, PromptFlowStagedRegion } from "./StagedRows";
 
 /**
  * Agent XML editing surface. At rest it renders continuous, dense,
@@ -121,7 +129,7 @@ const MARQUEE_THRESHOLD_PX = 4;
 // selection body-move): an OPEN inline editor's textarea keeps native text
 // selection, handles and menus keep their own drags and clicks.
 const SURFACE_GESTURE_EXCLUDE =
-	'textarea, input, select, button, [contenteditable="true"], [data-prompt-affordance], [role="menu"], [role="listbox"]';
+	'textarea, input, select, button, [contenteditable="true"], [data-prompt-affordance], [role="menu"], [role="listbox"], [data-prompt-inline-insert], [data-prompt-staged-region]';
 
 interface InlineEditTarget extends EditTarget {
 	/**
@@ -141,12 +149,27 @@ export function PromptFlowXml({
 	onSelectNode,
 	onPromptChange,
 	showOutline = false,
+	stagedRegions,
+	inlineInserts,
 }: PromptFlowViewProps & {
 	/**
 	 * Render the top-level section outline column beside the buffer. Hosts
 	 * pass false only when the pane is too narrow to carry it.
 	 */
 	showOutline?: boolean;
+	/**
+	 * Staged-proposal regions: each replaces its row range with red del rows +
+	 * green add rows (plus an optional in-flow action bar). Replaced rows are
+	 * not rendered at all, which doubles as the pending-proposal editing
+	 * guard. Row indices address THIS surface's line model (buildXmlLineModel
+	 * on the same prompt is deterministic, so hosts compute them safely).
+	 */
+	stagedRegions?: PromptFlowStagedRegion[];
+	/**
+	 * Widgets inserted into the document flow immediately above a row —
+	 * inline composer, waiting-on-human thread bars. Content pushes down.
+	 */
+	inlineInserts?: PromptFlowInlineInsert[];
 }) {
 	const flow = usePromptFlowInteractions({
 		prompt,
@@ -1166,6 +1189,43 @@ export function PromptFlowXml({
 		flow.activeId,
 	]);
 
+	// Inline-review geometry: regions render at their start row and swallow
+	// every row in their range; inserts render above their row. First region
+	// to claim a row wins — overlapping regions indicate a host bug and the
+	// later one is dropped rather than double-rendering rows.
+	const { regionsByStart, replacedRows } = useMemo(() => {
+		const byStart = new Map<number, PromptFlowStagedRegion[]>();
+		const replaced = new Set<number>();
+		for (const region of stagedRegions ?? []) {
+			if (region.rowStart > region.rowEnd) continue;
+			let overlaps = false;
+			for (let row = region.rowStart; row <= region.rowEnd; row += 1) {
+				if (replaced.has(row)) {
+					overlaps = true;
+					break;
+				}
+			}
+			if (overlaps) continue;
+			const bucket = byStart.get(region.rowStart) ?? [];
+			bucket.push(region);
+			byStart.set(region.rowStart, bucket);
+			for (let row = region.rowStart; row <= region.rowEnd; row += 1) {
+				replaced.add(row);
+			}
+		}
+		return { regionsByStart: byStart, replacedRows: replaced };
+	}, [stagedRegions]);
+	const insertsByRow = useMemo(() => {
+		const byRow = new Map<number, PromptFlowInlineInsert[]>();
+		for (const insert of inlineInserts ?? []) {
+			const row = Math.max(0, Math.min(insert.row, lines.length - 1));
+			const bucket = byRow.get(row) ?? [];
+			bucket.push(insert);
+			byRow.set(row, bucket);
+		}
+		return byRow;
+	}, [inlineInserts, lines.length]);
+
 	const highlightNodeId = editTarget?.nodeId ?? drag.draggingId ?? hoverNodeId;
 	const highlightRange = highlightNodeId
 		? nodeRanges.get(highlightNodeId)
@@ -1300,6 +1360,12 @@ export function PromptFlowXml({
 								);
 							})()}
 						{lines.map((line, index) => {
+							const rowInserts = insertsByRow.get(index);
+							const rowRegions = regionsByStart.get(index);
+							const rowReplaced = replacedRows.has(index);
+							if (!rowInserts && !rowRegions && rowReplaced) {
+								return null;
+							}
 							const entry = entriesById.get(line.nodeId);
 							const nodeSelected =
 								paintedSelectionRange !== undefined &&
@@ -1334,8 +1400,23 @@ export function PromptFlowXml({
 									: undefined;
 
 							return (
+								<Fragment key={`${line.nodeId}:${index}:${line.role}`}>
+									{rowInserts?.map((insert) => (
+										<InlineInsertSlot
+											key={insert.key}
+											insert={insert}
+											gutterWidth={gutterWidth}
+										/>
+									))}
+									{rowRegions?.map((region) => (
+										<StagedRegionView
+											key={region.key}
+											region={region}
+											gutterWidth={gutterWidth}
+										/>
+									))}
+									{!rowReplaced && (
 								<XmlRow
-									key={`${line.nodeId}:${index}:${line.role}`}
 									line={line}
 									lineNumber={index + 1}
 									gutterWidth={gutterWidth}
@@ -1519,6 +1600,8 @@ export function PromptFlowXml({
 											: undefined
 									}
 								/>
+									)}
+								</Fragment>
 							);
 						})}
 

@@ -11,7 +11,6 @@ import cn from "classnames";
 import { PanelRightClose } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  AnnotationComposerPopover,
   DEFAULT_SKIP_SELECTOR,
   useTargeting,
   type ResolvedTarget,
@@ -27,15 +26,28 @@ import { estimateTokenCount } from "tokenx";
 import { PromptFlowInspector } from "../prompt-flow/PromptFlowInspector";
 import { PromptFlowXml } from "../prompt-flow/PromptFlowXml";
 import { buildXmlLineModel } from "../prompt-flow/xml-line-model";
+import type {
+  PromptFlowInlineInsert,
+  PromptFlowStagedRegion,
+} from "../prompt-flow/PromptFlowXml";
 import {
   annotationRowElements,
   promptRangeRowElements,
-  annotationScopeChain,
   buildAnnotationParentMap,
   mapDomRangeToPromptRange,
   closestPromptRow,
   rowDisplayRegions,
 } from "./annotation-targeting";
+import {
+  acceptDisabledReason,
+  rejectDisabledReason,
+  stagedRowPlan,
+  targetAnchorRow,
+  type PromptEditSession,
+} from "./prompt-edit-session";
+import { InlineComposer } from "./InlineComposer";
+import { InlineThreadBar, ProposalActionBar } from "./SessionInlineBars";
+import { SessionRequestRail } from "./SessionRequestRail";
 import { createPromptLabHistory } from "./prompt-lab-history";
 import {
   loadPromptStyleSettings,
@@ -89,6 +101,18 @@ export {
   type AutosaveControllerState,
   type AutosaveScheduler,
 } from "./autosave-controller";
+export {
+  acceptDisabledReason,
+  rejectDisabledReason,
+  undoDisabledReason,
+  stagedRowPlan,
+  targetAnchorRow,
+  type PromptEditProposal,
+  type PromptEditRequest,
+  type PromptEditRequestStatus,
+  type PromptEditSession,
+  type PromptEditThreadMessage,
+} from "./prompt-edit-session";
 
 export type PromptSaveOutcome = { hash: string } | { errors: string[] };
 export type ManifestSaveOutcome = { ok: true } | { errors: string[] };
@@ -168,6 +192,17 @@ export interface PromptInlineLabProps {
     patchId: string,
     changedIds?: string[],
   ) => Promise<PromptAnnotationUndoPatchResult>;
+  /**
+   * The prompt-edit session (requests + staged proposals + callbacks) — see
+   * `PromptEditSession` in ./prompt-edit-session for the full contract. When
+   * present: staged proposals render as inline red/green diffs with
+   * per-request action bars (in BOTH modes), waiting-on-human requests
+   * render inline amber thread bars, a draft banner sits above the surface,
+   * the annotate rail shows the session's slim request cards instead of the
+   * annotation pane, and composer submits route to `onSendRequest` when the
+   * session provides it.
+   */
+  promptEditSession?: PromptEditSession;
 }
 
 export function PromptInlineLab({
@@ -185,6 +220,7 @@ export function PromptInlineLab({
   annotationStore,
   onAnnotationAgentRun,
   onAnnotationUndoPatch,
+  promptEditSession,
 }: PromptInlineLabProps) {
   const [history, setHistory] = useState(() => createPromptLabHistory(prompt));
   const [editVersion, setEditVersion] = useState(0);
@@ -199,24 +235,16 @@ export function PromptInlineLab({
   const [lastSavedAt, setLastSavedAt] = useState<Date | undefined>(undefined);
   const [view, setView] = useState<LabView>("system");
   const [mode, setMode] = useState<LabMode>("edit");
-  // The pinned BASE annotation target — the exact thing the user clicked
-  // (node) or dragged (range). The composer's scope breadcrumb widens it via
-  // `activeScopeKey`; the base itself never changes until re-pinned, so the
-  // range scope can always restore the original drag.
+  // The pinned annotation target — the exact thing the user clicked (node)
+  // or dragged (range). What you click IS the target: there is no scope
+  // breadcrumb and no widening UI (Ford, 2026-07-31 — "review is a state of
+  // the file"). Cross-block drags still widen silently to the nearest common
+  // ancestor inside mapDomRangeToPromptRange.
   const [annotationTarget, setAnnotationTarget] =
     useState<PromptAnnotationTarget | null>(null);
-  // The breadcrumb segment currently applied: "range" for a range base,
-  // otherwise a node id from the base's ancestor chain.
-  const [activeScopeKey, setActiveScopeKey] = useState<string | null>(null);
-
-  // Every pin (click, drag, annotate-toggle, clear) resets the scope to the
-  // base's own leaf segment.
   const pinAnnotationTarget = useCallback(
     (target: PromptAnnotationTarget | null) => {
       setAnnotationTarget(target);
-      setActiveScopeKey(
-        target ? (target.kind === "prompt-range" ? "range" : target.nodeId) : null,
-      );
     },
     [],
   );
@@ -290,7 +318,6 @@ export function PromptInlineLab({
     setHistory(createPromptLabHistory(prompt));
     setSelectedNodeId(undefined);
     setAnnotationTarget(null);
-    setActiveScopeKey(null);
     setSaveErrors([]);
     // A document swap invalidates any queued or in-flight save of the
     // previous document; dispose suppresses its completions entirely.
@@ -402,125 +429,31 @@ export function PromptInlineLab({
     return labels;
   }, [labLineModel]);
 
-  // Full ancestor links (child id → parent id) for the scope breadcrumb —
-  // `XmlLine.parentNodeId` is one level only, so the chain comes from the
-  // prompt tree, built once per draft.
+  // Full ancestor links (child id → parent id) — `XmlLine.parentNodeId` is
+  // one level only, so the chain comes from the prompt tree, built once per
+  // draft. Feeds the SILENT common-ancestor widening for cross-block drags
+  // (mapDomRangeToPromptRange); there is no scope UI on top of it.
   const nodeParentMap = useMemo(
     () => buildAnnotationParentMap(model_.prompt),
     [model_.prompt],
   );
-
-  /**
-   * The WORKING annotation target: the pinned base widened (or restored) by
-   * the breadcrumb. It drives the popover anchors, the selected ring and
-   * what submits — widening a bullet to its list re-rings the whole list
-   * live before Annotate. The base's own key ("range" / its nodeId) yields
-   * the base unchanged; any other key targets that node.
-   */
-  const workingAnnotationTarget = useMemo<PromptAnnotationTarget | null>(() => {
-    if (!annotationTarget) return null;
-    const baseKey =
-      annotationTarget.kind === "prompt-range" ? "range" : annotationTarget.nodeId;
-    if (activeScopeKey === null || activeScopeKey === baseKey) {
-      return annotationTarget;
-    }
-    // Derived from the BASE's docId (not model_.prompt, whose identity churns
-    // per render) so the widened target object stays referentially stable —
-    // the anchors/ring effects key on it.
-    return {
-      kind: "prompt-node",
-      docId: annotationTarget.docId,
-      nodeId: activeScopeKey,
-    };
-  }, [annotationTarget, activeScopeKey]);
-
-  // Leaf-first breadcrumb entries for the pinned base: the base itself, then
-  // every enclosing block up to the top-level block (never the document). A
-  // range's leaf entry is the adapter's quote label; the popover renders the
-  // breadcrumb only at 2+ entries, so top-level bases fall back to the plain
-  // header label.
-  const composerScopes = useMemo(() => {
-    if (!annotationTarget) return undefined;
-    // A document-anchored range (cross-section drag, nodeId === docId) has no
-    // node chain — its only scope is the dragged text itself.
-    const docAnchored =
-      annotationTarget.kind === "prompt-range" &&
-      annotationTarget.nodeId === annotationTarget.docId;
-    const nodeScopes = docAnchored
-      ? []
-      : annotationScopeChain(nodeParentMap, annotationTarget.nodeId).map(
-          (id) => ({
-            key: id,
-            label: nodeLabels.get(id) ?? `Node ${id}`,
-          }),
-        );
-    if (annotationTarget.kind === "prompt-range") {
-      return [
-        {
-          key: "range",
-          label: promptAnnotationSchema.targetLabel(annotationTarget),
-        },
-        ...nodeScopes,
-      ];
-    }
-    return nodeScopes;
-  }, [annotationTarget, nodeParentMap, nodeLabels]);
 
   // The targeting hook owns its containerRef; this mirror lets callbacks
   // passed INTO the hook (resolve/selected/range) reach the same element.
   const targetingContainerRef = useRef<HTMLDivElement | null>(null);
 
   /**
-   * Alt/Option state for parent expansion. The targeting hook hands
-   * `resolveTarget` only the raw element, so the lab records the modifier
-   * itself: the container's capture-phase mousemove (and the click capture)
-   * stash `event.altKey` here BEFORE the hook's bubble-phase resolution runs,
-   * and Alt keydown/keyup re-dispatch a mousemove at the last hovered element
-   * so the ring flips between leaf and parent without waiting for the pointer
-   * to move.
-   */
-  const altKeyRef = useRef(false);
-  const lastPointerTargetRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!annotateActive) return;
-    const sync = (event: KeyboardEvent) => {
-      if (event.key !== "Alt") return;
-      altKeyRef.current = event.type === "keydown";
-      lastPointerTargetRef.current?.dispatchEvent(
-        new MouseEvent("mousemove", {
-          bubbles: true,
-          altKey: altKeyRef.current,
-        }),
-      );
-    };
-    document.addEventListener("keydown", sync);
-    document.addEventListener("keyup", sync);
-    return () => {
-      document.removeEventListener("keydown", sync);
-      document.removeEventListener("keyup", sync);
-      altKeyRef.current = false;
-      lastPointerTargetRef.current = null;
-    };
-  }, [annotateActive]);
-
-  /**
-   * Element → annotation target. Plain hover resolves the row's own stamp —
-   * for item rows that is the ITEM's id, so single bullets are targetable
-   * leaves. With Alt held the row's PARENT block resolves instead (bullet →
-   * list, nested paragraph → section); rows are collected parent-inclusively
-   * so the whole list/section rings. No parent stamp → the leaf stands.
+   * Element → annotation target. Hover resolves the row's own stamp — for
+   * item rows that is the ITEM's id, so single bullets are targetable
+   * leaves. What you point at is the target; there is no modifier-driven
+   * parent expansion (the scope machinery died with the breadcrumb).
    */
   const resolveTargetForElement = useCallback(
     (element: HTMLElement): ResolvedTarget<PromptAnnotationTarget> | null => {
       const row = closestPromptRow(element);
       if (!row) return null;
-      let nodeId = row.getAttribute("data-prompt-node-id");
+      const nodeId = row.getAttribute("data-prompt-node-id");
       if (!nodeId) return null;
-      if (altKeyRef.current) {
-        const parentId = row.getAttribute("data-prompt-parent-node-id");
-        if (parentId) nodeId = parentId;
-      }
       const scope = targetingContainerRef.current ?? row.ownerDocument;
       const rows = annotationRowElements(scope, nodeId);
       if (rows.length === 0) return null;
@@ -574,23 +507,23 @@ export function PromptInlineLab({
   );
 
   const resolveSelectedRows = useCallback(() => {
-    if (!workingAnnotationTarget) return null;
+    if (!annotationTarget) return null;
     const container = targetingContainerRef.current;
     if (!container) return null;
     // Range targets ring exactly the rows the drag bounded; node targets ring
     // the node's full extent.
     const rows =
-      workingAnnotationTarget.kind === "prompt-range"
+      annotationTarget.kind === "prompt-range"
         ? promptRangeRowElements(
             container,
             labLineModelRef.current.lines,
-            workingAnnotationTarget,
+            annotationTarget,
           )
-        : annotationRowElements(container, workingAnnotationTarget.nodeId);
+        : annotationRowElements(container, annotationTarget.nodeId);
     // Text regions, not full-width rows: the selected ring auto-sizes to the
     // content's bounds (row resolution above still drives WHICH rows count).
     return rows.length > 0 ? rowDisplayRegions(rows) : null;
-  }, [workingAnnotationTarget]);
+  }, [annotationTarget]);
 
   const targeting = useTargeting<PromptAnnotationTarget>({
     active: annotateActive,
@@ -604,11 +537,11 @@ export function PromptInlineLab({
     rangeModifier: "meta",
     resolveSelected: resolveSelectedRows,
     resolveToken: `${mode}:${editVersion}:${
-      workingAnnotationTarget
-        ? promptAnnotationSchema.targetKey(workingAnnotationTarget)
+      annotationTarget
+        ? promptAnnotationSchema.targetKey(annotationTarget)
         : "none"
     }`,
-    // While the composer popover is open the hover ring/chip would chase the
+    // While the inline composer is open the hover ring/chip would chase the
     // pointer underneath it; the pinned selection ring is affordance enough.
     suppressHover: annotationTarget !== null,
   });
@@ -624,128 +557,174 @@ export function PromptInlineLab({
    * unmodified drag's release click is swallowed here too, so a plain drag
    * neither pins nor opens the composer).
    *
-   * Click-again-to-widen: clicking a row that resolves to the SAME leaf as
-   * the pinned base advances the working scope one ancestor along the
-   * breadcrumb chain (bullet → list → section → … → back to the leaf) —
-   * "click the bullet twice to grab the whole list". Relative to the CURRENT
-   * scope, so it composes with breadcrumb clicks (which jump to an absolute
-   * level). Clicking a DIFFERENT row re-pins that row's leaf as a fresh base.
+   * Clicking a row pins that row's leaf as the target; clicking a DIFFERENT
+   * row re-pins. No click-again widening — what you click is the target.
    */
   function handleAnnotateClickCapture(event: React.MouseEvent<HTMLElement>) {
     if (!annotateActive) return;
     const raw = event.target;
     if (!(raw instanceof HTMLElement)) return;
-    // Skip elements (the composer popover included) keep their own clicks —
-    // checked BEFORE the release-swallow so an armed flag can never eat a
-    // click on the popover's controls.
+    // Skip elements (the inline composer and other annotation UI included)
+    // keep their own clicks — checked BEFORE the release-swallow so an armed
+    // flag can never eat a click on the composer's controls.
     if (raw.closest(DEFAULT_SKIP_SELECTOR)) return;
-    // The click that RELEASES a range drag must not re-pin/advance anything —
-    // the range was already pinned on mouseup and the selection is cleared,
-    // so only this flag can tell the release apart from a fresh click.
+    // The click that RELEASES a range drag must not re-pin anything — the
+    // range was already pinned on mouseup and the selection is cleared, so
+    // only this flag can tell the release apart from a fresh click.
     if (swallowReleaseClickRef.current) {
       swallowReleaseClickRef.current = false;
       event.preventDefault();
       event.stopPropagation();
       return;
     }
-    // Clicks carry the modifier themselves — Alt-click pins the parent block.
-    altKeyRef.current = event.altKey;
     const resolved = resolveTargetForElement(raw);
     if (!resolved) return;
     event.preventDefault();
     event.stopPropagation();
     const selection = window.getSelection();
     if (selection && !selection.isCollapsed) return;
-    if (
-      annotationTarget &&
-      resolved.target.nodeId === annotationTarget.nodeId &&
-      composerScopes &&
-      composerScopes.length > 1
-    ) {
-      const keys = composerScopes.map((scope) => scope.key);
-      const currentIndex = activeScopeKey ? keys.indexOf(activeScopeKey) : 0;
-      const nextKey = keys[(Math.max(currentIndex, 0) + 1) % keys.length]!;
-      setActiveScopeKey(nextKey);
-      return;
-    }
     handleSelectNode(resolved.target.nodeId);
   }
-
-  // Popover header label (used when the breadcrumb has fewer than 2 entries):
-  // node targets carry the inspector-style label; range targets use the
-  // adapter's quoted-text label. Labels the WORKING target so widening also
-  // renames the header.
-  const composerTargetLabel = useMemo(() => {
-    if (!workingAnnotationTarget) return "";
-    if (workingAnnotationTarget.kind === "prompt-node") {
-      return (
-        nodeLabels.get(workingAnnotationTarget.nodeId) ??
-        promptAnnotationSchema.targetLabel(workingAnnotationTarget)
-      );
-    }
-    return promptAnnotationSchema.targetLabel(workingAnnotationTarget);
-  }, [workingAnnotationTarget, nodeLabels]);
-
-  // Anchor rows for the composer popover, re-read from the committed DOM
-  // (effect, not render) so post-edit rows are the ones measured. Parent-
-  // inclusive: a pinned list anchors to all of its item rows. Keyed on the
-  // WORKING target, so a breadcrumb scope change re-anchors through this
-  // same effect.
-  const [composerAnchors, setComposerAnchors] = useState<HTMLElement[] | null>(
-    null,
-  );
-  useEffect(() => {
-    if (!annotateActive || !workingAnnotationTarget) {
-      setComposerAnchors(null);
-      return;
-    }
-    const container = targetingContainerRef.current;
-    if (!container) {
-      setComposerAnchors(null);
-      return;
-    }
-    // Range targets anchor to the rows the drag bounded (a cross-node drag
-    // must not anchor the popover to the whole common-ancestor section).
-    const rows =
-      workingAnnotationTarget.kind === "prompt-range"
-        ? promptRangeRowElements(
-            container,
-            labLineModelRef.current.lines,
-            workingAnnotationTarget,
-          )
-        : annotationRowElements(container, workingAnnotationTarget.nodeId);
-    // Anchor to the rows' TEXT regions so the popover aligns with the
-    // content's left edge instead of floating over the gutter.
-    setComposerAnchors(rows.length > 0 ? rowDisplayRegions(rows) : null);
-  }, [annotateActive, workingAnnotationTarget, editVersion]);
 
   const clearAnnotationSelection = useCallback(() => {
     pinAnnotationTarget(null);
     setSelectedNodeId(undefined);
   }, [pinAnnotationTarget]);
 
-  // Popover submit: every annotation is an agent request; landing it in the
-  // store clears the pinned target, so the new entry appears in the sidebar
-  // list with no composer left on screen.
+  // Composer submit: every annotation is an agent request. With a session
+  // that owns request creation (onSendRequest) the submit routes there — the
+  // container echoes the request back through `promptEditSession.requests`;
+  // otherwise it lands in the annotation store. Either way the pinned target
+  // clears, so no composer is left on screen.
   const activeAnnotationStoreRef = useRef(activeAnnotationStore);
   activeAnnotationStoreRef.current = activeAnnotationStore;
-  // Submits the WORKING target — a breadcrumb-widened scope is what lands.
-  const annotationTargetRef = useRef(workingAnnotationTarget);
-  annotationTargetRef.current = workingAnnotationTarget;
+  const annotationTargetRef = useRef(annotationTarget);
+  annotationTargetRef.current = annotationTarget;
+  const onSendRequestRef = useRef(promptEditSession?.onSendRequest);
+  onSendRequestRef.current = promptEditSession?.onSendRequest;
   const handleComposerSubmit = useCallback(
-    async ({ body, intent }: { body: string; intent: string }) => {
+    (body: string) => {
       const target = annotationTargetRef.current;
       if (!target) return;
-      activeAnnotationStoreRef.current.add({
-        target,
-        body,
-        intent: intent as PromptAnnotationIntent,
-        author: "you",
-      });
+      const sendRequest = onSendRequestRef.current;
+      if (sendRequest) {
+        void sendRequest(target, body);
+      } else {
+        activeAnnotationStoreRef.current.add({
+          target,
+          body,
+          intent: "agent-request" satisfies PromptAnnotationIntent,
+          author: "you",
+        });
+      }
       clearAnnotationSelection();
     },
     [clearAnnotationSelection],
   );
+
+  /**
+   * Staged proposals → inline diff regions. Each proposal replaces its
+   * changed nodes' rows with red del / green add rows plus a per-request
+   * action bar; replacing the rows is also the edit-collision guard (a block
+   * with a pending proposal has no editable rows until accept/reject).
+   * Keyed on editVersion + prompt rather than the per-render line-model
+   * object so the line diffs only recompute when the document changes.
+   */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stagedRegions = useMemo<PromptFlowStagedRegion[] | undefined>(() => {
+    const session = promptEditSession;
+    if (!session || session.proposals.length === 0) return undefined;
+    const authors = new Map(
+      session.requests.map((request) => [request.alias, request.author]),
+    );
+    const regions: PromptFlowStagedRegion[] = [];
+    for (const proposal of session.proposals) {
+      const plan = stagedRowPlan(labLineModelRef.current.lines, proposal);
+      if (!plan) continue;
+      regions.push({
+        key: `proposal:${proposal.transactionId}`,
+        rowStart: plan.rowStart,
+        rowEnd: plan.rowEnd,
+        delLines: plan.delLines,
+        addLines: plan.addLines,
+        bar: (
+          <ProposalActionBar
+            alias={proposal.requestAlias}
+            author={authors.get(proposal.requestAlias)}
+            summary={proposal.summary}
+            acceptDisabledReason={acceptDisabledReason(
+              session.proposals,
+              proposal.requestAlias,
+            )}
+            rejectDisabledReason={rejectDisabledReason(
+              session.proposals,
+              proposal.requestAlias,
+            )}
+            onAccept={() => void session.onAccept?.(proposal.requestAlias)}
+            onReject={() => void session.onReject?.(proposal.requestAlias)}
+          />
+        ),
+      });
+    }
+    return regions.length > 0 ? regions : undefined;
+  }, [promptEditSession, editVersion, prompt]);
+
+  /**
+   * In-flow widgets above their target rows: amber waiting-on-human thread
+   * bars (both modes) and — in annotate mode — THE inline composer, inserted
+   * directly above the pinned target so content pushes down (⌘K feel).
+   */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const inlineInserts = useMemo<PromptFlowInlineInsert[] | undefined>(() => {
+    const inserts: PromptFlowInlineInsert[] = [];
+    const lines = labLineModelRef.current.lines;
+    const session = promptEditSession;
+    if (session) {
+      for (const request of session.requests) {
+        if (request.status !== "waiting") continue;
+        const row = targetAnchorRow(lines, request.target);
+        if (row === null) continue;
+        const lastAgent = [...(request.thread ?? [])]
+          .reverse()
+          .find((message) => message.author === "agent");
+        inserts.push({
+          key: `thread:${request.alias}`,
+          row,
+          element: (
+            <InlineThreadBar
+              alias={request.alias}
+              author={request.author}
+              message={lastAgent?.body ?? request.body}
+              onReply={(body) =>
+                void session.onReplyToRequest?.(request.alias, body)
+              }
+            />
+          ),
+        });
+      }
+    }
+    if (annotateActive && annotationTarget) {
+      inserts.push({
+        key: "composer",
+        row: targetAnchorRow(lines, annotationTarget) ?? 0,
+        element: (
+          <InlineComposer
+            onSubmit={handleComposerSubmit}
+            onCancel={clearAnnotationSelection}
+          />
+        ),
+      });
+    }
+    return inserts.length > 0 ? inserts : undefined;
+  }, [
+    promptEditSession,
+    annotateActive,
+    annotationTarget,
+    editVersion,
+    prompt,
+    handleComposerSubmit,
+    clearAnnotationSelection,
+  ]);
 
   // Autosave: a dirty, valid draft saves shortly after the last edit; an
   // invalid or clean draft cancels queued work (validation gates every save).
@@ -928,6 +907,41 @@ export function PromptInlineLab({
             </div>
           )}
 
+          {/* Draft banner: staged agent changes exist and nothing is saved.
+              Accept all / Discard act on the whole draft (session-owned). */}
+          {!inContext &&
+            promptEditSession &&
+            promptEditSession.proposals.length > 0 && (
+              <div
+                data-prompt-draft-banner=""
+                className="flex shrink-0 items-center gap-3 border-b border-sky-500/40 bg-sky-500/10 px-3 py-1.5"
+              >
+                <span className="flex-1 text-[12px] text-sky-400">
+                  {promptEditSession.proposals.length}{" "}
+                  {promptEditSession.proposals.length === 1
+                    ? "change"
+                    : "changes"}{" "}
+                  staged, nothing saved
+                </span>
+                <button
+                  type="button"
+                  aria-label="Accept all"
+                  className="rounded-md bg-green-500 px-3 py-0.5 text-[12px] font-semibold text-green-950"
+                  onClick={() => void promptEditSession.onAcceptAll?.()}
+                >
+                  Accept all
+                </button>
+                <button
+                  type="button"
+                  aria-label="Discard draft"
+                  className="rounded-md border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+                  onClick={() => void promptEditSession.onDiscardDraft?.()}
+                >
+                  Discard
+                </button>
+              </div>
+            )}
+
           <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
             {inContext ? (
               <ContextSurface context={context} showOutline={outlineFits} />
@@ -950,19 +964,8 @@ export function PromptInlineLab({
                 onMouseDownCapture={() => {
                   swallowReleaseClickRef.current = false;
                 }}
-                // Capture-phase modifier tracking runs before the hook's
-                // bubble-phase resolution reads altKeyRef (see above).
-                onMouseMoveCapture={(event) => {
-                  altKeyRef.current = event.altKey;
-                  lastPointerTargetRef.current =
-                    event.target instanceof HTMLElement ? event.target : null;
-                }}
-                onMouseLeave={() => {
-                  lastPointerTargetRef.current = null;
-                  targeting.containerProps.onMouseLeave();
-                }}
-                // Escape closes the anchored composer and drops the pinned
-                // target (the popover itself has no Escape handling).
+                // Escape closes the inline composer and drops the pinned
+                // target (the composer's textarea lets Escape bubble here).
                 onKeyDown={(event) => {
                   if (event.key === "Escape" && annotationTarget) {
                     event.stopPropagation();
@@ -971,6 +974,11 @@ export function PromptInlineLab({
                 }}
                 className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden"
               >
+                {/* The inline composer and thread bars travel INTO the
+                    surface as in-flow inserts (above their target rows);
+                    staged proposals replace their rows with the inline
+                    diff. Composing is annotate-only; diffs and thread bars
+                    show in both modes. */}
                 <PromptFlowXml
                   prompt={model_.prompt}
                   model={model_}
@@ -979,23 +987,10 @@ export function PromptInlineLab({
                   onSelectNode={handleSelectNode}
                   onPromptChange={handlePromptChange}
                   showOutline={outlineFits}
+                  stagedRegions={stagedRegions}
+                  inlineInserts={inlineInserts}
                 />
                 {targeting.overlays}
-                {/* Anchored composer: pinning a target (click or drag
-                    release) opens it beside the target's rows; Annotate
-                    lands the agent request in the store and the sidebar
-                    list. Single intent — no picker. */}
-                {annotateActive && annotationTarget && (
-                  <AnnotationComposerPopover
-                    anchorElements={composerAnchors}
-                    targetLabel={composerTargetLabel}
-                    scopes={composerScopes}
-                    activeScopeKey={activeScopeKey ?? undefined}
-                    onScopeChange={setActiveScopeKey}
-                    onSubmit={handleComposerSubmit}
-                    onCancel={clearAnnotationSelection}
-                  />
-                )}
                 {annotateActive && <style>{ANNOTATE_CURSOR_CSS}</style>}
               </div>
             )}
@@ -1008,7 +1003,7 @@ export function PromptInlineLab({
           <aside className="flex w-[400px] shrink-0 flex-col border-l border-border bg-card">
             <div className="flex h-9 shrink-0 items-stretch border-b border-border">
               <span className="inline-flex items-center px-3 text-[11px] uppercase tracking-[0.08em] text-foreground">
-                Annotations
+                {promptEditSession ? "Requests" : "Annotations"}
               </span>
               <button
                 type="button"
@@ -1021,17 +1016,28 @@ export function PromptInlineLab({
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
-              {/* model_.prompt has run through ensurePromptNodeIds (the
-                  editor model ensures ids), so every node — list items
-                  included — is addressable. The pane is list-only; the
-                  composer is the anchored popover on the editor surface. */}
-              <PromptAnnotationsPane
-                prompt={model_.prompt}
-                onSelectNode={handleSelectNode}
-                store={activeAnnotationStore}
-                onRunAgent={onAnnotationAgentRun}
-                onUndoPatch={onAnnotationUndoPatch}
-              />
+              {promptEditSession ? (
+                /* Session rail: slim request cards (alias + status + body +
+                   thread — no quote/target chip; click-to-focus does that
+                   job), the doc-level message input, and Undo on applied
+                   cards. */
+                <SessionRequestRail
+                  session={promptEditSession}
+                  onFocusTarget={(nodeId) => setSelectedNodeId(nodeId)}
+                />
+              ) : (
+                /* model_.prompt has run through ensurePromptNodeIds (the
+                    editor model ensures ids), so every node — list items
+                    included — is addressable. The pane is list-only; the
+                    composer is the inline one on the editor surface. */
+                <PromptAnnotationsPane
+                  prompt={model_.prompt}
+                  onSelectNode={handleSelectNode}
+                  store={activeAnnotationStore}
+                  onRunAgent={onAnnotationAgentRun}
+                  onUndoPatch={onAnnotationUndoPatch}
+                />
+              )}
             </div>
           </aside>
         ) : !inspector.collapsed && (

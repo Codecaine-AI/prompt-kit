@@ -99,6 +99,11 @@ describe("prompt editor surface contract", () => {
 				"var(--prompt-editor-active-line-bg, rgb(255 255 255 / 0.035))",
 			grip: "var(--prompt-editor-grip-color, #8A919C)",
 			dropLine: "var(--prompt-editor-drop-line-color, #4D9DE0)",
+			diffDelBg: "var(--prompt-editor-diff-del-bg, rgb(248 81 73 / 0.13))",
+			diffDelFg: "var(--prompt-editor-diff-del-fg, #F85149)",
+			diffAddBg: "var(--prompt-editor-diff-add-bg, rgb(63 185 80 / 0.13))",
+			diffAddFg: "var(--prompt-editor-diff-add-fg, #3FB950)",
+			threadAccent: "var(--prompt-editor-thread-accent, #D29922)",
 		});
 		expect(editorRuleBackground.backgroundImage).toContain(
 			"var(--prompt-editor-show-rules, 0)",

@@ -93,6 +93,13 @@ export const EDITOR_COLORS = {
 		"var(--prompt-editor-active-line-bg, rgb(255 255 255 / 0.035))",
 	grip: "var(--prompt-editor-grip-color, #8A919C)",
 	dropLine: "var(--prompt-editor-drop-line-color, #4D9DE0)",
+	/** Inline staged-diff rows (git-diff palette on the VS Code Dark+ family). */
+	diffDelBg: "var(--prompt-editor-diff-del-bg, rgb(248 81 73 / 0.13))",
+	diffDelFg: "var(--prompt-editor-diff-del-fg, #F85149)",
+	diffAddBg: "var(--prompt-editor-diff-add-bg, rgb(63 185 80 / 0.13))",
+	diffAddFg: "var(--prompt-editor-diff-add-fg, #3FB950)",
+	/** Waiting-on-human inline thread bars. */
+	threadAccent: "var(--prompt-editor-thread-accent, #D29922)",
 } as const;
 
 /** Base type metrics applied to editable and read-only line containers. */

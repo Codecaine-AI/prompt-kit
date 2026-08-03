@@ -7,7 +7,20 @@ Strategy (Ford): initial build-out, then iterate interactively. Companion docs:
 Repos touched: prompt-kit, annotations, agent-kernel, observatory. Canvas is a donor
 (session/queue model) and a later host. docs-system untouched for now.
 
-## Phase 1 — Foundation (kernel + persistence)
+STATUS 2026-07-31: Phases 1 and 2 BUILT and green (Fable sub-agent fan-out, per Ford).
+Clickable at canvas /config: `make traces` in canvas → http://localhost:4830/config.
+Suites at completion: kernel 378/0, viewer-core 75/0, viewer-ui 308/19 (19 pre-existing
+trace-db env failures), canvas-agent 619/2 (2 pre-existing), prompt-kit 510/0.
+Locked semantics from the build: accept-all = n revisions in staging order; undo =
+write-through re-point to prior content-addressed hash (append-only history); sidecar
+on accept = attachAgentRun + resolved (proper `applied` status still Phase 3);
+review-after-staging expected (first accept trips the stale-base guard for further
+agent proposals — rebase remains the open gate); blocks with pending proposals are
+uneditable by row replacement (edit-collision v1). Known gaps: mid-session composer
+submits are session-only (not persisted to sidecar — Phase 3); prompt-editor model
+alias defaults to layout model (CANVAS_AGENT_PROMPT_EDITOR_MODEL overrides).
+
+## Phase 1 — Foundation (kernel + persistence) — DONE
 
 1. Live-only annotation sidecar: `annotations.json` next to `prompt.json`, path-locked
    + expectedHash (port docs-server doc-ops pattern). CRUD on kernel catalog routes.
@@ -25,7 +38,7 @@ Repos touched: prompt-kit, annotations, agent-kernel, observatory. Canvas is a d
    variables before it surfaces; failures bounce back to the agent automatically.
    [agent-kernel]
 
-## Phase 2 — The loop (apply path + lab UI)
+## Phase 2 — The loop (apply path + lab UI) — DONE
 
 6. Apply path: accept → applySteps → canonicalize/hash → write-through disk revision
    per accept (decided) → prompt_revisions row (new source: "agent-run") → registry
@@ -48,8 +61,54 @@ Repos touched: prompt-kit, annotations, agent-kernel, observatory. Canvas is a d
     [prompt-kit + agent-kernel]
 12. Queue rail: batch "Apply N notes" + doc-level message input + compact overview
     variant (mockup Q11 — default TBD interactively). [prompt-kit]
+12b. Empty-state affordance for the loop (field-found 2026-07-31): the session strip
+    and Apply button are invisible until an open agent-request annotation exists, so
+    the feature does not announce itself — Ford hit this as "why is it not showing
+    up". Add an idle-state hint in the lab/container ("Annotate this prompt to
+    direct the agent") and consider surfacing the Annotate entry point more
+    prominently. [prompt-kit + agent-kernel viewer-ui]
 
-## Phase 4 — Observatory (the global viewer)
+## Phase 4 — Observatory (the global viewer) — MOSTLY DONE
+
+STATUS 2026-07-31 (later): Observatory is a pure proxy — item 13 is done: the
+write-gate in src/server/app.ts covers catalog/** and prompt-edit-sessions/**
+(mutations 403 unless project.writable; reads incl. SSE pass), the proxy forwards
+session routes to the project harness (canvas already serves them), and the suite is
+16/16 green including session-passthrough tests. Item 14a (traces) holds by
+construction — prompt-editor runs are ordinary kernel runs in the project trace.db
+Observatory already reads; spot-verify on first live session. Item 14b (stamp driving
+request text into the revision record) is scouted but NOT built — full file/line map
+in the scout report: prompt_revisions has no metadata column, no migration tooling
+(CREATE TABLE IF NOT EXISTS only, packages/db/src/bootstrap.ts), precedent is
+containers.metadata TEXT json column; wire from acceptProposal's savePrompt call
+(service.ts ~:688) using entry.body. Dev loop: canvas `make traces` (:4820/:4830),
+then observatory `bun run dev` with a registry.json per registry.example.json
+(canvas project preconfigured, writable: true).
+LATER 2026-07-31: two additions built. (a) Standalone prompt-kit kernel at
+agent-kernel/examples/prompt-kit-kernel (port 4850, `bun run dev:prompt-kit`,
+prompt-editor + simple-research targets, own trace.db) registered as the "Prompt Kit"
+project — the agent is now first-class in Observatory, not a stowaway in canvas.
+(b) Project launcher/supervisor in Observatory (Ford-confirmed design: harness stays
+the single writer; Observatory owns the power switch): registry gains autoLaunch,
+launchCommand now executes under /bin/sh with registry-dir cwd; supervisor never
+double-launches manually-started harnesses, SIGTERM+grace on stop, 200-line log ring,
+no auto-restart in v1; launch/stop/logs routes + UI states online/starting/offline/
+crashed. All three projects autoLaunch: true (canvas dev:harness, simple-research
+api :8788, prompt-kit :4850). Observatory suite 23/23. Still-open idea (not built):
+cold-read fallback — serve agent/prompt/annotation READS from catalogRoots +
+prompt_revisions when a harness is down, so views degrade to read-only instead of 503.
+FIELD FIXES 2026-08-01: (1) Launcher env hygiene — supervisor was passing
+Observatory's PORT=4890 to children, both harnesses bound :4890 (SO_REUSEPORT) →
+user-visible 404s + liveness timeouts; fix strips PORT/HOST/HOSTNAME from child env,
+harnesses get namespaced port vars (SIMPLE_RESEARCH_KERNEL_PORT etc.). (2) Vertical-
+slice catalog visibility (Ford-confirmed design): catalog roots accept
+{path, listed: false}; registry.list() = browseable, registry.listAll() = runtime;
+unlisted agents stay spawnable/detail-fetchable — visibility controls browsing, not
+authorization. Canvas lists only layout-editor (prompt-editor unlisted there);
+prompt-kit kernel drops the simple-research root and lists only prompt-editor, whose
+in-slice edit target is its own prompt (recursive editor-dev loop, per README).
+Suites after both fixes: observatory 25/0, kernel 379/0, prompt-kit harness 1/0,
+canvas-agent 619/2 pre-existing.
 
 13. Host the full loop in observatory AgentsPage for writable projects (it already
     mounts the lab + gates editing on `writable`). [observatory]
