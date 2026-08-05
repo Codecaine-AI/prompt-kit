@@ -34,7 +34,8 @@ Internally the source tree has three layers: `src/document/` (nodes,
 transforms, validate, canonical, schema, render — the headless document
 model), `src/annotations/`, and `src/ui/`. Imports point downward only:
 `ui` may import `annotations` and `document`; `annotations` may import
-`document`; `document` imports neither.
+`document`; `document` imports neither. Unit tests live in `tests/`, mirroring
+the `src/` folder structure.
 
 React and React DOM are declared as **optional** peer dependencies, so the
 headless `./ui` entry stays usable from servers, scripts, and tests. Keeping the

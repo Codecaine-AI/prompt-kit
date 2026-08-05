@@ -18,7 +18,7 @@ display in editors, traces, tests, or CI.
 | `packages/prompt-kit/src/document/validate/validate-tree.ts` | `validatePrompt` implementation |
 | `packages/prompt-kit/src/document/validate/diagnostics.ts` | Diagnostic and result types |
 | `packages/prompt-kit/src/document/validate/index.ts` | Validation barrel export |
-| `packages/prompt-kit/src/document/validate/validate-tree.test.ts` | Validation behavior tests |
+| `packages/prompt-kit/tests/document/validate/validate-tree.test.ts` | Validation behavior tests |
 
 ## Validator Flow
 

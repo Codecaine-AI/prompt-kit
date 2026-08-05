@@ -15,7 +15,7 @@
     "./ui/surface": "./src/ui/surface/index.ts"
   },
   "scripts": {
-    "test": "bun test src",
+    "test": "bun test tests",
     "typecheck": "bunx --bun tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {

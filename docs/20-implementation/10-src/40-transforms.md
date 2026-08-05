@@ -21,7 +21,7 @@ document shape and avoid string-based prompt rewriting.
 | `packages/prompt-kit/src/document/transforms/replace.ts` | `replaceNodeById` |
 | `packages/prompt-kit/src/document/transforms/omit.ts` | `omitNodeById` |
 | `packages/prompt-kit/src/document/transforms/tree-utils.ts` | Recursive block mapping helpers |
-| `packages/prompt-kit/src/document/transforms/transforms.test.ts` | Transform behavior tests |
+| `packages/prompt-kit/tests/document/transforms/transforms.test.ts` | Transform behavior tests |
 
 ## Traversal
 

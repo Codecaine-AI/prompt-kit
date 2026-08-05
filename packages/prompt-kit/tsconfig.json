@@ -14,7 +14,6 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    "rootDir": "src",
     // The bun-linked @codecaine-ai/annotations package ships TS sources that
     // resolve react types from its own node_modules; pin the whole program to
     // this repo's @types/react so the two copies never mix.
@@ -25,6 +24,6 @@
       "react-dom/*": ["./node_modules/@types/react-dom/*", "../../node_modules/@types/react-dom/*", "../../../node_modules/@types/react-dom/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "tests/**/*"],
   "exclude": ["node_modules", "dist"]
 }

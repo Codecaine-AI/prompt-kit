@@ -29,7 +29,7 @@ import {
  * line, tagged with the owning node so hover/selection/drag/inline-edit layers
  * can attach.
  *
- * INVARIANT (verified by xml-line-model.test.ts): joining every line's `text`
+ * INVARIANT (verified by tests/document/render/line-model.test.ts): joining every line's `text`
  * with "\n" equals `renderXmlMarkdown(prompt)`. If prompt-kit's renderer changes
  * its layout, that test fails and this mirror must be updated in lockstep.
  */
