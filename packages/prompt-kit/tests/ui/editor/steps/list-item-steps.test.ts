@@ -15,6 +15,7 @@ import {
 } from "../../../../src/ui/editor/transactions";
 
 import {
+	duplicateListItemStep,
 	insertListItemStep,
 	mergeListItemsStep,
 	moveListItemStep,
@@ -565,5 +566,109 @@ describe("removeListItemsStep (structural-selection run delete)", () => {
 		expect(removeListItemsStep(before, "list1", 1, 2).step).toBeUndefined();
 		expect(removeListItemsStep(before, "list1", -1, 1).step).toBeUndefined();
 		expect(removeListItemsStep(before, "list1", 0, 0).step).toBeUndefined();
+	});
+});
+
+describe("duplicateListItemStep", () => {
+	/** Every id in the document, blocks and list items alike. */
+	function allIds(prompt: PromptDocument): string[] {
+		const ids: string[] = [];
+		const visitBlock = (node: PromptDocument["nodes"][number]): void => {
+			if (node.id) ids.push(node.id);
+			if (node.type === "bulletList" || node.type === "orderedList") {
+				for (const entry of node.items) {
+					if (entry.id) ids.push(entry.id);
+					entry.children?.forEach(visitBlock);
+				}
+			} else if (node.type === "section" || node.type === "example") {
+				node.children.forEach(visitBlock);
+			} else if (node.type === "field") {
+				node.children?.forEach(visitBlock);
+			} else if (node.type === "contextUsage") {
+				node.instructions.forEach(visitBlock);
+			}
+		};
+		prompt.nodes.forEach(visitBlock);
+		return ids;
+	}
+
+	test("inserts the copy directly after the source and round-trips (invert removes it)", () => {
+		const before = bulletDoc("a", "b", "c");
+		const result = duplicateListItemStep(before, "list1", 1);
+		expect(result.step).toBeDefined();
+		expect(result.focusItemIndex).toBe(2);
+		expect(firstList(result.prompt).items.map((i) => i.content)).toEqual([
+			["a"],
+			["b"],
+			["b"],
+			["c"],
+		]);
+		// One invertible update step: applying reproduces the duplicate,
+		// inverting removes the inserted copy and restores the original.
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("the copy carries FRESH ids for itself and every nested child", () => {
+		const before = docWith({
+			type: "bulletList",
+			id: "list1",
+			items: [
+				{ type: "listItem", id: "item-a", content: ["alpha"] },
+				{
+					type: "listItem",
+					id: "item-b",
+					content: ["bravo"],
+					children: [
+						{ type: "paragraph", id: "para-b", content: ["bravo detail"] },
+						{
+							type: "bulletList",
+							id: "list-b",
+							items: [
+								{ type: "listItem", id: "item-b-1", content: ["nested"] },
+							],
+						} as BulletListNode,
+					],
+				},
+			],
+		});
+		const result = duplicateListItemStep(before, "list1", 1);
+		expect(result.step).toBeDefined();
+
+		const list = firstList(result.prompt);
+		expect(list.items).toHaveLength(3);
+		const source = list.items[1]!;
+		const copy = list.items[2]!;
+		// The subtree duplicated in full: content, nested paragraph, nested list.
+		expect(copy.content).toEqual(["bravo"]);
+		expect(copy.children).toHaveLength(2);
+		const copiedList = copy.children![1] as BulletListNode;
+		expect(copiedList.items.map((i) => i.content)).toEqual([["nested"]]);
+		// Source untouched.
+		expect(source.id).toBe("item-b");
+		expect(source.children![0]!.id).toBe("para-b");
+
+		// Fresh ids at EVERY level: assigned, and colliding with nothing.
+		const beforeIds = new Set(allIds(before));
+		const copyIds = [
+			copy.id,
+			copy.children![0]!.id,
+			copiedList.id,
+			copiedList.items[0]!.id,
+		];
+		for (const id of copyIds) {
+			expect(id).toBeDefined();
+			expect(beforeIds.has(id!)).toBe(false);
+		}
+		// And the whole document's ids stay unique.
+		const afterIds = allIds(result.prompt);
+		expect(new Set(afterIds).size).toBe(afterIds.length);
+
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("out-of-range index is a no-op", () => {
+		const before = bulletDoc("a", "b");
+		expect(duplicateListItemStep(before, "list1", 5).step).toBeUndefined();
+		expect(duplicateListItemStep(before, "list1", -1).step).toBeUndefined();
 	});
 });

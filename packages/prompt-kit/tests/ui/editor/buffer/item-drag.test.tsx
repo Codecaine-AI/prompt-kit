@@ -141,8 +141,12 @@ describe("PromptFlowXml item drag handle (Notion model)", () => {
 		expect(EDITOR_METRICS.itemGripSize).toContain(
 			"var(--prompt-editor-item-grip-size, 14px)",
 		);
-		// No floating hint overlays: a plain title attribute is the ceiling.
-		expect(button.getAttribute("title")).toBe("Drag to reorder item");
+		// No floating hint overlays: a plain title attribute is the ceiling —
+		// and it names BOTH gestures (drag, and the motionless click that opens
+		// the item menu), matching the block grip's wording.
+		expect(button.getAttribute("title")).toBe(
+			"Drag, or click for item menu",
+		);
 	});
 
 	it("the deepest unit wins: every item row resolves to the ITEM — including the list's first row", () => {

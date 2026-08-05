@@ -29,7 +29,11 @@ import { buildXmlLineModel, type XmlLine } from "../../../document/render/line-m
 import { resolveAutoformat } from "./autoformat";
 import { caretAnchor } from "./caret-rect";
 import { DragGhost, DropIndicator, useXmlDrag } from "./drag-controller";
-import { blockHandleUnit, resolveDragHandleUnit } from "./drag-handle";
+import {
+	blockHandleUnit,
+	itemHandleUnit,
+	resolveDragHandleUnit,
+} from "./drag-handle";
 import {
 	handleEditorKey,
 	type EditTarget,
@@ -37,9 +41,13 @@ import {
 } from "./editor-keymap";
 import { moveBlocksStep, removeBlocksStep } from "../steps/block-run-steps";
 import {
+	duplicateListItemStep,
 	moveListItemsStep,
+	nestListItemStep,
+	removeListItemStep,
 	removeListItemsStep,
 	removeListWithStep,
+	unnestListItemStep,
 } from "../steps/list-item-steps";
 import {
 	resolveMarqueeSelection,
@@ -58,6 +66,7 @@ import {
 import {
 	commitEdit,
 	editorValueForLine,
+	findUnnestLocation,
 	registerNestedLists,
 	retagSection,
 } from "../steps/node-mutations";
@@ -203,6 +212,11 @@ export function PromptFlowXml({
 	const lines = lineModel.lines;
 
 	const [hoverNodeId, setHoverNodeId] = useState<string | null>(null);
+	// The hovered LIST ITEM, when the hovered row is an item row (item rows
+	// carry the LIST's id as nodeId, so hoverNodeId alone cannot name one
+	// bullet). Set and cleared exactly alongside hoverNodeId — including the
+	// scroll clear — so the item-scoped wash can never outlive the node hover.
+	const [hoverItemId, setHoverItemId] = useState<string | null>(null);
 	// The row currently under the pointer — the input to the canonical
 	// drag-handle resolution (deepest draggable unit under the pointer, see
 	// drag-handle.ts). Distinct from hoverNodeId, which drives the hover wash.
@@ -211,6 +225,15 @@ export function PromptFlowXml({
 	// The block menu ([⋮⋮] click) opens for one block at a time, anchored to its
 	// first row so every block affordance stays in the one left cluster.
 	const [menuNodeId, setMenuNodeId] = useState<string | null>(null);
+	// The ITEM menu (item-grip click) — the item-kind twin of menuNodeId, keyed
+	// by the item so exactly one bullet's menu can be open. `listId`/`itemIndex`
+	// ride along for reporting; the render gate and the handle pin resolve by
+	// `itemId` against the CURRENT lines, so a stale index can never mis-route.
+	const [itemMenu, setItemMenu] = useState<{
+		listId: string;
+		itemId: string;
+		itemIndex: number;
+	} | null>(null);
 	// The slash menu, when `/` opened one. The caret rect is a snapshot taken on
 	// each keystroke, so the menu tracks the query as it grows.
 	const [slash, setSlash] = useState<
@@ -263,6 +286,7 @@ export function PromptFlowXml({
 			editSeqRef.current += 1;
 			setEditTarget({ ...target, seq: editSeqRef.current });
 			setMenuNodeId(null);
+			setItemMenu(null);
 			// Any caret move retires the slash menu: it is anchored to one caret
 			// on one line and has nothing to say about the row it moved to.
 			setSlash(null);
@@ -426,6 +450,7 @@ export function PromptFlowXml({
 			});
 			setEditTarget(null);
 			setMenuNodeId(null);
+			setItemMenu(null);
 			onSelectNode(undefined);
 		},
 		[onSelectNode],
@@ -925,6 +950,7 @@ export function PromptFlowXml({
 				// retires the caret, menus, and the single-node selection.
 				setEditTarget(null);
 				setMenuNodeId(null);
+				setItemMenu(null);
 				setSlash(null);
 				onSelectNode(undefined);
 			}
@@ -995,6 +1021,7 @@ export function PromptFlowXml({
 						setStructuralSelection(selection);
 						setEditTarget(null);
 						setMenuNodeId(null);
+						setItemMenu(null);
 						onSelectNode(undefined);
 						suppressClickRef.current = true;
 					}
@@ -1191,6 +1218,12 @@ export function PromptFlowXml({
 			const pinned = blockHandleUnit(lines, nodeRanges, menuNodeId);
 			if (pinned) return pinned;
 		}
+		// An open ITEM menu pins the handle to its item the same way, so the
+		// menu survives pointer travel instead of unmounting with the handle.
+		if (itemMenu) {
+			const pinned = itemHandleUnit(lines, itemRanges, itemMenu.itemId);
+			if (pinned) return pinned;
+		}
 		const hovered = resolveDragHandleUnit({
 			lines,
 			hoverRow,
@@ -1207,6 +1240,7 @@ export function PromptFlowXml({
 	}, [
 		drag.draggingId,
 		menuNodeId,
+		itemMenu,
 		hoverRow,
 		rowItemIds,
 		lines,
@@ -1253,11 +1287,46 @@ export function PromptFlowXml({
 		return byRow;
 	}, [inlineInserts, lines.length]);
 
-	const highlightNodeId = editTarget?.nodeId ?? drag.draggingId ?? hoverNodeId;
-	const highlightRange = highlightNodeId
-		? nodeRanges.get(highlightNodeId)
-		: undefined;
-	const paintedHighlightRange = trimPaintedNodeRange(lines, highlightRange);
+	// The ONE highlighted unit — edit target ?? dragged ?? hovered, the same
+	// precedence the wash always had, but each source resolves to its OWNING
+	// unit KIND before painting:
+	//
+	//   item  the source names a LIST ITEM (an item edit target, an item drag
+	//         — drag.draggingId IS the grabbed item's own id there — or a
+	//         hovered item row). Wash = the item's full itemRanges extent
+	//         (marker row + its nested child rows), and no sibling's rows —
+	//         item rows carry the LIST's nodeId, so nodeId ownership alone
+	//         would wash every bullet of the list.
+	//   node  everything else. Wash = per-row `line.nodeId` ownership, never
+	//         the start..end interval of the node's range, so a container's
+	//         tag hover can never flood body rows that belong to its children.
+	const highlightUnit = useMemo<{ kind: "item" | "node"; id: string } | null>(() => {
+		if (editTarget) {
+			if (editTarget.itemIndex !== undefined) {
+				const marker = lines.find(
+					(candidate) =>
+						candidate.role === "item" &&
+						candidate.nodeId === editTarget.nodeId &&
+						candidate.itemIndex === editTarget.itemIndex,
+				);
+				if (marker?.itemId) return { kind: "item", id: marker.itemId };
+			}
+			return { kind: "node", id: editTarget.nodeId };
+		}
+		if (drag.draggingId) {
+			return {
+				kind: drag.drag?.kind === "item" ? "item" : "node",
+				id: drag.draggingId,
+			};
+		}
+		if (hoverItemId) return { kind: "item", id: hoverItemId };
+		if (hoverNodeId) return { kind: "node", id: hoverNodeId };
+		return null;
+	}, [editTarget, drag.draggingId, drag.drag, hoverItemId, hoverNodeId, lines]);
+	const highlightItemRange =
+		highlightUnit?.kind === "item"
+			? itemRanges.get(highlightUnit.id)
+			: undefined;
 	const selectedRange = flow.activeId
 		? nodeRanges.get(flow.activeId)
 		: undefined;
@@ -1301,6 +1370,7 @@ export function PromptFlowXml({
 				onSelectNode(undefined);
 				setEditTarget(null);
 				setMenuNodeId(null);
+				setItemMenu(null);
 				setStructuralSelection(null);
 			}}
 		>
@@ -1312,7 +1382,17 @@ export function PromptFlowXml({
 				// hairline reads as a second divider, so the buffer's scrollbar is
 				// an overlay pill on a transparent track — visible on hover.
 				className="min-h-0 min-w-0 flex-1 overflow-auto [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-[3px] [&::-webkit-scrollbar-thumb]:border-solid [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2.5 hover:[&::-webkit-scrollbar-thumb]:bg-white/15"
-				onScroll={outlineShown ? updateActiveSection : undefined}
+				onScroll={() => {
+					// Content sliding under a stationary pointer must not carry a
+					// stale hover wash along: scrolling retires the hovered NODE
+					// (the next real mouseenter re-establishes it). The hovered
+					// ROW stays — it anchors the drag handle, and clearing it
+					// would pop the handle on every scroll tick. No new
+					// listeners: this is the scroller's one existing handler.
+					setHoverNodeId(null);
+					setHoverItemId(null);
+					if (outlineShown) updateActiveSection();
+				}}
 				style={{
 					background: EDITOR_COLORS.bg,
 					// The lab's floating glass reserves space INSIDE the scroller —
@@ -1396,6 +1476,7 @@ export function PromptFlowXml({
 						onPointerDown={handleMarqueePointerDown}
 						onMouseLeave={() => {
 							setHoverNodeId(null);
+							setHoverItemId(null);
 							setHoverRow(null);
 						}}
 					>
@@ -1448,9 +1529,13 @@ export function PromptFlowXml({
 								index <= paintedGroupRange.end;
 							const selected = nodeSelected || groupSelected;
 							const inHighlight =
-								paintedHighlightRange !== undefined &&
-								index >= paintedHighlightRange.start &&
-								index <= paintedHighlightRange.end;
+								highlightUnit !== null &&
+								line.role !== "gap" &&
+								(highlightUnit.kind === "item"
+									? highlightItemRange !== undefined &&
+										index >= highlightItemRange.start &&
+										index <= highlightItemRange.end
+									: line.nodeId === highlightUnit.id);
 							const dragging =
 								dragRange !== undefined &&
 								index >= dragRange.start &&
@@ -1469,6 +1554,16 @@ export function PromptFlowXml({
 											indentCh: handleUnit.indentCh,
 										}
 									: undefined;
+							// The item menu can only be open on the row mounting the
+							// item-kind handle — itemMenu pins handleUnit to its item
+							// while open, so rowHandle gates this correctly (the
+							// block menu's exact pattern).
+							const rowItemMenuOpen =
+								rowHandle?.kind === "item" &&
+								line.role === "item" &&
+								line.itemIndex !== undefined &&
+								itemMenu !== null &&
+								itemMenu.itemId === line.itemId;
 
 							return (
 								<Fragment key={`${line.nodeId}:${index}:${line.role}`}>
@@ -1526,6 +1621,10 @@ export function PromptFlowXml({
 									onHoverNode={() => {
 										if (drag.draggingId) return;
 										setHoverNodeId(line.nodeId);
+										// Item rows also name THE bullet under the pointer,
+										// so the wash can scope to the one item instead of
+										// every sibling sharing the list's nodeId.
+										setHoverItemId(line.itemId ?? null);
 										setHoverRow(index);
 									}}
 									onHoverGap={() => {
@@ -1533,12 +1632,14 @@ export function PromptFlowXml({
 										// A gap belongs to no block: hovering one is hovering
 										// nothing, so the handle retires.
 										setHoverNodeId(null);
+										setHoverItemId(null);
 										setHoverRow(null);
 									}}
 									onSelect={() => {
 										onSelectNode(line.nodeId);
 										setEditTarget(null);
 										setMenuNodeId(null);
+										setItemMenu(null);
 										setStructuralSelection(null);
 									}}
 									onStartEdit={(caret) => {
@@ -1670,6 +1771,110 @@ export function PromptFlowXml({
 											? () => handleItemShiftClick(line)
 											: undefined
 									}
+									itemMenuOpen={rowItemMenuOpen}
+									onToggleItemMenu={() => {
+										const itemId = line.itemId;
+										const itemIndex = line.itemIndex;
+										if (itemId === undefined || itemIndex === undefined) {
+											return;
+										}
+										setItemMenu((current) =>
+											current?.itemId === itemId
+												? null
+												: { listId: line.nodeId, itemId, itemIndex },
+										);
+									}}
+									onCloseItemMenu={() => setItemMenu(null)}
+									// Indent needs a previous sibling to nest under
+									// (nestListItemStep's precondition) …
+									canItemIndent={
+										rowItemMenuOpen && (line.itemIndex ?? 0) > 0
+									}
+									// … and Outdent needs the list to be nested inside an
+									// item (unnestListItemStep's precondition, resolved by
+									// the same locator the keymap's Shift+Tab uses).
+									canItemOutdent={
+										rowItemMenuOpen &&
+										findUnnestLocation(
+											prompt,
+											line.nodeId,
+											line.itemIndex ?? 0,
+										) !== undefined
+									}
+									onItemDuplicate={() => {
+										if (line.itemIndex === undefined) return;
+										const result = duplicateListItemStep(
+											prompt,
+											line.nodeId,
+											line.itemIndex,
+										);
+										if (!result.step) return;
+										onPromptChange(result.prompt, line.nodeId, [result.step]);
+									}}
+									// Indent / Outdent / Delete apply their steps through
+									// the exact plumbing the keymap's Tab / Shift+Tab /
+									// Backspace paths use (editor-keymap.ts applyTab and
+									// remove-empty-item) — same step producers, same
+									// onPromptChange shape, no parallel mutation path.
+									onItemIndent={() => {
+										if (line.itemIndex === undefined || line.itemIndex <= 0) {
+											return;
+										}
+										const result = nestListItemStep(
+											prompt,
+											line.nodeId,
+											line.itemIndex,
+										);
+										if (!result.step) return;
+										onPromptChange(result.prompt, line.nodeId, [result.step]);
+									}}
+									onItemOutdent={() => {
+										if (line.itemIndex === undefined) return;
+										const location = findUnnestLocation(
+											prompt,
+											line.nodeId,
+											line.itemIndex,
+										);
+										if (!location) return;
+										const result = unnestListItemStep(
+											prompt,
+											location.outerListId,
+											location.parentItemIndex,
+											line.itemIndex,
+										);
+										if (!result.step) return;
+										onPromptChange(result.prompt, location.outerListId, [
+											result.step,
+										]);
+									}}
+									onItemRemove={() => {
+										if (line.itemIndex === undefined) return;
+										// The keymap's empty-list rule: deleting a list's
+										// LAST item removes the list itself.
+										const list = line.node;
+										const removesWholeList =
+											(list.type === "bulletList" ||
+												list.type === "orderedList") &&
+											list.items.length <= 1;
+										if (removesWholeList) {
+											const removed = removeListWithStep(
+												prompt,
+												line.nodeId,
+											);
+											if (!removed.step) return;
+											onPromptChange(removed.prompt, undefined, [
+												removed.step,
+											]);
+											return;
+										}
+										const result = removeListItemStep(
+											prompt,
+											line.nodeId,
+											line.itemIndex,
+										);
+										if (!result.step) return;
+										onPromptChange(result.prompt, line.nodeId, [result.step]);
+									}}
 								/>
 									)}
 								</Fragment>

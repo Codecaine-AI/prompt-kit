@@ -102,29 +102,40 @@ export function BlockMenu({
 	);
 }
 
-function MenuItem({
+/**
+ * One menu row. Shared with ItemMenu (the item-kind twin) so both menus keep
+ * one row treatment. A disabled row stays visible — the option exists, the
+ * current position just doesn't allow it — but takes no hover ink and no click.
+ */
+export function MenuItem({
 	icon: Icon,
 	label,
 	destructive,
+	disabled,
 	onClick,
 }: {
 	icon: typeof Copy;
 	label: string;
 	destructive?: boolean;
+	disabled?: boolean;
 	onClick: () => void;
 }) {
 	return (
 		<button
 			type="button"
+			disabled={disabled}
 			onClick={(event) => {
 				event.stopPropagation();
+				if (disabled) return;
 				onClick();
 			}}
 			className={cn(
 				"flex w-full items-center gap-2 rounded-[2px] px-1.5 py-1 text-left text-[12px]",
-				destructive
-					? "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-					: "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+				disabled
+					? "cursor-default text-muted-foreground/40"
+					: destructive
+						? "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+						: "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
 			)}
 		>
 			<Icon size={12} />

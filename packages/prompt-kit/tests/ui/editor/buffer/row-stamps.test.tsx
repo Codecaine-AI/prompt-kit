@@ -125,7 +125,7 @@ describe("PromptFlowXml row stamps", () => {
 		expect(cluster!.querySelector("button")).toBeTruthy();
 	});
 
-	it("renders NO per-item remove × in edit mode — item deletion is Backspace / the block menu", () => {
+	it("renders NO per-item remove × in edit mode — item deletion is Backspace / the item menu", () => {
 		const model = createPromptEditorModel(prompt, {});
 		render(
 			<PromptFlowXml
@@ -137,7 +137,10 @@ describe("PromptFlowXml row stamps", () => {
 		);
 
 		// The × was removed outright (not annotate-hidden): hovering an item
-		// row must mount nothing carrying the retired remove-item stamp.
+		// row must mount nothing carrying the retired remove-item stamp. Item
+		// deletion lives in the ITEM MENU (the item grip's motionless click —
+		// see ItemMenu) and on Backspace; neither mounts per-item chrome at
+		// rest.
 		const itemRow = document.querySelector<HTMLElement>(
 			'[data-prompt-node-id="item-1"]',
 		)!;

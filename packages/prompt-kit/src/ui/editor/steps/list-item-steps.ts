@@ -12,6 +12,11 @@ import {
 	inlineToEditableText,
 } from "../model";
 import {
+	assignListItemIds,
+	collectPromptIds,
+	stripListItemIds,
+} from "../../../document/nodes/ids";
+import {
 	removePromptBlockNodeByIdWithStep,
 	updatePromptBlockNodeByIdWithStep,
 	type PromptStep,
@@ -231,6 +236,37 @@ export function removeListItemStep(
 		return withItems(node, items);
 	});
 	return { prompt: result.prompt, step: result.step, focusItemIndex: focus };
+}
+
+/**
+ * Duplicates the item at `itemIndex`, inserting the copy directly after it —
+ * the item menu's Duplicate. The copy is the whole item subtree (inline
+ * content plus any nested child blocks and lists), carrying FRESH ids at every
+ * level: the ids are stripped and reassigned with the same generator the
+ * editor model runs (see `prepareBlockForInsert` for the block-level
+ * precedent), against the full document's id set, so the duplicate can never
+ * collide with its source or anything else. One invertible update step on the
+ * containing list; the inverse removes the inserted copy.
+ */
+export function duplicateListItemStep(
+	prompt: PromptDocument,
+	listId: string,
+	itemIndex: number,
+): ListItemStepResult {
+	const used = collectPromptIds(prompt);
+	const result = updateListByIdWithStep(prompt, listId, (node) => {
+		const source = node.items[itemIndex];
+		if (!source) return node;
+		const copy = assignListItemIds(stripListItemIds(source), used);
+		const items = [...node.items];
+		items.splice(itemIndex + 1, 0, copy);
+		return withItems(node, items);
+	});
+	return {
+		prompt: result.prompt,
+		step: result.step,
+		focusItemIndex: itemIndex + 1,
+	};
 }
 
 /**

@@ -121,6 +121,31 @@ export function blockHandleUnit(
 	};
 }
 
+/**
+ * The item-kind handle unit for an explicitly named LIST ITEM — the item
+ * menu's non-pointer visibility state: an open item menu pins the handle to
+ * its item so the menu survives pointer travel, exactly as blockHandleUnit
+ * pins for the block menu. Null when the item no longer renders a marker row.
+ */
+export function itemHandleUnit(
+	lines: readonly XmlLine[],
+	itemRanges: Map<string, NodeRange>,
+	itemId: string,
+): DragHandleUnit | null {
+	const range = itemRanges.get(itemId);
+	const marker = range ? lines[range.start] : undefined;
+	if (!range || !marker) return null;
+	if (marker.role !== "item" || marker.itemIndex === undefined) return null;
+	return {
+		kind: "item",
+		id: itemId,
+		row: range.start,
+		indentCh: leadingIndentCh(marker.text),
+		listId: marker.nodeId,
+		itemIndex: marker.itemIndex,
+	};
+}
+
 /** Leading indent of a rendered line, in space characters. */
 export function leadingIndentCh(text: string): number {
 	return text.match(/^ */)?.[0]?.length ?? 0;

@@ -21,6 +21,7 @@ import { BlockCluster } from "./BlockCluster";
 import { dragHandleRailWidth } from "./drag-handle";
 import type { EditorAriaAttributes } from "./GrowTextArea";
 import { InlineEditor, RowText } from "./InlineEditor";
+import { ItemMenu } from "./ItemMenu";
 import { ItemRow } from "./ItemRow";
 import { SectionTagRow } from "./SectionTagRow";
 
@@ -91,6 +92,23 @@ export interface XmlRowProps {
 	/** Item anchor rows: pointer-down on the item handle starts an item drag. */
 	onItemHandleDown?: (event: React.PointerEvent<HTMLElement>) => void;
 	/**
+	 * Item anchor rows: the item menu is open on THIS row's item. Mirrors
+	 * `menuOpen` for the block menu — the surface gates it to the one row that
+	 * mounts the item-kind handle.
+	 */
+	itemMenuOpen?: boolean;
+	/** A motionless click on the item grip toggles the item menu. */
+	onToggleItemMenu?: () => void;
+	onCloseItemMenu?: () => void;
+	/** Indent is possible (the item has a previous sibling to nest under). */
+	canItemIndent?: boolean;
+	/** Outdent is possible (the item's list is nested inside an item). */
+	canItemOutdent?: boolean;
+	onItemDuplicate?: () => void;
+	onItemIndent?: () => void;
+	onItemOutdent?: () => void;
+	onItemRemove?: () => void;
+	/**
 	 * Item rows: shift-click extends the item-range selection from the current
 	 * anchor item (see index.tsx itemSelection). Captured BEFORE the text /
 	 * marker click handlers so a shift-click never opens an editor.
@@ -136,6 +154,15 @@ export function XmlRow({
 	onDragHandleDown,
 	onItemHandleDown,
 	onItemShiftClick,
+	itemMenuOpen,
+	onToggleItemMenu,
+	onCloseItemMenu,
+	canItemIndent,
+	canItemOutdent,
+	onItemDuplicate,
+	onItemIndent,
+	onItemOutdent,
+	onItemRemove,
 }: XmlRowProps) {
 	const isGap = line.role === "gap";
 	const isItem = line.role === "item";
@@ -232,11 +259,17 @@ export function XmlRow({
 				/>
 			)}
 
-			{/* Range wash keeps hover quiet and gives selection the stronger
-			    configured accent wash. Inside the structural selection BOTH are
-			    suppressed — the surface's single ring overlay is the paint, and
-			    hovering the one object must not stack a second wash — while the
-			    drop flash still reads (it is transient feedback, not state). */}
+			{/* Unit wash: hover stays quiet, selection takes the stronger
+			    configured accent wash. The hover wash is UNIT-scoped — the
+			    surface sets inHighlight only on rows the highlighted unit owns:
+			    a section tag hover washes its open/close tag rows, never the
+			    body rows other nodes own, and a LIST ITEM washes exactly its
+			    own extent (marker row + nested child rows), never a sibling
+			    bullet's. Inside the structural selection
+			    both washes are suppressed — the surface's single ring overlay is
+			    the paint, and hovering the one object must not stack a second
+			    wash — while the drop flash still reads (it is transient
+			    feedback, not state). */}
 			{(flashing ||
 				((inHighlight || selected) && !inStructuralSelection)) && (
 				<div
@@ -302,11 +335,13 @@ export function XmlRow({
 				/>
 			)}
 
-			{/* The ITEM-kind handle: drag-only (no menu), right-aligned in the
-			    same left rail the block grip uses, which for a nested item is the
-			    indentation margin just left of its marker. The
-			    `data-prompt-affordance` stamp lets annotate mode display:none it,
-			    so item drags never fight Cmd+drag range selection. */}
+			{/* The ITEM-kind handle: the drag grip whose motionless click opens
+			    the compact item menu (mirroring the block cluster's arm-then-
+			    click model), right-aligned in the same left rail the block grip
+			    uses, which for a nested item is the indentation margin just left
+			    of its marker. The `data-prompt-affordance` stamp lets annotate
+			    mode display:none it, so item drags never fight Cmd+drag range
+			    selection. */}
 			{!isGap && handle?.kind === "item" && isItem && (
 				<div
 					data-prompt-affordance="item-handle"
@@ -321,20 +356,26 @@ export function XmlRow({
 				>
 					<button
 						type="button"
-						title="Drag to reorder item"
-						aria-label="Drag list item"
+						title="Drag, or click for item menu"
+						aria-label="Item handle and menu"
 						className="prompt-editor-item-grip pointer-events-auto flex w-7 cursor-grab touch-none select-none items-center justify-center rounded-[3px] hover:bg-white/10 active:cursor-grabbing"
 						style={{
 							height: EDITOR_METRICS.lineHeight,
 							color: EDITOR_COLORS.grip,
 						}}
 						onPointerDown={(event) => {
-							// Pointer-down starts an ITEM drag — never an edit session
-							// (the handle floats outside the text flow).
+							// Pointer-down ARMS an ITEM drag — never an edit session
+							// (the handle floats outside the text flow). The drag
+							// lifts only past the travel threshold (see
+							// DRAG_LIFT_THRESHOLD_PX), so a motionless press-release
+							// stays a click and reaches onClick below.
 							event.stopPropagation();
 							onItemHandleDown?.(event);
 						}}
-						onClick={(event) => event.stopPropagation()}
+						onClick={(event) => {
+							event.stopPropagation();
+							onToggleItemMenu?.();
+						}}
 					>
 						<GripVertical
 							size={14}
@@ -344,6 +385,17 @@ export function XmlRow({
 							}}
 						/>
 					</button>
+					{itemMenuOpen && (
+						<ItemMenu
+							canIndent={canItemIndent ?? false}
+							canOutdent={canItemOutdent ?? false}
+							onClose={() => onCloseItemMenu?.()}
+							onDuplicate={() => onItemDuplicate?.()}
+							onIndent={() => onItemIndent?.()}
+							onOutdent={() => onItemOutdent?.()}
+							onRemove={() => onItemRemove?.()}
+						/>
+					)}
 				</div>
 			)}
 

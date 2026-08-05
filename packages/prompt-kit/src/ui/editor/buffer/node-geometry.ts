@@ -98,9 +98,11 @@ export function computeItemRanges(
 }
 
 /**
- * Trims blank rows from the outside of a range used for selection or hover
- * paint. Blank rows between visible rows remain inside the returned range so a
- * multi-row block reads as one continuous region.
+ * Trims blank rows from the outside of a range used for selection paint (the
+ * single-node accent range and the structural-selection ring). Blank rows
+ * between visible rows remain inside the returned range so a multi-row block
+ * reads as one continuous region. The HOVER wash no longer uses ranges at all
+ * — it is ownership-scoped per row (see the buffer's inHighlight).
  */
 export function trimPaintedNodeRange(
 	lines: readonly XmlLine[],
