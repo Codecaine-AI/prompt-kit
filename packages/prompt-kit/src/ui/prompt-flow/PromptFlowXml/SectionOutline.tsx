@@ -18,7 +18,7 @@ import {
 	EDITOR_COLORS,
 	EDITOR_METRICS,
 } from "../../surface/editor-surface";
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 
 export interface OutlineSection {
 	/** Row index (in the line model) of the section's opening tag. */

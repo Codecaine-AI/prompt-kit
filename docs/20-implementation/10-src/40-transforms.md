@@ -15,13 +15,13 @@ document shape and avoid string-based prompt rewriting.
 
 | File | Responsibility |
 |------|----------------|
-| `packages/prompt-kit/src/transforms/visit.ts` | Tree traversal and `VisitEntry` paths |
-| `packages/prompt-kit/src/transforms/find.ts` | `findNodeById`, `findNodes`, `findSectionsByTag` |
-| `packages/prompt-kit/src/transforms/insert.ts` | `insertBeforeId`, `insertAfterId` |
-| `packages/prompt-kit/src/transforms/replace.ts` | `replaceNodeById` |
-| `packages/prompt-kit/src/transforms/omit.ts` | `omitNodeById` |
-| `packages/prompt-kit/src/transforms/tree-utils.ts` | Recursive block mapping helpers |
-| `packages/prompt-kit/src/transforms/transforms.test.ts` | Transform behavior tests |
+| `packages/prompt-kit/src/document/transforms/visit.ts` | Tree traversal and `VisitEntry` paths |
+| `packages/prompt-kit/src/document/transforms/find.ts` | `findNodeById`, `findNodes`, `findSectionsByTag` |
+| `packages/prompt-kit/src/document/transforms/insert.ts` | `insertBeforeId`, `insertAfterId` |
+| `packages/prompt-kit/src/document/transforms/replace.ts` | `replaceNodeById` |
+| `packages/prompt-kit/src/document/transforms/omit.ts` | `omitNodeById` |
+| `packages/prompt-kit/src/document/transforms/tree-utils.ts` | Recursive block mapping helpers |
+| `packages/prompt-kit/src/document/transforms/transforms.test.ts` | Transform behavior tests |
 
 ## Traversal
 

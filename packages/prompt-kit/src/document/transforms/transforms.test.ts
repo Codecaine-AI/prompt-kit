@@ -8,7 +8,7 @@ import {
   replaceNodeById,
   renderXmlMarkdown,
   type SectionNode,
-} from "..";
+} from "../..";
 
 function sectionNode(tag: string, text: string, id: string): SectionNode {
   return {

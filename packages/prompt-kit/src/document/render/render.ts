@@ -1,4 +1,4 @@
-import type { PromptDocument } from "../../nodes/types";
+import type { PromptDocument } from "../nodes/types";
 import {
   createRenderContext,
   renderNodes,

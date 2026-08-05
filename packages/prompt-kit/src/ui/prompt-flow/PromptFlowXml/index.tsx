@@ -25,7 +25,7 @@ import {
 	usePromptFlowInteractions,
 } from "../PromptFlowShared";
 import type { PromptFlowViewProps } from "../types";
-import { buildXmlLineModel, type XmlLine } from "../xml-line-model";
+import { buildXmlLineModel, type XmlLine } from "../../../document/render/line-model";
 import { resolveAutoformat } from "./autoformat";
 import { caretAnchor } from "./caret-rect";
 import { DragGhost, DropIndicator, useXmlDrag } from "./drag-controller";

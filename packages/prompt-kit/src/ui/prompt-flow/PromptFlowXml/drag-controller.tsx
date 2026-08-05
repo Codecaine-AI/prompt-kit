@@ -24,7 +24,7 @@ import {
 const DRAG_LIFT_THRESHOLD_PX = 4;
 import { highlightXmlLine } from "../../surface/xml-highlight";
 import { samePath } from "../PromptFlowShared";
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 import { promptFlowIndentForDepth } from "./node-geometry";
 
 interface DragState {

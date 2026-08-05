@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { definePrompt, validatePrompt } from "..";
+import { definePrompt, validatePrompt } from "../..";
 
 describe("validatePrompt", () => {
   test("accepts a valid prompt tree", () => {

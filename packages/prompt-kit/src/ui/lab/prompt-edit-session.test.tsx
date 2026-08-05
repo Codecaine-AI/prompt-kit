@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import type { PromptDocument } from "../../index";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-import { buildXmlLineModel } from "../prompt-flow/xml-line-model";
+import { buildXmlLineModel } from "../../document/render/line-model";
 import { PromptInlineLab } from ".";
 import {
 	acceptDisabledReason,

@@ -16,9 +16,9 @@ import {
   updatePromptBlockNodeByIdWithStep,
   type PromptStep,
 } from "./index";
-import { hashPrompt } from "../../canonical";
-import { PROMPT_KIT_SCHEMA_VERSION } from "../../nodes/types";
-import type { PromptBlockNode, PromptDocument } from "../../nodes/types";
+import { hashPrompt } from "../../document/canonical";
+import { PROMPT_KIT_SCHEMA_VERSION } from "../../document/nodes/types";
+import type { PromptBlockNode, PromptDocument } from "../../document/nodes/types";
 
 function baseDocument(): PromptDocument {
   return ensurePromptNodeIds({

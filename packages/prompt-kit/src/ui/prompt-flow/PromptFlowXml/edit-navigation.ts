@@ -3,7 +3,7 @@
 // boundary. No DOM, no React: everything here is unit-testable directly.
 import type { PromptEditorTreeEntry } from "../../editors";
 
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 
 /**
  * One place the caret can live. Items get one point per item line; multi-line

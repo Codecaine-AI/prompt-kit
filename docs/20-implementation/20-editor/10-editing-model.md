@@ -52,7 +52,7 @@ interface XmlLineModel {
 The module mirrors prompt-kit's `renderNode` / `renderNodes` exactly: same
 indentation, same blank line between sibling blocks, same framing around a
 section body. The invariant is that joining every line's `text` with `\n` equals
-`renderXmlMarkdown(prompt)`, and `xml-line-model.test.ts` asserts it. That
+`renderXmlMarkdown(prompt)`, and `line-model.test.ts` asserts it. That
 invariant is why the editor's line-number gutter matches the read-only view
 line for line, and why a renderer layout change must be mirrored here in
 lockstep.
@@ -178,7 +178,7 @@ position falls back to caret-at-end, never caret-at-zero.
 
 | File | Responsibility |
 |------|----------------|
-| `prompt-flow/xml-line-model.ts` | Row projection and the render-equality invariant |
+| `document/render/line-model.ts` | Row projection and the render-equality invariant |
 | `PromptFlowXml/index.tsx` | Composition root: state, wiring, conversions, slash session |
 | `PromptFlowXml/XmlRow.tsx` | One row: gutter, washes, affordances, body dispatch |
 | `PromptFlowXml/ItemRow.tsx` | List-item row with the marker as fixed trim |

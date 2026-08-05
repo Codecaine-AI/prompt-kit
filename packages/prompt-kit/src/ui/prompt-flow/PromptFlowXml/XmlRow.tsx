@@ -16,7 +16,7 @@ import {
 	promptEditorIndentForSpaces,
 } from "../../surface/editor-surface";
 import type { PromptFlowViewProps } from "../types";
-import { lineRendersDecodedEntities, type XmlLine } from "../xml-line-model";
+import { lineRendersDecodedEntities, type XmlLine } from "../../../document/render/line-model";
 import { BlockCluster } from "./BlockCluster";
 import { dragHandleRailWidth } from "./drag-handle";
 import type { EditorAriaAttributes } from "./GrowTextArea";

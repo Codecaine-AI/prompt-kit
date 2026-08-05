@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import type { PromptDocument } from "../../../index";
 import { createPromptEditorModel } from "../../editors";
-import { buildXmlLineModel } from "../xml-line-model";
+import { buildXmlLineModel } from "../../../document/render/line-model";
 import { PromptFlowXml } from ".";
 import { EDITOR_METRICS } from "../../surface/editor-surface";
 

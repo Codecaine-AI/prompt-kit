@@ -11,7 +11,7 @@ import {
 	type PromptStep,
 } from "../../editors";
 
-import { buildXmlLineModel, type XmlLine } from "../xml-line-model";
+import { buildXmlLineModel, type XmlLine } from "../../../document/render/line-model";
 import { handleEditorKey, type EditTarget } from "./editor-keymap";
 import { registerNestedLists } from "./node-mutations";
 

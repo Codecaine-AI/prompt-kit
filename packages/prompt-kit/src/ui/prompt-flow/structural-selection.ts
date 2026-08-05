@@ -8,7 +8,7 @@ import type {
 	PromptBlockNode,
 	PromptDocument,
 } from "../../index";
-import type { XmlLine } from "./xml-line-model";
+import type { XmlLine } from "../../document/render/line-model";
 
 /**
  * A structural selection: a CONTIGUOUS run of siblings under one parent,

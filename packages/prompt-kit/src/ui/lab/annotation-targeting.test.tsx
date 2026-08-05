@@ -8,7 +8,7 @@ import {
 	buildXmlLineModel,
 	nodeRenderedText,
 	type XmlLine,
-} from "../prompt-flow/xml-line-model";
+} from "../../document/render/line-model";
 import {
 	annotationRowElements,
 	annotationScopeChain,

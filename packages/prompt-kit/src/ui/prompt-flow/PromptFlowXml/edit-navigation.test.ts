@@ -5,7 +5,7 @@ import {
 	type PromptEditorTreeEntry,
 } from "../../editors";
 
-import { buildXmlLineModel } from "../xml-line-model";
+import { buildXmlLineModel } from "../../../document/render/line-model";
 import {
 	collectEditPoints,
 	findEditPointIndex,

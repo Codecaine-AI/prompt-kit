@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { PromptBlockNode } from "../../../index";
 
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 import { caretForLineClick, lineIndentLength } from "./click-caret";
 
 function line(

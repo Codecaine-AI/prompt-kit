@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { PROMPT_KIT_SCHEMA_VERSION, type PromptDocument } from "../nodes/types";
-import { ensurePromptNodeIds } from "../nodes/ids";
+import { PROMPT_KIT_SCHEMA_VERSION, type PromptDocument } from "../document/nodes/types";
+import { ensurePromptNodeIds } from "../document/nodes/ids";
 import {
   promptAnnotationSchema,
   promptNodeTargetAdapter,
@@ -19,7 +19,7 @@ import {
 import {
   buildXmlLineModel,
   nodeRenderedText,
-} from "../ui/prompt-flow/xml-line-model";
+} from "../document/render/line-model";
 
 const doc: PromptDocument = ensurePromptNodeIds({
   kind: "prompt",

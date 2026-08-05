@@ -3,7 +3,7 @@
 // keyboard-model module.
 "use client";
 
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 
 /**
  * Plain-text offset of a click within `container` (which may contain nested

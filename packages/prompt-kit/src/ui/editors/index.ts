@@ -1,16 +1,16 @@
-import { renderXmlMarkdown } from "../../renderers/xml-markdown";
-import { validatePrompt, type PromptValidationResult } from "../../validation";
+import { renderXmlMarkdown } from "../../document/render";
+import { validatePrompt, type PromptValidationResult } from "../../document/validate";
 import {
   assignBlockIds,
   collectPromptIds,
   ensurePromptNodeIds,
   prepareBlockForInsert,
-} from "../../nodes/ids";
+} from "../../document/nodes/ids";
 import type {
   PromptBlockNode,
   PromptDocument,
   PromptInline,
-} from "../../nodes/types";
+} from "../../document/nodes/types";
 
 export { ensurePromptNodeIds };
 export * from "./transactions";

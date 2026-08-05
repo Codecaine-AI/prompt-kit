@@ -30,6 +30,12 @@ entries were dropped 2026-08-05: they had no consumers. The prompt-flow and
 view modules still live under `src/ui/` and are reached through the lab shell;
 the annotations pane moved into `src/ui/lab/`.
 
+Internally the source tree has three layers: `src/document/` (nodes,
+transforms, validate, canonical, schema, render — the headless document
+model), `src/annotations/`, and `src/ui/`. Imports point downward only:
+`ui` may import `annotations` and `document`; `annotations` may import
+`document`; `document` imports neither.
+
 React and React DOM are declared as **optional** peer dependencies, so the
 headless `./ui` entry stays usable from servers, scripts, and tests. Keeping the
 React components behind a separate specifier is what preserves that.
@@ -43,7 +49,7 @@ DOM, and each has its own unit tests.
 |--------|----------|
 | `ui/editors/` | Editor model, tree, node access, id handling, text bridging |
 | `ui/editors/transactions.ts` | Steps, step algebra, transaction log |
-| `ui/prompt-flow/xml-line-model.ts` | Row projection mirroring the XML renderer |
+| `document/render/line-model.ts` | Row projection mirroring the XML renderer |
 | `ui/prompt-flow/PromptFlowXml/edit-navigation.ts` | Edit points, Backspace and Delete resolutions |
 | `ui/prompt-flow/PromptFlowXml/structure-steps.ts` | Structural step producers |
 | `ui/prompt-flow/PromptFlowXml/autoformat.ts` | Markdown marker matching and the trigger rule |

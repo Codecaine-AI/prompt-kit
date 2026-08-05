@@ -29,7 +29,7 @@ import {
   type UndoPatchResult,
 } from "@codecaine-ai/annotations/react";
 
-import type { PromptDocument } from "../../nodes/types";
+import type { PromptDocument } from "../../document/nodes/types";
 import {
   promptAnnotationSchema,
   type PromptAnnotationIntent,

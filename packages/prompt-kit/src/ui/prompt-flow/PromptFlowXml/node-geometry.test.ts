@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { PromptBlockNode } from "../../../index";
 
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 import { trimPaintedNodeRange } from "./node-geometry";
 
 const node: PromptBlockNode = {
@@ -50,7 +50,7 @@ describe("trimPaintedNodeRange", () => {
 
 describe("computeItemRanges", () => {
 	it("covers each item's marker row plus its nested child rows, innermost included", async () => {
-		const { buildXmlLineModel } = await import("../xml-line-model");
+		const { buildXmlLineModel } = await import("../../../document/render/line-model");
 		const { computeItemRanges } = await import("./node-geometry");
 		const prompt = {
 			kind: "prompt" as const,

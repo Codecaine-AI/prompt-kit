@@ -25,7 +25,7 @@ import {
 import { concatInline, setListItemContentStep } from "../list-item-steps";
 import { updateNode } from "../PromptFlowShared";
 import type { PromptFlowViewProps } from "../types";
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 
 /** The rendered marker prefix for an item ("1." for ordered, "-" for bullet). */
 export function listMarker(node: PromptBlockNode, itemIndex: number): string {

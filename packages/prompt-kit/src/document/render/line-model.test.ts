@@ -10,7 +10,7 @@ import {
 	buildXmlLineModel,
 	nodeRenderedLines,
 	nodeRenderedText,
-} from "./xml-line-model";
+} from "./line-model";
 
 function doc(nodes: PromptBlockNode[]): PromptDocument {
 	return {

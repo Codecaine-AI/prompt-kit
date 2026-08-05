@@ -18,10 +18,10 @@ kept as a historical reference.
 
 | File | Responsibility |
 |------|----------------|
-| `packages/prompt-kit/src/nodes/types.ts` | Schema version, `PromptDocument`, block nodes, inline nodes, and node unions |
-| `packages/prompt-kit/src/nodes/create-node.ts` | `definePrompt` and generic `createNode` helpers |
-| `packages/prompt-kit/src/nodes/guards.ts` | Runtime guards for prompt documents, block nodes, list items, and variables |
-| `packages/prompt-kit/src/nodes/index.ts` | Node module barrel export |
+| `packages/prompt-kit/src/document/nodes/types.ts` | Schema version, `PromptDocument`, block nodes, inline nodes, and node unions |
+| `packages/prompt-kit/src/document/nodes/create-node.ts` | `definePrompt` and generic `createNode` helpers |
+| `packages/prompt-kit/src/document/nodes/guards.ts` | Runtime guards for prompt documents, block nodes, list items, and variables |
+| `packages/prompt-kit/src/document/nodes/index.ts` | Node module barrel export |
 
 `definePrompt` sets `kind: "prompt"` and defaults `schemaVersion` to
 `prompt-kit/v1`.

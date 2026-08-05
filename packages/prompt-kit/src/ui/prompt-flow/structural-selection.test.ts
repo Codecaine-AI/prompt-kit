@@ -7,7 +7,7 @@ import {
 	structuralSelectionRun,
 	type StructuralSelection,
 } from "./structural-selection";
-import { buildXmlLineModel, type XmlLine } from "./xml-line-model";
+import { buildXmlLineModel, type XmlLine } from "../../document/render/line-model";
 
 /**
  * Section A holds a paragraph, a list (with a multi-line item: nested child

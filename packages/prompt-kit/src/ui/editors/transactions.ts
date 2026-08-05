@@ -1,6 +1,6 @@
-import { hashPrompt } from "../../canonical";
-import { ensurePromptNodeIds } from "../../nodes/ids";
-import type { PromptBlockNode, PromptDocument } from "../../nodes/types";
+import { hashPrompt } from "../../document/canonical";
+import { ensurePromptNodeIds } from "../../document/nodes/ids";
+import type { PromptBlockNode, PromptDocument } from "../../document/nodes/types";
 import {
   createPromptEditorTree,
   duplicatePromptBlockNodeById,

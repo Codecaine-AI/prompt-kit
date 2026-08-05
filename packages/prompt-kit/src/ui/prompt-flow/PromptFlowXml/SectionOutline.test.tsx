@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import type { PromptBlockNode } from "../../../index";
 import { EDITOR_COLORS } from "../../surface/editor-surface";
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 import {
 	SectionOutline,
 	outlineSectionLabel,

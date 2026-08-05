@@ -8,7 +8,7 @@ import type { PromptStep } from "../editors";
 import {
 	nodeRenderedLines,
 	type XmlLine,
-} from "../prompt-flow/xml-line-model";
+} from "../../document/render/line-model";
 import { addedLines, afterRegionForRun, findLineRun } from "./staged-diff";
 
 /**

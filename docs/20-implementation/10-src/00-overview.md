@@ -30,11 +30,15 @@ document lifecycle.
 
 ```text
 packages/prompt-kit/src/
-├── nodes/          Canonical AST types, guards, and definePrompt
-├── renderers/      PromptDocument to rendered output
-├── transforms/     Tree traversal, find, insert, replace, omit
+├── document/       Headless document layer
+│   ├── canonical/      Canonical form and prompt hashing
+│   ├── nodes/          Canonical AST types, guards, and definePrompt
+│   ├── render/         XML Markdown renderer and the line model
+│   ├── schema/         Serialized document schema and shape validation
+│   ├── transforms/     Tree traversal, find, insert, replace, omit
+│   └── validate/       Prompt diagnostics
+├── annotations/    Headless annotation types and helpers
 ├── ui/             Headless editor models and React surfaces
-├── validation/     Prompt diagnostics
 └── index.ts        Root public export
 ```
 

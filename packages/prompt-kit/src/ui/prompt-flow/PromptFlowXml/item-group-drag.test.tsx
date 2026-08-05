@@ -12,7 +12,7 @@ import {
 import { PromptFlowXml } from ".";
 import { itemDropSlots } from "./drag-controller";
 import { computeItemRanges } from "./node-geometry";
-import { buildXmlLineModel } from "../xml-line-model";
+import { buildXmlLineModel } from "../../../document/render/line-model";
 
 afterEach(() => {
 	cleanup();

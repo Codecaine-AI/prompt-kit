@@ -6,7 +6,7 @@ import { useLayoutEffect, useState } from "react";
 
 import { DEFAULT_INDENT } from "../../../index";
 import { promptEditorIndentForSpaces } from "../../surface/editor-surface";
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 
 /**
  * Visual x-offset of a nesting depth's text column. The renderer indents with

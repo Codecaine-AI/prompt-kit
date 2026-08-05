@@ -3,14 +3,14 @@
 // the stamped rows (`data-prompt-node-id` / `data-prompt-row-text`); no React.
 
 import type { PromptRangeTarget } from "../../annotations/schema";
-import type { PromptDocument } from "../../nodes/types";
-import { visitPrompt } from "../../transforms/visit";
+import type { PromptDocument } from "../../document/nodes/types";
+import { visitPrompt } from "../../document/transforms/visit";
 import {
 	lineRendersDecodedEntities,
 	nodeRenderedLines,
 	XML_DISPLAY_ENTITIES,
 	type XmlLine,
-} from "../prompt-flow/xml-line-model";
+} from "../../document/render/line-model";
 
 /**
  * Child id → parent id for every annotatable node in the prompt: blocks and

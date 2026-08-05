@@ -10,7 +10,7 @@ import type {
   ReferenceNode,
   SectionNode,
   VariableReferenceNode,
-} from "../../nodes/types";
+} from "../nodes/types";
 import { escapeXmlAttribute, escapeXmlText } from "./escaping";
 import { DEFAULT_INDENT, indent, indentMultiline } from "./indentation";
 

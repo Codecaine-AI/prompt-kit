@@ -18,7 +18,7 @@ import {
 } from "@testing-library/react";
 
 import type { PromptDocument } from "../../index";
-import { buildXmlLineModel } from "../prompt-flow/xml-line-model";
+import { buildXmlLineModel } from "../../document/render/line-model";
 import {
 	PromptInlineLab,
 	type PromptEditProposal,

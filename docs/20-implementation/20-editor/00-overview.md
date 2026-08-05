@@ -79,7 +79,7 @@ modules through prompt-kit's exported UI entry points; see
 
 | Area | Path |
 |------|------|
-| Line model | `prompt-flow/xml-line-model.ts` |
+| Line model | `document/render/line-model.ts` |
 | Editing surface | `prompt-flow/PromptFlowXml/` |
 | List-item steps | `prompt-flow/list-item-steps.ts` |
 | Node inspector | `prompt-flow/PromptFlowInspector/` |

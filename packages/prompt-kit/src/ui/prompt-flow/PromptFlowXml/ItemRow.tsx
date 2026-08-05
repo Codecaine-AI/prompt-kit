@@ -9,7 +9,7 @@ import type { PromptEditorTreeEntry } from "../../editors";
 
 import { EDITOR_COLORS, EDITOR_METRICS } from "../../surface/editor-surface";
 import type { PromptFlowViewProps } from "../types";
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 import { InlineEditor, RowText } from "./InlineEditor";
 import { itemContentText, listMarker } from "./node-mutations";
 

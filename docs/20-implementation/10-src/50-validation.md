@@ -15,10 +15,10 @@ display in editors, traces, tests, or CI.
 
 | File | Responsibility |
 |------|----------------|
-| `packages/prompt-kit/src/validation/validate-tree.ts` | `validatePrompt` implementation |
-| `packages/prompt-kit/src/validation/diagnostics.ts` | Diagnostic and result types |
-| `packages/prompt-kit/src/validation/index.ts` | Validation barrel export |
-| `packages/prompt-kit/src/validation/validate-tree.test.ts` | Validation behavior tests |
+| `packages/prompt-kit/src/document/validate/validate-tree.ts` | `validatePrompt` implementation |
+| `packages/prompt-kit/src/document/validate/diagnostics.ts` | Diagnostic and result types |
+| `packages/prompt-kit/src/document/validate/index.ts` | Validation barrel export |
+| `packages/prompt-kit/src/document/validate/validate-tree.test.ts` | Validation behavior tests |
 
 ## Validator Flow
 

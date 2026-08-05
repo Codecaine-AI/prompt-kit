@@ -3,7 +3,7 @@ import {
   type PromptDocument,
   type PromptNode,
 } from "../nodes/types";
-import { isXmlName } from "../renderers/xml-markdown/escaping";
+import { isXmlName } from "../render/escaping";
 import { visitPrompt } from "../transforms/visit";
 import type { PromptDiagnostic, PromptValidationResult } from "./diagnostics";
 

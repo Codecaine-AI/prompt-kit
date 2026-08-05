@@ -8,7 +8,7 @@ import type {
 	PromptListNode,
 	RawNode,
 	SectionNode,
-} from "../../index";
+} from "../nodes/types";
 import {
 	createRenderContext,
 	escapeXmlAttribute,
@@ -17,7 +17,7 @@ import {
 	renderInline,
 	renderXmlMarkdown,
 	type XmlMarkdownRenderContext,
-} from "../../index";
+} from "./index";
 
 /**
  * The Agent XML editing surface renders the *same* text the read-only Raw view

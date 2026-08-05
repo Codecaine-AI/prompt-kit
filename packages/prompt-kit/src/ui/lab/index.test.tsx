@@ -19,7 +19,7 @@ import { targetForNode } from "../../annotations/schema";
 import {
   buildXmlLineModel,
   nodeRenderedText,
-} from "../prompt-flow/xml-line-model";
+} from "../../document/render/line-model";
 import { PromptInlineLab, type PromptEditSession } from ".";
 
 afterEach(() => {

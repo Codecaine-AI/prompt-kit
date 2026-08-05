@@ -51,7 +51,7 @@ import {
   type ResolvedTarget,
 } from "@codecaine-ai/annotations/react";
 import type { PromptDocument } from "../../index";
-import { visitPrompt } from "../../transforms/visit";
+import { visitPrompt } from "../../document/transforms/visit";
 import {
   createPromptEditorModel,
   promptBlockLabel,
@@ -61,7 +61,7 @@ import { estimateTokenCount } from "tokenx";
 
 import { PromptFlowInspector } from "../prompt-flow/PromptFlowInspector";
 import { PromptFlowXml } from "../prompt-flow/PromptFlowXml";
-import { buildXmlLineModel } from "../prompt-flow/xml-line-model";
+import { buildXmlLineModel } from "../../document/render/line-model";
 import type {
   PromptFlowInlineInsert,
   PromptFlowStagedRegion,

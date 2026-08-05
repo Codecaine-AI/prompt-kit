@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
-import { PROMPT_KIT_SCHEMA_VERSION, type PromptDocument } from "../../nodes/types";
+import { PROMPT_KIT_SCHEMA_VERSION, type PromptDocument } from "../../document/nodes/types";
 import { createAnnotationStore } from "../../annotations/store";
 import { targetForNode } from "../../annotations/schema";
 import { PromptAnnotationsPane } from "./PromptAnnotationsPane";

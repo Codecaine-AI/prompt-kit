@@ -8,7 +8,7 @@ import type { PromptEditorTreeEntry } from "../../editors";
 import { EDITOR_METRICS } from "../../surface/editor-surface";
 import { highlightXmlLine } from "../../surface/xml-highlight";
 import type { PromptFlowViewProps } from "../types";
-import { decodeXmlEntities, type XmlLine } from "../xml-line-model";
+import { decodeXmlEntities, type XmlLine } from "../../../document/render/line-model";
 import { caretForRowClick, lineIndentLength } from "./click-caret";
 import { GrowTextArea, type EditorAriaAttributes } from "./GrowTextArea";
 import { commitEdit, editorValueForLine } from "./node-mutations";

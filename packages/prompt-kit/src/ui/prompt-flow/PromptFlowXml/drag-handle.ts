@@ -3,7 +3,7 @@
 "use client";
 
 import { EDITOR_METRICS, promptEditorIndentForSpaces } from "../../surface/editor-surface";
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 import type { NodeRange } from "./node-geometry";
 
 /**

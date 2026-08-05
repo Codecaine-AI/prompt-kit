@@ -11,13 +11,13 @@ import {
   type ValidationIssue,
 } from "@codecaine-ai/annotations/core";
 
-import type { PromptDocument } from "../nodes/types";
-import { visitPrompt } from "../transforms/visit";
+import type { PromptDocument } from "../document/nodes/types";
+import { visitPrompt } from "../document/transforms/visit";
 import {
   buildXmlLineModel,
   nodeRenderedText,
   type XmlLine,
-} from "../ui/prompt-flow/xml-line-model";
+} from "../document/render/line-model";
 
 export type {
   Annotation,

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { definePrompt, type ListItemNode } from "../../nodes";
+import { definePrompt, type ListItemNode } from "../nodes";
 import { renderXmlMarkdown } from "./render";
 
 function listItem(

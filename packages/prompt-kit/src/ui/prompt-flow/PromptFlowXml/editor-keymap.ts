@@ -20,7 +20,7 @@ import {
 	unnestListItemStep,
 } from "../list-item-steps";
 import type { PromptFlowChangeHandler } from "../types";
-import type { XmlLine } from "../xml-line-model";
+import type { XmlLine } from "../../../document/render/line-model";
 import {
 	collectEditPoints,
 	findEditPointIndex,
