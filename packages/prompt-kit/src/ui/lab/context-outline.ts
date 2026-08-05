@@ -6,7 +6,7 @@
 // rule as the editor's column: one entry per top-level open tag plus its
 // depth-1 container children, names only.
 
-import type { OutlineSection } from "../prompt-flow/PromptFlowXml/SectionOutline";
+import type { OutlineSection } from "../editor/buffer/SectionOutline";
 import { classifyRenderedLines } from "../view/rendered-line-model";
 
 /** Tag name of an open-tag line, e.g. `    <phase name="plan">` → "phase". */

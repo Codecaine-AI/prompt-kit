@@ -12,7 +12,7 @@ import cn from "classnames";
 import type { ReactNode } from "react";
 
 import { EDITOR_COLORS } from "../surface/editor-surface";
-import type { OutlineSection } from "../prompt-flow/PromptFlowXml/SectionOutline";
+import type { OutlineSection } from "../editor/buffer/SectionOutline";
 import type { LabFixture } from "./StateSurface";
 
 /**

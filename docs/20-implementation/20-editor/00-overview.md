@@ -80,9 +80,9 @@ modules through prompt-kit's exported UI entry points; see
 | Area | Path |
 |------|------|
 | Line model | `document/render/line-model.ts` |
-| Editing surface | `prompt-flow/PromptFlowXml/` |
-| List-item steps | `prompt-flow/list-item-steps.ts` |
-| Node inspector | `prompt-flow/PromptFlowInspector/` |
+| Editing surface | `editor/buffer/` |
+| List-item steps | `editor/steps/list-item-steps.ts` |
+| Node inspector | `editor/inspector/` |
 | Lab shell | `lab/` |
 | Edit history | `lab/prompt-lab-history.ts` |
 | Style settings | `style/prompt-style-settings.ts`, `style/use-prompt-style-settings.ts` |

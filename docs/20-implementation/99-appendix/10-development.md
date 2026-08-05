@@ -29,27 +29,23 @@ To check only the library, run `bun run --cwd packages/prompt-kit typecheck` or
 
 ## Package Exports
 
-`packages/prompt-kit/package.json` exposes ten entry points:
+`packages/prompt-kit/package.json` exposes six entry points:
 
 ```json
 {
   ".": "./src/index.ts",
   "./annotations": "./src/annotations/index.ts",
   "./ui": "./src/ui/index.ts",
-  "./ui/annotations": "./src/ui/annotations/index.ts",
-  "./ui/react": "./src/ui/react.ts",
-  "./ui/prompt-flow": "./src/ui/prompt-flow/index.ts",
   "./ui/lab": "./src/ui/lab/index.tsx",
   "./ui/style": "./src/ui/style/index.ts",
-  "./ui/surface": "./src/ui/surface/index.ts",
-  "./ui/view": "./src/ui/view/index.ts"
+  "./ui/surface": "./src/ui/surface/index.ts"
 }
 ```
 
 The root export covers prompt construction, rendering, transforms, and
-validation. `./annotations` and `./ui/annotations` expose the headless and React
-annotation surfaces. `./ui` stays React-free; the remaining `./ui/*` entry
-points expose the React authoring surface and its supporting modules.
+validation. `./annotations` exposes the headless annotation surface. `./ui`
+stays React-free; the remaining `./ui/*` entry points expose the React
+authoring surface and its supporting modules.
 
 ## Repository Boundary
 

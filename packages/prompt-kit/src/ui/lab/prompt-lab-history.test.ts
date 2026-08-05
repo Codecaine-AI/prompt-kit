@@ -3,7 +3,7 @@ import { canonicalizePrompt, type PromptDocument } from "../../index";
 import {
 	removePromptBlockNodeByIdWithStep,
 	updatePromptBlockNodeByIdWithStep,
-} from "../editors";
+} from "../editor/transactions";
 
 import { createPromptLabHistory } from "./prompt-lab-history";
 

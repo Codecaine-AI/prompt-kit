@@ -47,16 +47,16 @@ DOM, and each has its own unit tests.
 
 | Module | Contents |
 |--------|----------|
-| `ui/editors/` | Editor model, tree, node access, id handling, text bridging |
-| `ui/editors/transactions.ts` | Steps, step algebra, transaction log |
+| `ui/editor/model.ts` | Editor model, tree, node access, id handling, text bridging |
+| `ui/editor/transactions.ts` | Steps, step algebra, transaction log |
 | `document/render/line-model.ts` | Row projection mirroring the XML renderer |
-| `ui/prompt-flow/PromptFlowXml/edit-navigation.ts` | Edit points, Backspace and Delete resolutions |
-| `ui/prompt-flow/PromptFlowXml/structure-steps.ts` | Structural step producers |
-| `ui/prompt-flow/PromptFlowXml/autoformat.ts` | Markdown marker matching and the trigger rule |
-| `ui/prompt-flow/PromptFlowXml/slash-commands.ts` | Command vocabulary and ranking |
-| `ui/prompt-flow/PromptFlowXml/slash-session.ts` | Slash-menu state machine |
-| `ui/prompt-flow/list-item-steps.ts` | List-item step producers |
-| `ui/prompt-flow/PromptFlowInspector/attrs.ts` | Attribute row projection and key sanitation |
+| `ui/editor/buffer/edit-navigation.ts` | Edit points, Backspace and Delete resolutions |
+| `ui/editor/steps/structure-steps.ts` | Structural step producers |
+| `ui/editor/buffer/autoformat.ts` | Markdown marker matching and the trigger rule |
+| `ui/editor/buffer/slash-commands.ts` | Command vocabulary and ranking |
+| `ui/editor/buffer/slash-session.ts` | Slash-menu state machine |
+| `ui/editor/steps/list-item-steps.ts` | List-item step producers |
+| `ui/editor/inspector/attrs.ts` | Attribute row projection and key sanitation |
 | `ui/lab/autosave-controller.ts` | Debounced single-flight save coordinator |
 | `ui/lab/prompt-lab-history.ts` | Unified undo/redo over steps and metadata |
 | `ui/style/prompt-style-settings.ts` | Settings shape, presets, normalization, variable projection |
@@ -67,15 +67,15 @@ Two caveats qualify that list:
   type of `promptStyleVars`. The import is erased at build time; the logic is
   framework-free.
 - `structure-steps.ts` imports `findUnnestLocation` from
-  `PromptFlowXml/node-mutations.ts`, which is a React module. The imported
+  `steps/node-mutations.ts`, which is a React module. The imported
   function is itself pure, so the dependency is one misplaced helper rather than
   a real coupling.
 ## React Layer
 
 | Module | Contents |
 |--------|----------|
-| `ui/prompt-flow/PromptFlowXml/` | `index.tsx`, `XmlRow`, `ItemRow`, `SectionTagRow`, `InlineEditor`, `GrowTextArea`, `BlockCluster`, `BlockMenu`, `SectionOutline`, `SlashMenu`, `drag-controller`, the `node-geometry` hook |
-| `ui/prompt-flow/PromptFlowInspector/` | Node detail editors |
+| `ui/editor/buffer/` | `index.tsx`, `XmlRow`, `ItemRow`, `SectionTagRow`, `InlineEditor`, `GrowTextArea`, `BlockCluster`, `BlockMenu`, `SectionOutline`, `SlashMenu`, `drag-controller`, the `node-geometry` hook |
+| `ui/editor/inspector/` | Node detail editors |
 | `ui/lab/` | Shell, glass panel, queue rail, composer, context/state surfaces, style rail |
 | `ui/surface/` | Style tokens typed as React `CSSProperties`, XML highlighter returning JSX |
 | `ui/style/use-prompt-style-settings.ts` | React hook over the settings module |

@@ -179,15 +179,15 @@ position falls back to caret-at-end, never caret-at-zero.
 | File | Responsibility |
 |------|----------------|
 | `document/render/line-model.ts` | Row projection and the render-equality invariant |
-| `PromptFlowXml/index.tsx` | Composition root: state, wiring, conversions, slash session |
-| `PromptFlowXml/XmlRow.tsx` | One row: gutter, washes, affordances, body dispatch |
-| `PromptFlowXml/ItemRow.tsx` | List-item row with the marker as fixed trim |
-| `PromptFlowXml/SectionTagRow.tsx` | Section open tag with brackets as fixed trim |
-| `PromptFlowXml/InlineEditor.tsx` | `RowText` display plus the in-place editor |
-| `PromptFlowXml/GrowTextArea.tsx` | Auto-growing textarea and mount-time caret seating |
-| `PromptFlowXml/node-mutations.ts` | `editorValueForLine`, `commitEdit`, paragraph split/merge/remove |
-| `PromptFlowXml/edit-navigation.ts` | Edit points and boundary resolutions |
-| `PromptFlowXml/click-caret.ts` | Click point to caret offset |
-| `PromptFlowXml/caret-rect.ts` | Caret viewport box for the slash menu anchor |
-| `PromptFlowXml/node-geometry.ts` | Row ranges, indent guides, landmarks, measured row offsets |
-| `PromptFlowXml/drag-controller.tsx` | Pointer-drag reorder with ghost, insertion line, drop flash — blocks, items, and selected runs (see [80-interaction-model.md](80-interaction-model.md)) |
+| `buffer/index.tsx` | Composition root: state, wiring, conversions, slash session |
+| `buffer/XmlRow.tsx` | One row: gutter, washes, affordances, body dispatch |
+| `buffer/ItemRow.tsx` | List-item row with the marker as fixed trim |
+| `buffer/SectionTagRow.tsx` | Section open tag with brackets as fixed trim |
+| `buffer/InlineEditor.tsx` | `RowText` display plus the in-place editor |
+| `buffer/GrowTextArea.tsx` | Auto-growing textarea and mount-time caret seating |
+| `steps/node-mutations.ts` | `editorValueForLine`, `commitEdit`, paragraph split/merge/remove |
+| `buffer/edit-navigation.ts` | Edit points and boundary resolutions |
+| `buffer/click-caret.ts` | Click point to caret offset |
+| `buffer/caret-rect.ts` | Caret viewport box for the slash menu anchor |
+| `buffer/node-geometry.ts` | Row ranges, indent guides, landmarks, measured row offsets |
+| `buffer/drag-controller.tsx` | Pointer-drag reorder with ghost, insertion line, drop flash — blocks, items, and selected runs (see [80-interaction-model.md](80-interaction-model.md)) |

@@ -148,4 +148,4 @@ Edit. The keyboard is the only undo surface — no undo/redo buttons exist.
 | `lab/autosave-controller.ts` | Debounce, single-flight, trailing save |
 | `lab/prompt-lab-history.ts` | Unified undo/redo over steps and metadata |
 | `lab/PromptStyleRail.tsx` | Style controls (type, layout incl. panel insets + composer width, colors) |
-| `prompt-flow/PromptFlowInspector/` | DETAILS zone node editors |
+| `editor/inspector/` | DETAILS zone node editors |

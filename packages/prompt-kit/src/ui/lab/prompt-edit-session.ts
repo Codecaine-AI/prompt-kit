@@ -4,7 +4,9 @@
 // rows, and the accept/reject/undo ordering discipline.
 
 import type { PromptAnnotationTarget } from "../../annotations/schema";
-import type { PromptStep } from "../editors";
+import type {
+	PromptStep,
+} from "../editor/transactions";
 import {
 	nodeRenderedLines,
 	type XmlLine,

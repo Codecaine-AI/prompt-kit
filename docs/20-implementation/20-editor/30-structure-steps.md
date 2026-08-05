@@ -36,7 +36,7 @@ caller decides to select it.
 
 ## Producers
 
-All of the following live in `PromptFlowXml/structure-steps.ts`.
+All of the following live in `editor/steps/structure-steps.ts`.
 
 | Function | Gesture | Declines when |
 |----------|---------|---------------|
@@ -49,7 +49,7 @@ All of the following live in `PromptFlowXml/structure-steps.ts`.
 | `convertBlockToParagraphStep` | Backspace restoring a swallowed marker | The node is missing or already a paragraph |
 
 List-item mechanics live one level up, in
-`prompt-flow/list-item-steps.ts`, and follow the same shape:
+`editor/steps/list-item-steps.ts`, and follow the same shape:
 `splitListItemStep`, `mergeListItemsStep`, `nestListItemStep`,
 `unnestListItemStep`, `insertListItemStep`, `removeListItemStep`,
 `removeListWithStep`, `setListItemContentStep`.

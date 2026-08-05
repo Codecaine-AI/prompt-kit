@@ -36,7 +36,7 @@ the pin is STICKY — document clicks neither cancel nor re-target it; only its
 
 ## The One-Handle Drag Model
 
-`PromptFlowXml/drag-handle.ts` (`resolveDragHandleUnit`) is the canonical
+`buffer/drag-handle.ts` (`resolveDragHandleUnit`) is the canonical
 model, shared conceptually with docs-system:
 
 - At most ONE drag handle exists at any moment: the handle of the deepest
@@ -98,8 +98,8 @@ Prose and bullet rows render the decoded document, not the serialized XML:
 
 | Module | Owns |
 |--------|------|
-| `PromptFlowXml/drag-handle.ts` | Canonical one-handle resolution + rail geometry |
-| `PromptFlowXml/drag-controller.tsx` | Drag physics, ghost, slots, group commits |
+| `buffer/drag-handle.ts` | Canonical one-handle resolution + rail geometry |
+| `buffer/drag-controller.tsx` | Drag physics, ghost, slots, group commits |
 | `structural-selection.ts` | Canonical marquee resolution + run materialization |
 | `block-run-steps.ts` | Block-run move/remove transactions |
 | `list-item-steps.ts` | Item and item-run move/remove steps |

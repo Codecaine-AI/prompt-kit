@@ -2,8 +2,10 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render } from "@testing-library/react";
 
 import type { PromptDocument } from "../../index";
-import { createPromptEditorModel } from "../editors";
-import { PromptFlowXml } from "../prompt-flow/PromptFlowXml";
+import {
+	createPromptEditorModel,
+} from "../editor/model";
+import { PromptFlowXml } from "../editor/buffer";
 import {
 	buildXmlLineModel,
 	nodeRenderedText,

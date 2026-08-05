@@ -4,7 +4,7 @@ import {
 	type PromptStep,
 	type PromptTransaction,
 	type PromptTransactionLog,
-} from "../editors";
+} from "../editor/transactions";
 
 /**
  * Undoable edit history for the prompt lab, built on prompt-kit's

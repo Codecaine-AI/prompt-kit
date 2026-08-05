@@ -21,7 +21,7 @@ import {
 import {
 	SectionOutline,
 	type OutlineSection,
-} from "../prompt-flow/PromptFlowXml/SectionOutline";
+} from "../editor/buffer/SectionOutline";
 import { PromptView } from "../view/PromptView";
 import { contextOutlineSections } from "./context-outline";
 

@@ -19,7 +19,7 @@ dependency.
 | File | Responsibility |
 |------|----------------|
 | `packages/prompt-kit/src/ui/index.ts` | UI barrel export |
-| `packages/prompt-kit/src/ui/editors/index.ts` | `createPromptEditorModel` |
+| `packages/prompt-kit/src/ui/editor/model.ts` | `createPromptEditorModel` |
 
 The earlier preview model (`createPromptPreviewModel` in `src/ui/renderers/`)
 was removed 2026-08-05 as unused; it is recoverable from git history.

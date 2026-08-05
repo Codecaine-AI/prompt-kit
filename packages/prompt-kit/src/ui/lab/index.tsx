@@ -55,21 +55,23 @@ import { visitPrompt } from "../../document/transforms/visit";
 import {
   createPromptEditorModel,
   promptBlockLabel,
-  type PromptStep,
-} from "../editors";
+} from "../editor/model";
+import type {
+  PromptStep,
+} from "../editor/transactions";
 import { estimateTokenCount } from "tokenx";
 
-import { PromptFlowInspector } from "../prompt-flow/PromptFlowInspector";
-import { PromptFlowXml } from "../prompt-flow/PromptFlowXml";
+import { PromptFlowInspector } from "../editor/inspector";
+import { PromptFlowXml } from "../editor/buffer";
 import { buildXmlLineModel } from "../../document/render/line-model";
 import type {
   PromptFlowInlineInsert,
   PromptFlowStagedRegion,
-} from "../prompt-flow/PromptFlowXml";
+} from "../editor/buffer";
 import {
   outlineSectionLabel,
   type OutlineSection,
-} from "../prompt-flow/PromptFlowXml/SectionOutline";
+} from "../editor/buffer/SectionOutline";
 import {
   EDITOR_COLORS,
   LINE_HEIGHT_PX,
