@@ -9,7 +9,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 
-import { EDITOR_METRICS } from "../surface/editor-surface";
+import { EDITOR_METRICS } from "../../surface/editor-surface";
 
 /** Collapsed state persists — a hidden description should stay hidden. */
 const DESCRIPTION_COLLAPSED_KEY = "promptLab.pageHeader.descriptionCollapsed.v1";

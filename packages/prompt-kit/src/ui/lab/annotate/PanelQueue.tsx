@@ -23,14 +23,14 @@ import {
 	undoDisabledReason,
 	type PromptEditRequest,
 	type PromptEditSession,
-} from "./prompt-edit-session";
+} from "../session/prompt-edit-session";
 import {
 	requestNodeId,
 	type QueueEntry,
 	type RecordEntry,
 	type RequestQueueModel,
-} from "./request-queue";
-import { ANNOTATE_COLORS } from "./AnnotateAmbient";
+} from "../session/request-queue";
+import { ANNOTATE_COLORS } from "./AmbientWash";
 
 /** Live-status wording for cards the queue model does not narrate itself. */
 const STATUS_LABEL: Record<PromptEditRequest["status"], string> = {
@@ -43,7 +43,7 @@ const STATUS_LABEL: Record<PromptEditRequest["status"], string> = {
 	resolved: "resolved",
 };
 
-export interface SessionRequestRailProps {
+export interface PanelQueueProps {
 	session: PromptEditSession;
 	/** The derived queue/records split — see `buildRequestQueue`. */
 	queue: RequestQueueModel;
@@ -62,7 +62,7 @@ export interface SessionRequestRailProps {
 	targetLabel?: (nodeId: string) => string;
 }
 
-export function SessionRequestRail({
+export function PanelQueue({
 	session,
 	queue,
 	applying,
@@ -71,7 +71,7 @@ export function SessionRequestRail({
 	onFocusTarget,
 	onHoverTarget,
 	targetLabel,
-}: SessionRequestRailProps) {
+}: PanelQueueProps) {
 	const docInputRef = useRef<HTMLInputElement | null>(null);
 
 	const sendDocMessage = () => {

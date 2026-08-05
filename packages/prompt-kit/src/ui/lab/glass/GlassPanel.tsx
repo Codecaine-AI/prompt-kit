@@ -24,7 +24,7 @@ import {
 } from "react";
 import { Pencil, Sparkles } from "lucide-react";
 
-import { ANNOTATE_COLORS } from "./AnnotateAmbient";
+import { ANNOTATE_COLORS } from "../annotate/AmbientWash";
 
 export type LabPanelTab = "edit" | "ai";
 
@@ -64,7 +64,7 @@ const fadeIn: CSSProperties = {
 	animation: `labFloatContentIn ${TRANSITION_MS}ms ${EASE}`,
 };
 
-export interface AnnotateFloatPanelProps {
+export interface GlassPanelProps {
 	tab: LabPanelTab;
 	/** Tapping a tab IS the mode switch — the host owns what each tab means. */
 	onTabSelect: (tab: LabPanelTab) => void;
@@ -78,14 +78,14 @@ export interface AnnotateFloatPanelProps {
 	onWidthChange?: (width: number) => void;
 }
 
-export function AnnotateFloatPanel({
+export function GlassPanel({
 	tab,
 	onTabSelect,
 	busy = false,
 	topInset = PANEL_TOP_INSET,
 	children,
 	onWidthChange,
-}: AnnotateFloatPanelProps) {
+}: GlassPanelProps) {
 	// Mount → next frame → visible: lets the transition-in actually run.
 	const [entered, setEntered] = useState(false);
 	const panelRef = useRef<HTMLDivElement | null>(null);

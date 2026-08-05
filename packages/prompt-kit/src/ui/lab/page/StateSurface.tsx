@@ -4,8 +4,8 @@
 // list and the outline live in the dock — this surface is only the buffer.
 "use client";
 
-import { EDITOR_COLORS, EDITOR_METRICS } from "../surface/editor-surface";
-import { PromptView } from "../view/PromptView";
+import { EDITOR_COLORS, EDITOR_METRICS } from "../../surface/editor-surface";
+import { PromptView } from "../../view/PromptView";
 
 /** One selectable state fixture in the dock's FIXTURE zone. */
 export interface LabFixture {

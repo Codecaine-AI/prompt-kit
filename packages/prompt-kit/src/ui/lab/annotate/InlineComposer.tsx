@@ -15,9 +15,9 @@ import { ArrowUp, X } from "lucide-react";
 import {
 	EDITOR_COLORS,
 	EDITOR_METRICS,
-} from "../surface/editor-surface";
-import { ANNOTATE_COLORS } from "./AnnotateAmbient";
-import type { PromptRequestDisposition } from "./prompt-edit-session";
+} from "../../surface/editor-surface";
+import { ANNOTATE_COLORS } from "./AmbientWash";
+import type { PromptRequestDisposition } from "../session/prompt-edit-session";
 
 export interface InlineComposerProps {
 	/** Files the note with the disposition the gesture chose. */

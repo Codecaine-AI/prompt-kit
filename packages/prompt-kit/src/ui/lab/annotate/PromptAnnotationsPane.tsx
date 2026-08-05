@@ -29,13 +29,13 @@ import {
   type UndoPatchResult,
 } from "@codecaine-ai/annotations/react";
 
-import type { PromptDocument } from "../../document/nodes/types";
+import type { PromptDocument } from "../../../document/nodes/types";
 import {
   promptAnnotationSchema,
   type PromptAnnotationIntent,
   type PromptAnnotationTarget,
-} from "../../annotations/schema";
-import type { PromptAnnotationStore } from "../../annotations/store";
+} from "../../../annotations/schema";
+import type { PromptAnnotationStore } from "../../../annotations/store";
 
 /** Result of a host agent run kicked off from an agent-request annotation. */
 export type PromptAnnotationRunAgentResult = RunAgentResult;

@@ -4,7 +4,7 @@ import {
 	afterRegionForRun,
 	findLineRun,
 	lcsLineMatch,
-} from "../../../src/ui/lab/staged-diff";
+} from "../../../../src/ui/lab/session/staged-diff";
 
 describe("lcsLineMatch", () => {
 	test("pairs identical lines monotonically and leaves changes unmatched", () => {

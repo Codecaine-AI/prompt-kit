@@ -1,16 +1,16 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, render } from "@testing-library/react";
 
-import type { PromptDocument } from "../../../src/index";
+import type { PromptDocument } from "../../../../src/index";
 import {
 	createPromptEditorModel,
-} from "../../../src/ui/editor/model";
-import { PromptFlowXml } from "../../../src/ui/editor/buffer";
+} from "../../../../src/ui/editor/model";
+import { PromptFlowXml } from "../../../../src/ui/editor/buffer";
 import {
 	buildXmlLineModel,
 	nodeRenderedText,
 	type XmlLine,
-} from "../../../src/document/render/line-model";
+} from "../../../../src/document/render/line-model";
 import {
 	annotationRowElements,
 	annotationScopeChain,
@@ -19,7 +19,7 @@ import {
 	promptRangeRowElements,
 	nodeRowElements,
 	rowDisplayRegions,
-} from "../../../src/ui/lab/annotation-targeting";
+} from "../../../../src/ui/lab/annotate/annotation-targeting";
 
 afterEach(() => {
 	cleanup();

@@ -80,7 +80,7 @@ ${
 `;
 }
 
-export interface AnnotateAmbientProps {
+export interface AmbientWashProps {
 	/** Annotate mode is on. */
 	active: boolean;
 	/** Line-model row indices to wash with the working shimmer. */
@@ -88,7 +88,7 @@ export interface AnnotateAmbientProps {
 }
 
 /** The stylesheet carrying (a) and (b) — nothing else renders. */
-export function AnnotateAmbient({ active, shimmerRows }: AnnotateAmbientProps) {
+export function AmbientWash({ active, shimmerRows }: AmbientWashProps) {
 	if (!active) return null;
 
 	return <style>{annotateAmbientCss(shimmerRows)}</style>;

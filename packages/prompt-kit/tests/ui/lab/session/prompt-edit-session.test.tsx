@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import type { PromptDocument } from "../../../src/index";
+import type { PromptDocument } from "../../../../src/index";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-import { buildXmlLineModel } from "../../../src/document/render/line-model";
-import { PromptInlineLab } from "../../../src/ui/lab";
+import { buildXmlLineModel } from "../../../../src/document/render/line-model";
+import { PromptInlineLab } from "../../../../src/ui/lab";
 import {
 	acceptDisabledReason,
 	rejectDisabledReason,
@@ -13,7 +13,7 @@ import {
 	type PromptEditProposal,
 	type PromptEditRequest,
 	type PromptEditSession,
-} from "../../../src/ui/lab/prompt-edit-session";
+} from "../../../../src/ui/lab/session/prompt-edit-session";
 
 afterEach(() => {
 	cleanup();

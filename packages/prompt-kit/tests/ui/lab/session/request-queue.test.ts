@@ -6,13 +6,13 @@ import {
 	queuePositionLabel,
 	requestDisposition,
 	requestNodeId,
-} from "../../../src/ui/lab/request-queue";
+} from "../../../../src/ui/lab/session/request-queue";
 import type {
 	PromptEditProposal,
 	PromptEditRequest,
 	PromptEditRequestStatus,
 	PromptRequestDisposition,
-} from "../../../src/ui/lab/prompt-edit-session";
+} from "../../../../src/ui/lab/session/prompt-edit-session";
 
 const DOC_ID = "queue-doc";
 

@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   createAutosaveController,
   type AutosaveScheduler,
-} from "../../../src/ui/lab/autosave-controller";
+} from "../../../../src/ui/lab/session/autosave-controller";
 
 class ManualScheduler implements AutosaveScheduler {
   now = 0;

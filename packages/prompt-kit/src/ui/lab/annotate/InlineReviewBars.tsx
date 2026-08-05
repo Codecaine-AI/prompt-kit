@@ -10,7 +10,7 @@ import { useRef } from "react";
 import {
 	EDITOR_COLORS,
 	EDITOR_METRICS,
-} from "../surface/editor-surface";
+} from "../../surface/editor-surface";
 
 const PANEL_BORDER = "var(--prompt-editor-panel-border, #2B2B2B)";
 const PANEL_RAISE = "var(--prompt-editor-panel-raise, #232323)";

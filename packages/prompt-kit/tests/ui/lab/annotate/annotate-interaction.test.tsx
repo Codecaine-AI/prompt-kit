@@ -17,8 +17,8 @@ import {
 	within,
 } from "@testing-library/react";
 
-import type { PromptDocument } from "../../../src/index";
-import { buildXmlLineModel } from "../../../src/document/render/line-model";
+import type { PromptDocument } from "../../../../src/index";
+import { buildXmlLineModel } from "../../../../src/document/render/line-model";
 import {
 	PromptInlineLab,
 	type PromptEditProposal,
@@ -26,7 +26,7 @@ import {
 	type PromptEditRequestStatus,
 	type PromptEditSession,
 	type PromptRequestDisposition,
-} from "../../../src/ui/lab";
+} from "../../../../src/ui/lab";
 
 afterEach(() => {
 	cleanup();

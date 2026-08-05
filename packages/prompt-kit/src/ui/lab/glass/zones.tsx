@@ -11,9 +11,9 @@
 import cn from "classnames";
 import type { ReactNode } from "react";
 
-import { EDITOR_COLORS } from "../surface/editor-surface";
-import type { OutlineSection } from "../editor/buffer/SectionOutline";
-import type { LabFixture } from "./StateSurface";
+import { EDITOR_COLORS } from "../../surface/editor-surface";
+import type { OutlineSection } from "../../editor/buffer/SectionOutline";
+import type { LabFixture } from "../page/StateSurface";
 
 /**
  * The dock's view switcher vocabulary. `state` appears only when the host
@@ -22,7 +22,7 @@ import type { LabFixture } from "./StateSurface";
 export type LabView = "system" | "context" | "state";
 
 /** One switcher row: the view plus its estimated token count. */
-export interface LabDockView {
+export interface PanelViewEntry {
 	id: LabView;
 	tokens: number;
 }
@@ -32,7 +32,7 @@ export interface LabDockView {
  * body. The optional `action` slot rides the header's right edge in normal
  * case — the ANNOTATE toggle and the open-request count live there.
  */
-export function DockZone({
+export function PanelZone({
 	id,
 	label,
 	action,
@@ -50,7 +50,7 @@ export function DockZone({
 		>
 			{/* The stamp is the ambient hook: annotate mode tints every zone
 			    micro-header (and the hairlines above) toward the mode's hue
-			    from one stylesheet — see AnnotateAmbient. */}
+			    from one stylesheet — see AmbientWash. */}
 			<div
 				data-lab-zone-header=""
 				className="flex items-center gap-2 pb-1.5 pt-2.5 text-[12px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors"
@@ -74,13 +74,13 @@ export function DockZone({
  * right-aligned in small muted text (the counts that used to ride the old
  * statusbar tabs).
  */
-export function DockViewSwitcher({
+export function PanelViewSwitcher({
 	views,
 	active,
 	onSelect,
 	rowSublines,
 }: {
-	views: LabDockView[];
+	views: PanelViewEntry[];
 	active: LabView;
 	onSelect: (view: LabView) => void;
 	/** Per-row status sublines (the system row's exceptional save states). */
@@ -138,7 +138,7 @@ export function DockViewSwitcher({
  * column carried (scroll-spy active row, click scrolls the buffer), restyled
  * as a quiet dock list — tighter and dimmer than the switcher above it.
  */
-export function DockOutlineList({
+export function PanelOutlineList({
 	sections,
 	activeRow,
 	onSelect,
@@ -184,7 +184,7 @@ export function DockOutlineList({
  * The FIXTURE list for the state view: selectable, the active fixture marked
  * with the same left accent the switcher uses.
  */
-export function DockFixtureList({
+export function PanelFixtureList({
 	fixtures,
 	activeFixtureId,
 	onSelect,

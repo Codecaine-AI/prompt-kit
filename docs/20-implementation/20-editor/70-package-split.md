@@ -58,8 +58,8 @@ DOM, and each has its own unit tests.
 | `ui/editor/buffer/slash-session.ts` | Slash-menu state machine |
 | `ui/editor/steps/list-item-steps.ts` | List-item step producers |
 | `ui/editor/inspector/attrs.ts` | Attribute row projection and key sanitation |
-| `ui/lab/autosave-controller.ts` | Debounced single-flight save coordinator |
-| `ui/lab/prompt-lab-history.ts` | Unified undo/redo over steps and metadata |
+| `ui/lab/session/autosave-controller.ts` | Debounced single-flight save coordinator |
+| `ui/lab/session/prompt-lab-history.ts` | Unified undo/redo over steps and metadata |
 | `ui/style/prompt-style-settings.ts` | Settings shape, presets, normalization, variable projection |
 
 Two caveats qualify that list:

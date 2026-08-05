@@ -84,7 +84,7 @@ modules through prompt-kit's exported UI entry points; see
 | List-item steps | `editor/steps/list-item-steps.ts` |
 | Node inspector | `editor/inspector/` |
 | Lab shell | `lab/` |
-| Edit history | `lab/prompt-lab-history.ts` |
+| Edit history | `lab/session/prompt-lab-history.ts` |
 | Style settings | `style/prompt-style-settings.ts`, `style/use-prompt-style-settings.ts` |
 | Surface tokens | `surface/editor-surface.ts`, `surface/xml-highlight.tsx` |
 | Read-only view | `view/PromptView.tsx` |

@@ -83,7 +83,7 @@ import {
   mapDomRangeToPromptRange,
   closestPromptRow,
   rowDisplayRegions,
-} from "./annotation-targeting";
+} from "./annotate/annotation-targeting";
 import {
   acceptDisabledReason,
   nodeRowRange,
@@ -94,50 +94,50 @@ import {
   type PromptEditRequest,
   type PromptEditSession,
   type PromptRequestDisposition,
-} from "./prompt-edit-session";
+} from "./session/prompt-edit-session";
 import {
   buildRequestQueue,
   requestDisposition,
   requestNodeId,
-} from "./request-queue";
-import { InlineComposer } from "./InlineComposer";
-import { AnnotateAmbient, ANNOTATE_COLORS } from "./AnnotateAmbient";
+} from "./session/request-queue";
+import { InlineComposer } from "./annotate/InlineComposer";
+import { AmbientWash, ANNOTATE_COLORS } from "./annotate/AmbientWash";
 import {
-  AnnotateFloatPanel,
+  GlassPanel,
   DOCK_DEFAULT_WIDTH,
   type LabPanelTab,
-} from "./AnnotateFloatPanel";
-import { InlineThreadBar, ProposalActionBar } from "./SessionInlineBars";
-import { SessionRequestRail } from "./SessionRequestRail";
-import { createPromptLabHistory } from "./prompt-lab-history";
+} from "./glass/GlassPanel";
+import { InlineThreadBar, ProposalActionBar } from "./annotate/InlineReviewBars";
+import { PanelQueue } from "./annotate/PanelQueue";
+import { createPromptLabHistory } from "./session/prompt-lab-history";
 import {
   loadPromptStyleSettings,
   normalizePromptStyleSettings,
   promptStyleVars,
   type PromptStyleSettings,
 } from "../style/prompt-style-settings";
-import { PromptPageHeader } from "./PageHeader";
+import { PromptPageHeader } from "./page/PageHeader";
 import {
-  CommentMarginRail,
+  RightMarginRail,
   type CommentIndicatorGroup,
   type CommentIndicatorThread,
-} from "./CommentMarginRail";
+} from "./annotate/RightMarginRail";
 import {
   createAutosaveController,
   type AutosaveController,
   type AutosaveControllerState,
-} from "./autosave-controller";
-import { ContextSurface, type LabContextPreview } from "./ContextSurface";
-import { contextOutlineSections } from "./context-outline";
+} from "./session/autosave-controller";
+import { ContextSurface, type LabContextPreview } from "./page/ContextSurface";
+import { contextOutlineSections } from "./page/context-outline";
 import {
-  DockFixtureList,
-  DockOutlineList,
-  DockViewSwitcher,
-  DockZone,
-  type LabDockView,
+  PanelFixtureList,
+  PanelOutlineList,
+  PanelViewSwitcher,
+  PanelZone,
+  type PanelViewEntry,
   type LabView,
-} from "./LabDock";
-import { StateSurface, type LabStateZone } from "./StateSurface";
+} from "./glass/zones";
+import { StateSurface, type LabStateZone } from "./page/StateSurface";
 import {
   createAnnotationStore,
   type PromptAnnotationStore,
@@ -154,7 +154,7 @@ import {
   PromptAnnotationsPane,
   type PromptAnnotationRunAgentResult,
   type PromptAnnotationUndoPatchResult,
-} from "./PromptAnnotationsPane";
+} from "./annotate/PromptAnnotationsPane";
 
 // Directory entry point: the shell itself plus the pieces a host composes
 // around it (the style rail it docks, the undo history it owns, the context
@@ -168,21 +168,21 @@ export {
   PROMPT_STYLE_SIDEBAR_MAX_WIDTH,
   type PromptStyleSidebarProps,
 } from "../style/PromptStyleSidebar";
-export type { LabContextPreview } from "./ContextSurface";
-export type { LabView } from "./LabDock";
-export type { LabFixture, LabStateZone } from "./StateSurface";
+export type { LabContextPreview } from "./page/ContextSurface";
+export type { LabView } from "./glass/zones";
+export type { LabFixture, LabStateZone } from "./page/StateSurface";
 export {
   createPromptLabHistory,
   type PromptLabHistory,
   type PromptLabMetaPatch,
-} from "./prompt-lab-history";
+} from "./session/prompt-lab-history";
 export {
   createAutosaveController,
   type AutosaveController,
   type AutosaveControllerOptions,
   type AutosaveControllerState,
   type AutosaveScheduler,
-} from "./autosave-controller";
+} from "./session/autosave-controller";
 export {
   acceptDisabledReason,
   rejectDisabledReason,
@@ -197,7 +197,7 @@ export {
   type PromptEditThreadMessage,
   type PromptRequestDisposition,
   type PromptRequestFiling,
-} from "./prompt-edit-session";
+} from "./session/prompt-edit-session";
 export {
   buildRequestQueue,
   isDisposedStatus,
@@ -209,8 +209,8 @@ export {
   type RecordEntry,
   type RequestQueueInput,
   type RequestQueueModel,
-} from "./request-queue";
-export { ANNOTATE_COLORS } from "./AnnotateAmbient";
+} from "./session/request-queue";
+export { ANNOTATE_COLORS } from "./annotate/AmbientWash";
 
 export type PromptSaveOutcome = { hash: string } | { errors: string[] };
 export type ManifestSaveOutcome = { ok: true } | { errors: string[] };
@@ -1368,7 +1368,7 @@ export function PromptInlineLab({
       }
     }
     // Queued notes no longer insert in-flow markers here — the margin
-    // bubbles (CommentMarginRail) carry that presence without pushing text.
+    // bubbles (RightMarginRail) carry that presence without pushing text.
     if (annotateActive && annotationTarget) {
       const composerRow = targetAnchorRow(lines, annotationTarget) ?? 0;
       const editingRequest = editingRequestAlias
@@ -1586,7 +1586,7 @@ export function PromptInlineLab({
 
   // The view switcher's rows: `state` rides along only when the host wires a
   // state zone. Each row carries the view's own token estimate.
-  const dockViews: LabDockView[] = [
+  const dockViews: PanelViewEntry[] = [
     { id: "system", tokens: promptTokenCount },
     { id: "context", tokens: contextTokenCount },
     ...(stateZone
@@ -1609,7 +1609,7 @@ export function PromptInlineLab({
     >
       {/* THE MODE AS A TEMPERATURE: edge line, chip, dock tint, and the
           working shimmer on whatever rows are being worked right now. */}
-      <AnnotateAmbient active={annotateActive} shimmerRows={shimmerRows} />
+      <AmbientWash active={annotateActive} shimmerRows={shimmerRows} />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* THE DOCUMENT AREA: no chrome above it. The surfaces span the full
@@ -1779,7 +1779,7 @@ export function PromptInlineLab({
                       2026-08-05): edit mode stays clean of the layer —
                       bubbles, ticks, and washes all gate on the mode. */}
                   {annotateActive && (
-                    <CommentMarginRail
+                    <RightMarginRail
                       container={flowRowsElement}
                       groups={commentIndicatorGroups}
                       onSelect={handleCommentIndicatorSelect}
@@ -1802,7 +1802,7 @@ export function PromptInlineLab({
             the workspace (active runs, requests, comments) — selecting the
             AI tab IS entering the AI state, and the panel animates to that
             tab's own geometry. The document reserves the footprint in both. */}
-        <AnnotateFloatPanel
+        <GlassPanel
           tab={annotateActive ? "ai" : "edit"}
           onTabSelect={handlePanelTabSelect}
           busy={anyRunInFlight}
@@ -1828,7 +1828,7 @@ export function PromptInlineLab({
                 />
               )}
               {promptEditSession ? (
-                <SessionRequestRail
+                <PanelQueue
                   session={promptEditSession}
                   queue={requestQueue}
                   applying={applyingQueue}
@@ -1855,8 +1855,8 @@ export function PromptInlineLab({
             <>
           {/* VIEW — the switcher replaces the old tabs AND the old token
               readout; counts ride each row, quiet and right-aligned. */}
-          <DockZone id="view" label="View">
-            <DockViewSwitcher
+          <PanelZone id="view" label="View">
+            <PanelViewSwitcher
               views={dockViews}
               active={activeView}
               onSelect={setView}
@@ -1880,23 +1880,23 @@ export function PromptInlineLab({
                 ) : undefined,
               }}
             />
-          </DockZone>
+          </PanelZone>
 
           {/* FIXTURE — state view only: pick the snapshot the surface shows. */}
           {activeView === "state" && stateZone && (
-            <DockZone id="fixture" label="Fixture">
-              <DockFixtureList
+            <PanelZone id="fixture" label="Fixture">
+              <PanelFixtureList
                 fixtures={stateZone.fixtures}
                 activeFixtureId={stateZone.activeFixtureId}
                 onSelect={stateZone.onFixtureSelect}
               />
-            </DockZone>
+            </PanelZone>
           )}
 
           {/* OUTLINE — every view; hidden only when the document has no
               sections to map. */}
           {(outlineSections.length > 0 || (inSystem && revisionsZone)) && (
-            <DockZone
+            <PanelZone
               id="outline"
               label={panelHistory ? "History" : "Outline"}
               action={
@@ -1925,26 +1925,26 @@ export function PromptInlineLab({
               {panelHistory && inSystem && revisionsZone ? (
                 <div data-lab-panel-history="">{revisionsZone}</div>
               ) : (
-                <DockOutlineList
+                <PanelOutlineList
                   sections={outlineSections}
                   activeRow={outlineActiveRow}
                   onSelect={scrollToOutlineSection}
                 />
               )}
-            </DockZone>
+            </PanelZone>
           )}
 
           {/* DETAILS — mounts only while a block is selected; small and
               demoted under the outline. */}
           {inSystem && explicitSelectedEntry && (
-            <DockZone id="details" label="Details">
+            <PanelZone id="details" label="Details">
               <PromptFlowInspector
                 prompt={model_.prompt}
                 model={model_}
                 selectedEntry={explicitSelectedEntry}
                 onPromptChange={handlePromptChange}
               />
-            </DockZone>
+            </PanelZone>
           )}
 
           {/* COMMENTS left the Edit tab (2026-08-05 redesign): what is active
@@ -1953,7 +1953,7 @@ export function PromptInlineLab({
               commented blocks in the document itself. */}
             </>
           )}
-        </AnnotateFloatPanel>
+        </GlassPanel>
       </div>
     </section>
   );

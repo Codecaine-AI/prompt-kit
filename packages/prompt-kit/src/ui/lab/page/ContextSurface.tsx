@@ -17,12 +17,12 @@ import {
 	EDITOR_COLORS,
 	EDITOR_METRICS,
 	LINE_HEIGHT_PX,
-} from "../surface/editor-surface";
+} from "../../surface/editor-surface";
 import {
 	SectionOutline,
 	type OutlineSection,
-} from "../editor/buffer/SectionOutline";
-import { PromptView } from "../view/PromptView";
+} from "../../editor/buffer/SectionOutline";
+import { PromptView } from "../../view/PromptView";
 import { contextOutlineSections } from "./context-outline";
 
 export interface LabContextPreview {

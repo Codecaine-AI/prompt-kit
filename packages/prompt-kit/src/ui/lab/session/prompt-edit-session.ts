@@ -3,14 +3,14 @@
 // session into inline surface geometry: staged-diff row plans, widget anchor
 // rows, and the accept/reject/undo ordering discipline.
 
-import type { PromptAnnotationTarget } from "../../annotations/schema";
+import type { PromptAnnotationTarget } from "../../../annotations/schema";
 import type {
 	PromptStep,
-} from "../editor/transactions";
+} from "../../editor/transactions";
 import {
 	nodeRenderedLines,
 	type XmlLine,
-} from "../../document/render/line-model";
+} from "../../../document/render/line-model";
 import { addedLines, afterRegionForRun, findLineRun } from "./staged-diff";
 
 /**

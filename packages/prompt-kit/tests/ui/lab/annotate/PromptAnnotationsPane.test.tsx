@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
-import { PROMPT_KIT_SCHEMA_VERSION, type PromptDocument } from "../../../src/document/nodes/types";
-import { createAnnotationStore } from "../../../src/annotations/store";
-import { targetForNode } from "../../../src/annotations/schema";
-import { PromptAnnotationsPane } from "../../../src/ui/lab/PromptAnnotationsPane";
+import { PROMPT_KIT_SCHEMA_VERSION, type PromptDocument } from "../../../../src/document/nodes/types";
+import { createAnnotationStore } from "../../../../src/annotations/store";
+import { targetForNode } from "../../../../src/annotations/schema";
+import { PromptAnnotationsPane } from "../../../../src/ui/lab/annotate/PromptAnnotationsPane";
 
 afterEach(() => {
   cleanup();

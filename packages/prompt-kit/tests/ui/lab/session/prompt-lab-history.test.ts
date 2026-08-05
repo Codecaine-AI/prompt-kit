@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { canonicalizePrompt, type PromptDocument } from "../../../src/index";
+import { canonicalizePrompt, type PromptDocument } from "../../../../src/index";
 import {
 	removePromptBlockNodeByIdWithStep,
 	updatePromptBlockNodeByIdWithStep,
-} from "../../../src/ui/editor/transactions";
+} from "../../../../src/ui/editor/transactions";
 
-import { createPromptLabHistory } from "../../../src/ui/lab/prompt-lab-history";
+import { createPromptLabHistory } from "../../../../src/ui/lab/session/prompt-lab-history";
 
 function baseDoc(): PromptDocument {
 	return {

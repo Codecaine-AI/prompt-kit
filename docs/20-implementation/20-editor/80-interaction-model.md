@@ -91,7 +91,7 @@ Prose and bullet rows render the decoded document, not the serialized XML:
   as inline code chips with the ticks visible but dimmed.
 - Edit mode shows raw source in the textarea — standard editor behavior.
 - Annotation range mapping shares the same policy: the DOM→model offset walk
-  in `lab/annotation-targeting.ts` is entity-aware, so Cmd+drag annotations
+  in `lab/annotate/annotation-targeting.ts` is entity-aware, so Cmd+drag annotations
   over decoded rows still store exact model offsets and model-slice quotes.
 
 ## Module Map
@@ -103,4 +103,4 @@ Prose and bullet rows render the decoded document, not the serialized XML:
 | `structural-selection.ts` | Canonical marquee resolution + run materialization |
 | `block-run-steps.ts` | Block-run move/remove transactions |
 | `list-item-steps.ts` | Item and item-run move/remove steps |
-| `lab/annotation-targeting.ts` | Annotate-mode DOM↔model bridging |
+| `lab/annotate/annotation-targeting.ts` | Annotate-mode DOM↔model bridging |

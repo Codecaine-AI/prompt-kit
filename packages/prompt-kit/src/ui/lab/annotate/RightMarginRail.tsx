@@ -30,7 +30,7 @@ export interface CommentIndicatorGroup {
 	threads: CommentIndicatorThread[];
 }
 
-export function CommentMarginRail({
+export function RightMarginRail({
 	container,
 	groups,
 	onSelect,

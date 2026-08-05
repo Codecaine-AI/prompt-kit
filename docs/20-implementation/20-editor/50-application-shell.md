@@ -37,7 +37,7 @@ scrollbar stays at the region's far edge.
 
 One element, two tabs; the active tab is the wide text tab (~3/4 of the bar),
 the inactive one collapses to an icon, and the box animates between per-tab
-geometries (`PANEL_GEOMETRY` in `lab/AnnotateFloatPanel.tsx`).
+geometries (`PANEL_GEOMETRY` in `lab/glass/GlassPanel.tsx`).
 
 | Tab | Size | Contents |
 |-----|------|----------|
@@ -135,17 +135,17 @@ Edit. The keyboard is the only undo surface — no undo/redo buttons exist.
 | File | Responsibility |
 |------|----------------|
 | `lab/index.tsx` | Shell composition, history/autosave wiring, annotate state, queue wiring, shortcuts |
-| `lab/AnnotateFloatPanel.tsx` | The glass panel: tab bar, per-tab geometry, fit-to-content measurement |
-| `lab/LabDock.tsx` | Edit-tab zone primitives (DockZone, view switcher, outline/fixture lists) |
-| `lab/PageHeader.tsx` | In-document page header (title, model chip, description, history icon) |
-| `lab/InlineComposer.tsx` | The one-box composer: Queue gesture, edit-prefill, tooltips |
-| `lab/SessionRequestRail.tsx` | AI-tab queue panel: sections, rows, records, Apply dock |
-| `lab/request-queue.ts` | Queue/records derivation and run narration (pure) |
-| `lab/prompt-edit-session.ts` | Session contract, filing types, accept/reject/undo guards |
-| `lab/CommentMarginRail.tsx` | Margin count bubbles (AI state only) |
-| `lab/AnnotateAmbient.tsx` | Annotate-mode tint + working shimmer stylesheet |
-| `lab/ContextSurface.tsx` / `lab/StateSurface.tsx` | Read-only context / fixture state views |
-| `lab/autosave-controller.ts` | Debounce, single-flight, trailing save |
-| `lab/prompt-lab-history.ts` | Unified undo/redo over steps and metadata |
-| `lab/PromptStyleRail.tsx` | Style controls (type, layout incl. panel insets + composer width, colors) |
+| `lab/glass/GlassPanel.tsx` | The glass panel: tab bar, per-tab geometry, fit-to-content measurement |
+| `lab/glass/zones.tsx` | Edit-tab zone primitives (PanelZone, view switcher, outline/fixture lists) |
+| `lab/page/PageHeader.tsx` | In-document page header (title, model chip, description, history icon) |
+| `lab/annotate/InlineComposer.tsx` | The one-box composer: Queue gesture, edit-prefill, tooltips |
+| `lab/annotate/PanelQueue.tsx` | AI-tab queue panel: sections, rows, records, Apply dock |
+| `lab/session/request-queue.ts` | Queue/records derivation and run narration (pure) |
+| `lab/session/prompt-edit-session.ts` | Session contract, filing types, accept/reject/undo guards |
+| `lab/annotate/RightMarginRail.tsx` | Margin count bubbles (AI state only) |
+| `lab/annotate/AmbientWash.tsx` | Annotate-mode tint + working shimmer stylesheet |
+| `lab/page/ContextSurface.tsx` / `lab/page/StateSurface.tsx` | Read-only context / fixture state views |
+| `lab/session/autosave-controller.ts` | Debounce, single-flight, trailing save |
+| `lab/session/prompt-lab-history.ts` | Unified undo/redo over steps and metadata |
+| `style/PromptStyleRail.tsx` | Style controls (type, layout incl. panel insets + composer width, colors) |
 | `editor/inspector/` | DETAILS zone node editors |

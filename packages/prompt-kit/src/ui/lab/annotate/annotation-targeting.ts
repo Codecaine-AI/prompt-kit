@@ -2,15 +2,15 @@
 // by node id and DOM-Range → prompt-range offset mapping. Pure functions over
 // the stamped rows (`data-prompt-node-id` / `data-prompt-row-text`); no React.
 
-import type { PromptRangeTarget } from "../../annotations/schema";
-import type { PromptDocument } from "../../document/nodes/types";
-import { visitPrompt } from "../../document/transforms/visit";
+import type { PromptRangeTarget } from "../../../annotations/schema";
+import type { PromptDocument } from "../../../document/nodes/types";
+import { visitPrompt } from "../../../document/transforms/visit";
 import {
 	lineRendersDecodedEntities,
 	nodeRenderedLines,
 	XML_DISPLAY_ENTITIES,
 	type XmlLine,
-} from "../../document/render/line-model";
+} from "../../../document/render/line-model";
 
 /**
  * Child id → parent id for every annotatable node in the prompt: blocks and

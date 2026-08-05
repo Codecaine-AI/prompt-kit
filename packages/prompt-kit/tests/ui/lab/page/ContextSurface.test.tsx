@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
-import { ContextSurface } from "../../../src/ui/lab/ContextSurface";
-import { contextOutlineSections } from "../../../src/ui/lab/context-outline";
+import { ContextSurface } from "../../../../src/ui/lab/page/ContextSurface";
+import { contextOutlineSections } from "../../../../src/ui/lab/page/context-outline";
 
 afterEach(() => {
 	cleanup();
