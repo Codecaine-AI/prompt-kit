@@ -1,18 +1,18 @@
 "use client";
 
-// The prompt lab shell (2026-08-04 redesign): the DOCUMENT carries the
+// The prompt lab shell (2026-08-05 redesign): the DOCUMENT carries the
 // agent's identity — a Notion-style page header at the top of the document
-// column (name as title, model chip, collapsible click-to-edit description)
-// with the HISTORY icon at the column's top right. The floating glass dock
-// keeps only working furniture: the VIEW switcher, then per-view zones —
-// FIXTURE (state), OUTLINE (every view), DETAILS (system, only while a node
-// is selected), COMMENTS (system; every open annotation/request as a row,
-// the ANNOTATE toggle, and the resolved tally). The history icon swaps the
-// glass panel's content to the host's revisions zone (`‹ back` returns);
-// annotate mode morphs the same glass into the annotations workspace. Open
-// comments also surface as Notion-style count bubbles in the content
-// column's right margin, aligned with their blocks. The autosave status
-// whispers from the glass header in the system view — no statusbar, no box.
+// column (name as title, model chip, collapsible click-to-edit description).
+// The GLASS PANEL is fixed furniture pinned top-right, its header an
+// Edit/AI tab bar. The Edit tab holds the working zones — the VIEW
+// switcher (whose system row carries the autosave whisper), FIXTURE
+// (state), OUTLINE (its history icon swaps the body for the host's
+// revisions zone), DETAILS (while a node is selected). The AI tab IS
+// annotate mode: the queue rail (or annotations pane), margin count
+// bubbles, comment ticks, and the hover wash linking rows to their target
+// blocks — none of which render in edit mode. Everything queues (run-now
+// retired); one click-only Apply drains the batch in one session. See
+// docs/20-implementation/20-editor/50-application-shell.md.
 
 import cn from "classnames";
 import {
@@ -75,6 +75,7 @@ import {
 } from "./prompt-edit-session";
 import {
   buildRequestQueue,
+  requestDisposition,
   requestNodeId,
 } from "./request-queue";
 import { InlineComposer } from "./InlineComposer";
@@ -906,6 +907,8 @@ export function PromptInlineLab({
   const clearAnnotationSelection = useCallback(() => {
     pinAnnotationTarget(null);
     setSelectedNodeId(undefined);
+    // Cancelling an inline edit keeps the original note untouched.
+    setEditingRequestAlias(null);
   }, [pinAnnotationTarget]);
 
   /** Scroll the system buffer so a node's first row lands near the top —
@@ -956,6 +959,32 @@ export function PromptInlineLab({
    */
   const fileRequest = useCallback(
     (body: string, disposition: PromptRequestDisposition) => {
+      // EDITING an existing note: refile with the ORIGINAL's target and
+      // disposition, dismiss the original, done — the composer was just
+      // the editing surface.
+      const editingAlias = editingAliasRef.current;
+      if (editingAlias) {
+        const session = sessionRef.current;
+        const original = session?.requests.find(
+          (candidate) => candidate.alias === editingAlias,
+        );
+        if (session && original) {
+          if (session.onFileRequest) {
+            void session.onFileRequest({
+              annotationId: newAnnotationId(),
+              disposition: requestDisposition(original),
+              target: original.target,
+              body,
+            });
+          } else if (session.onSendRequest) {
+            void session.onSendRequest(original.target, body);
+          }
+          void session.onDismissRequest?.(requestRunId(original));
+        }
+        setEditingRequestAlias(null);
+        clearAnnotationSelection();
+        return;
+      }
       const pinned = annotationTargetRef.current;
       if (!pinned) return;
       const target =
@@ -1122,10 +1151,31 @@ export function PromptInlineLab({
   }, [activeView, editVersion, prompt]);
 
   /** Margin-bubble click: select the block AND point at its sidebar row. */
+  /**
+   * Editing a queued note happens INLINE (Ford, 2026-08-05): clicking a
+   * comment bubble reopens the composer above its block, prefilled with the
+   * note's text. The session contract has no update door, so a save REFILES
+   * the note (same target, same disposition, new body, fresh id) and
+   * dismisses the original — the queue reads as an edit, the host sees a
+   * replace.
+   */
+  const [editingRequestAlias, setEditingRequestAlias] = useState<
+    string | null
+  >(null);
+  const editingAliasRef = useRef(editingRequestAlias);
+  editingAliasRef.current = editingRequestAlias;
+
   const handleCommentIndicatorSelect = useCallback(
     (nodeId: string, firstThreadKey: string) => {
       setSelectedNodeId(nodeId);
       setHighlightedCommentKey(firstThreadKey);
+      const request = sessionRef.current?.requests.find(
+        (candidate) => requestRunId(candidate) === firstThreadKey,
+      );
+      if (request?.target) {
+        pinAnnotationTarget(request.target);
+        setEditingRequestAlias(request.alias);
+      }
       rootRef.current
         ?.querySelector(`[data-lab-comment-row="${firstThreadKey}"]`)
         ?.scrollIntoView?.({ block: "nearest" });
@@ -1137,7 +1187,7 @@ export function PromptInlineLab({
         1600,
       );
     },
-    [],
+    [pinAnnotationTarget],
   );
 
   /* ------------------------------------------------------------------ */
@@ -1299,6 +1349,11 @@ export function PromptInlineLab({
     // bubbles (CommentMarginRail) carry that presence without pushing text.
     if (annotateActive && annotationTarget) {
       const composerRow = targetAnchorRow(lines, annotationTarget) ?? 0;
+      const editingRequest = editingRequestAlias
+        ? promptEditSession?.requests.find(
+            (candidate) => candidate.alias === editingRequestAlias,
+          )
+        : undefined;
       inserts.push({
         key: "composer",
         row: composerRow,
@@ -1307,6 +1362,9 @@ export function PromptInlineLab({
         align: "ring",
         element: (
           <InlineComposer
+            // Remount per edit so the prefill lands (defaultValue).
+            key={editingRequestAlias ?? "new"}
+            initialValue={editingRequest?.body}
             onSubmit={fileRequest}
             onCancel={clearAnnotationSelection}
             documentTarget={annotationTarget.nodeId === annotationTarget.docId}
@@ -1319,6 +1377,7 @@ export function PromptInlineLab({
     promptEditSession,
     annotateActive,
     annotationTarget,
+    editingRequestAlias,
     editVersion,
     prompt,
     fileRequest,

@@ -28,6 +28,8 @@ export interface InlineComposerProps {
 	 * and Enter files it.
 	 */
 	documentTarget?: boolean;
+	/** Editing an existing note: the composer opens prefilled with it. */
+	initialValue?: string;
 }
 
 interface ComposerAction {
@@ -97,6 +99,7 @@ export function InlineComposer({
 	onSubmit,
 	onCancel,
 	documentTarget = false,
+	initialValue,
 }: InlineComposerProps) {
 	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 	// Hover state instead of a hover: class — the base color is an inline
@@ -105,7 +108,12 @@ export function InlineComposer({
 	const actions = documentTarget ? DOCUMENT_ACTIONS : NODE_ACTIONS;
 
 	useEffect(() => {
-		textareaRef.current?.focus();
+		const textarea = textareaRef.current;
+		if (!textarea) return;
+		textarea.focus();
+		// Editing: caret at the end of the prefilled note, ready to append.
+		const end = textarea.value.length;
+		if (end > 0) textarea.setSelectionRange(end, end);
 	}, []);
 
 	const submit = (disposition: PromptRequestDisposition) => {
@@ -143,6 +151,7 @@ export function InlineComposer({
 				<textarea
 					ref={textareaRef}
 					rows={2}
+					defaultValue={initialValue}
 					placeholder={
 						documentTarget
 							? "Note about the whole document"

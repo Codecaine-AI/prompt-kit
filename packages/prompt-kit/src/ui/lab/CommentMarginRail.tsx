@@ -76,8 +76,9 @@ export function CommentMarginRail({
 						className="absolute z-20"
 						// The content column's free right margin — the rows container
 						// caps at the content width, so a negative right offset sits
-						// the bubble just past the column's edge.
-						style={{ right: -34, top: tops.get(group.nodeId) ?? 0 }}
+						// the bubble past the column's edge, CLEAR of the targeting
+						// ring's dotted border (+3px outset) with breathing room.
+						style={{ right: -52, top: tops.get(group.nodeId) ?? 0 }}
 						onMouseEnter={() => {
 							setHoverNodeId(group.nodeId);
 							onHoverNode?.(group.nodeId);

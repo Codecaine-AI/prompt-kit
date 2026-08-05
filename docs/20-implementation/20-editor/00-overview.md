@@ -26,7 +26,7 @@ lives in `packages/prompt-kit/src/ui/`; see
 ├── 20-keyboard-model.md        Every keyboard gesture as shipped
 ├── 30-structure-steps.md       Structural gestures as pure step producers
 ├── 40-presentation-contract.md CSS variable contract and style settings
-├── 50-application-shell.md     Statusbar, inspector, outline, autosave, history
+├── 50-application-shell.md     Page header, glass panel, queue, autosave, history
 ├── 60-block-vocabulary.md      Creatable blocks versus the full node set
 ├── 70-package-split.md         What lives where today and where it is headed
 └── 80-interaction-model.md     Drag handles, marquee selection, the Command gesture language
@@ -57,8 +57,9 @@ surface and the read-only prompt view, and the settings object that projects it.
 
 ### [50-application-shell.md](50-application-shell.md)
 
-Documents the lab shell around the editing surface: view tabs, token counts,
-undo/redo, the collapsible inspector, the section outline, and autosave.
+Documents the lab shell around the editing surface: the in-document page
+header, the fixed glass panel (Edit/AI tabs, zones, the annotation queue),
+views, undo/redo, and autosave.
 
 ### [60-block-vocabulary.md](60-block-vocabulary.md)
 

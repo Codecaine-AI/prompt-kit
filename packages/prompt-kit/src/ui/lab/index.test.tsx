@@ -1516,6 +1516,62 @@ describe("PromptInlineLab margin comment indicators", () => {
     ).toContain("paragraph");
   });
 
+  test("clicking a bubble reopens the inline composer prefilled; saving refiles and dismisses", async () => {
+    const filed: Array<{ body: string; nodeId: string | null }> = [];
+    const dismissed: string[] = [];
+    const session: PromptEditSession = {
+      requests: [
+        {
+          alias: "R1",
+          annotationId: "ann-R1",
+          author: "you",
+          status: "open",
+          body: "Tighten this.",
+          target: {
+            kind: "prompt-node",
+            docId: "controlled-style-test",
+            nodeId: "paragraph-1",
+          },
+          disposition: "batch",
+        },
+      ],
+      proposals: [],
+      onFileRequest: (filing) => {
+        filed.push({
+          body: filing.body,
+          nodeId: filing.target ? filing.target.nodeId : null,
+        });
+      },
+      onDismissRequest: (id) => {
+        dismissed.push(id);
+      },
+    };
+    render(<PromptInlineLab prompt={prompt} promptEditSession={session} />);
+    fireEvent.click(screen.getByRole("button", { name: "AI" }));
+
+    const indicator = document.querySelector<HTMLElement>(
+      '[data-lab-comment-indicator="paragraph-1"]',
+    )!;
+    fireEvent.click(within(indicator).getByRole("button"));
+
+    // The inline composer opens PREFILLED with the note.
+    const textarea = document
+      .querySelector("[data-lab-composer]")!
+      .querySelector("textarea")!;
+    expect(textarea.value).toBe("Tighten this.");
+
+    // Saving refiles (same target, new body) and dismisses the original.
+    fireEvent.change(textarea, { target: { value: "Tighten this a lot." } });
+    fireEvent.keyDown(textarea, { key: "Enter" });
+    await waitFor(() => {
+      expect(dismissed).toEqual(["ann-R1"]);
+    });
+    expect(filed).toEqual([
+      { body: "Tighten this a lot.", nodeId: "paragraph-1" },
+    ]);
+    expect(document.querySelector("[data-lab-composer]")).toBeNull();
+  });
+
   test("document-level notes grow no bubble", () => {
     render(
       <PromptInlineLab

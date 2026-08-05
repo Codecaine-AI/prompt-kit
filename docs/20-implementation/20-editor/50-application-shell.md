@@ -1,13 +1,23 @@
 ---
-covers: The prompt lab shell around the editing surface, including view tabs, token counts, the annotate mode toggle, the collapsible inspector, the section outline, and the autosave contract.
-concepts: [shell, statusbar, inspector, autosave, history]
+covers: The prompt lab shell around the editing surface — the in-document page header, the fixed glass panel with its Edit/AI tabs, views, the annotation queue, autosave, and history.
+concepts: [shell, glass-panel, page-header, queue, autosave, history, annotate]
 design_refs: [10-system-design/50-validation-contract.md, 10-system-design/60-kernel-boundary.md]
 ---
 
 # Application Shell
 
 The editing surface is mounted inside a lab shell. The shell owns the document
-history, the save lifecycle, and the panes; the surface owns only editing.
+history, the save lifecycle, the annotation queue, and the panel; the surface
+owns only editing. The shell never fetches: persistence, manifest data,
+revision history, context previews, and the prompt-edit session all arrive as
+props or callbacks.
+
+The 2026-08-04/05 redesign dissolved the old chrome (statusbar, tabbed
+inspector, outline column) into two places: the DOCUMENT carries identity, and
+one fixed GLASS PANEL carries everything else. Design records:
+[`.drafts/2026-08-03-prompt-lab-layout-and-annotation-model.md`](../../.drafts/2026-08-03-prompt-lab-layout-and-annotation-model.md)
+and its successor
+[`.drafts/2026-08-05-annotation-queue-and-glass-panel.md`](../../.drafts/2026-08-05-annotation-queue-and-glass-panel.md).
 
 ---
 
@@ -15,57 +25,65 @@ history, the save lifecycle, and the panes; the surface owns only editing.
 
 | Region | Contents |
 |--------|----------|
-| Left, top | Statusbar: view tabs, token count, diagnostics, autosave status, Annotate toggle |
-| Left, body | The editing surface, or the read-only context surface |
-| Left, edge | Section outline column, when the pane is wide enough |
-| Right | Collapsible tabbed inspector: AGENT, DETAILS, REVISIONS |
-| Host | Style sidebar, owned by the host page rather than the shell |
+| Document column | Notion-style page header (title, model chip, click-to-edit description, history icon) INSIDE the scroller, then the editing surface. Left-justified at the style rail's margins. |
+| Glass panel | Fixed card pinned top-right; header is an Edit/AI tab bar. Never dragged, never resized by hand. |
+| Host | Style sidebar (`PromptStyleRail`), owned by the host page. |
 
-The shell never fetches. Persistence, manifest data, revision history, and
-context previews all arrive as props or callbacks.
+The document reserves the panel's footprint (`--prompt-editor-reserved-right`
+on each surface's scroller), so content reflows beside the glass and the
+scrollbar stays at the region's far edge.
+
+## The Glass Panel
+
+One element, two tabs; the active tab is the wide text tab (~3/4 of the bar),
+the inactive one collapses to an icon, and the box animates between per-tab
+geometries (`PANEL_GEOMETRY` in `lab/AnnotateFloatPanel.tsx`).
+
+| Tab | Size | Contents |
+|-----|------|----------|
+| EDIT | 300px wide, height fits its content | Zone stack: VIEW (switcher with token counts; the system row carries the autosave whisper subline), FIXTURE (state view only), OUTLINE (history icon swaps its body for the host's revisions zone), DETAILS (only while a node is selected) |
+| AI (`✦`) | 520px wide, 80% of the region height | The annotation workspace: the queue (below), or the annotations pane for store-only hosts |
+
+The corner is pinned: top inset is a style setting (`panelTopInset`), right
+inset another (`panelInset`) — both sliders in the style rail. Selecting AI
+from the context/state view returns to the system view first; Escape (with no
+composer open) returns to Edit. Entering the AI tab IS entering annotate mode:
+document clicks pick annotation targets, editing affordances hide, and the
+violet ambient tints the panel.
 
 ## Views
 
-`LabView` is `"system" | "context"`. The system view renders the editing
-surface. The context view replaces it with a read-only render of the assembled
-context on the same editor surface — same gutter, grid, and shading tokens —
-with no hover, insert, or drag affordances. Undo, redo, and save are inert while
-the context view is active, because the context is not editable. The context
-view carries the same section outline column as the system view, derived from
-the assembled context's tags, so jumping between sections works in both.
+`LabView` is `"system" | "context" | "state"`. The system view renders the
+editing surface. The context view is a read-only render of the assembled
+context on the same surface tokens. The state view (present only when the host
+supplies a `stateZone`) renders the selected fixture's state document, with
+the FIXTURE zone picking the snapshot. Undo, redo, and save are inert outside
+the system view. Each view registers its own outline anchors, so the OUTLINE
+zone works in all three.
 
-The statusbar's token count follows the active view: the rendered prompt in the
-system view, the assembled context in the context view.
+## The Annotation Queue
 
-## Inspector
+Everything queues; nothing runs until Apply (run-now was retired 2026-08-05).
 
-`LabInspectorTab` is `"agent" | "details" | "revisions"`.
-
-| Tab | Contents |
-|-----|----------|
-| AGENT | Manifest name, model, description, and alias suggestions; read-only when the host provides no manifest save endpoint |
-| DETAILS | The node inspector for the selected block |
-| REVISIONS | Host-composed revision stats, history, and diff |
-
-The collapsed flag and active tab persist under
-`agentKernel.promptLabInspector.v1`, defaulting to open on DETAILS. A collapsed
-inspector renders nothing at all. Selecting a block steers an already-open
-inspector to DETAILS; a collapsed one stays collapsed.
-
-## Section Outline
-
-The outline is part of the editing surface rather than an option. It lists one
-row per top-level container open tag, derived from the same landmark rows the
-surface tints, and shares the editor's background, type, and line grid so a row
-occupies exactly one editor line.
-
-The active row is the last section whose open row sits at or above the top of
-the viewport, snapping to the final section once the scroller reaches the
-bottom. Clicking a row scrolls its open tag to one line below the top edge.
-
-Two guards suppress it: a prompt with no top-level sections has nothing to list,
-and below a container width of 1100 pixels the column is not rendered at all
-because the editor pane left over would be too cramped.
+- The inline composer (Cursor-style single box, ring-aligned above the pinned
+  target) files on Enter: node targets as `batch`, document targets as
+  `global`. An open composer is sticky — only its × or Escape closes it.
+- The AI tab's queue panel is a chat layout: TARGETS section (rows: violet
+  human-readable target label, the note indented beneath, quiet state, × on
+  hover), DOCUMENT section (whole-document notes plus their own input), slim
+  ✓/✕ records with Undo, and a bottom dock holding the one click-only Apply.
+- Apply opens ONE session over the whole queue in filing order. The agent
+  surveys every request before editing, then stages one proposal per request:
+  n reviewable diffs forming an ordered stack (accept from the head, reject
+  from the tail — `acceptDisabledReason` / `rejectDisabledReason`).
+- Comment presence renders only in the AI state: margin count bubbles, a thin
+  violet tick down commented rows, and a hover wash linking queue row ↔
+  target block. Clicking a bubble reopens the inline composer prefilled with
+  the note; saving refiles (same target and disposition, fresh id) and
+  dismisses the original.
+- Row states speak only when meaningful: `processing` (breathing dot, violet
+  bar), `staged` (green), `waiting on you` (amber, with the inline reply).
+  Positions and counts are not rendered — order is the list order.
 
 ## History
 
@@ -86,82 +104,48 @@ interface PromptLabHistory {
 }
 ```
 
-Two edit channels share one undo stack. Block edits arrive as `PromptStep[]` and
-go to the inner transaction log. Document-metadata edits — title and description
-— are not node-scoped and therefore not representable as steps, so they live in
-an overlay with their own before/after entries. The unified stack interleaves
-both kinds; step entries delegate to the inner log, metadata entries restore the
-overlay. Both stacks are LIFO, so the relative order of step entries always
-matches.
-
-`markSaved()` moves only the dirty baseline. The log and the unified stack are
-untouched, so undo keeps working across a save, and undoing past the save point
-makes the draft dirty again. Dirtiness is computed by comparing
-`canonicalizePrompt(current())` against the saved canonical string.
-
-The inner log's content hash is overridden with a cheap synchronous FNV-1a over
-the canonical serialization, prefixed `local-`, so a browser host never reaches
-for the Node crypto-backed hash. Those local hashes provide transaction lineage
-only; authoritative hashes come from the save API.
+Two edit channels share one undo stack. Block edits arrive as `PromptStep[]`
+and go to the inner transaction log. Document-metadata edits — title and
+description — live in an overlay with their own before/after entries; the
+unified stack interleaves both kinds. `markSaved()` moves only the dirty
+baseline, so undo keeps working across a save. Dirtiness compares
+`canonicalizePrompt(current())` against the saved canonical string. The inner
+log's content hash is a cheap FNV-1a prefixed `local-`; authoritative hashes
+come from the save API.
 
 ## Autosave
 
-`createAutosaveController` is a generic debounced-save coordinator.
+`createAutosaveController` is a generic debounced-save coordinator: 1500ms
+debounce, single-flight with a trailing save, newest-value-wins, cancelled
+whenever the draft is clean or carries validation errors, Cmd+S flushes.
 
-```ts
-interface AutosaveController<T> {
-  schedule(value: T): void;
-  flush(): void;
-  retry(): void;
-  cancelPending(): void;
-  dispose(): void;
-  getState(): AutosaveControllerState;
-}
-```
-
-Rules as shipped:
-
-| Rule | Behavior |
-|------|----------|
-| Debounce | 1500 ms after the last edit, by default |
-| Concurrency | At most one request in flight |
-| Trailing work | A debounce that expires during an active request queues a trailing save instead of a second request |
-| Superseding | Only the newest scheduled value is ever persisted |
-| Gating | The shell cancels pending work whenever the draft is clean or carries validation errors |
-| Flush | Cmd+S runs the latest scheduled value immediately |
-| Retry | The statusbar's retry action re-attempts the latest value immediately |
-| Document swap | A new prompt disposes the controller, suppressing completions from the previous document |
-
-Validation gates every save: the shell counts `error`-severity diagnostics from
-the editor model and cancels rather than schedules while any exist. A save that
-returns errors renders them under the statusbar. A save that succeeds marks the
-history baseline only when the completed attempt was the latest one, so edits
-made during an in-flight save stay dirty.
+Status is SILENT when healthy. Exceptional states (saving stuck, errors, retry)
+whisper on the system row's subline in the VIEW zone, and repeat at the top of
+the AI tab while annotating. Save errors render under the document header.
 
 ## Shortcuts
 
-Cmd+Z, Cmd+Shift+Z, and Cmd+S are bound on the document rather than as React
-handlers on the shell root. Clicking an affordance that then unmounts itself —
-an insert palette entry, a delete button — leaves focus on `<body>`, outside the
-React tree, which is exactly the moment an author reaches for undo. The listener
-is scoped by a guard: it runs for events inside the lab, or when nothing at all
-holds focus.
-
-The keyboard is the only undo surface: the statusbar carries no undo/redo
-buttons. With a structural selection active and no editor open, Backspace or
-Delete removes the selected run as one undoable transaction (see
-[80-interaction-model.md](80-interaction-model.md)).
+Cmd+Z / Cmd+Shift+Z / Cmd+S bind on the document (not React handlers), guarded
+to events inside the lab or with nothing focused. Escape walks outward: an open
+composer's target clears first; with nothing pinned, the AI tab returns to
+Edit. The keyboard is the only undo surface — no undo/redo buttons exist.
 
 ## Module Map
 
 | File | Responsibility |
 |------|----------------|
-| `lab/index.tsx` | Shell composition, history wiring, autosave gating, shortcuts |
-| `lab/LabStatusBar.tsx` | View tabs, token count, diagnostics, save status, Annotate toggle |
-| `lab/LabInspector.tsx` | Tab strip, collapse, persisted preference |
-| `lab/AgentZone.tsx` | AGENT tab manifest fields |
-| `lab/ContextSurface.tsx` | Read-only assembled-context view |
+| `lab/index.tsx` | Shell composition, history/autosave wiring, annotate state, queue wiring, shortcuts |
+| `lab/AnnotateFloatPanel.tsx` | The glass panel: tab bar, per-tab geometry, fit-to-content measurement |
+| `lab/LabDock.tsx` | Edit-tab zone primitives (DockZone, view switcher, outline/fixture lists) |
+| `lab/PageHeader.tsx` | In-document page header (title, model chip, description, history icon) |
+| `lab/InlineComposer.tsx` | The one-box composer: Queue gesture, edit-prefill, tooltips |
+| `lab/SessionRequestRail.tsx` | AI-tab queue panel: sections, rows, records, Apply dock |
+| `lab/request-queue.ts` | Queue/records derivation and run narration (pure) |
+| `lab/prompt-edit-session.ts` | Session contract, filing types, accept/reject/undo guards |
+| `lab/CommentMarginRail.tsx` | Margin count bubbles (AI state only) |
+| `lab/AnnotateAmbient.tsx` | Annotate-mode tint + working shimmer stylesheet |
+| `lab/ContextSurface.tsx` / `lab/StateSurface.tsx` | Read-only context / fixture state views |
 | `lab/autosave-controller.ts` | Debounce, single-flight, trailing save |
-| `lab/PromptStyleRail.tsx` | Style controls, mounted by the host |
 | `lab/prompt-lab-history.ts` | Unified undo/redo over steps and metadata |
-| `prompt-flow/PromptFlowInspector/` | DETAILS tab node editors |
+| `lab/PromptStyleRail.tsx` | Style controls (type, layout incl. panel insets + composer width, colors) |
+| `prompt-flow/PromptFlowInspector/` | DETAILS zone node editors |

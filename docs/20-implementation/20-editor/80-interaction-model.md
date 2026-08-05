@@ -26,10 +26,13 @@ Command gestures act on structure.
 | Backspace / Delete (selection active, no editor open) | Remove the run as one transaction |
 | Escape / plain click elsewhere | Clear the selection |
 
-In annotate mode (the lab's Annotate toggle) the vocabulary changes owner: the
+In the AI state (the glass panel's `✦` tab) the vocabulary changes owner: the
 shared annotations package drives hover rings, click-to-pin, and Cmd+drag range
-annotation, and every editing affordance is hidden. See the annotations
-package README (`@codecaine-ai/annotations`) for that mode's standard.
+annotation, and every editing affordance is hidden. While a composer is open
+the pin is STICKY — document clicks neither cancel nor re-target it; only its
+× or Escape close it. See the annotations package README
+(`@codecaine-ai/annotations`) for the mode's standard and
+[50-application-shell.md](50-application-shell.md) for the queue it feeds.
 
 ## The One-Handle Drag Model
 

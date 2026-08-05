@@ -24,7 +24,7 @@ The relocation splits the package's UI surface along a headless/React line.
 | `@codecaine-ai/prompt-kit/ui/annotations` | UI-facing annotation models and helpers |
 | `@codecaine-ai/prompt-kit/ui/react` | Every React-facing piece, re-exporting the five entries below |
 | `@codecaine-ai/prompt-kit/ui/prompt-flow` | Editing surface, node inspector, line model, change-handler types |
-| `@codecaine-ai/prompt-kit/ui/lab` | Lab shell, statusbar, inspector, autosave, history, style rail |
+| `@codecaine-ai/prompt-kit/ui/lab` | Lab shell, glass panel, annotation queue, autosave, history, style rail |
 | `@codecaine-ai/prompt-kit/ui/style` | Style settings, presets, variable projection, React hook |
 | `@codecaine-ai/prompt-kit/ui/surface` | Surface tokens and the XML highlighter |
 | `@codecaine-ai/prompt-kit/ui/view` | Read-only prompt view |
@@ -69,7 +69,7 @@ Two caveats qualify that list:
 |--------|----------|
 | `ui/prompt-flow/PromptFlowXml/` | `index.tsx`, `XmlRow`, `ItemRow`, `SectionTagRow`, `InlineEditor`, `GrowTextArea`, `BlockCluster`, `BlockMenu`, `SectionOutline`, `SlashMenu`, `drag-controller`, the `node-geometry` hook |
 | `ui/prompt-flow/PromptFlowInspector/` | Node detail editors |
-| `ui/lab/` | Shell, statusbar, inspector, agent zone, context surface, style rail |
+| `ui/lab/` | Shell, glass panel, queue rail, composer, context/state surfaces, style rail |
 | `ui/surface/` | Style tokens typed as React `CSSProperties`, XML highlighter returning JSX |
 | `ui/style/use-prompt-style-settings.ts` | React hook over the settings module |
 | `ui/view/PromptView.tsx` | Read-only prompt view |

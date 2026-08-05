@@ -1,8 +1,16 @@
 # Prompt lab: layout, turn views, and the annotation interaction model — Design Record (2026-08-03)
 
-Status: settled (Ford × Fable iterative mockup session, 2026-08-03). Layout and the
-State view are implemented; the annotation interaction model of §4 is settled and being
-implemented.
+Status: **largely superseded** by
+[`2026-08-05-annotation-queue-and-glass-panel.md`](2026-08-05-annotation-queue-and-glass-panel.md)
+(and the 2026-08-04 dogfood iteration between them). Read this record for the
+machinery and the reasoning; trust the successor wherever they conflict — notably:
+the panel is a fixed Edit/AI-tabbed card (not zones in a margin dock), the composer
+has ONE gesture (run-now retired; everything queues), comments live in the AI state
+only, and the three-gesture model of §4 is gone.
+
+Original status: settled (Ford × Fable iterative mockup session, 2026-08-03). Layout
+and the State view are implemented; the annotation interaction model of §4 is settled
+and being implemented.
 
 Successor to the two 2026-07-31 drafts. Read those first for the machinery this record
 sits on top of, and do not expect it repeated here:

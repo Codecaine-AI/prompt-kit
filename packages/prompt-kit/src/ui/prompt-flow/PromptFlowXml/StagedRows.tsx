@@ -56,6 +56,9 @@ export function InlineInsertSlot({
 			// lab's capture-phase click hijack) away from the widget's controls.
 			data-annotation-ui="inline-insert"
 			data-prompt-inline-insert={insert.key}
+			// Above the indent guides (absolute z-0, later in the DOM): without
+			// this the section hairlines paint THROUGH the inserted widget.
+			className="relative z-10"
 			style={
 				insert.align === "ring"
 					? {
