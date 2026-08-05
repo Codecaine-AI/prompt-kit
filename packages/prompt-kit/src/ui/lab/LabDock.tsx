@@ -53,7 +53,7 @@ export function DockZone({
 			    from one stylesheet — see AnnotateAmbient. */}
 			<div
 				data-lab-zone-header=""
-				className="flex items-center gap-2 pb-1.5 pt-2.5 text-[10px] uppercase tracking-[0.17em] text-muted-foreground/60 transition-colors"
+				className="flex items-center gap-2 pb-1.5 pt-2.5 text-[12px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors"
 			>
 				<span>{label}</span>
 				{action && (

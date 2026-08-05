@@ -1,4 +1,4 @@
-// Slice: inspector UI atoms (labeled section, mini read-out, text input).
+// Slice: inspector UI atoms (labeled section, text input).
 "use client";
 
 import type { ReactNode } from "react";
@@ -43,14 +43,5 @@ export function InspectorSection({
 			</h3>
 			<div className="flex flex-col gap-2">{children}</div>
 		</section>
-	);
-}
-
-export function MiniField({ label, value }: { label: string; value: string }) {
-	return (
-		<div className="flex items-baseline justify-between gap-3 border-b border-border/60 py-1.5 last:border-b-0">
-			<span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
-			<span className="max-w-[62%] break-all text-right text-[12px] tabular-nums text-foreground">{value}</span>
-		</div>
 	);
 }

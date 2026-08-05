@@ -1,9 +1,8 @@
-// Prompt block details: selection summary, type-specific fields, diagnostics,
-// and — folded away — the block's identity.
+// Prompt block details: type-specific fields, plus diagnostics only when the
+// block actually has issues.
 "use client";
 
 import cn from "classnames";
-import type { ReactNode } from "react";
 import type { PromptDiagnostic, PromptDocument } from "../../../index";
 import type {
 	PromptEditorModel,
@@ -13,7 +12,6 @@ import type {
 import type { PromptFlowChangeHandler } from "../types";
 import { InspectorSection } from "./fields";
 import { NodeDetails } from "./NodeDetails";
-import { NodeIdField } from "./NodeIdField";
 
 export interface PromptFlowInspectorProps {
 	prompt: PromptDocument;
@@ -38,10 +36,10 @@ export function PromptFlowInspector({
 		: [];
 
 	return (
-		<div className="flex shrink-0 flex-col bg-card">
+		<div className="flex shrink-0 flex-col">
 			{!selectedEntry ? (
 				documentDiagnostics.length > 0 ? (
-					<div className="p-3">
+					<div className="pl-3 pr-1 pt-1">
 						<InspectorSection title="Document diagnostics">
 							<DiagnosticList diagnostics={documentDiagnostics} />
 						</InspectorSection>
@@ -54,71 +52,23 @@ export function PromptFlowInspector({
 					</div>
 				)
 			) : (
-				<div className="p-3">
+				<div className="pl-3 pr-1 pt-1">
 					<div className="flex flex-col gap-4">
-						<InspectorSection title="Selected">
-							{/* One summary line + a quiet path row keep the block's
-							    orientation readable without a micro-label grid. */}
-							<p className="text-[12px] leading-relaxed text-foreground">
-								{selectedEntry.node.type}
-								<span className="text-muted-foreground"> · </span>
-								<span className="tabular-nums">
-									{selectedEntry.index + 1}/{selectedEntry.siblingCount}
-								</span>
-								<span className="text-muted-foreground"> · </span>
-								depth <span className="tabular-nums">{selectedEntry.depth}</span>
-							</p>
-							<p className="break-all text-[11px] leading-relaxed text-muted-foreground">
-								{selectedEntry.path.join(".")}
-							</p>
-						</InspectorSection>
-
 						<NodeDetails
 							entry={selectedEntry}
 							prompt={prompt}
 							onPromptChange={onPromptChange}
 						/>
 
-						<InspectorSection title="Diagnostics">
-							{diagnostics.length === 0 ? (
-								<p className="text-[12px] text-muted-foreground/70">No issues for this block</p>
-							) : (
+						{diagnostics.length > 0 && (
+							<InspectorSection title="Diagnostics">
 								<DiagnosticList diagnostics={diagnostics} />
-							)}
-						</InspectorSection>
-
-						{/* The node id addresses the block for tooling, not for
-						    authoring, so it sits folded at the bottom rather than
-						    above the fields the author came here to change. */}
-						<Advanced>
-							<NodeIdField
-								entry={selectedEntry}
-								prompt={prompt}
-								onPromptChange={onPromptChange}
-							/>
-						</Advanced>
+							</InspectorSection>
+						)}
 					</div>
 				</div>
 			)}
 		</div>
-	);
-}
-
-/**
- * A collapsed disclosure, styled as one more panel heading so the closed state
- * reads as a section title rather than a control.
- */
-function Advanced({ children }: { children: ReactNode }) {
-	return (
-		<details className="group">
-			<summary className="flex cursor-pointer list-none items-center gap-2 select-none [&::-webkit-details-marker]:hidden">
-				<span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground group-open:text-foreground">
-					Advanced
-				</span>
-				<span className="h-px flex-1 bg-border" />
-			</summary>
-			<div className="mt-2 flex flex-col gap-2">{children}</div>
-		</details>
 	);
 }
 

@@ -380,7 +380,7 @@ describe("PromptInlineLab dock outline", () => {
 
 describe("PromptInlineLab dock details", () => {
   test("DETAILS mounts in the floating dock only while a block is selected", () => {
-    render(<PromptInlineLab prompt={prompt} />);
+    render(<PromptInlineLab prompt={nestedPrompt} />);
     // The glass dock is always up; the DETAILS zone inside it is not.
     expect(document.querySelector("[data-lab-dock]")).toBeTruthy();
     expect(document.querySelector('[data-lab-zone="details"]')).toBeNull();
@@ -388,15 +388,20 @@ describe("PromptInlineLab dock details", () => {
     // Clicking into a block selects it (and opens its inline editor).
     fireEvent.click(
       document.querySelector<HTMLElement>(
-        '[data-prompt-node-id="paragraph-1"] [data-prompt-row-text]',
+        '[data-prompt-node-id="sec-1"] [data-prompt-row-text]',
       )!,
     );
     const zone = document.querySelector('[data-lab-zone="details"]');
     expect(zone).toBeTruthy();
     expect(document.querySelector("[data-lab-dock]")!.contains(zone)).toBe(true);
-    // The absorbed PromptFlowInspector content: the selection summary.
-    expect(zone!.textContent).toContain("Selected");
-    expect(zone!.textContent).toContain("paragraph");
+    // The trimmed PromptFlowInspector content: the section's editable fields
+    // (name + attributes), no selection summary and no diagnostics section
+    // when the block has no issues.
+    expect(zone!.textContent).toContain("Section");
+    const nameInput = zone!.querySelector<HTMLInputElement>("input");
+    expect(nameInput?.value).toBe("steps");
+    expect(zone!.textContent).not.toContain("Selected");
+    expect(zone!.textContent).not.toContain("Diagnostics");
   });
 });
 
@@ -1508,12 +1513,11 @@ describe("PromptInlineLab margin comment indicators", () => {
     expect(popover.textContent).toContain("Tighten this.");
 
     // Click selects the block — visible back on the Edit tab, where the
-    // DETAILS zone mounts for paragraph-1.
+    // DETAILS zone mounts for the selection (a paragraph has no editable
+    // fields, so the zone is present but bodiless).
     fireEvent.click(within(indicator).getByRole("button"));
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-    expect(
-      document.querySelector('[data-lab-zone="details"]')?.textContent,
-    ).toContain("paragraph");
+    expect(document.querySelector('[data-lab-zone="details"]')).toBeTruthy();
   });
 
   test("clicking a bubble reopens the inline composer prefilled; saving refiles and dismisses", async () => {

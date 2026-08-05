@@ -18,7 +18,7 @@ import type {
 import { updateNode } from "../shared";
 import { sanitizeSectionTag } from "../steps/node-mutations";
 import type { PromptFlowChangeHandler } from "../types";
-import { InspectorSection, MiniField, TextInput } from "./fields";
+import { InspectorSection, TextInput } from "./fields";
 import { LanguageField } from "./LanguageField";
 import { SectionAttributesField } from "./SectionAttributesField";
 
@@ -57,7 +57,6 @@ export function NodeDetails({
 					prompt={prompt}
 					onPromptChange={onPromptChange}
 				/>
-				<MiniField label="children" value={String(node.children.length)} />
 			</InspectorSection>
 		);
 	}
@@ -76,7 +75,6 @@ export function NodeDetails({
 						)
 					}
 				/>
-				<MiniField label="children" value={String(node.children?.length ?? 0)} />
 			</InspectorSection>
 		);
 	}
@@ -110,7 +108,6 @@ export function NodeDetails({
 						)
 					}
 				/>
-				<MiniField label="children" value={String(node.children.length)} />
 			</InspectorSection>
 		);
 	}
@@ -134,17 +131,13 @@ export function NodeDetails({
 						);
 					}}
 				/>
-				<MiniField label="items" value={String(node.items.length)} />
 			</InspectorSection>
 		);
 	}
 
 	if (node.type === "bulletList") {
-		return (
-			<InspectorSection title="List">
-				<MiniField label="items" value={String(node.items.length)} />
-			</InspectorSection>
-		);
+		// Nothing editable on a bullet list — no panel.
+		return null;
 	}
 
 	if (node.type === "contextUsage") {
@@ -172,17 +165,13 @@ export function NodeDetails({
 						)
 					}
 				/>
-				<MiniField label="instructions" value={String(node.instructions.length)} />
 			</InspectorSection>
 		);
 	}
 
 	if (node.type === "raw") {
-		return (
-			<InspectorSection title="Raw">
-				<MiniField label="chars" value={String(node.value.length)} />
-			</InspectorSection>
-		);
+		// Raw blocks are edited in the buffer; nothing to inspect here.
+		return null;
 	}
 
 	return null;
