@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useCallback, useState, type ReactNode } from "react";
 
-import type { PromptStyleSettings } from "../style/prompt-style-settings";
+import type { PromptStyleSettings } from "./prompt-style-settings";
 
 export interface PromptStyleRailProps {
   settings: PromptStyleSettings;

@@ -19,23 +19,10 @@ dependency.
 | File | Responsibility |
 |------|----------------|
 | `packages/prompt-kit/src/ui/index.ts` | UI barrel export |
-| `packages/prompt-kit/src/ui/renderers/index.ts` | `createPromptPreviewModel` |
 | `packages/prompt-kit/src/ui/editors/index.ts` | `createPromptEditorModel` |
 
-## Preview Model
-
-`createPromptPreviewModel(prompt)` returns the source prompt and the default
-rendered XML Markdown string:
-
-```ts
-interface PromptPreviewModel {
-  prompt: PromptDocument;
-  rendered: string;
-}
-```
-
-This is enough for an agent viewer to show both the structured prompt source and
-the rendered prompt text.
+The earlier preview model (`createPromptPreviewModel` in `src/ui/renderers/`)
+was removed 2026-08-05 as unused; it is recoverable from git history.
 
 ## Editor Model
 

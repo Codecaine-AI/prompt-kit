@@ -54,7 +54,9 @@ AST package to one SDK.
 ## Viewer Boundary
 
 Viewer systems can import prompt-kit UI helpers such as
-`createPromptPreviewModel`. Those helpers produce simple serializable models.
+`createPromptEditorModel`. Those helpers produce simple serializable models.
+(The earlier `createPromptPreviewModel` helper was removed 2026-08-05; it is
+recoverable from git history.)
 They do not define a full UI framework, styling system, or app shell.
 
 The kernel viewer can render:

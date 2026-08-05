@@ -22,21 +22,17 @@ The Agent Kernel consumes prompt-kit, but prompt-kit does not depend on the kern
 
 | Import | Contents |
 | --- | --- |
-| `@codecaine-ai/prompt-kit` | AST, builders, renderers, transforms, validation |
+| `@codecaine-ai/prompt-kit` | AST, renderers, transforms, validation |
 | `@codecaine-ai/prompt-kit/annotations` | Headless prompt annotation schema and store |
 | `@codecaine-ai/prompt-kit/ui` | Headless UI models — no React, no DOM |
-| `@codecaine-ai/prompt-kit/ui/annotations` | React `PromptAnnotationsPane` |
-| `@codecaine-ai/prompt-kit/ui/react` | Prompt-flow, lab, style, surface, and view exports; annotations stay separate |
-| `@codecaine-ai/prompt-kit/ui/prompt-flow` | `PromptFlowXml`, `PromptFlowInspector` |
-| `@codecaine-ai/prompt-kit/ui/lab` | `PromptInlineLab`, `PromptStyleRail`, undo history |
-| `@codecaine-ai/prompt-kit/ui/style` | Persisted style settings + `usePromptStyleSettings` |
+| `@codecaine-ai/prompt-kit/ui/lab` | `PromptInlineLab`, `PromptAnnotationsPane`, `PromptStyleRail`, undo history |
+| `@codecaine-ai/prompt-kit/ui/style` | Persisted style settings, `usePromptStyleSettings`, `PromptStyleRail`, `PromptStyleSidebar` |
 | `@codecaine-ai/prompt-kit/ui/surface` | Editor metrics, palette, XML highlighting |
-| `@codecaine-ai/prompt-kit/ui/view` | `PromptView` — read-only prompt rendering |
 
 React is a peer dependency, and the components are unstyled beyond Tailwind
 utility classes: the host app supplies the Tailwind layer and the semantic
 token variables they resolve against. See the styling contract at the top of
-`packages/prompt-kit/src/ui/react.ts`.
+`packages/prompt-kit/src/ui/lab/index.tsx`.
 
 The editor UI's architecture is documented in
 `docs/20-implementation/20-editor/`. Working-state notes and active build plans

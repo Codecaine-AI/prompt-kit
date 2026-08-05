@@ -10,13 +10,9 @@
     ".": "./src/index.ts",
     "./annotations": "./src/annotations/index.ts",
     "./ui": "./src/ui/index.ts",
-    "./ui/annotations": "./src/ui/annotations/index.ts",
-    "./ui/react": "./src/ui/react.ts",
-    "./ui/prompt-flow": "./src/ui/prompt-flow/index.ts",
     "./ui/lab": "./src/ui/lab/index.tsx",
     "./ui/style": "./src/ui/style/index.ts",
-    "./ui/surface": "./src/ui/surface/index.ts",
-    "./ui/view": "./src/ui/view/index.ts"
+    "./ui/surface": "./src/ui/surface/index.ts"
   },
   "scripts": {
     "test": "bun test src",

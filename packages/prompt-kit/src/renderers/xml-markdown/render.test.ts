@@ -1,32 +1,55 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  bulletList,
-  item,
-  orderedList,
-  paragraph,
-  section,
-  usesContext,
-  variable,
-  workflowPrompt,
-} from "../../..";
+import { definePrompt, type ListItemNode } from "../../nodes";
 import { renderXmlMarkdown } from "./render";
+
+function listItem(
+  content: string,
+  children: ListItemNode["children"] = [],
+): ListItemNode {
+  return { type: "listItem", content: [content], children };
+}
 
 describe("renderXmlMarkdown", () => {
   test("renders nested sections and lists as XML-tagged Markdown", () => {
-    const prompt = workflowPrompt({
+    const prompt = definePrompt({
       id: "sourceScoutPrompt",
-      purpose: [
-        bulletList(["Find and evaluate sources for a focused assignment."]),
-      ],
-      workflow: [
-        orderedList([
-          "Read the research brief.",
-          item("Search for relevant evidence.", [
-            bulletList(["Prefer primary sources.", "Track uncertainty explicitly."]),
-          ]),
-          "Write source notes.",
-        ]),
+      archetype: "workflow",
+      nodes: [
+        {
+          type: "section",
+          tag: "purpose",
+          children: [
+            {
+              type: "bulletList",
+              items: [
+                listItem("Find and evaluate sources for a focused assignment."),
+              ],
+            },
+          ],
+        },
+        {
+          type: "section",
+          tag: "workflow",
+          children: [
+            {
+              type: "orderedList",
+              items: [
+                listItem("Read the research brief."),
+                listItem("Search for relevant evidence.", [
+                  {
+                    type: "bulletList",
+                    items: [
+                      listItem("Prefer primary sources."),
+                      listItem("Track uncertainty explicitly."),
+                    ],
+                  },
+                ]),
+                listItem("Write source notes."),
+              ],
+            },
+          ],
+        },
       ],
     });
 
@@ -44,12 +67,23 @@ describe("renderXmlMarkdown", () => {
   });
 
   test("renders variable references with provided values or placeholders", () => {
-    const prompt = workflowPrompt({
+    const prompt = definePrompt({
       id: "requestPrompt",
-      sections: [
-        section("request", [
-          paragraph(["Current request: ", variable("userRequest")]),
-        ]),
+      archetype: "workflow",
+      nodes: [
+        {
+          type: "section",
+          tag: "request",
+          children: [
+            {
+              type: "paragraph",
+              content: [
+                "Current request: ",
+                { type: "variable", name: "userRequest" },
+              ],
+            },
+          ],
+        },
       ],
     });
 
@@ -60,12 +94,20 @@ describe("renderXmlMarkdown", () => {
   });
 
   test("renders context usage as a structured node", () => {
-    const prompt = workflowPrompt({
+    const prompt = definePrompt({
       id: "contextPrompt",
-      sections: [
-        usesContext("researchContext", {
-          instructions: ["Use loaded notes as evidence."],
-        }),
+      archetype: "workflow",
+      nodes: [
+        {
+          type: "contextUsage",
+          contextId: "researchContext",
+          instructions: [
+            {
+              type: "bulletList",
+              items: [listItem("Use loaded notes as evidence.")],
+            },
+          ],
+        },
       ],
     });
 

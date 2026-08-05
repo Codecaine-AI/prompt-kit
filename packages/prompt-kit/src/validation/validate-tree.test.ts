@@ -1,18 +1,24 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  paragraph,
-  section,
-  validatePrompt,
-  variable,
-  workflowPrompt,
-} from "..";
+import { definePrompt, validatePrompt } from "..";
 
 describe("validatePrompt", () => {
   test("accepts a valid prompt tree", () => {
-    const prompt = workflowPrompt({
+    const prompt = definePrompt({
       id: "validPrompt",
-      purpose: [paragraph(["Handle ", variable("request")])],
+      archetype: "workflow",
+      nodes: [
+        {
+          type: "section",
+          tag: "purpose",
+          children: [
+            {
+              type: "paragraph",
+              content: ["Handle ", { type: "variable", name: "request" }],
+            },
+          ],
+        },
+      ],
     });
 
     const result = validatePrompt(prompt, {
@@ -24,11 +30,22 @@ describe("validatePrompt", () => {
   });
 
   test("reports duplicate ids, invalid tags, and unknown variables", () => {
-    const prompt = workflowPrompt({
+    const prompt = definePrompt({
       id: "invalidPrompt",
-      sections: [
-        section("not valid", [paragraph(variable("missing"))], { id: "dup" }),
-        section("rules", [], { id: "dup" }),
+      archetype: "workflow",
+      nodes: [
+        {
+          type: "section",
+          id: "dup",
+          tag: "not valid",
+          children: [
+            {
+              type: "paragraph",
+              content: [{ type: "variable", name: "missing" }],
+            },
+          ],
+        },
+        { type: "section", id: "dup", tag: "rules", children: [] },
       ],
     });
 

@@ -12,18 +12,32 @@ import {
 } from "./index";
 import {
   PROMPT_KIT_SCHEMA_VERSION,
-  paragraph,
+  definePrompt,
   renderXmlMarkdown,
-  section,
-  workflowPrompt,
 } from "../..";
 
 describe("prompt editor model", () => {
   test("adds ids and edits prompt blocks through editor commands", () => {
-    const prompt = workflowPrompt({
+    const prompt = definePrompt({
       id: "editorPrompt",
-      purpose: [paragraph(["Study ", { type: "variable", name: "topic" }, "."])],
-      sections: [section("workflow", ["Read context."])],
+      archetype: "workflow",
+      nodes: [
+        {
+          type: "section",
+          tag: "purpose",
+          children: [
+            {
+              type: "paragraph",
+              content: ["Study ", { type: "variable", name: "topic" }, "."],
+            },
+          ],
+        },
+        {
+          type: "section",
+          tag: "workflow",
+          children: [{ type: "paragraph", content: ["Read context."] }],
+        },
+      ],
     });
 
     const model = createPromptEditorModel(prompt, {

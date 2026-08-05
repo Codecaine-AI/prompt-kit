@@ -6,9 +6,11 @@ design_refs: [10-system-design/20-authoring-model.md]
 
 # Templates
 
-Templates are small functions that assemble common prompt section layouts from
-the canonical node builders. They are convenience helpers, not a closed prompt
-taxonomy.
+Templates were small functions that assembled common prompt section layouts
+from the canonical node builders. The template module (`src/templates/`) was
+removed 2026-08-05 along with the builders — it had no production consumers and
+is recoverable from git history. The sections below are kept as a historical
+reference.
 
 ---
 

@@ -21,13 +21,14 @@ The relocation splits the package's UI surface along a headless/React line.
 | `@codecaine-ai/prompt-kit` | Core prompt document, rendering, validation, and node APIs |
 | `@codecaine-ai/prompt-kit/annotations` | Headless annotation types and helpers |
 | `@codecaine-ai/prompt-kit/ui` | Editor models, tree, node access, steps, transaction log — no React, no DOM |
-| `@codecaine-ai/prompt-kit/ui/annotations` | UI-facing annotation models and helpers |
-| `@codecaine-ai/prompt-kit/ui/react` | Every React-facing piece, re-exporting the five entries below |
-| `@codecaine-ai/prompt-kit/ui/prompt-flow` | Editing surface, node inspector, line model, change-handler types |
-| `@codecaine-ai/prompt-kit/ui/lab` | Lab shell, glass panel, annotation queue, autosave, history, style rail |
-| `@codecaine-ai/prompt-kit/ui/style` | Style settings, presets, variable projection, React hook |
+| `@codecaine-ai/prompt-kit/ui/lab` | Lab shell, glass panel, annotation queue, annotations pane, autosave, history, style rail |
+| `@codecaine-ai/prompt-kit/ui/style` | Style settings, presets, variable projection, React hook, style rail/sidebar |
 | `@codecaine-ai/prompt-kit/ui/surface` | Surface tokens and the XML highlighter |
-| `@codecaine-ai/prompt-kit/ui/view` | Read-only prompt view |
+
+The `./ui/react`, `./ui/prompt-flow`, `./ui/annotations`, and `./ui/view`
+entries were dropped 2026-08-05: they had no consumers. The prompt-flow and
+view modules still live under `src/ui/` and are reached through the lab shell;
+the annotations pane moved into `src/ui/lab/`.
 
 React and React DOM are declared as **optional** peer dependencies, so the
 headless `./ui` entry stays usable from servers, scripts, and tests. Keeping the

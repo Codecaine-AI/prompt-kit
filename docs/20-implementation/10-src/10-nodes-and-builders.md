@@ -6,8 +6,11 @@ design_refs: [10-system-design/10-canonical-prompt-object.md, 10-system-design/2
 
 # Nodes And Builders
 
-Nodes define the canonical AST. Builders provide the practical authoring API
-that creates those nodes from readable TypeScript.
+Nodes define the canonical AST. Builders provided the practical authoring API
+that created those nodes from readable TypeScript; the builder module
+(`src/builders/`) was removed 2026-08-05 — it had no production consumers and
+is recoverable from git history. The sections below describing builders are
+kept as a historical reference.
 
 ---
 

@@ -1,22 +1,32 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  definePrompt,
   findNodeById,
   insertAfterId,
   omitNodeById,
   replaceNodeById,
   renderXmlMarkdown,
-  section,
-  workflowPrompt,
+  type SectionNode,
 } from "..";
+
+function sectionNode(tag: string, text: string, id: string): SectionNode {
+  return {
+    type: "section",
+    id,
+    tag,
+    children: [{ type: "paragraph", content: [text] }],
+  };
+}
 
 describe("prompt transforms", () => {
   test("finds, replaces, inserts, and omits nodes by stable id", () => {
-    const prompt = workflowPrompt({
+    const prompt = definePrompt({
       id: "transformPrompt",
-      sections: [
-        section("purpose", ["Original purpose."], { id: "purpose" }),
-        section("workflow", ["Original workflow."], { id: "workflow" }),
+      archetype: "workflow",
+      nodes: [
+        sectionNode("purpose", "Original purpose.", "purpose"),
+        sectionNode("workflow", "Original workflow.", "workflow"),
       ],
     });
 
@@ -25,12 +35,12 @@ describe("prompt transforms", () => {
     const replaced = replaceNodeById(
       prompt,
       "purpose",
-      section("purpose", ["Updated purpose."], { id: "purpose" }),
+      sectionNode("purpose", "Updated purpose.", "purpose"),
     );
     const inserted = insertAfterId(
       replaced,
       "purpose",
-      section("rules", ["Stay focused."], { id: "rules" }),
+      sectionNode("rules", "Stay focused.", "rules"),
     );
     const omitted = omitNodeById(inserted, "workflow");
 

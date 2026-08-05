@@ -30,15 +30,17 @@ document lifecycle.
 
 ```text
 packages/prompt-kit/src/
-├── builders/       Authoring helpers that create prompt nodes
 ├── nodes/          Canonical AST types, guards, and definePrompt
 ├── renderers/      PromptDocument to rendered output
-├── templates/      Reusable prompt skeletons
 ├── transforms/     Tree traversal, find, insert, replace, omit
-├── ui/             Headless preview and editor models
+├── ui/             Headless editor models and React surfaces
 ├── validation/     Prompt diagnostics
 └── index.ts        Root public export
 ```
+
+The authoring builder and template modules (`builders/`, `templates/`) were
+removed 2026-08-05; they had no production consumers and are recoverable from
+git history.
 
 ## Read Order
 

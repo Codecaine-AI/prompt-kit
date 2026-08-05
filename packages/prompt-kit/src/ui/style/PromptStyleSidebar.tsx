@@ -10,7 +10,7 @@ import {
   type PointerEvent,
 } from "react";
 
-import type { PromptStyleSettings } from "../style/prompt-style-settings";
+import type { PromptStyleSettings } from "./prompt-style-settings";
 import { PromptStyleRail } from "./PromptStyleRail";
 
 export const PROMPT_STYLE_SIDEBAR_DEFAULT_WIDTH = 340;
