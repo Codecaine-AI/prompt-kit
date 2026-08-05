@@ -110,28 +110,6 @@ export const editorTypeStyle: CSSProperties = {
 	letterSpacing: EDITOR_METRICS.letterSpacing,
 };
 
-/**
- * Ruled-paper background: one zero-layout-cost hairline per runtime line row.
- * The numeric visibility token lets the rail hide rules without changing row
- * geometry or the rendered prompt text.
- */
-export const editorRuleBackground: CSSProperties = {
-	backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent calc(${EDITOR_METRICS.lineHeight} - 1px), color-mix(in srgb, ${EDITOR_COLORS.rule} calc(var(--prompt-editor-show-rules, 0) * 100%), transparent) calc(${EDITOR_METRICS.lineHeight} - 1px), color-mix(in srgb, ${EDITOR_COLORS.rule} calc(var(--prompt-editor-show-rules, 0) * 100%), transparent) ${EDITOR_METRICS.lineHeight})`,
-	backgroundPosition: "0 0",
-};
-
-/**
- * Tint zero-based odd logical rows without affecting their geometry. Both
- * prompt surfaces use this expression so zebra mode shares rule color and
- * intensity and responds to host variable changes without rendering again.
- */
-export function promptEditorZebraBackground(
-	lineIndex: number,
-): string | undefined {
-	if (lineIndex % 2 === 0) return undefined;
-	return `color-mix(in srgb, ${EDITOR_COLORS.rule} calc(var(--prompt-editor-show-zebra, 1) * 100%), transparent)`;
-}
-
 /** Resolve a host-controlled gutter width while retaining a content-aware fallback. */
 export function promptEditorGutterWidth(fallback: string): string {
 	return `var(--prompt-editor-gutter-width, ${fallback})`;

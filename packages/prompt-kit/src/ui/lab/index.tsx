@@ -1,21 +1,37 @@
 "use client";
 
-// The prompt lab shell: LEFT is a statusbar over the pure editor surface (or
-// the read-only context surface); RIGHT is a collapsible tabbed inspector —
-// AGENT / DETAILS / REVISIONS — that collapses away entirely. The statusbar's
-// ANNOTATE toggle flips the lab into annotate mode, which swaps the right-hand
-// inspector for the annotations pane (node clicks then pick annotation
-// targets instead of steering inspector tabs).
+// The prompt lab shell (2026-08-04 redesign): the DOCUMENT carries the
+// agent's identity — a Notion-style page header at the top of the document
+// column (name as title, model chip, collapsible click-to-edit description)
+// with the HISTORY icon at the column's top right. The floating glass dock
+// keeps only working furniture: the VIEW switcher, then per-view zones —
+// FIXTURE (state), OUTLINE (every view), DETAILS (system, only while a node
+// is selected), COMMENTS (system; every open annotation/request as a row,
+// the ANNOTATE toggle, and the resolved tally). The history icon swaps the
+// glass panel's content to the host's revisions zone (`‹ back` returns);
+// annotate mode morphs the same glass into the annotations workspace. Open
+// comments also surface as Notion-style count bubbles in the content
+// column's right margin, aligned with their blocks. The autosave status
+// whispers from the glass header in the system view — no statusbar, no box.
 
 import cn from "classnames";
-import { PanelRightClose } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { History } from "lucide-react";
 import {
   DEFAULT_SKIP_SELECTOR,
   useTargeting,
   type ResolvedTarget,
 } from "@codecaine-ai/annotations/react";
 import type { PromptDocument } from "../../index";
+import { visitPrompt } from "../../transforms/visit";
 import {
   createPromptEditorModel,
   promptBlockLabel,
@@ -31,6 +47,14 @@ import type {
   PromptFlowStagedRegion,
 } from "../prompt-flow/PromptFlowXml";
 import {
+  outlineSectionLabel,
+  type OutlineSection,
+} from "../prompt-flow/PromptFlowXml/SectionOutline";
+import {
+  EDITOR_COLORS,
+  LINE_HEIGHT_PX,
+} from "../surface/editor-surface";
+import {
   annotationRowElements,
   promptRangeRowElements,
   buildAnnotationParentMap,
@@ -40,40 +64,66 @@ import {
 } from "./annotation-targeting";
 import {
   acceptDisabledReason,
+  nodeRowRange,
   rejectDisabledReason,
+  requestRunId,
   stagedRowPlan,
   targetAnchorRow,
+  type PromptEditRequest,
   type PromptEditSession,
+  type PromptRequestDisposition,
 } from "./prompt-edit-session";
+import {
+  buildRequestQueue,
+  requestNodeId,
+} from "./request-queue";
 import { InlineComposer } from "./InlineComposer";
+import { AnnotateAmbient, ANNOTATE_COLORS } from "./AnnotateAmbient";
+import {
+  AnnotateFloatPanel,
+  DOCK_DEFAULT_WIDTH,
+  type LabPanelTab,
+} from "./AnnotateFloatPanel";
 import { InlineThreadBar, ProposalActionBar } from "./SessionInlineBars";
 import { SessionRequestRail } from "./SessionRequestRail";
 import { createPromptLabHistory } from "./prompt-lab-history";
 import {
   loadPromptStyleSettings,
+  normalizePromptStyleSettings,
   promptStyleVars,
   type PromptStyleSettings,
 } from "../style/prompt-style-settings";
-import { AgentZone } from "./AgentZone";
+import { PromptPageHeader } from "./PageHeader";
+import {
+  CommentMarginRail,
+  type CommentIndicatorGroup,
+  type CommentIndicatorThread,
+} from "./CommentMarginRail";
 import {
   createAutosaveController,
   type AutosaveController,
   type AutosaveControllerState,
 } from "./autosave-controller";
 import { ContextSurface, type LabContextPreview } from "./ContextSurface";
+import { contextOutlineSections } from "./context-outline";
 import {
-  LabInspector,
-  loadLabInspectorPreference,
-  saveLabInspectorPreference,
-} from "./LabInspector";
-import { LabStatusBar, type LabView } from "./LabStatusBar";
+  DockFixtureList,
+  DockOutlineList,
+  DockViewSwitcher,
+  DockZone,
+  type LabDockView,
+  type LabView,
+} from "./LabDock";
+import { StateSurface, type LabStateZone } from "./StateSurface";
 import {
   createAnnotationStore,
   type PromptAnnotationStore,
 } from "../../annotations/store";
 import {
   promptAnnotationSchema,
+  targetFingerprintChanged,
   targetForNode,
+  withTargetFingerprint,
   type PromptAnnotationIntent,
   type PromptAnnotationTarget,
 } from "../../annotations/schema";
@@ -85,10 +135,19 @@ import {
 
 // Directory entry point: the shell itself plus the pieces a host composes
 // around it (the style rail it docks, the undo history it owns, the context
-// preview shape it is fed).
+// preview and state-zone shapes it is fed).
 export { PromptStyleRail, type PromptStyleRailProps } from "./PromptStyleRail";
+export {
+  PromptStyleSidebar,
+  clampPromptStyleSidebarWidth,
+  PROMPT_STYLE_SIDEBAR_DEFAULT_WIDTH,
+  PROMPT_STYLE_SIDEBAR_MIN_WIDTH,
+  PROMPT_STYLE_SIDEBAR_MAX_WIDTH,
+  type PromptStyleSidebarProps,
+} from "./PromptStyleSidebar";
 export type { LabContextPreview } from "./ContextSurface";
-export type { LabView } from "./LabStatusBar";
+export type { LabView } from "./LabDock";
+export type { LabFixture, LabStateZone } from "./StateSurface";
 export {
   createPromptLabHistory,
   type PromptLabHistory,
@@ -105,6 +164,7 @@ export {
   acceptDisabledReason,
   rejectDisabledReason,
   undoDisabledReason,
+  requestRunId,
   stagedRowPlan,
   targetAnchorRow,
   type PromptEditProposal,
@@ -112,24 +172,40 @@ export {
   type PromptEditRequestStatus,
   type PromptEditSession,
   type PromptEditThreadMessage,
+  type PromptRequestDisposition,
+  type PromptRequestFiling,
 } from "./prompt-edit-session";
+export {
+  buildRequestQueue,
+  isDisposedStatus,
+  pipelineSummary,
+  queuePositionLabel,
+  requestDisposition,
+  requestNodeId,
+  type QueueEntry,
+  type RecordEntry,
+  type RequestQueueInput,
+  type RequestQueueModel,
+} from "./request-queue";
+export { ANNOTATE_COLORS } from "./AnnotateAmbient";
 
 export type PromptSaveOutcome = { hash: string } | { errors: string[] };
 export type ManifestSaveOutcome = { ok: true } | { errors: string[] };
 
 /**
- * EDIT is the default authoring mode; ANNOTATE swaps the right-hand inspector
- * for the annotations pane and points node selection at annotation targets.
+ * EDIT is the default authoring mode; ANNOTATE points node selection at
+ * annotation targets and morphs the glass panel into the annotations
+ * workspace (the session request rail, or the annotations pane).
  */
 export type LabMode = "edit" | "annotate";
 
-/** AGENT-tab manifest fields surfaced + editable in the inspector. */
+/** Manifest fields surfaced + editable on the page header. */
 export interface LabManifest {
   name: string;
   model: string;
   description: string;
   modelAliases: string[];
-  /** When false the AGENT-tab inputs are read-only (no save endpoint). */
+  /** When false the page-header model/description are read-only. */
   editable: boolean;
 }
 
@@ -142,24 +218,24 @@ export interface PromptInlineLabProps {
   /**
    * Persists the current prompt draft. Autosave debounces this call after
    * edits; on `{ hash }` the draft becomes the new saved baseline (undo
-   * history survives), on `{ errors }` the messages render under the
-   * statusbar. The lab never fetches.
+   * history survives), on `{ errors }` the messages render above the
+   * surface. The lab never fetches.
    */
   onSave?: (doc: PromptDocument) => Promise<PromptSaveOutcome>;
   /**
    * Content hash of the currently saved prompt revision. Not surfaced by the
    * lab shell itself — the hash lives in the host page header and the
-   * REVISIONS tab — but kept in the contract for hosts that pass it.
+   * HISTORY zone — but kept in the contract for hosts that pass it.
    */
   savedHash?: string;
-  /** AGENT-tab manifest data (name/model/description + alias suggestions). */
+  /** Page-header manifest data (name/model/description + alias suggestions). */
   manifest?: LabManifest;
-  /** Persists AGENT-tab edits (model/description). */
+  /** Persists page-header edits (model/description). */
   onManifestSave?: (patch: {
     model: string;
     description: string;
   }) => Promise<ManifestSaveOutcome>;
-  /** Read-only context preview shown when the statusbar selects CONTEXT. */
+  /** Read-only context preview shown when the dock selects CONTEXT. */
   context?: LabContextPreview;
   /**
    * Viewer-only style settings controlled by the host. When omitted, the lab
@@ -167,10 +243,16 @@ export interface PromptInlineLabProps {
    */
   styleSettings?: PromptStyleSettings;
   /**
-   * REVISIONS-tab content (stats + history + diff). Host-composed — see
-   * AgentPromptLabContainer.
+   * History content (stats + history + diff). Host-composed — see
+   * AgentPromptLabContainer. Reached through the document header's history
+   * icon, which swaps the glass panel to a temporary History view.
    */
   revisionsZone?: React.ReactNode;
+  /**
+   * The STATE view: fixtures + the rendered state document for the active
+   * one. When present the dock's view switcher gains a `state` entry.
+   */
+  stateZone?: LabStateZone;
   /**
    * Store backing annotate mode. When omitted the lab owns an in-memory
    * store, so annotate mode works out of the box (annotations then live only
@@ -198,12 +280,51 @@ export interface PromptInlineLabProps {
    * present: staged proposals render as inline red/green diffs with
    * per-request action bars (in BOTH modes), waiting-on-human requests
    * render inline amber thread bars, a draft banner sits above the surface,
-   * the annotate rail shows the session's slim request cards instead of the
-   * annotation pane, and composer submits route to `onSendRequest` when the
-   * session provides it.
+   * the COMMENTS zone (and annotate mode's rail) reads the session's
+   * requests + records instead of the annotation store, and composer submits
+   * route to `onFileRequest` / `onSendRequest` when the session provides
+   * them.
+   *
+   * The three-gesture additions (`onFileRequest`, `onRunRequest`,
+   * `onApplyQueue`, `onRerunRequest`) are all optional: with none of them
+   * wired the lab still files notes, still shows the queue, and simply never
+   * launches anything.
    */
   promptEditSession?: PromptEditSession;
 }
+
+/**
+ * DOM anchors the dock outline steers by, per view. Each surface stamps its
+ * own scroller and rows; the spy and click-to-scroll resolve both lazily so
+ * the dock never holds an element ref across a view switch.
+ */
+/**
+ * One open comment/request row — the COMMENTS zone and the margin bubbles
+ * render from the same list, so a comment can never show in one place and
+ * not the other.
+ */
+interface LabCommentThread extends CommentIndicatorThread {
+  /** Anchored node, or null for document-level notes. */
+  nodeId: string | null;
+}
+
+const OUTLINE_ANCHORS: Record<
+  LabView,
+  { scroller: string; row: (row: number) => string }
+> = {
+  system: {
+    scroller: '[data-prompt-flow-scroll="xml"]',
+    row: (row) => `[data-row-index="${row}"]`,
+  },
+  context: {
+    scroller: '[data-context-scroll="context"]',
+    row: (row) => `[data-prompt-row="${row}"]`,
+  },
+  state: {
+    scroller: '[data-context-scroll="state"]',
+    row: (row) => `[data-prompt-row="${row}"]`,
+  },
+};
 
 export function PromptInlineLab({
   prompt,
@@ -217,6 +338,7 @@ export function PromptInlineLab({
   context,
   styleSettings,
   revisionsZone,
+  stateZone,
   annotationStore,
   onAnnotationAgentRun,
   onAnnotationUndoPatch,
@@ -248,22 +370,36 @@ export function PromptInlineLab({
     },
     [],
   );
-  const [inspector, setInspector] = useState(() =>
-    loadLabInspectorPreference(),
-  );
+  // The glass panel's temporary History view: the document header's history
+  // icon swaps the zone stack for the host's revisions zone; `‹ back`, a
+  // second click, or entering annotate returns. Panel-internal, per-mount.
+  const [panelHistory, setPanelHistory] = useState(false);
+  // A margin-bubble click lights its sidebar COMMENTS row briefly, so the
+  // click reads in both places (the document selects, the list points).
+  const [highlightedCommentKey, setHighlightedCommentKey] = useState<
+    string | null
+  >(null);
+  // The floating glass dock's current width — reserved as document-area
+  // padding so text reflows beside the panel rather than under it.
+  const [annotatePanelWidth, setAnnotatePanelWidth] = useState(DOCK_DEFAULT_WIDTH);
+  // Apply has been pressed and the batch has not drained. It is the ONLY
+  // piece of run state the lab owns — everything else (in flight, staged,
+  // resolved) is read back off the session, so the narration can never
+  // disagree with the requests it narrates.
+  const [applyingQueue, setApplyingQueue] = useState(false);
   // Lab-owned fallback store so annotate mode works without host wiring.
   const fallbackAnnotationStore = useMemo(() => createAnnotationStore(), []);
   const activeAnnotationStore = annotationStore ?? fallbackAnnotationStore;
-  // The section outline is part of the editor surface, not an option. It
-  // needs real width to be worth its column, so the one guard is geometric:
-  // below the breakpoint it is not rendered and costs nothing.
-  const [outlineFits, setOutlineFits] = useState(true);
+  // The one geometric guard: with real width the dock sits borderless in the
+  // document's margin and the column centers; below the breakpoint the lab
+  // degrades to a plain two-column flex with a bordered dock.
+  const [dockInMargin, setDockInMargin] = useState(true);
   const rootRef = useRef<HTMLElement | null>(null);
   const [persistedStyleSettings] = useState(() =>
     styleSettings ?? loadPromptStyleSettings(),
   );
 
-  // AGENT-tab local edit state (model/description), reset when the source
+  // Page-header local edit state (model/description), reset when the source
   // manifest identity changes.
   const [model, setModel] = useState(manifest?.model ?? "");
   const [description, setDescription] = useState(manifest?.description ?? "");
@@ -314,10 +450,35 @@ export function PromptInlineLab({
     return controllerRef.current;
   }, [bump]);
 
+  // Guards the reset below against prop-identity ECHOES: hosts refetch the
+  // document after saves/accepts and hand back a new object with the same
+  // content, and resetting on those wiped the open composer "randomly"
+  // (2026-08-04 audit, finding 1).
+  const promptContentRef = useRef<string>("");
   useEffect(() => {
+    const fingerprint = JSON.stringify(prompt);
+    if (promptContentRef.current === fingerprint) return;
+    promptContentRef.current = fingerprint;
     setHistory(createPromptLabHistory(prompt));
-    setSelectedNodeId(undefined);
-    setAnnotationTarget(null);
+    // The content genuinely changed — but keep the selection and the annotate
+    // pin (the open composer) when their node SURVIVED the swap: losing a
+    // half-written note because an unrelated accept landed is hostile.
+    const nodeSurvives = (nodeId: string | undefined | null): boolean => {
+      if (!nodeId) return false;
+      let found = false;
+      visitPrompt(prompt, ({ node }) => {
+        if (!found && "type" in node && node.id === nodeId) found = true;
+      });
+      return found;
+    };
+    setSelectedNodeId((current) =>
+      nodeSurvives(current) ? current : undefined,
+    );
+    setAnnotationTarget((current) =>
+      current && current.nodeId !== current.docId && !nodeSurvives(current.nodeId)
+        ? null
+        : current,
+    );
     setSaveErrors([]);
     // A document swap invalidates any queued or in-flight save of the
     // previous document; dispose suppresses its completions entirely.
@@ -341,14 +502,10 @@ export function PromptInlineLab({
   }, [manifest?.name, manifest?.model, manifest?.description]);
 
   useEffect(() => {
-    saveLabInspectorPreference(inspector);
-  }, [inspector]);
-
-  useEffect(() => {
     const element = rootRef.current;
     if (!element || typeof ResizeObserver === "undefined") return;
     const check = () =>
-      setOutlineFits(element.clientWidth >= OUTLINE_MIN_CONTAINER_WIDTH);
+      setDockInMargin(element.clientWidth >= DOCK_MARGIN_MIN_WIDTH);
     check();
     const observer = new ResizeObserver(check);
     observer.observe(element);
@@ -383,6 +540,10 @@ export function PromptInlineLab({
     () => estimateTokenCount(context?.renderedContext ?? ""),
     [context?.renderedContext],
   );
+  const stateTokenCount = useMemo(
+    () => estimateTokenCount(stateZone?.renderedState ?? ""),
+    [stateZone?.renderedState],
+  );
   const explicitSelectedEntry = selectedNodeId
     ? model_.tree.find((entry) => entry.id === selectedNodeId)
     : undefined;
@@ -391,17 +552,38 @@ export function PromptInlineLab({
     () => promptStyleVars(appliedStyleSettings),
     [appliedStyleSettings],
   );
-
-  const manifestDirty = Boolean(
-    manifest &&
-    (model !== manifest.model || description !== manifest.description),
+  // The document column's measure: the style rail's Content width setting,
+  // verbatim (2026-08-04 audit — the old 96ch cap silently swallowed most of
+  // the slider's 60–180ch range, so dragging it "did nothing"). Projected as
+  // `--prompt-editor-content-width` onto the document area, it reaches every
+  // surface's content column; the scrollers themselves stay full width so
+  // the scrollbar sits at the region's far right.
+  const docContentWidth = useMemo(
+    () =>
+      `${normalizePromptStyleSettings(appliedStyleSettings).contentWidth}ch`,
+    [appliedStyleSettings],
   );
-  const inContext = view === "context";
-  const annotateActive = mode === "annotate" && !inContext;
+
+  const canSaveManifest = Boolean(
+    manifest?.editable && Boolean(onManifestSave),
+  );
+  // A host may retract the state zone while the state view is showing; the
+  // lab falls back to the system view rather than rendering a dead surface.
+  const activeView: LabView =
+    view === "state" && !stateZone ? "system" : view;
+  const inSystem = activeView === "system";
+  const annotateActive = mode === "annotate" && inSystem;
+
+  // The panel's History view exists only where its icon does (system view
+  // with a revisions zone) — leaving either snaps the glass back to zones.
+  useEffect(() => {
+    if (panelHistory && (!inSystem || !revisionsZone)) setPanelHistory(false);
+  }, [panelHistory, inSystem, revisionsZone]);
 
   // The lab's own copy of the line model PromptFlowXml renders from — the
   // build is deterministic on the prompt, so rows here and rows on screen
-  // agree line-for-line. Targeting maps DOM rows onto these lines.
+  // agree line-for-line. Targeting maps DOM rows onto these lines; the dock
+  // outline reads its system sections from it.
   const labLineModel = useMemo(
     () => buildXmlLineModel(model_.prompt, { variables: undefined }),
     [model_.prompt],
@@ -412,7 +594,7 @@ export function PromptInlineLab({
   // render → new labLineModel → effect …).
   const labLineModelRef = useRef(labLineModel);
   labLineModelRef.current = labLineModel;
-  // Hover-chip labels, named exactly the way the inspector tree names nodes.
+  // Hover-chip labels, named exactly the way the details zone names nodes.
   // Item ids label as "List item" — items are not blocks, so they sit outside
   // promptBlockLabel's union.
   const nodeLabels = useMemo(() => {
@@ -436,6 +618,133 @@ export function PromptInlineLab({
   const nodeParentMap = useMemo(
     () => buildAnnotationParentMap(model_.prompt),
     [model_.prompt],
+  );
+
+  /* ------------------------------------------------------------------ */
+  /* Dock outline: sections + scroll-spy + click-to-scroll               */
+  /* ------------------------------------------------------------------ */
+
+  // System sections come from the line model (same rule the editor's old
+  // outline column used: one entry per top-level open tag plus its depth-1
+  // container children, names only). Context and state sections are
+  // recovered from their rendered strings.
+  const systemOutlineSections = useMemo<OutlineSection[]>(() => {
+    const result: OutlineSection[] = [];
+    const seen = new Set<string>();
+    labLineModel.lines.forEach((line, index) => {
+      if (line.role !== "open" || line.depth > 1) return;
+      if (seen.has(line.nodeId)) return;
+      seen.add(line.nodeId);
+      result.push({
+        row: index,
+        nodeId: line.nodeId,
+        label: outlineSectionLabel(line),
+        depth: line.depth,
+      });
+    });
+    return result;
+  }, [labLineModel]);
+  const contextOutlineList = useMemo(
+    () => contextOutlineSections(context?.renderedContext ?? ""),
+    [context?.renderedContext],
+  );
+  const stateOutlineList = useMemo(
+    () => contextOutlineSections(stateZone?.renderedState ?? ""),
+    [stateZone?.renderedState],
+  );
+  const outlineSections =
+    activeView === "system"
+      ? systemOutlineSections
+      : activeView === "context"
+        ? contextOutlineList
+        : stateOutlineList;
+
+  // Human-readable target labels for queue rows: the node's own outline
+  // label, else its nearest outlined ANCESTOR's (a field inside
+  // <state_structure> reads `state_structure`, not its machine id), else
+  // the raw id. Rows tooltip the raw id either way.
+  const targetLabelFor = useCallback(
+    (nodeId: string) => {
+      const labels = new Map(
+        systemOutlineSections.map((section) => [section.nodeId, section.label]),
+      );
+      let current: string | undefined = nodeId;
+      while (current) {
+        const label = labels.get(current);
+        if (label) return label;
+        current = nodeParentMap.get(current);
+      }
+      return nodeId;
+    },
+    [systemOutlineSections, nodeParentMap],
+  );
+
+  // Scroll tracking mirrors the retired outline columns': the active entry
+  // is the last section whose anchor row sits at/above the top of the
+  // viewport (a two-line grace), snapping to the last section at the bottom
+  // of the scroller. Rects, not offsets — rows live inside each surface's
+  // own positioned wrappers.
+  const [outlineActiveRow, setOutlineActiveRow] = useState<number | null>(
+    null,
+  );
+  useEffect(() => {
+    const anchors = OUTLINE_ANCHORS[activeView];
+    const scroller =
+      rootRef.current?.querySelector<HTMLElement>(anchors.scroller) ?? null;
+    if (!scroller || outlineSections.length === 0) {
+      setOutlineActiveRow(null);
+      return;
+    }
+    const update = () => {
+      const threshold =
+        scroller.getBoundingClientRect().top + LINE_HEIGHT_PX * 2;
+      let active = outlineSections[0]!.row;
+      for (const section of outlineSections) {
+        const element = scroller.querySelector<HTMLElement>(
+          anchors.row(section.row),
+        );
+        if (element && element.getBoundingClientRect().top <= threshold) {
+          active = section.row;
+        }
+      }
+      if (
+        scroller.scrollHeight > scroller.clientHeight &&
+        scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2
+      ) {
+        active = outlineSections[outlineSections.length - 1]!.row;
+      }
+      setOutlineActiveRow((current) => (current === active ? current : active));
+    };
+    update();
+    scroller.addEventListener("scroll", update);
+    return () => scroller.removeEventListener("scroll", update);
+  }, [activeView, outlineSections]);
+
+  const scrollToOutlineSection = useCallback(
+    (section: OutlineSection) => {
+      // Clicking is the selection here — mark it immediately rather than
+      // waiting on a smooth scroll to settle.
+      setOutlineActiveRow(section.row);
+      const anchors = OUTLINE_ANCHORS[activeView];
+      const scroller =
+        rootRef.current?.querySelector<HTMLElement>(anchors.scroller) ?? null;
+      const element =
+        scroller?.querySelector<HTMLElement>(anchors.row(section.row)) ?? null;
+      if (!scroller || !element) return;
+      // Land the section's anchor one line below the top edge — the same
+      // breathing the buffer's first line gets from its top padding.
+      const top =
+        element.getBoundingClientRect().top -
+        scroller.getBoundingClientRect().top +
+        scroller.scrollTop -
+        LINE_HEIGHT_PX;
+      if (typeof scroller.scrollTo === "function") {
+        scroller.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      } else {
+        element.scrollIntoView?.({ block: "start", behavior: "smooth" });
+      }
+    },
+    [activeView],
   );
 
   // The targeting hook owns its containerRef; this mirror lets callbacks
@@ -577,6 +886,14 @@ export function PromptInlineLab({
       event.stopPropagation();
       return;
     }
+    // STICKY PIN (2026-08-05): while a composer is open, document clicks
+    // neither cancel nor re-target it — only its × or Escape close it. The
+    // click is consumed so the surface's background-deselect never fires.
+    if (annotationTarget) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     const resolved = resolveTargetForElement(raw);
     if (!resolved) return;
     event.preventDefault();
@@ -591,36 +908,309 @@ export function PromptInlineLab({
     setSelectedNodeId(undefined);
   }, [pinAnnotationTarget]);
 
-  // Composer submit: every annotation is an agent request. With a session
-  // that owns request creation (onSendRequest) the submit routes there — the
-  // container echoes the request back through `promptEditSession.requests`;
-  // otherwise it lands in the annotation store. Either way the pinned target
-  // clears, so no composer is left on screen.
+  /** Scroll the system buffer so a node's first row lands near the top —
+   * the queue-card click's other half (select + bring into view). */
+  const scrollToNodeRow = useCallback((nodeId?: string) => {
+    if (!nodeId) return;
+    const range = nodeRowRange(labLineModelRef.current.lines, nodeId);
+    if (!range) return;
+    const anchors = OUTLINE_ANCHORS.system;
+    const scroller =
+      rootRef.current?.querySelector<HTMLElement>(anchors.scroller) ?? null;
+    const element =
+      scroller?.querySelector<HTMLElement>(anchors.row(range.start)) ?? null;
+    if (!scroller || !element) return;
+    const top =
+      element.getBoundingClientRect().top -
+      scroller.getBoundingClientRect().top +
+      scroller.scrollTop -
+      LINE_HEIGHT_PX;
+    if (typeof scroller.scrollTo === "function") {
+      scroller.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    } else {
+      element.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    }
+  }, []);
+
+  // Composer submit: every annotation is an agent request, and the gesture
+  // that filed it decides where its life happens. With a session that owns
+  // request creation the submit routes to `onFileRequest` (falling back to
+  // the disposition-blind `onSendRequest`) — the container echoes the
+  // request back through `promptEditSession.requests`; otherwise it lands in
+  // the annotation store. Either way the pinned target clears, so no
+  // composer is left on screen.
   const activeAnnotationStoreRef = useRef(activeAnnotationStore);
   activeAnnotationStoreRef.current = activeAnnotationStore;
   const annotationTargetRef = useRef(annotationTarget);
   annotationTargetRef.current = annotationTarget;
-  const onSendRequestRef = useRef(promptEditSession?.onSendRequest);
-  onSendRequestRef.current = promptEditSession?.onSendRequest;
-  const handleComposerSubmit = useCallback(
-    (body: string) => {
-      const target = annotationTargetRef.current;
-      if (!target) return;
-      const sendRequest = onSendRequestRef.current;
-      if (sendRequest) {
-        void sendRequest(target, body);
-      } else {
-        activeAnnotationStoreRef.current.add({
+  const sessionRef = useRef(promptEditSession);
+  sessionRef.current = promptEditSession;
+  const promptRef = useRef(model_.prompt);
+  promptRef.current = model_.prompt;
+
+  /**
+   * Files one note into the queue. `global` drops the node entirely (a
+   * document-level request); `batch` keeps the pinned target, STAMPED with
+   * its content fingerprint so the queue can notice later that the node
+   * moved under it. Nothing runs until Apply.
+   */
+  const fileRequest = useCallback(
+    (body: string, disposition: PromptRequestDisposition) => {
+      const pinned = annotationTargetRef.current;
+      if (!pinned) return;
+      const target =
+        disposition === "global"
+          ? null
+          : withTargetFingerprint(promptRef.current, pinned);
+      const session = sessionRef.current;
+      let annotationId = newAnnotationId();
+      if (session?.onFileRequest) {
+        void session.onFileRequest({
+          annotationId,
+          disposition,
           target,
+          body,
+        });
+      } else if (session?.onSendRequest) {
+        void session.onSendRequest(target, body);
+      } else {
+        annotationId = activeAnnotationStoreRef.current.add({
+          // The store has no document-level target kind: a global note falls
+          // back to the pinned target, which for a ⌘K-with-no-selection
+          // composer is already the document itself.
+          target: target ?? pinned,
           body,
           intent: "agent-request" satisfies PromptAnnotationIntent,
           author: "you",
-        });
+        }).id;
       }
       clearAnnotationSelection();
     },
     [clearAnnotationSelection],
   );
+
+  /** The rail's document-level input files a `global` note, same as ⌘Enter. */
+  const fileGlobalNote = useCallback(
+    (body: string) => {
+      const session = sessionRef.current;
+      if (session?.onFileRequest) {
+        void session.onFileRequest({
+          annotationId: newAnnotationId(),
+          disposition: "global",
+          target: null,
+          body,
+        });
+        return;
+      }
+      if (session?.onSendRequest) void session.onSendRequest(null, body);
+    },
+    [],
+  );
+
+  // The COMMENTS zone's population: open session requests when a session
+  // drives the queue, open annotations otherwise. The store subscription is
+  // cheap — the same snapshot the pane itself renders from.
+  const annotationDoc = useSyncExternalStore(
+    activeAnnotationStore.subscribe,
+    activeAnnotationStore.document,
+    activeAnnotationStore.document,
+  );
+  // One shape for both sources — the sidebar rows and the margin bubbles
+  // read the same list, so a comment can never show in one and not the
+  // other. `label` is the queue alias (session) or the author (store).
+  const openCommentThreads = useMemo<LabCommentThread[]>(() => {
+    if (promptEditSession) {
+      return promptEditSession.requests
+        .filter(
+          (request) =>
+            request.status === "open" ||
+            request.status === "working" ||
+            request.status === "waiting" ||
+            request.status === "ready",
+        )
+        .map((request) => ({
+          key: requestRunId(request),
+          label: request.alias,
+          body: request.body,
+          agent: request.author === "agent",
+          nodeId: requestNodeId(request),
+        }));
+    }
+    return annotationDoc.annotations
+      .filter((annotation) => annotation.status === "open")
+      .map((annotation) => ({
+        key: annotation.id,
+        label: annotation.author,
+        body: annotation.body,
+        agent: annotation.author === "agent",
+        nodeId:
+          annotation.target.nodeId === annotation.target.docId
+            ? null
+            : annotation.target.nodeId,
+      }));
+  }, [promptEditSession, annotationDoc]);
+
+  // Margin bubbles: open node-targeted comments grouped per block, anchored
+  // at the block's FIRST row. Keyed on editVersion + prompt (not the
+  // per-render line model) like every other row-geometry memo.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const commentIndicatorGroups = useMemo<CommentIndicatorGroup[]>(() => {
+    const byNode = new Map<string, CommentIndicatorThread[]>();
+    for (const thread of openCommentThreads) {
+      if (!thread.nodeId) continue;
+      const list = byNode.get(thread.nodeId) ?? [];
+      list.push(thread);
+      byNode.set(thread.nodeId, list);
+    }
+    const groups: CommentIndicatorGroup[] = [];
+    for (const [nodeId, threads] of byNode) {
+      const range = nodeRowRange(labLineModelRef.current.lines, nodeId);
+      if (!range) continue;
+      groups.push({ nodeId, row: range.start, threads });
+    }
+    return groups;
+  }, [openCommentThreads, editVersion, prompt]);
+
+  // COMMENT TICKS + HOVER WASH (2026-08-05, mockup B): every block with open
+  // comments carries a thin violet tick down its rows; hovering its queue
+  // card or margin bubble washes the whole block, so the card ↔ block link
+  // is visible instead of guessed. Ranges re-derive with the document.
+  const [litCommentNodeId, setLitCommentNodeId] = useState<string | null>(
+    null,
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const commentRowRanges = useMemo(() => {
+    const ranges = new Map<string, { start: number; end: number }>();
+    for (const group of commentIndicatorGroups) {
+      const range = nodeRowRange(labLineModelRef.current.lines, group.nodeId);
+      if (range) ranges.set(group.nodeId, range);
+    }
+    return ranges;
+  }, [commentIndicatorGroups, editVersion, prompt]);
+  const commentTickCss = useMemo(() => {
+    if (commentRowRanges.size === 0) return "";
+    const tick: string[] = [];
+    const lit: string[] = [];
+    for (const [nodeId, range] of commentRowRanges) {
+      for (let row = range.start; row <= range.end; row += 1) {
+        const selector = `[data-prompt-flow-rows] [data-row-index="${row}"]`;
+        tick.push(selector);
+        if (nodeId === litCommentNodeId) lit.push(selector);
+      }
+    }
+    // !important on background: XmlRow paints its zebra tint through the
+    // inline background SHORTHAND, which would otherwise win.
+    return [
+      `${tick.join(",\n")} { box-shadow: inset 2px 0 0 rgb(138 122 176 / 0.55); }`,
+      lit.length > 0
+        ? `${lit.join(",\n")} { background: rgb(138 122 176 / 0.14) !important; box-shadow: inset 2px 0 0 var(--prompt-annotate-accent-lit, #AD9DD0); }`
+        : "",
+    ].join("\n");
+  }, [commentRowRanges, litCommentNodeId]);
+
+  // The bubbles portal into the editor's rows container — tracked as STATE
+  // (not a ref) so the rail re-renders when the container mounts, unmounts
+  // (view switches, empty tree), or is replaced.
+  const [flowRowsElement, setFlowRowsElement] = useState<HTMLElement | null>(
+    null,
+  );
+  useLayoutEffect(() => {
+    setFlowRowsElement(
+      rootRef.current?.querySelector<HTMLElement>("[data-prompt-flow-rows]") ??
+        null,
+    );
+  }, [activeView, editVersion, prompt]);
+
+  /** Margin-bubble click: select the block AND point at its sidebar row. */
+  const handleCommentIndicatorSelect = useCallback(
+    (nodeId: string, firstThreadKey: string) => {
+      setSelectedNodeId(nodeId);
+      setHighlightedCommentKey(firstThreadKey);
+      rootRef.current
+        ?.querySelector(`[data-lab-comment-row="${firstThreadKey}"]`)
+        ?.scrollIntoView?.({ block: "nearest" });
+      window.setTimeout(
+        () =>
+          setHighlightedCommentKey((current) =>
+            current === firstThreadKey ? null : current,
+          ),
+        1600,
+      );
+    },
+    [],
+  );
+
+  /* ------------------------------------------------------------------ */
+  /* The queue: every note files here; Apply drains it (run-now retired) */
+  /* ------------------------------------------------------------------ */
+
+  // "target changed since filed": an accepted change has moved a node that a
+  // still-queued note was filed against. Purely client-side — the evidence
+  // is the fingerprint stamped on the target at file time, compared against
+  // the CURRENT draft.
+  const conflictedAliases = useMemo(() => {
+    const aliases = new Set<string>();
+    for (const request of promptEditSession?.requests ?? []) {
+      if (!request.target) continue;
+      if (targetFingerprintChanged(model_.prompt, request.target)) {
+        aliases.add(request.alias);
+      }
+    }
+    return aliases;
+  }, [promptEditSession, model_.prompt]);
+
+  const requestQueue = useMemo(
+    () =>
+      buildRequestQueue({
+        requests: promptEditSession?.requests ?? [],
+        proposals: promptEditSession?.proposals ?? [],
+        applying: applyingQueue,
+        conflictedAliases,
+      }),
+    [promptEditSession, applyingQueue, conflictedAliases],
+  );
+
+  // The batch drains itself: once every queued request has a staged proposal
+  // (or has left the queue) there is nothing left to narrate, so the run is
+  // over and Apply comes back.
+  useEffect(() => {
+    if (applyingQueue && requestQueue.activeAlias === null) {
+      setApplyingQueue(false);
+    }
+  }, [applyingQueue, requestQueue.activeAlias]);
+
+  const startQueueRun = useCallback(() => {
+    const session = sessionRef.current;
+    const ids = buildRequestQueue({
+      requests: session?.requests ?? [],
+      proposals: session?.proposals ?? [],
+      applying: false,
+    })
+      .queue.filter((entry) => !entry.staged)
+      .map((entry) => requestRunId(entry.request));
+    if (ids.length === 0) return;
+    setApplyingQueue(true);
+    void session?.onApplyQueue?.(ids);
+  }, []);
+
+  // Rows to wash with the working shimmer: the target extent of the queue
+  // card the agent is processing right now.
+  const shimmerRows = useMemo(() => {
+    if (!annotateActive || requestQueue.activeAlias === null) return [];
+    const active = requestQueue.queue.find(
+      (entry) => entry.request.alias === requestQueue.activeAlias,
+    );
+    const nodeId = active ? requestNodeId(active.request) : null;
+    if (!nodeId) return [];
+    const range = nodeRowRange(labLineModelRef.current.lines, nodeId);
+    if (!range) return [];
+    const rows: number[] = [];
+    for (let row = range.start; row <= range.end; row += 1) rows.push(row);
+    return rows;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [annotateActive, requestQueue, editVersion, prompt]);
+  // The tab's dot beats faster while the queue is draining.
+  const anyRunInFlight = requestQueue.activeAlias !== null;
 
   /**
    * Staged proposals → inline diff regions. Each proposal replaces its
@@ -671,8 +1261,10 @@ export function PromptInlineLab({
 
   /**
    * In-flow widgets above their target rows: amber waiting-on-human thread
-   * bars (both modes) and — in annotate mode — THE inline composer, inserted
-   * directly above the pinned target so content pushes down (⌘K feel).
+   * bars (both modes), and — in annotate mode — THE inline composer,
+   * inserted directly above the pinned target so content pushes down
+   * (⌘K feel). Run-now's inline threads retired 2026-08-05 with the
+   * disposition: the queue narrates all agent work now.
    */
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const inlineInserts = useMemo<PromptFlowInlineInsert[] | undefined>(() => {
@@ -703,14 +1295,21 @@ export function PromptInlineLab({
         });
       }
     }
+    // Queued notes no longer insert in-flow markers here — the margin
+    // bubbles (CommentMarginRail) carry that presence without pushing text.
     if (annotateActive && annotationTarget) {
+      const composerRow = targetAnchorRow(lines, annotationTarget) ?? 0;
       inserts.push({
         key: "composer",
-        row: targetAnchorRow(lines, annotationTarget) ?? 0,
+        row: composerRow,
+        // Ring-aligned (2026-08-05): the box's edges match the dotted
+        // targeting ring under it, so the pair reads as one assembly.
+        align: "ring",
         element: (
           <InlineComposer
-            onSubmit={handleComposerSubmit}
+            onSubmit={fileRequest}
             onCancel={clearAnnotationSelection}
+            documentTarget={annotationTarget.nodeId === annotationTarget.docId}
           />
         ),
       });
@@ -722,7 +1321,7 @@ export function PromptInlineLab({
     annotationTarget,
     editVersion,
     prompt,
-    handleComposerSubmit,
+    fileRequest,
     clearAnnotationSelection,
   ]);
 
@@ -740,21 +1339,11 @@ export function PromptInlineLab({
 
   function handleSelectNode(nodeId?: string) {
     setSelectedNodeId(nodeId);
-    // In annotate mode selection picks the annotation target — the inspector
-    // is not on screen, so its tab preference stays untouched.
+    // In annotate mode selection picks the annotation target; in edit mode
+    // it mounts the dock's DETAILS zone — no tab steering left to do.
     if (mode === "annotate") {
       pinAnnotationTarget(
         nodeId ? targetForNode(model_.prompt, nodeId) : null,
-      );
-      return;
-    }
-    // Selecting a block steers an open inspector to DETAILS; a collapsed
-    // inspector stays collapsed.
-    if (nodeId) {
-      setInspector((preference) =>
-        preference.collapsed || preference.activeTab === "details"
-          ? preference
-          : { ...preference, activeTab: "details" },
       );
     }
   }
@@ -781,7 +1370,7 @@ export function PromptInlineLab({
   }
 
   // Undo/redo are keyboard-only (⌘Z / ⌘⇧Z — see the shortcut handler below);
-  // the statusbar carries no buttons for them.
+  // no chrome carries buttons for them.
   function undo() {
     if (!history.undo()) return;
     bump();
@@ -794,12 +1383,35 @@ export function PromptInlineLab({
     onDraftChange?.(history.current());
   }
 
-  async function handleManifestSave() {
-    if (!onManifestSave || manifestSaving || !manifestDirty) return;
+  /**
+   * The manifest-save path, now fed per-field from the page header (model
+   * chip pick, description blur/Enter). Each save carries BOTH fields — the
+   * endpoint's contract is the whole patch — merged from the incoming edit
+   * over the current local values.
+   */
+  async function handleManifestSave(patch: {
+    model?: string;
+    description?: string;
+  }) {
+    if (!onManifestSave || manifestSaving) return;
+    const nextModel = patch.model ?? model;
+    const nextDescription = patch.description ?? description;
+    setModel(nextModel);
+    setDescription(nextDescription);
+    if (
+      manifest &&
+      nextModel === manifest.model &&
+      nextDescription === manifest.description
+    ) {
+      return;
+    }
     setManifestSaving(true);
     setManifestError(undefined);
     try {
-      const outcome = await onManifestSave({ model, description });
+      const outcome = await onManifestSave({
+        model: nextModel,
+        description: nextDescription,
+      });
       if (!("ok" in outcome)) {
         setManifestError(outcome.errors.join("; "));
       }
@@ -808,6 +1420,38 @@ export function PromptInlineLab({
     } finally {
       setManifestSaving(false);
     }
+  }
+
+  /**
+   * The panel's tab bar is the mode switch: AI is the annotate/AI state
+   * (system view only — selecting it from another view returns to system),
+   * Edit is the resting state.
+   */
+  function handlePanelTabSelect(next: LabPanelTab) {
+    if (next === "ai") {
+      if (!inSystem) setView("system");
+      setAnnotateMode("annotate");
+      return;
+    }
+    setAnnotateMode("edit");
+  }
+
+  function setAnnotateMode(next: LabMode) {
+    if (next === mode) return;
+    setMode(next);
+    // Annotate owns the glass — a parked History view would otherwise
+    // resurface, stale, on `done`.
+    if (next === "annotate") setPanelHistory(false);
+    // Entering annotate mode adopts the current node selection as the
+    // pending target; leaving drops the target entirely.
+    pinAnnotationTarget(
+      next === "annotate" && selectedNodeId
+        ? targetForNode(model_.prompt, selectedNodeId)
+        : null,
+    );
+    // Leaving ends the narration too — a queue run is a thing you watch, and
+    // there is nothing to watch from outside the mode.
+    if (next === "edit") setApplyingQueue(false);
   }
 
   /**
@@ -821,7 +1465,6 @@ export function PromptInlineLab({
   const shortcutRef = useRef<(event: KeyboardEvent) => void>(() => {});
   shortcutRef.current = (event: KeyboardEvent) => {
     const mod = event.metaKey || event.ctrlKey;
-    if (!mod) return;
     const root = rootRef.current;
     if (!root) return;
     const target = event.target;
@@ -829,14 +1472,26 @@ export function PromptInlineLab({
     const active = root.ownerDocument.activeElement;
     if (!inside && active !== null && active !== root.ownerDocument.body) return;
 
+    // Esc finishes the mode — the ambient chip says so. An open composer
+    // owns Escape first (the targeting container clears the pinned target
+    // and stops the event before it reaches here), so this only fires when
+    // nothing is pinned.
+    if (event.key === "Escape") {
+      if (!annotateActive || annotationTarget) return;
+      event.preventDefault();
+      setAnnotateMode("edit");
+      return;
+    }
+    if (!mod) return;
+
     const key = event.key.toLowerCase();
     if (key === "s") {
       event.preventDefault();
-      if (!inContext) ensureController().flush();
+      if (inSystem) ensureController().flush();
       return;
     }
     if (key !== "z") return;
-    if (inContext) return;
+    if (!inSystem) return;
     event.preventDefault();
     if (event.shiftKey) redo();
     else undo();
@@ -848,51 +1503,56 @@ export function PromptInlineLab({
     return () => document.removeEventListener("keydown", listener);
   }, []);
 
+  // The view switcher's rows: `state` rides along only when the host wires a
+  // state zone. Each row carries the view's own token estimate.
+  const dockViews: LabDockView[] = [
+    { id: "system", tokens: promptTokenCount },
+    { id: "context", tokens: contextTokenCount },
+    ...(stateZone
+      ? [{ id: "state" as const, tokens: stateTokenCount }]
+      : []),
+  ];
+
   return (
     <section
       ref={rootRef}
       style={styleVars}
+      data-lab-mode={annotateActive ? "annotate" : "edit"}
       className={cn(
-        "@container flex h-full min-h-0 flex-1 flex-col bg-card font-mono",
+        // `relative` is the ambient signals' anchor: the mode's edge line and
+        // its bottom-centre chip position against the lab, not the viewport,
+        // so an embedded lab never paints over the page around it.
+        "@container relative flex h-full min-h-0 flex-1 flex-col bg-card font-mono",
         className,
       )}
     >
+      {/* THE MODE AS A TEMPERATURE: edge line, chip, dock tint, and the
+          working shimmer on whatever rows are being worked right now. */}
+      <AnnotateAmbient active={annotateActive} shimmerRows={shimmerRows} />
+
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* LEFT: statusbar over the editor surface — nothing else. In
-            context view the read-only context surface takes its place. */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <LabStatusBar
-            view={view}
-            onViewChange={setView}
-            tokenCount={inContext ? contextTokenCount : promptTokenCount}
-            errorCount={errorCount}
-            dirty={dirty}
-            hasSave={Boolean(onSave)}
-            savePending={autosaveState.pending}
-            saving={autosaveState.saving}
-            saveErrors={saveErrors}
-            lastSavedAt={lastSavedAt}
-            inspectorCollapsed={mode === "edit" && inspector.collapsed}
-            annotateMode={mode === "annotate"}
-            onRetrySave={() => ensureController().retry()}
-            onToggleAnnotate={() => {
-              const next = mode === "annotate" ? "edit" : "annotate";
-              setMode(next);
-              // Entering annotate mode adopts the current node selection as
-              // the pending target; leaving drops the target entirely.
-              pinAnnotationTarget(
-                next === "annotate" && selectedNodeId
-                  ? targetForNode(model_.prompt, selectedNodeId)
-                  : null,
-              );
-            }}
-            onOpenInspector={() =>
-              setInspector((preference) => ({
-                ...preference,
-                collapsed: false,
-              }))
-            }
-          />
+        {/* THE DOCUMENT AREA: no chrome above it. The surfaces span the full
+            region (their scrollbars land at its far right edge) and the text
+            column centers inside their scrollers when the dock sits in the
+            margin; the whole field shares the editor background so the
+            column floats in it. */}
+        <div
+          className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+          style={
+            {
+              background: EDITOR_COLORS.bg,
+              // The glass panel's footprint, published as a variable: each
+              // surface's SCROLLER pads its inside by it, so content reflows
+              // beside the glass while the scrollbar stays at the region's
+              // far right. Width + the style rail's panel inset + a 12px gap
+              // between document and glass.
+              "--prompt-editor-reserved-right":
+                annotatePanelWidth > 0
+                  ? `${annotatePanelWidth + appliedStyleSettings.panelInset + 12}px`
+                  : "0px",
+            } as React.CSSProperties
+          }
+        >
 
           {saveErrors.length > 0 && (
             <div className="shrink-0 border-b border-destructive/30 bg-destructive/5 px-3 py-1.5">
@@ -909,7 +1569,7 @@ export function PromptInlineLab({
 
           {/* Draft banner: staged agent changes exist and nothing is saved.
               Accept all / Discard act on the whole draft (session-owned). */}
-          {!inContext &&
+          {inSystem &&
             promptEditSession &&
             promptEditSession.proposals.length > 0 && (
               <div
@@ -943,93 +1603,164 @@ export function PromptInlineLab({
             )}
 
           <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-            {inContext ? (
-              <ContextSurface context={context} showOutline={outlineFits} />
-            ) : (
-              /* Targeting container: hover glide-ring/chip + selected ring
-                 overlays render inside it; in annotate mode its capture
-                 handler turns row clicks into target picks. Inert (attrs
-                 only) while editing. */
-              <div
-                ref={(element) => {
-                  targetingContainerRef.current = element;
-                  targeting.containerRef.current = element;
-                }}
-                {...targeting.containerProps}
-                onClickCapture={handleAnnotateClickCapture}
-                // A fresh press disarms the release-click swallow — if a drag
-                // released outside the container (its click never reached
-                // handleAnnotateClickCapture), the stale flag must not eat
-                // the next genuine click.
-                onMouseDownCapture={() => {
-                  swallowReleaseClickRef.current = false;
-                }}
-                // Escape closes the inline composer and drops the pinned
-                // target (the composer's textarea lets Escape bubble here).
-                onKeyDown={(event) => {
-                  if (event.key === "Escape" && annotationTarget) {
-                    event.stopPropagation();
-                    clearAnnotationSelection();
-                  }
-                }}
-                className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden"
-              >
-                {/* The inline composer and thread bars travel INTO the
-                    surface as in-flow inserts (above their target rows);
-                    staged proposals replace their rows with the inline
-                    diff. Composing is annotate-only; diffs and thread bars
-                    show in both modes. */}
-                <PromptFlowXml
-                  prompt={model_.prompt}
-                  model={model_}
-                  selectedEntry={explicitSelectedEntry}
-                  selectedNodeId={selectedNodeId}
-                  onSelectNode={handleSelectNode}
-                  onPromptChange={handlePromptChange}
-                  showOutline={outlineFits}
-                  stagedRegions={stagedRegions}
-                  inlineInserts={inlineInserts}
+            {/* The document region: the surfaces (and their scrollers) span
+                its FULL width — left edge to the dock — so the vertical
+                scrollbar sits at the far right, clear of the text. While the
+                dock is in the margin the content column caps at the document
+                width and centers INSIDE each surface's scroller (the
+                projected `--prompt-editor-content-width` + `centerContent`);
+                full-bleed in the narrow two-column fallback. */}
+            <div
+              className="flex h-full min-h-0 min-w-0 flex-1"
+              style={
+                dockInMargin
+                  ? ({
+                      "--prompt-editor-content-width": docContentWidth,
+                    } as React.CSSProperties)
+                  : undefined
+              }
+            >
+              {activeView === "context" ? (
+                <ContextSurface
+                  context={context}
+                  showOutline={false}
+                  centerContent={dockInMargin}
                 />
-                {targeting.overlays}
-                {annotateActive && <style>{ANNOTATE_CURSOR_CSS}</style>}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT: annotate mode pins the annotations pane; otherwise the
-            tabbed inspector, which collapsed renders nothing at all. */}
-        {mode === "annotate" ? (
-          <aside className="flex w-[400px] shrink-0 flex-col border-l border-border bg-card">
-            <div className="flex h-9 shrink-0 items-stretch border-b border-border">
-              <span className="inline-flex items-center px-3 text-[11px] uppercase tracking-[0.08em] text-foreground">
-                {promptEditSession ? "Requests" : "Annotations"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setMode("edit")}
-                aria-label="Exit annotate mode"
-                title="Exit annotate mode"
-                className="ml-auto inline-flex w-9 shrink-0 items-center justify-center border-l border-border text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-              >
-                <PanelRightClose size={14} />
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3">
-              {promptEditSession ? (
-                /* Session rail: slim request cards (alias + status + body +
-                   thread — no quote/target chip; click-to-focus does that
-                   job), the doc-level message input, and Undo on applied
-                   cards. */
-                <SessionRequestRail
-                  session={promptEditSession}
-                  onFocusTarget={(nodeId) => setSelectedNodeId(nodeId)}
+              ) : activeView === "state" && stateZone ? (
+                <StateSurface
+                  stateZone={stateZone}
+                  centerContent={dockInMargin}
                 />
               ) : (
-                /* model_.prompt has run through ensurePromptNodeIds (the
-                    editor model ensures ids), so every node — list items
-                    included — is addressable. The pane is list-only; the
-                    composer is the inline one on the editor surface. */
+                /* Targeting container: hover glide-ring/chip + selected ring
+                   overlays render inside it; in annotate mode its capture
+                   handler turns row clicks into target picks. Inert (attrs
+                   only) while editing. */
+                <div
+                  ref={(element) => {
+                    targetingContainerRef.current = element;
+                    targeting.containerRef.current = element;
+                  }}
+                  {...targeting.containerProps}
+                  onClickCapture={handleAnnotateClickCapture}
+                  // A fresh press disarms the release-click swallow — if a drag
+                  // released outside the container (its click never reached
+                  // handleAnnotateClickCapture), the stale flag must not eat
+                  // the next genuine click.
+                  onMouseDownCapture={() => {
+                    swallowReleaseClickRef.current = false;
+                  }}
+                  // Escape closes the inline composer and drops the pinned
+                  // target (the composer's textarea lets Escape bubble here).
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape" && annotationTarget) {
+                      event.stopPropagation();
+                      clearAnnotationSelection();
+                    }
+                  }}
+                  className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden"
+                >
+                  {/* The inline composer and thread bars travel INTO the
+                      surface as in-flow inserts (above their target rows);
+                      staged proposals replace their rows with the inline
+                      diff. Composing is annotate-only; diffs and thread bars
+                      show in both modes. */}
+                  <PromptFlowXml
+                    prompt={model_.prompt}
+                    model={model_}
+                    selectedEntry={explicitSelectedEntry}
+                    selectedNodeId={selectedNodeId}
+                    onSelectNode={handleSelectNode}
+                    onPromptChange={handlePromptChange}
+                    stagedRegions={stagedRegions}
+                    inlineInserts={inlineInserts}
+                    centerContent={dockInMargin}
+                    // Notion-page header: part of the scrolling document, on
+                    // the same content column as the rows.
+                    leadContent={
+                      manifest ? (
+                        <PromptPageHeader
+                          name={manifest.name}
+                          description={description}
+                          editable={canSaveManifest}
+                          error={manifestError}
+                          onSaveDescription={(next) =>
+                            void handleManifestSave({ description: next })
+                          }
+                        />
+                      ) : undefined
+                    }
+                  />
+                  {targeting.overlays}
+                  {/* Open comments as margin bubbles, portaled into the rows
+                      container so they ride the scroll — both modes. */}
+                  {/* Annotation signals live in the AI state ONLY (Ford,
+                      2026-08-05): edit mode stays clean of the layer —
+                      bubbles, ticks, and washes all gate on the mode. */}
+                  {annotateActive && (
+                    <CommentMarginRail
+                      container={flowRowsElement}
+                      groups={commentIndicatorGroups}
+                      onSelect={handleCommentIndicatorSelect}
+                      onHoverNode={setLitCommentNodeId}
+                    />
+                  )}
+                  {annotateActive && commentTickCss && (
+                    <style data-lab-comment-ticks="">{commentTickCss}</style>
+                  )}
+                  {annotateActive && <style>{ANNOTATE_CURSOR_CSS}</style>}
+                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* THE GLASS PANEL (2026-08-05 redesign): fixed furniture with an
+            Edit / AI tab bar for a header. Edit holds the zone stack; AI is
+            the workspace (active runs, requests, comments) — selecting the
+            AI tab IS entering the AI state, and the panel animates to that
+            tab's own geometry. The document reserves the footprint in both. */}
+        <AnnotateFloatPanel
+          tab={annotateActive ? "ai" : "edit"}
+          onTabSelect={handlePanelTabSelect}
+          busy={anyRunInFlight}
+          topInset={appliedStyleSettings.panelTopInset}
+          onWidthChange={setAnnotatePanelWidth}
+        >
+          {annotateActive && inSystem ? (
+            <div className="flex h-full min-h-0 flex-col gap-3">
+              {/* Save trouble stays visible while working the AI state — the
+                  system row's whisper lives on the Edit tab. */}
+              {onSave && (
+                <AutosaveWhisper
+                  dirty={dirty}
+                  errorCount={errorCount}
+                  hasSave={Boolean(onSave)}
+                  pending={autosaveState.pending}
+                  saving={autosaveState.saving}
+                  saveErrors={saveErrors}
+                  lastSavedAt={lastSavedAt}
+                  retryDisabled={errorCount > 0 || !onSave}
+                  onRetry={() => ensureController().retry()}
+                  exceptionalOnly
+                />
+              )}
+              {promptEditSession ? (
+                <SessionRequestRail
+                  session={promptEditSession}
+                  queue={requestQueue}
+                  applying={applyingQueue}
+                  onApply={startQueueRun}
+                  onFileGlobal={fileGlobalNote}
+                  onFocusTarget={(nodeId) => {
+                    setSelectedNodeId(nodeId);
+                    scrollToNodeRow(nodeId);
+                  }}
+                  onHoverTarget={setLitCommentNodeId}
+                  targetLabel={targetLabelFor}
+                />
+              ) : (
                 <PromptAnnotationsPane
                   prompt={model_.prompt}
                   onSelectNode={handleSelectNode}
@@ -1039,70 +1770,136 @@ export function PromptInlineLab({
                 />
               )}
             </div>
-          </aside>
-        ) : !inspector.collapsed && (
-          <LabInspector
-            activeTab={inspector.activeTab}
-            onActiveTabChange={(tab) =>
-              setInspector((preference) => ({
-                ...preference,
-                activeTab: tab,
-              }))
-            }
-            onCollapse={() =>
-              setInspector((preference) => ({
-                ...preference,
-                collapsed: true,
-              }))
-            }
-            agent={
-              manifest ? (
-                <AgentZone
-                  name={manifest.name}
-                  model={model}
-                  description={description}
-                  modelAliases={manifest.modelAliases}
-                  dirty={manifestDirty}
-                  saving={manifestSaving}
-                  canSave={manifest.editable && Boolean(onManifestSave)}
-                  onModelChange={setModel}
-                  onDescriptionChange={setDescription}
-                  onSave={() => void handleManifestSave()}
-                  error={manifestError}
-                />
+          ) : (
+            <>
+          {/* VIEW — the switcher replaces the old tabs AND the old token
+              readout; counts ride each row, quiet and right-aligned. */}
+          <DockZone id="view" label="View">
+            <DockViewSwitcher
+              views={dockViews}
+              active={activeView}
+              onSelect={setView}
+              // Layering rule: the system row IS the savable prompt — it
+              // alone carries the save status. (History rides the OUTLINE
+              // header: its body is what the toggle replaces.)
+              rowSublines={{
+                system: onSave ? (
+                  <AutosaveWhisper
+                    dirty={dirty}
+                    errorCount={errorCount}
+                    hasSave={Boolean(onSave)}
+                    pending={autosaveState.pending}
+                    saving={autosaveState.saving}
+                    saveErrors={saveErrors}
+                    lastSavedAt={lastSavedAt}
+                    retryDisabled={errorCount > 0 || !onSave}
+                    onRetry={() => ensureController().retry()}
+                    exceptionalOnly
+                  />
+                ) : undefined,
+              }}
+            />
+          </DockZone>
+
+          {/* FIXTURE — state view only: pick the snapshot the surface shows. */}
+          {activeView === "state" && stateZone && (
+            <DockZone id="fixture" label="Fixture">
+              <DockFixtureList
+                fixtures={stateZone.fixtures}
+                activeFixtureId={stateZone.activeFixtureId}
+                onSelect={stateZone.onFixtureSelect}
+              />
+            </DockZone>
+          )}
+
+          {/* OUTLINE — every view; hidden only when the document has no
+              sections to map. */}
+          {(outlineSections.length > 0 || (inSystem && revisionsZone)) && (
+            <DockZone
+              id="outline"
+              label={panelHistory ? "History" : "Outline"}
+              action={
+                inSystem && revisionsZone ? (
+                  <button
+                    type="button"
+                    data-lab-history-toggle=""
+                    aria-label="History"
+                    aria-pressed={panelHistory}
+                    title={panelHistory ? "Back to outline" : "History"}
+                    onClick={() => setPanelHistory((open) => !open)}
+                    className={cn(
+                      "transition-colors",
+                      panelHistory
+                        ? "text-foreground"
+                        : "text-muted-foreground/50 hover:text-foreground",
+                    )}
+                  >
+                    <History size={12} aria-hidden />
+                  </button>
+                ) : undefined
+              }
+            >
+              {/* The zone below the header IS the toggle's subject: outline
+                  at rest, the revision history in its place on demand. */}
+              {panelHistory && inSystem && revisionsZone ? (
+                <div data-lab-panel-history="">{revisionsZone}</div>
               ) : (
-                <TabPlaceholder>
-                  No agent manifest accompanies this prompt.
-                </TabPlaceholder>
-              )
-            }
-            details={
+                <DockOutlineList
+                  sections={outlineSections}
+                  activeRow={outlineActiveRow}
+                  onSelect={scrollToOutlineSection}
+                />
+              )}
+            </DockZone>
+          )}
+
+          {/* DETAILS — mounts only while a block is selected; small and
+              demoted under the outline. */}
+          {inSystem && explicitSelectedEntry && (
+            <DockZone id="details" label="Details">
               <PromptFlowInspector
                 prompt={model_.prompt}
                 model={model_}
                 selectedEntry={explicitSelectedEntry}
                 onPromptChange={handlePromptChange}
               />
-            }
-            revisions={
-              revisionsZone ?? (
-                <TabPlaceholder>
-                  No revision history for this prompt.
-                </TabPlaceholder>
-              )
-            }
-          />
-        )}
+            </DockZone>
+          )}
+
+          {/* COMMENTS left the Edit tab (2026-08-05 redesign): what is active
+              — open requests, comments, runs — shows in the AI state; Edit
+              keeps only the wayfinding zones. Margin bubbles still mark
+              commented blocks in the document itself. */}
+            </>
+          )}
+        </AnnotateFloatPanel>
       </div>
     </section>
   );
 }
 
 /**
- * Below this lab-container width the outline column is omitted entirely —
- * the editor pane left over would be too cramped to read.
+ * The lab-minted handle for a filed note. It exists before the host has seen
+ * anything, so `onRunRequest` / `onApplyQueue` / `onRerunRequest` always have
+ * something stable to name (`crypto.randomUUID` matches the annotation
+ * store's own id minting; the counter is only for runtimes without it).
  */
-const OUTLINE_MIN_CONTAINER_WIDTH = 1100;
+let annotationIdCounter = 0;
+function newAnnotationId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  annotationIdCounter += 1;
+  return `annotation-${Date.now()}-${annotationIdCounter}`;
+}
+
+/**
+ * Below this lab-container width the dock leaves the margin: the column stops
+ * centering and the dock becomes a bordered right column.
+ */
+const DOCK_MARGIN_MIN_WIDTH = 1280;
+
+/** The centered document column's cap — the mockups' 96ch, in the lab's mono. */
 
 /**
  * Annotate-mode cursor affordance: rows read as pick targets, not text. The
@@ -1150,12 +1947,88 @@ const ANNOTATE_CURSOR_CSS = `
   }
 `;
 
-function TabPlaceholder({ children }: { children: React.ReactNode }) {
+/**
+ * The autosave whisper: the save state as small fixed text in the document
+ * area's bottom-right corner — `unsaved` / `saving…` / `save failed — retry`
+ * / `saved 3:42 PM`. No box, no border; only the retry link takes pointer
+ * events.
+ */
+function AutosaveWhisper({
+  dirty,
+  errorCount,
+  hasSave,
+  pending,
+  saving,
+  saveErrors,
+  lastSavedAt,
+  retryDisabled,
+  onRetry,
+  exceptionalOnly = false,
+}: {
+  dirty: boolean;
+  errorCount: number;
+  hasSave: boolean;
+  pending: boolean;
+  saving: boolean;
+  saveErrors: string[];
+  lastSavedAt?: Date;
+  retryDisabled: boolean;
+  onRetry: () => void;
+  /** Silence as the healthy state: render nothing when plainly saved. */
+  exceptionalOnly?: boolean;
+}) {
+  // The system row's subline speaks only when something needs attention.
+  if (exceptionalOnly && !dirty) return null;
+  let body: React.ReactNode;
+  if (dirty && errorCount > 0) {
+    body = (
+      <span className="text-destructive/70">
+        unsaved — {errorCount} {errorCount === 1 ? "error" : "errors"}
+      </span>
+    );
+  } else if (dirty && hasSave && (pending || saving)) {
+    body = <span className="text-muted-foreground/70">saving…</span>;
+  } else if (dirty && saveErrors.length > 0) {
+    const firstLine = saveErrors[0]?.split(/\r?\n/, 1)[0] ?? "Save failed";
+    body = (
+      <span className="text-destructive" title={firstLine}>
+        save failed —{" "}
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={retryDisabled}
+          className="pointer-events-auto underline underline-offset-2 hover:text-destructive/80 disabled:cursor-not-allowed disabled:no-underline"
+        >
+          retry
+        </button>
+      </span>
+    );
+  } else if (dirty) {
+    body = <span className="text-muted-foreground/70">unsaved</span>;
+  } else {
+    body = (
+      <span className="text-muted-foreground/70">
+        saved
+        {lastSavedAt ? ` ${formatSaveTime(lastSavedAt)}` : ""}
+      </span>
+    );
+  }
+
   return (
-    <div className="flex items-center justify-center p-5">
-      <p className="max-w-52 text-center text-[12px] leading-relaxed text-muted-foreground/70">
-        {children}
-      </p>
-    </div>
+    <span
+      data-lab-autosave=""
+      // Lives in the floating dock's header (2026-08-04 audit: the corner
+      // whisper floated over prompt text; the sidebar owns status now).
+      className="pointer-events-auto select-none whitespace-nowrap text-[10px] tracking-[0.06em]"
+    >
+      {body}
+    </span>
   );
+}
+
+function formatSaveTime(value: Date): string {
+  return value.toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }

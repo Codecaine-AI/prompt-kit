@@ -9,7 +9,9 @@
  * Annotations are written through the real kernel catalog service ops (the
  * same surface the HTTP routes ride), the launch helper assembles the
  * session, and the resulting sessionData is fed through the bundle's actual
- * `assemble()` — placeholders in the output mean the contract broke.
+ * state sidecar (seed → render, section ③) — placeholders in the output mean
+ * the contract broke. The context sidecar stays session-invariant standing
+ * knowledge (section ②).
  */
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -34,8 +36,14 @@ import {
 	type LaunchedPromptEditSession,
 } from "@agent-kernel/kernel/prompt-edit-session";
 import type { LoadedMap, SpawnContext } from "@agent-kernel/kernel/context";
+import {
+	DEFAULT_WINDOW,
+	normalizeRenderOutput,
+	type RenderContext,
+} from "@agent-kernel/kernel/state";
 
 import promptEditorContext from "./prompt-editor/context/index";
+import promptEditorState from "./prompt-editor/state/index";
 
 const CATALOG_DIR = import.meta.dir;
 const TARGET_AGENT = "source-scout";
@@ -199,12 +207,13 @@ afterAll(() => {
 });
 
 describe("launchPromptEditSession over the sidecar", () => {
-	test("the spawn target and the edit target live in the same registry", () => {
+	test("the spawn target and edit target are separate from session identity", () => {
 		const editor = registry.tryGet(PROMPT_EDITOR_AGENT_NAME);
 		expect(editor).not.toBeNull();
-		expect(Object.keys(editor!.manifest.variables)).toEqual(["targetAgent"]);
+		expect(Object.keys(editor!.manifest.variables)).toEqual([]);
 		expect(launch.spawn.agentName).toBe(PROMPT_EDITOR_AGENT_NAME);
-		expect(launch.spawn.variables).toEqual({ targetAgent: TARGET_AGENT });
+		expect("variables" in launch.spawn).toBe(false);
+		expect(launch.spawn.sessionData?.targetAgent).toBe(TARGET_AGENT);
 	});
 
 	test("requests carry R-aliases in creation order with annotation ids attached", () => {
@@ -235,30 +244,88 @@ describe("launchPromptEditSession over the sidecar", () => {
 	test("sessionData carries EXACTLY the bundle contract's keys", () => {
 		expect(Object.keys(launch.sessionData).sort()).toEqual([
 			"requestQueue",
+			"targetAgent",
 			"targetPromptHash",
 			"targetPromptRender",
 		]);
 		const def = registry.tryGet(TARGET_AGENT)!;
+		expect(launch.sessionData.targetAgent).toBe(TARGET_AGENT);
 		expect(launch.sessionData.targetPromptHash).toBe(def.promptHash);
 		expect(launch.sessionData.targetPromptHash).toStartWith("pk1-");
 		expect(launch.sessionData.targetPromptRender).toContain("<!-- #para-0 -->");
 		expect(launch.sessionData.requestQueue).toContain("R1 open");
 	});
 
-	test("the real bundle context assembles the payload — no placeholders survive", async () => {
+	test("the real bundle context assembles standing knowledge only — the payload never lands in section ②", async () => {
 		const loaded = await loadDeclaredFiles();
 		const out = await promptEditorContext.assemble(
 			loaded,
 			fakeSpawnContext({
-				variables: launch.spawn.variables,
 				sessionData: launch.spawn.sessionData,
 			}),
 		);
+		// Five bare sibling blocks: the kernel's L2 set owns the <context>
+		// envelope, and the static prompt does not inventory them.
+		const tags = [
+			"prompt_document_model",
+			"section_guide",
+			"quality_guide",
+			"tool_guide",
+			"state_reference",
+		];
+		for (const tag of tags) {
+			expect(out).toContain(`<${tag}>`);
+			expect(out).toContain(`</${tag}>`);
+		}
+		expect(out).not.toContain("<prompt_kit_authoring>");
+		expect(out).not.toContain("<doc ");
+		// state_reference documents the section-③ vocabulary; unique values prove
+		// that the live session instance itself did not leak into context.
+		expect(out).not.toContain(launch.sessionData.targetPromptHash);
+		expect(out).not.toContain("You find primary sources.");
+		expect(out).not.toContain(
+			"Make the opening say WHAT counts as a primary source.",
+		);
+	});
+
+	test("the state sidecar carries the launch payload and honestly degrades its missing diff log", () => {
+		const seeded = promptEditorState.seed(
+			fakeSpawnContext({
+				sessionData: launch.spawn.sessionData,
+			}),
+		);
+		const renderContext: RenderContext = {
+			agentName: PROMPT_EDITOR_AGENT_NAME,
+			messages: [],
+			turnIndex: 0,
+			window: { ...DEFAULT_WINDOW },
+		};
+		const result = normalizeRenderOutput(
+			promptEditorState.render(seeded, renderContext),
+		);
+		expect(result.stateMessageCount).toBe(1);
+		const first = result.messages[0] as {
+			content?: Array<{ type: string; text?: string }>;
+		};
+		const out = (first?.content ?? [])
+			.map((entry) => (entry.type === "text" ? (entry.text ?? "") : ""))
+			.join("\n");
 		expect(out).toContain(
 			`<target_prompt agent="${TARGET_AGENT}" hash="${launch.sessionData.targetPromptHash}">`,
 		);
 		expect(out).toContain("<!-- #para-0 -->");
 		expect(out).toContain("You find primary sources.");
+		expect(out).toContain("<diffs>");
+		expect(out).toContain(
+			"(no diffs applied yet — the session service sets sessionData.appliedDiffs to the applied-transaction log)",
+		);
+		expect(out).toContain("<requests>");
+		expect(out.indexOf("<target_prompt ")).toBeLessThan(
+			out.indexOf("<diffs>"),
+		);
+		expect(out.indexOf("<diffs>")).toBeLessThan(
+			out.indexOf("<requests>"),
+		);
 		expect(out).toContain("R1 open");
 		expect(out).toContain(
 			'"Make the opening say WHAT counts as a primary source."',
@@ -301,6 +368,7 @@ describe("launchPromptEditSession over the sidecar", () => {
 		const noted = launch.session.addNote(DOC_ID, "The two purpose paragraphs overlap.");
 		expect(noted.ok).toBe(true);
 		const rebuilt = sessionDataForPromptEditSession(launch.session);
+		expect(rebuilt.targetAgent).toBe(TARGET_AGENT);
 		expect(rebuilt.requestQueue).toContain("R4");
 		expect(rebuilt.targetPromptRender).toContain("firsthand accounts");
 		// The hash stays the base revision — staged proposals build on it.

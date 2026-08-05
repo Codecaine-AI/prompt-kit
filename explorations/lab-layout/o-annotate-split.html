@@ -1,0 +1,1350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt lab layout — O, annotate split workspace</title>
+<style>
+  /* -----------------------------------------------------------------
+     Variant O — "the split workspace" (Option C).
+
+     K's answer was that the mode is a temperature: nothing moves, the
+     dock's slot cross-fades, the conversation stays 320px wide because
+     the document is the primary object. This variant takes the other
+     position and commits to it: annotating IS the work for as long as
+     the mode lasts, so the annotations get a pane, not a margin.
+
+     Entering the mode splits the region in two. The document keeps the
+     left 58% and re-centres its column inside it — it is not squeezed
+     against a panel, it is given its own half. The annotations take the
+     right 42% (never less than 400px), full height, separated by one
+     hairline that lands near the centre of the viewport. That boundary
+     placement is the whole claim: a surface that starts at the middle of
+     the screen is a workspace; a surface that starts at 78% is furniture.
+
+     What the pane buys, that a 320px dock could not hold:
+
+       CARDS WITH ROOM. Each request is a card with real padding, its
+       note at document type size (13px), its target, its state, and —
+       for the active one — a reply field inline. Steering a running
+       request does not require opening anything.
+
+       SECTION RHYTHM. ACTIVE / QUEUE / RECORDS read top to bottom as
+       three bands with different weights: one card working, two waiting
+       under an Apply, and history collapsed to a single tally line that
+       expands only when asked.
+
+       A COMPOSER THAT IS ALWAYS THERE. Pinned to the pane's bottom edge
+       like a chat input. The reviewing pass of §4.1 is a sequence of
+       notes; the surface for it should never need to be summoned.
+
+     The ambient signals K settled are kept, moved to fit: the violet
+     line still marks the left edge of the viewport, and the breathing
+     chip moves from bottom-centre to top-left, because the bottom of
+     this layout now belongs to the composer.
+
+     Leaving collapses the pane back to the plain 280px dock, so the
+     cost of the mode is legible in both directions.
+     ----------------------------------------------------------------- */
+  :root {
+    --bg: #161719;
+    --surface: #1c1e21;
+    --pane: #191b1e;
+    --line: #26282c;
+    --line-soft: #202226;
+    --fg: #c9ccd1;
+    --bright: #e2e5ea;
+    --muted: #868c95;
+    --faint: #5b616a;
+    --tag: #8f7bb5;
+    --tag-dim: #6f6189;
+    --var: #d0a45c;
+    --accent: #8fa2bd;
+    --open: #b8894a;
+    --done: #4c5158;
+    --add: #6f9a6a;
+    --add-lit: #8bb886;
+    --del: #a8635f;
+
+    /* the mode's hue, unchanged from K */
+    --am: #8a7ab0;
+    --am-lit: #ad9dd0;
+    --am-dim: #7a6d98;
+    --am-line: rgba(138, 122, 176, 0.26);
+    --am-line-lit: rgba(138, 122, 176, 0.42);
+    --am-wash: rgba(138, 122, 176, 0.075);
+    --am-fill: rgba(138, 122, 176, 0.055);
+
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+    --col: 76ch;       /* the document column, inside its own pane */
+    --dock: 280px;     /* what the right side is when the mode is off */
+    --top: 30px;
+    --split: 340ms;    /* the pane opening — the one big motion */
+    --shift: 250ms;    /* the temperature change */
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea {
+    font-family: inherit;
+    font-size: 12px;
+    background: transparent;
+    color: inherit;
+    border: 0;
+    padding: 0;
+    line-height: inherit;
+  }
+  button { cursor: pointer; }
+  ::selection { background: rgba(143, 162, 189, 0.22); }
+  .mode-annotate ::selection { background: rgba(138, 122, 176, 0.3); }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #24262a; }
+  ::-webkit-scrollbar-track { background: transparent; }
+
+  /* =================================================================
+     AMBIENT (a) — the left edge of the viewport
+     ================================================================= */
+  #edge {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--am);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 8;
+    transition: opacity var(--shift) var(--ease);
+  }
+  .mode-annotate #edge { opacity: 0.82; }
+
+  /* =================================================================
+     AMBIENT (b) — the chip, top-left. The bottom belongs to the
+     composer now, so the status moves to the one corner still empty.
+     ================================================================= */
+  #chip {
+    position: fixed;
+    left: 16px;
+    top: 11px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 2px 11px 3px;
+    border: 1px solid var(--am-line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--am-lit);
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    user-select: none;
+    z-index: 8;
+    transform: translateY(-3px);
+    transition: opacity var(--shift) var(--ease), transform var(--shift) var(--ease),
+                color var(--shift) var(--ease), border-color var(--shift) var(--ease),
+                visibility 0s linear var(--shift);
+  }
+  .mode-annotate #chip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity var(--shift) var(--ease), transform var(--shift) var(--ease),
+                color var(--shift) var(--ease), border-color var(--shift) var(--ease),
+                visibility 0s;
+  }
+  #chipDot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--am);
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+  #chipDot.fast { animation-duration: 0.72s; }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.3; transform: scale(0.82); }
+    50%      { opacity: 1;   transform: scale(1); }
+  }
+
+  /* =================================================================
+     THE SPLIT
+     ================================================================= */
+  #main { display: flex; height: 100%; min-height: 0; }
+
+  #docPane {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  #stage {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  /* the column re-centres inside whatever width the pane currently has */
+  #doc {
+    max-width: var(--col);
+    margin: 0 auto;
+    padding: var(--top) 20px 40vh;
+    transition: max-width var(--split) var(--ease);
+  }
+  #doc.washed { animation: docWash 900ms var(--ease); }
+  @keyframes docWash {
+    0%   { background: rgba(138, 122, 176, 0); }
+    22%  { background: rgba(138, 122, 176, 0.075); }
+    100% { background: rgba(138, 122, 176, 0); }
+  }
+
+  /* the dock: what the right side is when the mode is off */
+  #dock {
+    flex: 0 0 auto;
+    width: var(--dock);
+    min-width: 0;
+    overflow: hidden;
+    padding: var(--top) 20px 30px 18px;
+    border-left: 1px solid var(--line-soft);
+    opacity: 1;
+    transition: width var(--split) var(--ease), opacity 180ms ease 60ms,
+                padding var(--split) var(--ease), border-color var(--shift) var(--ease);
+  }
+  .mode-annotate #dock {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: width var(--split) var(--ease), opacity 130ms ease,
+                padding var(--split) var(--ease);
+  }
+
+  /* the annotations pane: 42%, floor of 400px, hairline at the middle */
+  #ann {
+    flex: 0 0 auto;
+    width: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--pane);
+    border-left: 1px solid transparent;
+    transition: width var(--split) var(--ease), border-color var(--shift) var(--ease);
+  }
+  .mode-annotate #ann {
+    width: max(400px, 42%);
+    border-left-color: var(--am-line);
+  }
+  #annInner {
+    width: max(400px, 42vw);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0 20px 0 22px;
+    opacity: 0;
+    transition: opacity 160ms ease;
+  }
+  .mode-annotate #annInner { opacity: 1; transition: opacity 220ms ease 130ms; }
+
+  /* =================================================================
+     THE DOCUMENT
+     ================================================================= */
+  .sec { margin-bottom: 30px; }
+  .sec:last-child { margin-bottom: 0; }
+  .tagline {
+    color: var(--tag);
+    white-space: pre;
+    padding-left: 2ch;
+    transition: color var(--shift) var(--ease);
+  }
+  .mode-annotate .tagline { color: var(--am-lit); }
+
+  .row { display: flex; align-items: baseline; }
+  .row .body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    padding: 1px 10px 1px 6px;
+    transition: background-color 160ms var(--ease), box-shadow 160ms var(--ease);
+  }
+  .row.sub .body { padding-left: calc(3ch + 6px); }
+  .row.para .body { margin-top: 8px; margin-bottom: 8px; }
+  .row .mk { color: var(--muted); flex: 0 0 auto; }
+  .row .kk { color: var(--muted); flex: 0 0 13ch; }
+  .row .tx { color: var(--fg); min-width: 0; }
+  .row.spacer { height: 10px; }
+  .var { color: var(--var); }
+  .tool { color: #a1a7b1; }
+
+  .row:hover .body { background-color: rgba(255, 255, 255, 0.028); }
+  .mode-annotate .row:hover .body { background-color: var(--am-wash); }
+
+  /* the pinned target: a ring, because it is a selection, not a hover */
+  .mode-annotate .row.pin .body {
+    background-color: var(--am-fill);
+    box-shadow: inset 0 0 0 1px var(--am-line-lit), inset 2px 0 0 var(--am);
+  }
+  /* a card is being hovered in the pane */
+  .mode-annotate .row.ring .body {
+    background-color: var(--am-wash);
+    box-shadow: inset 0 0 0 1px var(--am-line), inset 2px 0 0 var(--am-dim);
+  }
+  .row.flash .body {
+    background-color: rgba(138, 122, 176, 0.17);
+    box-shadow: inset 2px 0 0 var(--am);
+    transition: none;
+  }
+
+  @keyframes shimmer {
+    from { background-position: -130% 0; }
+    to   { background-position: 230% 0; }
+  }
+  .row.work .body {
+    background-image: linear-gradient(100deg,
+      rgba(138, 122, 176, 0) 22%,
+      rgba(138, 122, 176, 0.19) 46%,
+      rgba(138, 122, 176, 0.05) 58%,
+      rgba(138, 122, 176, 0) 76%);
+    background-size: 230% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 1.6s linear infinite;
+    box-shadow: inset 2px 0 0 var(--am);
+  }
+
+  /* the gutter is a mode affordance — it aims the composer at a node */
+  .gut {
+    flex: 0 0 2ch;
+    align-self: flex-start;
+    color: var(--faint);
+    opacity: 0;
+    background: transparent;
+    transition: opacity 110ms ease, color 110ms ease;
+  }
+  .row.para .gut { margin-top: 8px; }
+  .mode-annotate .row:hover .gut { opacity: 1; }
+  .mode-annotate .gut:hover { color: var(--am-lit); }
+  .mode-annotate .gut.aimed { opacity: 1; color: var(--am); }
+
+  /* =================================================================
+     THE DOCK (mode off)
+     ================================================================= */
+  .zone { border-bottom: 1px solid var(--line-soft); }
+  .zone.tail { border-bottom: 0; }
+  .zhead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0 7px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .zsp { flex: 1; }
+  .zbody { padding-bottom: 12px; }
+  .zact {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    white-space: nowrap;
+  }
+  .zact:hover { color: var(--am-lit); }
+  .aname { color: var(--fg); white-space: nowrap; }
+  .amodel { color: var(--muted); font-size: 11px; }
+  .adesc { color: var(--faint); font-size: 11px; line-height: 1.6; margin-top: 4px; }
+  .vitem {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 4px 0 4px 12px;
+    border-left: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .vitem:hover { color: var(--fg); }
+  .vitem.active { color: var(--bright); border-left-color: var(--accent); }
+  .vitem .vsp { flex: 1; }
+  .vitem .vt { color: var(--faint); font-size: 10px; }
+  .oitem {
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 1px 0 1px 12px;
+    border-left: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .oitem:hover { color: var(--fg); }
+  .oitem.active { color: var(--fg); border-left-color: var(--accent); }
+  .drow { display: flex; gap: 8px; font-size: 11px; line-height: 1.7; white-space: nowrap; }
+  .drow .dk { color: var(--faint); flex: 0 0 62px; }
+  .drow .dv { color: var(--muted); min-width: 0; }
+
+  /* =================================================================
+     THE ANNOTATIONS PANE
+     ================================================================= */
+  .ahead {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 12px 0 10px;
+    font-size: 11px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    color: var(--am-lit);
+    border-bottom: 1px solid var(--am-line);
+    white-space: nowrap;
+  }
+  .ahead .hdot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--am);
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+  .ahead .hsp { flex: 1; }
+  .ahead .hcount {
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: none;
+  }
+  .adone {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 1px 9px 2px;
+    transition: color 130ms ease, background 130ms ease, border-color 130ms ease;
+  }
+  .adone:hover { color: var(--bright); background: rgba(255, 255, 255, 0.05); border-color: var(--line); }
+  .adone .xk { margin-right: 4px; opacity: 0.7; }
+
+  #annScroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin: 0 -6px;
+    padding: 0 6px 14px;
+  }
+
+  .lhead {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 16px 2px 8px;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--am-dim);
+    white-space: nowrap;
+  }
+  .lhead.top { padding-top: 13px; }
+  .lhead .lsp { flex: 1; }
+  .lhead .ln { color: var(--faint); letter-spacing: 0.1em; }
+  .qapply {
+    flex: 0 0 auto;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    color: var(--am-lit);
+    border: 1px solid var(--am-line);
+    border-radius: 3px;
+    padding: 1px 11px 2px;
+    background: rgba(138, 122, 176, 0.09);
+    transition: color 130ms ease, background 130ms ease, border-color 130ms ease;
+  }
+  .qapply:hover { color: var(--bright); background: rgba(138, 122, 176, 0.2); }
+  .qapply.off {
+    color: var(--faint);
+    border-color: var(--line);
+    background: transparent;
+    cursor: default;
+  }
+
+  /* the batch narration line */
+  #pipe {
+    display: none;
+    align-items: baseline;
+    gap: 9px;
+    margin: 0 2px 8px;
+    padding: 5px 11px 6px;
+    border-left: 2px solid var(--am);
+    background: var(--am-fill);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--am-lit);
+    white-space: nowrap;
+  }
+  #pipe.on { display: flex; animation: fadeIn 200ms var(--ease) both; }
+  #pipe .psp { flex: 1; }
+  #pipe .pn { color: var(--faint); letter-spacing: 0.04em; }
+  #pipe.settled { color: var(--add-lit); border-left-color: var(--add); background: rgba(111, 154, 106, 0.05); }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---------- the cards: the reason the pane exists ---------- */
+  .card {
+    position: relative;
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    margin-bottom: 7px;
+    padding: 11px 13px 12px;
+    border: 1px solid var(--line-soft);
+    border-left: 2px solid var(--line);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.012);
+    cursor: pointer;
+    overflow: hidden;
+    transition: background 150ms ease, border-color 150ms ease;
+  }
+  .card:hover { background: rgba(255, 255, 255, 0.035); border-color: var(--line); border-left-color: var(--am-dim); }
+  .card.act {
+    border-color: var(--am-line);
+    border-left-color: var(--am);
+    background: rgba(138, 122, 176, 0.055);
+  }
+  .card.act:hover { background: rgba(138, 122, 176, 0.085); }
+  .card.proc { border-color: var(--am-line); border-left-color: var(--am); }
+  .card.stgd { border-left-color: var(--add); }
+  .card.fresh { animation: cardIn 260ms var(--ease) both; }
+
+  .cline { display: flex; align-items: baseline; gap: 7px; }
+  .card .ca { flex: 0 0 auto; color: var(--bright); font-size: 12px; letter-spacing: 0.05em; }
+  .card .carw { flex: 0 0 auto; color: var(--faint); font-size: 11px; }
+  .card .ctgt {
+    flex: 0 1 auto;
+    color: var(--am-lit);
+    font-size: 12px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card.qd .ctgt { color: var(--muted); }
+  .card .csp { flex: 1 0 6px; }
+  .card .cst {
+    flex: 0 0 auto;
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .card .cst.run { color: var(--am-lit); }
+  .card .cst.next { color: var(--am-dim); }
+  .card .cst.stg { color: var(--add-lit); }
+  .cnote {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--fg);
+    padding: 5px 0 1px;
+    overflow-wrap: break-word;
+  }
+  .card.act .cnote, .card.proc .cnote { color: var(--bright); }
+  .cmeta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 7px;
+    font-size: 11px;
+    color: var(--faint);
+  }
+  .cmeta .csp { flex: 1 0 4px; }
+  .dchip {
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0 6px 1px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+  }
+  .wchip {
+    border: 1px solid rgba(184, 137, 74, 0.42);
+    border-radius: 3px;
+    padding: 0 6px 1px;
+    color: var(--open);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+
+  /* the shimmer bar — the working channel inside a card */
+  .shim {
+    height: 2px;
+    margin-top: 10px;
+    background: rgba(138, 122, 176, 0.13);
+    overflow: hidden;
+  }
+  .shim i {
+    display: block;
+    height: 2px;
+    width: 38%;
+    background: linear-gradient(90deg,
+      rgba(138, 122, 176, 0) 0%,
+      var(--am) 45%,
+      var(--am-lit) 60%,
+      rgba(138, 122, 176, 0) 100%);
+    animation: bar 1.5s var(--ease) infinite;
+  }
+  @keyframes bar {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(300%); }
+  }
+
+  /* the staged summary a card grows once it has a proposal */
+  .stg {
+    margin-top: 9px;
+    padding: 7px 10px 8px;
+    border-left: 2px solid var(--add);
+    background: rgba(111, 154, 106, 0.06);
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--fg);
+    animation: fadeIn 300ms var(--ease) both;
+  }
+  .stg .sq { color: var(--add-lit); letter-spacing: 0.05em; font-size: 11px; }
+  .stg .sd { color: var(--muted); }
+  .stg .sd b { color: var(--add-lit); font-weight: normal; }
+
+  /* the inline reply — steering without opening anything */
+  .crep {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 4px 0 5px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--bright);
+    border-bottom: 1px solid var(--am-line);
+    outline: none;
+  }
+  .crep::placeholder { color: var(--faint); }
+  .crep:focus { border-bottom-color: var(--am); }
+  .cthread {
+    margin-top: 9px;
+    padding-left: 11px;
+    border-left: 1px solid var(--am-line);
+    animation: fadeIn 260ms var(--ease) both;
+  }
+  .cthread .tw {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .cthread .tb { font-size: 12px; line-height: 1.55; color: var(--fg); }
+
+  /* ---------- records: one line until asked ---------- */
+  .recHead {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    text-align: left;
+    padding: 15px 2px 9px;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--am-dim);
+    white-space: nowrap;
+    transition: color 130ms ease;
+  }
+  .recHead:hover { color: var(--am-lit); }
+  .recHead .rt { display: flex; gap: 9px; letter-spacing: 0.06em; }
+  .recHead .ry { color: var(--add); }
+  .recHead .rn { color: var(--faint); }
+  .recHead .rsp { flex: 1; }
+  .recHead .rc { font-size: 9px; transition: transform 140ms ease; }
+  #recWrap.open .recHead .rc { transform: rotate(90deg); }
+  #recBody { display: none; padding-bottom: 4px; }
+  #recWrap.open #recBody { display: block; animation: fadeIn 200ms var(--ease) both; }
+  .rec {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 3px 4px 3px 12px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+  .rec:hover { color: var(--fg); background: rgba(255, 255, 255, 0.022); }
+  .rec .rmk { flex: 0 0 auto; color: var(--add); font-size: 11px; }
+  .rec.no .rmk { color: var(--faint); }
+  .rec .rnode { flex: 0 0 auto; color: var(--fg); }
+  .rec.no .rnode { color: var(--muted); }
+  .rec .rtx {
+    flex: 1;
+    min-width: 0;
+    color: var(--faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rec .rst { flex: 0 0 auto; color: var(--faint); font-size: 11px; }
+
+  /* ---------- the composer, pinned to the pane's bottom ---------- */
+  .afoot {
+    flex: 0 0 auto;
+    border-top: 1px solid var(--am-line);
+    padding: 9px 0 12px;
+  }
+  #note {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    max-height: 26vh;
+    resize: none;
+    color: var(--bright);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 2px 0 4px;
+    outline: none;
+    overflow-y: auto;
+  }
+  #note::placeholder { color: var(--faint); }
+  .fbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 5px;
+  }
+  .ftgt {
+    flex: 1;
+    min-width: 0;
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ftgt b { color: var(--am-dim); font-weight: normal; }
+  .fclear { color: var(--faint); font-size: 11px; }
+  .fclear:hover { color: var(--muted); }
+  .fq {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--am-lit);
+    border: 1px solid var(--am-line);
+    border-radius: 3px;
+    padding: 1px 11px 2px;
+    background: rgba(138, 122, 176, 0.09);
+    transition: color 130ms ease, background 130ms ease;
+  }
+  .fq:hover { color: var(--bright); background: rgba(138, 122, 176, 0.2); }
+  .fq .fk { font-size: 10px; letter-spacing: 0.05em; color: var(--am-dim); }
+  .fq:hover .fk { color: var(--am-lit); }
+
+  #stamp {
+    position: fixed;
+    left: 16px;
+    bottom: 9px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    pointer-events: none;
+    user-select: none;
+    opacity: 1;
+    transition: opacity 200ms ease;
+  }
+  .mode-annotate #stamp { opacity: 0.45; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div id="edge"></div>
+<div id="chip"><span id="chipDot"></span><span id="chipText">annotating &mdash; esc to finish</span></div>
+
+<div id="main">
+
+  <!-- ============================ LEFT: the document ==================== -->
+  <div id="docPane">
+    <main id="stage">
+      <div id="doc">
+
+        <div class="sec">
+          <div class="tagline">&lt;purpose&gt;</div>
+          <div class="row para" data-node="node-purpose-identity">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="tx">You edit the operator-scoped part of a shared whiteboard &mdash; the region <span class="var">{{operator}}</span> owns, that every other agent on the board may read and none may write.</span></div>
+          </div>
+          <div class="row spacer"></div>
+          <div class="row" data-node="node-purpose-subtree">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="mk">&bull;</span><span class="tx">The whiteboard is one live document; your region is a subtree of it, addressed by element id and never by position.</span></div>
+          </div>
+          <div class="row" data-node="node-purpose-concurrent">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="mk">&bull;</span><span class="tx">Other agents write their own regions while you work, so the board you read is never frozen and never yours alone.</span></div>
+          </div>
+          <div class="row" data-node="node-purpose-proposal">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="mk">&bull;</span><span class="tx">Every change you make is a proposal against a base revision, and the surface applies it only if that revision still holds when it lands.</span></div>
+          </div>
+          <div class="tagline">&lt;/purpose&gt;</div>
+        </div>
+
+        <div class="sec">
+          <div class="tagline">&lt;state_structure&gt;</div>
+          <div class="row para" data-node="node-state-intro">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="tx">The board reaches you as a snapshot with four fields:</span></div>
+          </div>
+          <div class="row spacer"></div>
+          <div class="row" data-node="node-state-rev">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="kk">board_rev</span><span class="tx">the revision the snapshot was taken at &mdash; every write you propose carries it back unchanged.</span></div>
+          </div>
+          <div class="row" data-node="node-state-region">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="kk">region</span><span class="tx">your operator&rsquo;s subtree: the elements, their order, and the ids you are permitted to address.</span></div>
+          </div>
+          <div class="row pin" data-node="node-state-elements">
+            <button class="gut aimed" title="R1 is pinned here">&#9679;</button>
+            <div class="body"><span class="kk">elements</span><span class="tx">each element carries the text its author typed and the form the surface actually renders, and the two drift apart whenever a render is stale.</span></div>
+          </div>
+          <div class="row" data-node="node-state-peers">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="kk">peers</span><span class="tx">the other agents holding regions on this board, with the revision each of them last wrote at.</span></div>
+          </div>
+          <div class="row spacer"></div>
+          <div class="row para" data-node="node-state-absent">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="tx">A field missing from the snapshot is unknown, not empty. Never write into a region you cannot currently see.</span></div>
+          </div>
+          <div class="tagline">&lt;/state_structure&gt;</div>
+        </div>
+
+        <div class="sec">
+          <div class="tagline">&lt;workflow&gt;</div>
+          <div class="row para" data-node="node-workflow-intro">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="tx">Work the operator&rsquo;s instructions one at a time and in the order they were given, because a later instruction very frequently reads the part of the board an earlier one has just changed and will be wrong if you have not settled that earlier one first.</span></div>
+          </div>
+          <div class="row spacer"></div>
+          <div class="row" data-node="node-workflow-read">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="mk">1.</span><span class="tx">Read the whole snapshot before proposing anything &mdash; <span class="tool">read_board</span> returns the region and the current <span class="var">board_rev</span> together.</span></div>
+          </div>
+          <div class="row" data-node="node-workflow-locate">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="mk">2.</span><span class="tx">Locate the elements the instruction names, by id, and quote those ids back exactly as the snapshot spelled them.</span></div>
+          </div>
+          <div class="row sub" data-node="node-workflow-locate-miss">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="mk">&mdash;</span><span class="tx">An id you cannot find is a question for the operator, never a new element you invent.</span></div>
+          </div>
+          <div class="row" data-node="node-workflow-write">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="mk">3.</span><span class="tx">Propose one write per instruction with <span class="tool">propose_write</span>, tagged with the <span class="var">board_rev</span> you read.</span></div>
+          </div>
+          <div class="row" data-node="node-workflow-reject">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="mk">4.</span><span class="tx">A rejected write means a peer landed first: re-read, re-decide whether the instruction still applies, and propose again from the new revision.</span></div>
+          </div>
+          <div class="row" data-node="node-workflow-report">
+            <button class="gut" title="note this node">+</button>
+            <div class="body"><span class="mk">5.</span><span class="tx">Report what landed and what did not in one short line per instruction &mdash; never a restatement of a diff the operator can already see.</span></div>
+          </div>
+          <div class="tagline">&lt;/workflow&gt;</div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ============================ RIGHT (mode off): the dock ============ -->
+  <aside id="dock">
+    <div class="zone">
+      <div class="zhead"><span>Agent</span></div>
+      <div class="zbody">
+        <div class="aname">whiteboard-editor</div>
+        <div class="amodel">claude-fable-5</div>
+        <div class="adesc">Edits one operator&rsquo;s region of a shared live whiteboard.</div>
+      </div>
+    </div>
+    <div class="zone">
+      <div class="zhead"><span>View</span></div>
+      <div class="zbody">
+        <button class="vitem active"><span>system</span><span class="vsp"></span><span class="vt">1,140</span></button>
+        <button class="vitem"><span>context</span><span class="vsp"></span><span class="vt">2,806</span></button>
+        <button class="vitem"><span>state</span><span class="vsp"></span><span class="vt">497</span></button>
+      </div>
+    </div>
+    <div class="zone">
+      <div class="zhead"><span>Outline</span></div>
+      <div class="zbody">
+        <button class="oitem active">purpose</button>
+        <button class="oitem">state_structure</button>
+        <button class="oitem">workflow</button>
+      </div>
+    </div>
+    <div class="zone tail">
+      <div class="zhead">
+        <span>Requests</span><span class="zsp"></span>
+        <button class="zact" id="goAnnot">annotate</button>
+      </div>
+      <div class="zbody">
+        <div class="drow"><span class="dk">open</span><span class="dv">3</span></div>
+        <div class="drow"><span class="dk">resolved</span><span class="dv">2</span></div>
+        <div class="drow"><span class="dk">base</span><span class="dv">pk1-4d20a9c7</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================ RIGHT (mode on): the workspace ======== -->
+  <aside id="ann">
+    <div id="annInner">
+
+      <div class="ahead">
+        <span class="hdot"></span><span>Annotations</span>
+        <span class="hsp"></span>
+        <span class="hcount" id="annCount">1 active &middot; 2 queued</span>
+        <button class="adone" id="annDone"><span class="xk">&#10005;</span>done</button>
+      </div>
+
+      <div id="annScroll">
+
+        <!-- ACTIVE -->
+        <div class="lhead top"><span>Active</span><span class="lsp"></span><span class="ln" id="actNote">run now</span></div>
+
+        <div class="card act" id="cardR1" data-target="node-state-elements">
+          <div class="cline">
+            <span class="ca">R1</span><span class="carw">&rarr;</span>
+            <span class="ctgt">state_structure</span>
+            <span class="csp"></span>
+            <span class="cst run" id="r1State">running &middot; reply to steer</span>
+          </div>
+          <div class="cnote">&ldquo;split the sentence about text vs renders &mdash; it is two rules wearing one coat&rdquo;</div>
+          <div class="shim" id="r1Shim"><i></i></div>
+          <div id="r1Thread"></div>
+          <input class="crep" id="r1Reply" spellcheck="false" placeholder="reply to steer &mdash; enter sends" />
+        </div>
+
+        <!-- QUEUE -->
+        <div class="lhead">
+          <span>Queue</span><span class="ln" id="qCount">&middot; 2</span>
+          <span class="lsp"></span>
+          <button class="qapply" id="qApply">Apply</button>
+        </div>
+
+        <div id="pipe">
+          <span id="pipeText"></span><span class="psp"></span><span class="pn" id="pipeNote"></span>
+        </div>
+
+        <div id="queue">
+          <div class="card qd" id="cardR2" data-target="node-workflow-intro">
+            <div class="cline">
+              <span class="ca">R2</span><span class="carw">&rarr;</span>
+              <span class="ctgt">workflow-intro</span>
+              <span class="csp"></span>
+              <span class="cst next">queued &middot; next</span>
+            </div>
+            <div class="cnote">&ldquo;tighten this line &mdash; one clause is doing the work of three&rdquo;</div>
+            <div class="cmeta">
+              <span class="wchip">target changed since filed</span>
+              <span class="csp"></span>
+              <span>3:31 PM</span>
+            </div>
+          </div>
+
+          <div class="card qd" id="cardR3" data-target="document">
+            <div class="cline">
+              <span class="ca">R3</span><span class="carw">&rarr;</span>
+              <span class="ctgt">document</span>
+              <span class="csp"></span>
+              <span class="cst">queued</span>
+            </div>
+            <div class="cnote">&ldquo;operator vs user &mdash; pick one term and hold it through the whole prompt&rdquo;</div>
+            <div class="cmeta">
+              <span class="dchip">document</span>
+              <span class="csp"></span>
+              <span>3:38 PM</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RECORDS -->
+        <div id="recWrap">
+          <button class="recHead" id="recHead">
+            <span>Records</span>
+            <span class="rt"><span class="ry">&#10003;1</span><span class="rn">&#10005;1</span></span>
+            <span class="rsp"></span>
+            <span class="rc">&#9656;</span>
+          </button>
+          <div id="recBody">
+            <button class="rec" data-target="node-purpose-concurrent">
+              <span class="rmk">&#10003;</span><span class="rnode">purpose-concurrent</span>
+              <span class="rtx">&ldquo;say that peers write at the same time&rdquo;</span>
+              <span class="rst">3:12 PM</span>
+            </button>
+            <button class="rec no" data-target="node-state-intro">
+              <span class="rmk">&#10005;</span><span class="rnode">state-intro</span>
+              <span class="rtx">declined &mdash; &ldquo;snapshot&rdquo; is already used consistently</span>
+              <span class="rst">3:19 PM</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="afoot">
+        <textarea id="note" rows="2" spellcheck="false" placeholder="Note the whole document&hellip;"></textarea>
+        <div class="fbar">
+          <span class="ftgt" id="ftgt">target &nbsp;<b>document</b></span>
+          <button class="fclear" id="fclear" style="display:none">clear target</button>
+          <button class="fq" id="fqueue"><span>Queue</span><span class="fk">&#9166;</span></button>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+</div>
+
+<div id="stamp">O &mdash; split workspace</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Mode
+   ===================================================================== */
+const body    = document.body;
+const doc     = document.getElementById("doc");
+const stage   = document.getElementById("stage");
+const chipDot = document.getElementById("chipDot");
+const noteBox = document.getElementById("note");
+
+function enterMode() {
+  body.classList.add("mode-annotate");
+  setTimeout(() => noteBox.focus(), 380);
+}
+function exitMode() {
+  body.classList.remove("mode-annotate");
+  document.querySelectorAll(".row.ring, .row.flash").forEach((r) =>
+    r.classList.remove("ring", "flash"));
+}
+
+document.getElementById("goAnnot").addEventListener("click", enterMode);
+document.getElementById("annDone").addEventListener("click", exitMode);
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { exitMode(); return; }
+  if (e.key.toLowerCase() === "a" && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    body.classList.contains("mode-annotate") ? exitMode() : enterMode();
+  }
+});
+
+/* the mode opens shortly after load, so the split is felt rather than found */
+setTimeout(enterMode, 300);
+
+/* =====================================================================
+   Card ↔ document coupling
+   ===================================================================== */
+function rowFor(target) {
+  if (!target || target === "document") return null;
+  return document.querySelector('.row[data-node="' + target + '"]');
+}
+
+function ringOn(target) {
+  const r = rowFor(target);
+  if (r) r.classList.add("ring");
+}
+function ringOff() {
+  document.querySelectorAll(".row.ring").forEach((r) => r.classList.remove("ring"));
+}
+
+let flashTimer = null;
+function jumpTo(target) {
+  if (target === "document") {
+    stage.scrollTo({ top: 0, behavior: "smooth" });
+    doc.classList.remove("washed");
+    void doc.offsetWidth;
+    doc.classList.add("washed");
+    setTimeout(() => doc.classList.remove("washed"), 900);
+    return;
+  }
+  const r = rowFor(target);
+  if (!r) return;
+  r.scrollIntoView({ block: "center", behavior: "smooth" });
+  clearTimeout(flashTimer);
+  document.querySelectorAll(".row.flash").forEach((x) => x.classList.remove("flash"));
+  void r.offsetWidth;
+  r.classList.add("flash");
+  flashTimer = setTimeout(() => r.classList.remove("flash"), 760);
+}
+
+function bindCard(el) {
+  const target = el.dataset.target;
+  el.addEventListener("mouseenter", () => ringOn(target));
+  el.addEventListener("mouseleave", ringOff);
+  el.addEventListener("click", (e) => {
+    if (e.target.tagName === "INPUT") return;
+    jumpTo(target);
+  });
+}
+document.querySelectorAll(".card").forEach(bindCard);
+document.querySelectorAll(".rec").forEach((el) => {
+  el.addEventListener("mouseenter", () => ringOn(el.dataset.target));
+  el.addEventListener("mouseleave", ringOff);
+  el.addEventListener("click", () => jumpTo(el.dataset.target));
+});
+
+/* the gutter aims the composer at a node */
+let composerTarget = "document";
+const ftgt   = document.getElementById("ftgt");
+const fclear = document.getElementById("fclear");
+
+function setComposerTarget(node) {
+  composerTarget = node;
+  document.querySelectorAll(".gut.aimed").forEach((g) => {
+    const row = g.closest(".row");
+    if (row.classList.contains("pin")) return;   /* R1's pin outlives the composer */
+    if (row !== rowFor(node)) g.classList.remove("aimed");
+  });
+  if (node === "document") {
+    ftgt.innerHTML = "target &nbsp;<b>document</b>";
+    noteBox.placeholder = "Note the whole document…";
+    fclear.style.display = "none";
+  } else {
+    const short = node.replace(/^node-/, "");
+    ftgt.innerHTML = "target &nbsp;<b>" + short + "</b>";
+    noteBox.placeholder = "Note " + short + "…";
+    fclear.style.display = "";
+  }
+}
+fclear.addEventListener("click", () => { setComposerTarget("document"); noteBox.focus(); });
+
+document.querySelectorAll(".row").forEach((row) => {
+  const gut = row.querySelector(".gut");
+  if (!gut) return;
+  gut.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!body.classList.contains("mode-annotate")) return;
+    document.querySelectorAll(".gut.aimed").forEach((g) => {
+      if (!g.closest(".row").classList.contains("pin")) g.classList.remove("aimed");
+    });
+    gut.classList.add("aimed");
+    setComposerTarget(row.dataset.node);
+    noteBox.focus();
+  });
+});
+
+/* =====================================================================
+   R1 — the active request. Replies steer it.
+   ===================================================================== */
+const r1Reply  = document.getElementById("r1Reply");
+const r1Thread = document.getElementById("r1Thread");
+const r1State  = document.getElementById("r1State");
+const r1Shim   = document.getElementById("r1Shim");
+
+r1Reply.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || !r1Reply.value.trim()) return;
+  e.preventDefault();
+  const text = r1Reply.value.trim();
+  r1Reply.value = "";
+  const m = document.createElement("div");
+  m.className = "cthread";
+  m.innerHTML = '<div class="tw">you &middot; now</div><div class="tb"></div>';
+  m.querySelector(".tb").textContent = text;
+  r1Thread.appendChild(m);
+  r1State.textContent = "re-running · 1 reply";
+  r1Shim.style.display = "";
+  document.getElementById("cardR1").scrollIntoView({ block: "nearest", behavior: "smooth" });
+});
+
+/* =====================================================================
+   Apply — the batch narration, one request at a time
+   ===================================================================== */
+const pipe     = document.getElementById("pipe");
+const pipeText = document.getElementById("pipeText");
+const pipeNote = document.getElementById("pipeNote");
+const qApply   = document.getElementById("qApply");
+const qCount   = document.getElementById("qCount");
+const annCount = document.getElementById("annCount");
+
+function setState(card, cls, text) {
+  const st = card.querySelector(".cst");
+  st.className = "cst" + (cls ? " " + cls : "");
+  st.textContent = text;
+}
+function addShim(card) {
+  if (card.querySelector(".shim")) return;
+  const s = document.createElement("div");
+  s.className = "shim";
+  s.innerHTML = "<i></i>";
+  card.insertBefore(s, card.querySelector(".cmeta") || null);
+}
+function dropShim(card) {
+  const s = card.querySelector(".shim");
+  if (s) s.remove();
+}
+function addStaged(card, quote, detail) {
+  if (card.querySelector(".stg")) return;
+  const d = document.createElement("div");
+  d.className = "stg";
+  d.innerHTML = '<div class="sq">✓ staged</div><div class="sd"></div>';
+  d.querySelector(".sd").innerHTML = detail;
+  card.insertBefore(d, card.querySelector(".cmeta") || null);
+}
+
+let applied = false;
+qApply.addEventListener("click", () => {
+  if (applied) return;
+  applied = true;
+  qApply.classList.add("off");
+  qApply.textContent = "applying…";
+  chipDot.classList.add("fast");
+
+  const r2 = document.getElementById("cardR2");
+  const r3 = document.getElementById("cardR3");
+  const queued = document.querySelectorAll("#queue .card").length;
+
+  pipe.classList.add("on");
+  pipeText.textContent = "processing R2";
+  pipeNote.textContent = (queued - 1) + " queued";
+  r2.classList.remove("qd");
+  r2.classList.add("proc");
+  setState(r2, "run", "processing");
+  addShim(r2);
+  jumpTo(r2.dataset.target);
+
+  setTimeout(() => {
+    dropShim(r2);
+    r2.classList.remove("proc");
+    r2.classList.add("stgd");
+    setState(r2, "stg", "staged");
+    addStaged(r2, null,
+      "Cut to <b>&ldquo;Work the operator&rsquo;s instructions in order&rdquo;</b> and moved the reason to a nested line.");
+
+    pipeText.textContent = "processing R3";
+    pipeNote.textContent = (queued - 2) + " queued · 1 staged";
+    r3.classList.remove("qd");
+    r3.classList.add("proc");
+    setState(r3, "run", "processing");
+    addShim(r3);
+    jumpTo("document");
+  }, 1900);
+
+  setTimeout(() => {
+    dropShim(r3);
+    r3.classList.remove("proc");
+    r3.classList.add("stgd");
+    setState(r3, "stg", "staged · 3 nodes");
+    addStaged(r3, null,
+      "<b>operator</b> everywhere; 3 uses of &ldquo;user&rdquo; rewritten in purpose and workflow.");
+
+    pipe.classList.add("settled");
+    pipeText.textContent = "2 staged · queue empty";
+    pipeNote.textContent = "review below";
+    qApply.textContent = "Applied";
+    qCount.textContent = "· 0";
+    annCount.textContent = "1 active · 2 staged";
+    chipDot.classList.remove("fast");
+  }, 3900);
+});
+
+/* =====================================================================
+   Records
+   ===================================================================== */
+const recWrap = document.getElementById("recWrap");
+document.getElementById("recHead").addEventListener("click", () =>
+  recWrap.classList.toggle("open"));
+
+/* =====================================================================
+   The composer — Enter files a note into the queue
+   ===================================================================== */
+let nextAlias = 4;
+
+function fileNote() {
+  const text = noteBox.value.trim();
+  if (!text) return;
+  const alias  = "R" + nextAlias++;
+  const target = composerTarget;
+  const short  = target === "document" ? "document" : target.replace(/^node-/, "");
+  const now    = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+  const card = document.createElement("div");
+  card.className = "card qd fresh";
+  card.dataset.target = target;
+  card.innerHTML =
+    '<div class="cline">' +
+      '<span class="ca">' + alias + '</span><span class="carw">&rarr;</span>' +
+      '<span class="ctgt"></span>' +
+      '<span class="csp"></span>' +
+      '<span class="cst">queued</span>' +
+    '</div>' +
+    '<div class="cnote"></div>' +
+    '<div class="cmeta">' +
+      (target === "document" ? '<span class="dchip">document</span>' : "") +
+      '<span class="csp"></span><span>' + now + "</span>" +
+    "</div>";
+  card.querySelector(".ctgt").textContent = short;
+  card.querySelector(".cnote").textContent = "“" + text + "”";
+
+  document.getElementById("queue").appendChild(card);
+  bindCard(card);
+
+  noteBox.value = "";
+  setComposerTarget("document");
+
+  const n = document.querySelectorAll("#queue .card:not(.stgd)").length;
+  qCount.textContent = "· " + n;
+  annCount.textContent = "1 active · " + n + " queued";
+  if (applied) {
+    applied = false;
+    qApply.classList.remove("off");
+    qApply.textContent = "Apply";
+    pipe.classList.remove("settled");
+    pipeText.textContent = "1 filed since apply";
+    pipeNote.textContent = "";
+  }
+  card.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+noteBox.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); fileNote(); }
+});
+document.getElementById("fqueue").addEventListener("click", () => { fileNote(); noteBox.focus(); });
+</script>
+</body>
+</html>

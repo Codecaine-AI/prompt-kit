@@ -1,131 +1,107 @@
 /**
- * Section ② — the prompt-editor's standing context.
+ * Section ② — the prompt-editor's STANDING KNOWLEDGE, and nothing else.
  *
- * Three blocks, in the order the model reads them:
+ * `assemble()` bakes five named context blocks from the catalog's new shared
+ * and prompt-editor-local block files. Each block is served by kernel `file`
+ * loaders and rendered as its own XML tag; the tool guide deliberately joins
+ * tool semantics first and the shared transaction vocabulary second.
  *
- *   <prompt_kit_authoring>  the house authoring reference, loaded from the
- *                           prompt-kit-authoring skill next to this catalog
- *                           (key files only, never the whole tree); served by
- *                           the kernel `file` loader
- *   <target_prompt>         the target agent's current PromptDocument
- *                           rendered with node ids stamped in place, plus the
- *                           base hash proposals build on; produced per-session
- *                           by the session service and delivered on
- *                           `sessionData`
- *   <requests>              the open request queue (R-aliases, targets,
- *                           bodies, threads), re-rendered by the session
- *                           service; delivered on `sessionData`
+ * There is deliberately NO envelope here. The kernel's L2 context set wraps
+ * section ② in its single <context> message itself — these blocks land as
+ * entries inside it, and wrapping again would double-envelope the request.
  *
- * The bundle owns the DECLARATION — which blocks exist, which tags they use,
- * what the model is told they are — while the machinery that produces the
- * dynamic bytes lives with the session service. The service's contract:
- *
- *   sessionData.targetPromptRender  string — node-id-stamped render of the
- *                                   target prompt
- *   sessionData.targetPromptHash    string — canonical hash (pk1-…) of that
- *                                   document
- *   sessionData.requestQueue        string — the rendered queue body, one
- *                                   R-alias entry per open request
- *   variables.targetAgent           string — the target agent's catalog name
- *
- * Any missing key degrades to a labelled placeholder instead of failing the
- * spawn, so the bundle boots (and previews) without a live session.
+ * Live session data (the target prompt render, applied diffs, and the request
+ * queue) is section ③ and belongs to the state sidecar (../state/index.ts),
+ * which seeds it from the SpawnContext and renders it per request. This module
+ * never reads `sessionData`.
  */
+import { join } from "node:path";
 import type {
 	AgentContextResolver,
 	LoadedMap,
 	SpawnContext,
 } from "@agent-kernel/kernel/context";
 import { defineContext } from "@agent-kernel/kernel/agent-definition";
-import { basename, join } from "node:path";
+import { block } from "../../shared/xml";
 
-/** Package-local skills/prompt-kit-authoring, relative to this context file. */
-const SKILL_DIR = join(
-	import.meta.dir,
-	"..",
-	"..",
-	"..",
-	"skills",
-	"prompt-kit-authoring",
-);
+export interface ContextBlock {
+	/** XML tag emitted for this section ② block. */
+	readonly tag: string;
+	/** Source files joined inside the tag, in reading order. */
+	readonly files: ReadonlyArray<string>;
+}
 
-/**
- * The authoring-reference files baked into every session, in reading order:
- * the document model, the working method, the editing route, and the
- * anti-patterns. Deliberately a subset — the rest of the skill tree is
- * routing and creation-path material the editor does not need standing.
- */
-export const AUTHORING_REFERENCE_FILES: ReadonlyArray<string> = [
-	join(SKILL_DIR, "05-authoring-model.md"),
-	join(SKILL_DIR, "08-core-methodology.md"),
-	join(SKILL_DIR, "workflows", "20-improve-prompt-ts.md"),
-	join(SKILL_DIR, "20-techniques", "40-anti-patterns.md"),
+const SHARED_BLOCKS_DIR = join(import.meta.dir, "..", "..", "_shared", "blocks");
+const LOCAL_BLOCKS_DIR = join(import.meta.dir, "blocks");
+
+const sharedBlock = (filename: string): string =>
+	join(SHARED_BLOCKS_DIR, filename);
+const localBlock = (filename: string): string => join(LOCAL_BLOCKS_DIR, filename);
+
+/** The five standing context blocks, in their rendered reading order. */
+export const CONTEXT_BLOCKS: ReadonlyArray<ContextBlock> = [
+	{
+		tag: "prompt_document_model",
+		files: [sharedBlock("10-document-model.md")],
+	},
+	{
+		tag: "section_guide",
+		files: [sharedBlock("20-section-guide-agent.md")],
+	},
+	{
+		tag: "quality_guide",
+		files: [sharedBlock("50-quality-guide.md")],
+	},
+	{
+		tag: "tool_guide",
+		files: [
+			localBlock("20-tool-guide.md"),
+			sharedBlock("70-transaction-guide.md"),
+		],
+	},
+	{
+		tag: "state_reference",
+		files: [localBlock("10-state-reference.md")],
+	},
 ];
 
-/** "05-authoring-model.md" → "authoring-model" — the <doc name="…"> label. */
-function docName(path: string): string {
-	return basename(path)
-		.replace(/\.md$/, "")
-		.replace(/^\d+-/, "");
-}
-
-const loaders: AgentContextResolver["loaders"] = AUTHORING_REFERENCE_FILES.map(
-	(path) => ({ kind: "file", path }),
+/** All source files in kernel-loader order. */
+export const CONTEXT_FILES: ReadonlyArray<string> = CONTEXT_BLOCKS.flatMap(
+	(entry) => entry.files,
 );
 
-function indent(body: string): string[] {
-	return body
-		.split("\n")
-		.map((line) => (line.length > 0 ? `    ${line}` : line));
+const loaders: AgentContextResolver["loaders"] = CONTEXT_FILES.map((path) => ({
+	kind: "file",
+	path,
+}));
+
+function loadedPath(input: LoadedMap[number]): string {
+	return typeof input.decl === "object" && "path" in input.decl
+		? String(input.decl.path)
+		: "";
 }
 
-function block(tag: string, attrs: string, body: string): string {
-	const open = attrs.length > 0 ? `<${tag} ${attrs}>` : `<${tag}>`;
-	return [open, ...indent(body), `</${tag}>`].join("\n");
-}
+// `_ctx` is the contract's second parameter, deliberately unread: section ②
+// is session-invariant standing knowledge. Session state rides section ③.
+function assemble(loaded: LoadedMap, _ctx: SpawnContext): string {
+	const loadedByPath = new Map(loaded.map((input) => [loadedPath(input), input]));
 
-function sessionString(ctx: SpawnContext, key: string): string | null {
-	const value = ctx.sessionData?.[key];
-	return typeof value === "string" && value.length > 0 ? value : null;
-}
+	return CONTEXT_BLOCKS.map((entry) => {
+		const inputs = entry.files.map((path) => loadedByPath.get(path));
+		const unavailableIndex = inputs.findIndex(
+			(input) => input === undefined || input.status !== "ok",
+		);
+		if (unavailableIndex === -1) {
+			const body = inputs
+				.map((input) => input?.content ?? "")
+				.join("\n\n");
+			return block(entry.tag, "", body);
+		}
 
-function assemble(loaded: LoadedMap, ctx: SpawnContext): string {
-	const docs = loaded
-		.map((input) => {
-			const path =
-				typeof input.decl === "object" && "path" in input.decl
-					? String(input.decl.path)
-					: "";
-			const name = docName(path);
-			if (input.status !== "ok") {
-				return `<doc name="${name}" status="${input.status}"></doc>`;
-			}
-			return block("doc", `name="${name}"`, input.content);
-		})
-		.join("\n");
-
-	const targetAgent =
-		typeof ctx.variables.targetAgent === "string" &&
-		ctx.variables.targetAgent.length > 0
-			? ctx.variables.targetAgent
-			: "(unset)";
-	const targetHash = sessionString(ctx, "targetPromptHash") ?? "(unset)";
-	const targetRender =
-		sessionString(ctx, "targetPromptRender") ??
-		"(target prompt not loaded — the session service sets sessionData.targetPromptRender to the node-id-stamped render)";
-	const requestQueue =
-		sessionString(ctx, "requestQueue") ??
-		"(no open requests — the session service sets sessionData.requestQueue to the rendered queue)";
-
-	return [
-		block("prompt_kit_authoring", "", docs),
-		block(
-			"target_prompt",
-			`agent="${targetAgent}" hash="${targetHash}"`,
-			targetRender,
-		),
-		block("requests", "", requestQueue),
-	].join("\n\n");
+		const unavailable = inputs[unavailableIndex];
+		const status = unavailable?.status ?? "missing";
+		return `<${entry.tag} status="${status}"></${entry.tag}>`;
+	}).join("\n");
 }
 
 export const context = defineContext({ loaders, assemble });

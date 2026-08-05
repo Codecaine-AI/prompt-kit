@@ -84,7 +84,6 @@ export function createPromptKitPromptEditSessions<TToolRuntime>(
 						sessionDir,
 						phase: "prompt-edit",
 						trigger: "operator",
-						variables: launch.spawn.variables,
 						sessionData: launch.spawn.sessionData,
 					},
 				);

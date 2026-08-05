@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt lab layout — B — zero chrome</title>
+<style>
+  /* ---------------------------------------------------------------
+     Variant B — "zero chrome".
+     No persistent side column. The document owns the viewport; the
+     outline is a hover-revealed tick strip on the right edge, node
+     details are a demoted popover, and Annotate slides a slim rail
+     over the margin without reflowing the document.
+     --------------------------------------------------------------- */
+  :root {
+    --bg: #161719;
+    --surface: #1c1e21;
+    --raise: #202327;
+    --border: #26282c;
+    --fg: #c9ccd1;
+    --muted: #6b7078;
+    --faint: #4b5057;
+    --tag: #8f7bb5;
+    --tag-dim: #6f6189;
+    --amber: #d3a04f;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.85;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, select { font-family: var(--mono); font-size: 12px; cursor: pointer; }
+
+  /* ---------- row 1 · identity ---------- */
+  #identity {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    padding: 15px clamp(20px, 4vw, 44px) 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  #identity .name { font-size: 13px; letter-spacing: 0.02em; color: var(--fg); }
+  #identity .desc {
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+  .chip {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 3px 11px;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .chip:hover { color: var(--fg); border-color: #34373d; }
+  .chip .k { color: var(--faint); }
+  .chip .caret { color: var(--faint); margin-left: 6px; }
+  #annotateBtn { letter-spacing: 0.02em; }
+  #annotateBtn.on { color: var(--fg); border-color: #45494f; }
+  #annotateBtn .dot {
+    display: inline-block; width: 5px; height: 5px;
+    background: var(--faint); margin-right: 8px; vertical-align: middle;
+  }
+  #annotateBtn.on .dot { background: var(--amber); }
+
+  /* ---------- row 2 · document tabs ---------- */
+  #tabs {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: 0 clamp(20px, 4vw, 44px);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    color: var(--muted);
+    padding: 9px 14px 8px;
+    margin-bottom: -1px;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+  }
+  .tab:first-child { padding-left: 0; }
+  .tab .n { color: var(--faint); font-size: 10px; margin-left: 8px; letter-spacing: 0.04em; }
+  .tab:hover { color: var(--fg); }
+  .tab.active { color: var(--fg); border-bottom-color: #5a5f66; }
+  .tab.active .n { color: var(--muted); }
+  #tabs .spacer { flex: 1; }
+  #tabs .meta {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--faint); font-size: 11px;
+  }
+  #historyBtn {
+    background: transparent; border: 0; color: var(--faint);
+    font-size: 13px; padding: 0 2px; line-height: 1;
+  }
+  #historyBtn:hover { color: var(--fg); }
+
+  /* ---------- document surface ---------- */
+  #scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    /* no scroll-behavior here: tab switches must snap to top instantly.
+       The two deliberate jumps pass behavior:"smooth" themselves. */
+  }
+  #doc {
+    max-width: 110ch;
+    margin: 0 auto;
+    padding: 46px clamp(20px, 5vw, 72px) 46vh;
+  }
+  #docNote {
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    margin-bottom: 30px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  #docNote:empty { display: none; }
+
+  .sec { margin-bottom: 34px; }
+  .sec:last-child { margin-bottom: 0; }
+  .tagline { color: var(--tag); white-space: pre; }
+  .secbody { padding-left: 3ch; padding-top: 2px; padding-bottom: 2px; }
+
+  .row {
+    display: flex;
+    gap: 1ch;
+    padding: 1px 10px 1px 6px;
+    margin-left: -6px;
+    cursor: default;
+  }
+  .row.para { margin-top: 9px; margin-bottom: 9px; }
+  .row.para:first-child { margin-top: 0; }
+  .row.sub { padding-left: 3ch; }
+  .row .mk { color: var(--muted); flex: 0 0 auto; }
+  .row .tx { color: var(--fg); min-width: 0; }
+  .row .kk { color: var(--muted); flex: 0 0 22ch; }
+  .row:hover { background: rgba(255, 255, 255, 0.028); }
+  .row.picked { background: rgba(255, 255, 255, 0.05); }
+  #doc.annotate .row { cursor: crosshair; }
+  #doc.annotate .row:hover { outline: 1px dotted #3d4148; outline-offset: 1px; }
+
+  .itag { color: var(--tag-dim); }
+  .var { color: var(--amber); }
+  .tool { color: #949aa4; }
+
+  /* ---------- outline · tick strip on the right edge ---------- */
+  #outline {
+    position: fixed;
+    right: 0; top: 94px; bottom: 0;
+    width: 56px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    pointer-events: none;
+    transition: right 200ms ease;
+  }
+  #outline.shift { right: 268px; }
+  #ticks {
+    pointer-events: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    align-items: flex-end;
+    padding: 14px 16px 14px 12px;
+  }
+  #ticks::before {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0; right: 0; left: -186px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-right: 0;
+    opacity: 0;
+    transition: opacity 150ms ease;
+    z-index: -1;
+  }
+  #ticks:hover::before { opacity: 1; }
+  .tickrow {
+    position: relative;
+    height: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    width: 26px;
+  }
+  .tickrow .tick {
+    display: block;
+    width: 11px; height: 1px;
+    background: #3a3d42;
+    transition: width 150ms ease, background 150ms ease;
+  }
+  .tickrow:hover .tick { background: var(--fg); width: 18px; }
+  .tickrow.active .tick { background: var(--fg); width: 22px; }
+  .tickrow .nm {
+    position: absolute;
+    right: 32px;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--muted);
+    opacity: 0;
+    transition: opacity 150ms ease, color 150ms ease;
+    pointer-events: none;
+    letter-spacing: 0.02em;
+  }
+  #ticks:hover .nm { opacity: 1; }
+  .tickrow.active .nm { color: var(--fg); }
+  .tickrow:hover .nm { color: var(--fg); }
+
+  /* ---------- node details · demoted popover ---------- */
+  #pop {
+    position: fixed;
+    z-index: 60;
+    max-width: 320px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 9px 12px 10px;
+    font-size: 11px;
+    line-height: 1.7;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  #pop.on { visibility: visible; pointer-events: auto; }
+  #pop .pid { color: var(--fg); letter-spacing: 0.02em; }
+  #pop .pkind { color: var(--tag-dim); }
+  #pop .pdiag { color: var(--muted); }
+
+  /* ---------- annotate rail · slides over the margin ---------- */
+  /* top is set from JS so the rail always clears the two header rows —
+     it must never cover the Annotate button that dismisses it. */
+  #rail {
+    position: fixed;
+    top: 94px; right: 0; bottom: 0;
+    width: 268px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    transform: translateX(100%);
+    transition: transform 220ms ease;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+  }
+  #rail.open { transform: none; }
+  #railHead {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 16px 18px 10px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    border-bottom: 1px solid var(--border);
+  }
+  #railHead .count { color: var(--faint); letter-spacing: 0.04em; }
+  #railList { flex: 1; overflow-y: auto; padding: 6px 0; }
+  .req {
+    padding: 11px 18px;
+    border-bottom: 1px solid #212326;
+    cursor: pointer;
+  }
+  .req:hover { background: var(--raise); }
+  .req .r1 { display: flex; align-items: baseline; gap: 8px; }
+  .req .alias { color: var(--amber); font-size: 11px; letter-spacing: 0.04em; }
+  .req .node { color: var(--faint); font-size: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .req .note { color: var(--fg); font-size: 11px; line-height: 1.65; margin-top: 2px; }
+  #railFoot {
+    border-top: 1px solid var(--border);
+    padding: 11px 18px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.03em;
+  }
+
+  /* ---------- screenshot label ---------- */
+  #label {
+    position: fixed;
+    left: 12px; bottom: 9px;
+    z-index: 70;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    pointer-events: none;
+  }
+
+  /* scrollbar — barely there */
+  #scroll::-webkit-scrollbar { width: 9px; }
+  #scroll::-webkit-scrollbar-thumb { background: #24262a; }
+  #scroll::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<header id="identity">
+  <span class="name">prompt-editor</span>
+  <span class="desc">Edits an agent's system prompt on behalf of the human who owns it.</span>
+  <button class="chip" id="fixtureBtn"><span class="k">fixture:</span> <span id="fixtureName">empty-run</span><span class="caret">▾</span></button>
+  <button class="chip" id="annotateBtn"><span class="dot"></span>Annotate</button>
+</header>
+
+<nav id="tabs">
+  <button class="tab active" data-doc="system">System<span class="n">1,008</span></button>
+  <button class="tab" data-doc="context">Context<span class="n">3,214</span></button>
+  <button class="tab" data-doc="state">State<span class="n">412</span></button>
+  <span class="spacer"></span>
+  <span class="meta">
+    <span id="savedAt">saved 3:42 PM</span>
+    <button id="historyBtn" title="Revision history">⟲</button>
+  </span>
+</nav>
+
+<main id="scroll">
+  <div id="doc">
+    <div id="docNote"></div>
+    <div id="sections"></div>
+  </div>
+</main>
+
+<div id="outline"><div id="ticks"></div></div>
+
+<aside id="rail">
+  <div id="railHead"><span>REQUESTS</span><span class="count" id="reqCount">2 open</span></div>
+  <div id="railList"></div>
+  <div id="railFoot">click a node to pin a new request</div>
+</aside>
+
+<div id="pop"></div>
+<div id="label">B — zero chrome</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Documents. Each is a list of pseudo-XML sections; each section is a
+   list of rows carrying the node id + kind that the popover reports.
+   ===================================================================== */
+
+const SYSTEM = [
+  { tag: "purpose", rows: [
+    { id: "node-purpose-identity", kind: "paragraph", type: "para",
+      text: "You are the prompt editor for {{targetAgent}} — you change that agent's system prompt on behalf of the human who owns it.",
+      diag: "1 variable · {{targetAgent}} declared" },
+    { id: "node-purpose-frame-ast", kind: "bullet", type: "bullet",
+      text: "The prompt is a structured document — a tree of identified nodes — and its rendered markdown is a projection you never touch." },
+    { id: "node-purpose-frame-requests", kind: "bullet", type: "bullet",
+      text: "Work arrives as requests: human notes pinned to a node or range of that document, queued in the <requests> block." },
+    { id: "node-purpose-frame-staged", kind: "bullet", type: "bullet",
+      text: "Your edits are staged proposals for human review, and nothing lands in the live prompt until the human accepts it." },
+  ]},
+  { tag: "inputs", rows: [
+    { id: "node-inputs-intro", kind: "paragraph", type: "para",
+      text: "Your standing context carries three blocks:" },
+    { id: "node-inputs-authoring", kind: "bullet", type: "bullet",
+      text: "<prompt_kit_authoring> — the house reference for how prompts here are built: the document model, the editing method, and the anti-patterns to avoid." },
+    { id: "node-inputs-target", kind: "bullet", type: "bullet",
+      text: "<target_prompt> — the target agent's current prompt rendered with every node's id stamped in place, under the base hash your transactions build on." },
+    { id: "node-inputs-target-ids", kind: "sub-bullet", type: "sub",
+      text: "Those ids are the only addresses your edits use — quote them exactly." },
+    { id: "node-inputs-requests", kind: "bullet", type: "bullet",
+      text: "<requests> — the open queue, one entry per request." },
+    { id: "node-inputs-requests-entry", kind: "sub-bullet", type: "sub",
+      text: "Each entry carries its alias (R1, R2 …), its target node or range, the human's note, and the thread so far." },
+    { id: "node-inputs-requests-doclevel", kind: "sub-bullet", type: "sub",
+      text: "An entry whose target is the document itself is a message about the whole prompt, not about one node." },
+    { id: "node-inputs-fresh", kind: "paragraph", type: "para",
+      text: "The stamped render is your starting picture; read_prompt returns the live document — ids and hash included — whenever you need to confirm the tree or see it after a proposal." },
+  ]},
+  { tag: "editing_rules", rows: [
+    { id: "node-rules-structural", kind: "bullet", type: "bullet",
+      text: "Propose structure, never prose: an edit is a transaction of id-relative steps against the document tree, and rewritten markdown is never an edit." },
+    { id: "node-rules-ids", kind: "bullet", type: "bullet",
+      text: "Preserve node ids: change nodes in place and leave untouched nodes untouched, because ids are how requests, diffs, and undo stay anchored." },
+    { id: "node-rules-minimal", kind: "bullet", type: "bullet",
+      text: "Prefer the minimal transaction: the fewest steps that satisfy the request, touching nothing the request did not name." },
+    { id: "node-rules-valid", kind: "bullet", type: "bullet",
+      text: "Keep the document valid: every variable placeholder it references must stay declared, and a proposal that fails validation bounces straight back to you — repair it and propose again." },
+    { id: "node-rules-voice", kind: "bullet", type: "bullet",
+      text: "Respect the target prompt's voice: match its tense, person, and section idiom, and change style only when a note asks for style." },
+    { id: "node-rules-terse", kind: "bullet", type: "bullet",
+      text: "Write tersely: notes, replies, and resolutions are plain language, a sentence or two, never a restatement of a diff the human can already see.",
+      diag: "R1 pinned here · 1 open request" },
+  ]},
+  { tag: "workflow", rows: [
+    { id: "node-workflow-read", kind: "step", type: "step", n: 1,
+      text: "Read the whole queue before editing anything, because requests can overlap, conflict, or share nodes." },
+    { id: "node-workflow-read-collide", kind: "sub-bullet", type: "sub",
+      text: "When requests collide, work them in alias order and name the interaction in each resolution." },
+    { id: "node-workflow-plan", kind: "step", type: "step", n: 2,
+      text: "Plan each request against the current tree, confirming targets with read_prompt when the stamped render leaves doubt." },
+    { id: "node-workflow-propose", kind: "step", type: "step", n: 3,
+      text: "Propose exactly one transaction per request with propose_transaction, tagged to that request's alias." },
+    { id: "node-workflow-propose-nochange", kind: "sub-bullet", type: "sub",
+      text: "A request needing no change gets no transaction — it gets a resolution." },
+    { id: "node-workflow-resolve", kind: "step", type: "step", n: 4,
+      text: "Resolve every request individually with resolve_request: done with a short note of what changed, or declined with the reason." },
+    { id: "node-workflow-resolve-nolump", kind: "sub-bullet", type: "sub",
+      text: "A batch never resolves as a lump, and the session ends with no request still open that you could have disposed." },
+    { id: "node-workflow-ask", kind: "step", type: "step", n: 5,
+      text: "When a request is ambiguous, open the question with reply_request on that request's thread and keep working the others — the run never stalls waiting for an answer.",
+      diag: "R2 pinned here · 1 open request" },
+    { id: "node-workflow-doclevel", kind: "step", type: "step", n: 6,
+      text: "Work a document-level request by pinning placed notes with add_note at the specific nodes it implicates, then propose and resolve as usual." },
+  ]},
+  { tag: "tools", rows: [
+    { id: "node-tools-intro", kind: "paragraph", type: "para",
+      text: "Five tools carry the loop; the semantics that matter:" },
+    { id: "node-tools-read", kind: "bullet", type: "bullet",
+      text: "read_prompt — the target document as it stands now, with node ids and the current hash." },
+    { id: "node-tools-propose", kind: "bullet", type: "bullet",
+      text: "propose_transaction — one request's edit as ordered id-relative steps, compiled and validated by the service and staged as a diff for the human." },
+    { id: "node-tools-resolve", kind: "bullet", type: "bullet",
+      text: "resolve_request — the only way a request leaves the queue: done or declined, always with a note." },
+    { id: "node-tools-reply", kind: "bullet", type: "bullet",
+      text: "reply_request — adds to one request's thread, for questions and brief progress notes." },
+    { id: "node-tools-note", kind: "bullet", type: "bullet",
+      text: "add_note — pins a new note of yours at a node, opening an inline thread the human sees." },
+  ]},
+];
+
+const CONTEXT = [
+  { tag: "prompt_kit_authoring", rows: [
+    { id: "ctx-authoring-src", kind: "context block", type: "para",
+      text: "source: prompt-kit/docs/authoring.md · 1,412 tokens · pinned for every run",
+      diag: "assembled · cached across turns" },
+    { id: "ctx-authoring-model", kind: "context bullet", type: "bullet",
+      text: "The document model: sections hold paragraphs, bullet lists, and ordered lists; every node carries a stable id." },
+    { id: "ctx-authoring-method", kind: "context bullet", type: "bullet",
+      text: "The editing method: address a node by id, apply a step, let the service compile and validate the transaction." },
+    { id: "ctx-authoring-anti", kind: "context bullet", type: "bullet",
+      text: "Anti-patterns: rewriting whole sections, inventing ids, and shipping prose where a step was asked for." },
+  ]},
+  { tag: "target_prompt", rows: [
+    { id: "ctx-target-head", kind: "context block", type: "para",
+      text: "agent: layout-editor · base hash pk1-7f1bc2eb · 38 nodes stamped",
+      diag: "read-only projection of the live tree" },
+    { id: "ctx-target-n1", kind: "stamped node", type: "sub",
+      text: "[node-purpose-identity] You are the layout editor for {{surface}} — you shape how the surface reads." },
+    { id: "ctx-target-n2", kind: "stamped node", type: "sub",
+      text: "[node-purpose-frame-ast] Each surface makes intelligence legible through a typed artifact." },
+    { id: "ctx-target-n3", kind: "stamped node", type: "sub",
+      text: "[node-constraints-live] Apply edits to the live document immediately; the registry reloads the prompt on save." },
+    { id: "ctx-target-more", kind: "elision", type: "para",
+      text: "… 35 more stamped nodes elided in this preview" },
+  ]},
+  { tag: "requests", rows: [
+    { id: "ctx-req-r1", kind: "request entry", type: "bullet",
+      text: "R1 · target node-rules-terse · \"Cut this to one sentence — the second clause repeats the first.\" · thread: 0 replies",
+      diag: "open · queued 3:38 PM" },
+    { id: "ctx-req-r2", kind: "request entry", type: "bullet",
+      text: "R2 · target node-workflow-ask · \"Say what happens if the human never answers the question.\" · thread: 0 replies",
+      diag: "open · queued 3:41 PM" },
+    { id: "ctx-req-note", kind: "context block", type: "para",
+      text: "Both entries target a single node. No document-level request in this run." },
+  ]},
+];
+
+function buildState(fixture) {
+  const F = {
+    "empty-run": { open: "0", staged: "0", turn: "0", last: "session initialized", tools: "—" },
+    "two-requests": { open: "2", staged: "0", turn: "1", last: "queue read", tools: "read_prompt" },
+    "conflict-pair": { open: "2", staged: "1", turn: "3", last: "R1 · proposal staged", tools: "read_prompt, propose_transaction" },
+  }[fixture] || { open: "0", staged: "0", turn: "0", last: "session initialized", tools: "—" };
+  return [
+    { tag: "session_state", rows: [
+      { id: "state-fixture", kind: "state key", type: "kv", k: "fixture", v: fixture, diag: "loaded from catalog fixtures" },
+      { id: "state-agent", kind: "state key", type: "kv", k: "target_agent", v: "layout-editor" },
+      { id: "state-hash", kind: "state key", type: "kv", k: "base_hash", v: "pk1-7f1bc2eb" },
+      { id: "state-turn", kind: "state key", type: "kv", k: "turn", v: F.turn },
+      { id: "state-open", kind: "state key", type: "kv", k: "requests_open", v: F.open },
+      { id: "state-staged", kind: "state key", type: "kv", k: "proposals_staged", v: F.staged },
+      { id: "state-tools", kind: "state key", type: "kv", k: "tools_called", v: F.tools },
+      { id: "state-last", kind: "state key", type: "kv", k: "last_event", v: F.last },
+    ]},
+    { tag: "budget", rows: [
+      { id: "budget-window", kind: "state key", type: "kv", k: "context_window", v: "200,000" },
+      { id: "budget-used", kind: "state key", type: "kv", k: "assembled", v: "4,634 (2.3%)" },
+      { id: "budget-cache", kind: "state key", type: "kv", k: "cached_prefix", v: "prompt_kit_authoring" },
+    ]},
+  ];
+}
+
+const DOC_NOTE = {
+  system: "",
+  context: "assembled at run time · read-only",
+  state: "fixture snapshot · read-only",
+};
+
+/* =====================================================================
+   Rendering
+   ===================================================================== */
+
+const REQUESTS = [
+  { alias: "R1", node: "node-rules-terse", note: "Cut this to one sentence — the second clause repeats the first." },
+  { alias: "R2", node: "node-workflow-ask", note: "Say what happens if the human never answers the question." },
+];
+
+const state = { doc: "system", fixture: "empty-run", sections: [], active: null, picked: null };
+
+const $ = (sel) => document.querySelector(sel);
+const scrollEl = $("#scroll");
+const sectionsEl = $("#sections");
+const ticksEl = $("#ticks");
+const docEl = $("#doc");
+const popEl = $("#pop");
+
+function esc(t) {
+  return String(t)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+const TOOL_RE = /\b(read_prompt|propose_transaction|resolve_request|reply_request|add_note)\b/g;
+
+function highlight(t) {
+  let h = esc(t);
+  h = h.replace(/&lt;([a-z_]+)&gt;/g, '<span class="itag">&lt;$1&gt;</span>');
+  h = h.replace(/\{\{([a-zA-Z]+)\}\}/g, '<span class="var">{{$1}}</span>');
+  h = h.replace(TOOL_RE, '<span class="tool">$1</span>');
+  return h;
+}
+
+function rowText(r) {
+  return r.type === "kv" ? r.k + ": " + r.v : r.text;
+}
+
+function diagFor(r) {
+  if (r.diag) return r.diag;
+  const tokens = Math.max(1, Math.round(rowText(r).length / 4));
+  return "~" + tokens + " tokens · validates · no open requests";
+}
+
+function rowHtml(r) {
+  const attrs = ' data-node="' + r.id + '" data-kind="' + esc(r.kind) +
+    '" data-diag="' + esc(diagFor(r)) + '"';
+  if (r.type === "kv") {
+    return '<div class="row kv"' + attrs + '><span class="kk">' + esc(r.k) +
+      ':</span><span class="tx">' + highlight(r.v) + "</span></div>";
+  }
+  if (r.type === "bullet" || r.type === "sub") {
+    return '<div class="row ' + r.type + '"' + attrs + '><span class="mk">-</span><span class="tx">' +
+      highlight(r.text) + "</span></div>";
+  }
+  if (r.type === "step") {
+    return '<div class="row step"' + attrs + '><span class="mk">' + r.n +
+      '.</span><span class="tx">' + highlight(r.text) + "</span></div>";
+  }
+  return '<div class="row para"' + attrs + '><span class="tx">' + highlight(r.text) + "</span></div>";
+}
+
+function renderDoc(name) {
+  state.doc = name;
+  state.picked = null;
+  hidePop();
+  state.sections = name === "system" ? SYSTEM
+    : name === "context" ? CONTEXT
+    : buildState(state.fixture);
+
+  $("#docNote").textContent = DOC_NOTE[name] || "";
+
+  sectionsEl.innerHTML = state.sections.map((s) =>
+    '<section class="sec" data-tag="' + s.tag + '">' +
+      '<div class="tagline">&lt;' + s.tag + '&gt;</div>' +
+      '<div class="secbody">' + s.rows.map(rowHtml).join("") + "</div>" +
+      '<div class="tagline">&lt;/' + s.tag + '&gt;</div>' +
+    "</section>"
+  ).join("");
+
+  ticksEl.innerHTML = state.sections.map((s) =>
+    '<button class="tickrow" data-tag="' + s.tag + '" title="' + s.tag + '">' +
+      '<span class="nm">' + s.tag + '</span><span class="tick"></span>' +
+    "</button>"
+  ).join("");
+
+  scrollEl.scrollTop = 0;
+  state.active = null;
+  updateActive();
+}
+
+/* ---------- outline: scroll spy + click-to-scroll ---------- */
+
+function updateActive() {
+  const secs = [...sectionsEl.querySelectorAll(".sec")];
+  if (!secs.length) return;
+  const base = scrollEl.getBoundingClientRect().top;
+  let current = secs[0].dataset.tag;
+  for (const s of secs) {
+    if (s.getBoundingClientRect().top - base <= 120) current = s.dataset.tag;
+  }
+  if (current === state.active) return;
+  state.active = current;
+  ticksEl.querySelectorAll(".tickrow").forEach((t) =>
+    t.classList.toggle("active", t.dataset.tag === current));
+}
+
+scrollEl.addEventListener("scroll", () => {
+  updateActive();
+  if (state.picked) hidePop();
+});
+
+ticksEl.addEventListener("click", (e) => {
+  const row = e.target.closest(".tickrow");
+  if (!row) return;
+  const sec = sectionsEl.querySelector('.sec[data-tag="' + row.dataset.tag + '"]');
+  if (!sec) return;
+  const top = sec.getBoundingClientRect().top - scrollEl.getBoundingClientRect().top +
+    scrollEl.scrollTop - 28;
+  scrollEl.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+});
+
+/* ---------- node details: demoted popover ---------- */
+
+function hidePop() {
+  popEl.classList.remove("on");
+  if (state.picked) {
+    const prev = sectionsEl.querySelector(".row.picked");
+    if (prev) prev.classList.remove("picked");
+    state.picked = null;
+  }
+}
+
+function showPop(row, x, y) {
+  const prev = sectionsEl.querySelector(".row.picked");
+  if (prev) prev.classList.remove("picked");
+  row.classList.add("picked");
+  state.picked = row.dataset.node;
+
+  popEl.innerHTML =
+    '<div class="pid">' + esc(row.dataset.node) + "</div>" +
+    '<div class="pkind">' + esc(row.dataset.kind) + "</div>" +
+    '<div class="pdiag">' + esc(row.dataset.diag) + "</div>";
+
+  /* place before revealing so it never flashes at the old anchor */
+  const w = popEl.offsetWidth;
+  const h = popEl.offsetHeight;
+  let left = x + 14;
+  let top = y + 14;
+  if (left + w > window.innerWidth - 12) left = Math.max(12, x - w - 14);
+  if (top + h > window.innerHeight - 12) top = Math.max(12, y - h - 14);
+  popEl.style.left = left + "px";
+  popEl.style.top = top + "px";
+  popEl.classList.add("on");
+}
+
+sectionsEl.addEventListener("click", (e) => {
+  const row = e.target.closest(".row");
+  if (!row) return;
+  if (state.picked === row.dataset.node) { hidePop(); return; }
+  showPop(row, e.clientX, e.clientY);
+});
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".row") || e.target.closest("#pop")) return;
+  hidePop();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") hidePop();
+});
+
+/* ---------- tabs ---------- */
+
+document.querySelectorAll(".tab").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderDoc(btn.dataset.doc);
+  });
+});
+
+/* ---------- fixture picker ---------- */
+
+const FIXTURES = ["empty-run", "two-requests", "conflict-pair"];
+
+$("#fixtureBtn").addEventListener("click", () => {
+  const next = FIXTURES[(FIXTURES.indexOf(state.fixture) + 1) % FIXTURES.length];
+  state.fixture = next;
+  $("#fixtureName").textContent = next;
+  if (state.doc === "state") renderDoc("state");
+});
+
+/* ---------- annotate toggle ---------- */
+
+const railEl = $("#rail");
+const annBtn = $("#annotateBtn");
+
+$("#railList").innerHTML = REQUESTS.map((r) =>
+  '<div class="req" data-node="' + r.node + '">' +
+    '<div class="r1"><span class="alias">' + r.alias + '</span>' +
+    '<span class="node">' + r.node + "</span></div>" +
+    '<div class="note">' + esc(r.note) + "</div>" +
+  "</div>"
+).join("");
+
+$("#reqCount").textContent = REQUESTS.length + " open";
+
+annBtn.addEventListener("click", () => {
+  const on = railEl.classList.toggle("open");
+  annBtn.classList.toggle("on", on);
+  docEl.classList.toggle("annotate", on);
+  $("#outline").classList.toggle("shift", on);
+  hidePop();
+});
+
+$("#railList").addEventListener("click", (e) => {
+  const req = e.target.closest(".req");
+  if (!req) return;
+  const row = sectionsEl.querySelector('.row[data-node="' + req.dataset.node + '"]');
+  if (!row) return;
+  const top = row.getBoundingClientRect().top - scrollEl.getBoundingClientRect().top +
+    scrollEl.scrollTop - 160;
+  scrollEl.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+  row.classList.add("picked");
+  setTimeout(() => row.classList.remove("picked"), 1200);
+});
+
+/* ---------- boot ---------- */
+
+/* Both fixed overlays hang below the two header rows; measure rather than
+   hard-code so a wrapped description never hides the Annotate button. */
+function syncChrome() {
+  const h = $("#identity").offsetHeight + $("#tabs").offsetHeight;
+  railEl.style.top = h + "px";
+  $("#outline").style.top = h + "px";
+}
+
+window.addEventListener("resize", () => { syncChrome(); hidePop(); });
+
+syncChrome();
+renderDoc("system");
+</script>
+</body>
+</html>

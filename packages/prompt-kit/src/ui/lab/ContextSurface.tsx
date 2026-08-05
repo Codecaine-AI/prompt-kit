@@ -34,10 +34,18 @@ export interface LabContextPreview {
 export function ContextSurface({
 	context,
 	showOutline = true,
+	centerContent = false,
 }: {
 	context?: LabContextPreview;
 	/** Geometric guard from the host: below the lab's breakpoint, no column. */
 	showOutline?: boolean;
+	/**
+	 * Center the content column inside the full-width scroller (the lab's
+	 * wide layout, where the scrollbar sits at the region's far right). The
+	 * column caps at the same `--prompt-editor-content-width` measure the
+	 * SYSTEM view uses, so the views align.
+	 */
+	centerContent?: boolean;
 }) {
 	const rendered = context?.renderedContext ?? "";
 	const hasContent = rendered.trim().length > 0;
@@ -133,16 +141,37 @@ export function ContextSurface({
 						data-context-scroll="context"
 						className="min-h-0 min-w-0 flex-1 overflow-auto"
 						onScroll={outlineShown ? updateActiveSection : undefined}
-						style={
+						style={{
+							// The lab's floating glass reserves space inside the scroller
+							// (scrollbar stays at the region's far right).
+							paddingRight: "var(--prompt-editor-reserved-right, 0px)",
+							transition:
+								"padding-right 260ms cubic-bezier(0.32, 0.72, 0, 1)",
 							// Alongside the column the buffer stops at the content width,
 							// so the outline hugs the text instead of stranding canvas.
-							outlineShown
+							...(outlineShown
 								? { maxWidth: EDITOR_METRICS.contentWidth }
-								: undefined
-						}
+								: {}),
+						}}
 					>
-						{/* Same breathing room the editor gives line 1 / the last line. */}
-						<div style={{ paddingBlock: EDITOR_METRICS.lineHeight }}>
+						{/* Same breathing room the editor gives line 1 / the last line.
+						    When the host centers, this column carries the content cap
+						    and auto margins — the scroller stays full width so its
+						    scrollbar hugs the region's far edge. */}
+						<div
+							style={{
+								paddingBlock: EDITOR_METRICS.lineHeight,
+								// The editor's own type on the column so the `ch`-based
+								// cap resolves in editor characters (PromptView re-applies
+								// its type inside), keeping this column the exact width of
+								// the SYSTEM one — left-justified at the shared margins.
+								fontFamily: EDITOR_METRICS.fontFamily,
+								fontSize: EDITOR_METRICS.fontSize,
+								maxWidth: EDITOR_METRICS.contentWidth,
+								marginInline: "var(--prompt-editor-margin-left, 0px) auto",
+								marginTop: "var(--prompt-editor-margin-top, 0px)",
+							}}
+						>
 							<PromptView content={rendered} title="Context" bare inheritStyle />
 						</div>
 					</div>

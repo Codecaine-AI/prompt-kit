@@ -1,14 +1,12 @@
 import {
+  ChevronRight,
   RotateCcw,
   SlidersHorizontal,
   X,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 
-import {
-  PROMPT_STYLE_PRESETS,
-  type PromptStyleSettings,
-} from "../style/prompt-style-settings";
+import type { PromptStyleSettings } from "../style/prompt-style-settings";
 
 export interface PromptStyleRailProps {
   settings: PromptStyleSettings;
@@ -17,23 +15,6 @@ export interface PromptStyleRailProps {
   onClose: () => void;
   className?: string;
 }
-
-const PRESET_OPTIONS = [
-  { id: "dense", label: "Dense" },
-  { id: "balanced", label: "Balanced" },
-  { id: "reading", label: "Reading" },
-  { id: "painted", label: "Painted" },
-  { id: "classic", label: "Classic" },
-] as const;
-
-const ROW_SHADING_OPTIONS: Array<{
-  value: PromptStyleSettings["rowShading"];
-  label: string;
-}> = [
-  { value: "none", label: "None" },
-  { value: "rules", label: "Rules" },
-  { value: "zebra", label: "Zebra" },
-];
 
 const FONT_OPTIONS: Array<{
   value: PromptStyleSettings["fontFamily"];
@@ -105,41 +86,14 @@ export function PromptStyleRail({
       </header>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-3">
-        <RailSection title="Preset">
-          <div
-            className="grid grid-cols-3 auto-rows-[34px] overflow-hidden rounded border border-border"
-            role="group"
-            aria-label="Prompt style preset"
-          >
-            {PRESET_OPTIONS.map((option) => {
-              const preset = PROMPT_STYLE_PRESETS[option.id];
-              const active = settingsEqual(settings, preset);
+        {/* ONE global theme (2026-08-04 audit): presets retired — these
+            controls adjust the shared baseline directly. */}
+        <p className="text-[11px] leading-4 text-muted-foreground">
+          Appearance only — prompt content, hashes, and revisions never
+          change.
+        </p>
 
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => onChange({ ...preset })}
-                  className={[
-                    "border-r border-b border-border px-2 text-[11px] transition-colors last:border-r-0 [&:nth-child(3n)]:border-r-0 [&:nth-last-child(-n+2)]:border-b-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-status-info-border",
-                    active
-                      ? "bg-status-info-fill/35 text-status-info"
-                      : "bg-background/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                  ].join(" ")}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[11px] leading-4 text-muted-foreground">
-            Appearance only — prompt content, hashes, and revisions never
-            change.
-          </p>
-        </RailSection>
-
-        <RailSection title="Type">
+        <RailSection title="Type" defaultOpen>
           <label className="grid gap-1.5">
             <span className="text-xs text-foreground">Font family</span>
             <select
@@ -210,13 +164,49 @@ export function PromptStyleRail({
             onChange={(value) => update("contentWidth", value)}
           />
           <RangeField
-            label="Gutter"
-            value={settings.gutterWidth}
-            min={36}
+            label="Left margin"
+            value={settings.marginLeft}
+            min={0}
+            max={240}
+            step={4}
+            unit="px"
+            onChange={(value) => update("marginLeft", value)}
+          />
+          <RangeField
+            label="Top margin"
+            value={settings.marginTop}
+            min={0}
+            max={160}
+            step={4}
+            unit="px"
+            onChange={(value) => update("marginTop", value)}
+          />
+          <RangeField
+            label="Panel inset"
+            value={settings.panelInset}
+            min={8}
             max={96}
             step={2}
             unit="px"
-            onChange={(value) => update("gutterWidth", value)}
+            onChange={(value) => update("panelInset", value)}
+          />
+          <RangeField
+            label="Panel top inset"
+            value={settings.panelTopInset}
+            min={0}
+            max={120}
+            step={2}
+            unit="px"
+            onChange={(value) => update("panelTopInset", value)}
+          />
+          <RangeField
+            label="Composer width"
+            value={settings.composerWidth}
+            min={320}
+            max={1600}
+            step={20}
+            unit="px"
+            onChange={(value) => update("composerWidth", value)}
           />
           <RangeField
             label="Landmark scale"
@@ -237,47 +227,11 @@ export function PromptStyleRail({
             percent
             onChange={(value) => update("gapRamp", value)}
           />
-          <div className="space-y-1">
-            <ToggleField
-              label="Line numbers"
-              checked={settings.showLineNumbers}
-              onChange={(checked) => update("showLineNumbers", checked)}
-            />
-            <ToggleField
-              label="Indent guides"
-              checked={settings.showGuides}
-              onChange={(checked) => update("showGuides", checked)}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <span className="text-xs text-foreground">Row shading</span>
-            <div
-              className="grid h-8 grid-cols-3 overflow-hidden rounded border border-border"
-              role="group"
-              aria-label="Row shading"
-            >
-              {ROW_SHADING_OPTIONS.map((option) => {
-                const active = settings.rowShading === option.value;
-
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => update("rowShading", option.value)}
-                    className={[
-                      "border-r border-border px-2 text-[11px] transition-colors last:border-r-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-status-info-border",
-                      active
-                        ? "bg-status-info-fill/35 text-status-info"
-                        : "bg-background/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                    ].join(" ")}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <ToggleField
+            label="Indent guides"
+            checked={settings.showGuides}
+            onChange={(checked) => update("showGuides", checked)}
+          />
         </RailSection>
 
         <RailSection title="Syntax colors">
@@ -370,22 +324,6 @@ export function PromptStyleRail({
             step={0.01}
             percent
             onChange={(value) => update("inlineChipOpacity", value)}
-          />
-          <div className="space-y-1">
-            <ColorField
-              label="Shading"
-              value={settings.ruleColor}
-              onChange={(value) => update("ruleColor", value)}
-            />
-          </div>
-          <RangeField
-            label="Shading opacity"
-            value={settings.ruleOpacity}
-            min={0}
-            max={1}
-            step={0.01}
-            percent
-            onChange={(value) => update("ruleOpacity", value)}
           />
           <div className="space-y-1">
             <ColorField
@@ -532,22 +470,75 @@ export function PromptStyleRail({
   );
 }
 
+const SECTIONS_STORAGE_KEY = "promptLab.styleRail.sections.v1";
+
+function readOpenSections(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(SECTIONS_STORAGE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    return typeof parsed === "object" && parsed !== null
+      ? (parsed as Record<string, boolean>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Unity-inspector foldout (2026-08-04 audit): every section header is a
+ * disclosure — caret + title, click to fold. Open state persists per section;
+ * only Type starts open so the rail reads as a tidy index at rest.
+ */
 function RailSection({
   title,
+  defaultOpen = false,
   children,
 }: {
   title: string;
+  defaultOpen?: boolean;
   children: ReactNode;
 }) {
+  const [open, setOpen] = useState<boolean>(() => {
+    const stored = readOpenSections();
+    return typeof stored[title] === "boolean" ? stored[title] : defaultOpen;
+  });
+
+  const toggle = useCallback(() => {
+    setOpen((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(
+          SECTIONS_STORAGE_KEY,
+          JSON.stringify({ ...readOpenSections(), [title]: next }),
+        );
+      } catch {
+        // Storage unavailable — session state still folds/unfolds.
+      }
+      return next;
+    });
+  }, [title]);
+
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2">
+    <section className={open ? "space-y-3" : undefined}>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={toggle}
+        className="flex w-full items-center gap-1.5 text-left"
+      >
+        <ChevronRight
+          aria-hidden
+          size={11}
+          className="shrink-0 text-muted-foreground transition-transform duration-150"
+          style={{ transform: open ? "rotate(90deg)" : undefined }}
+        />
         <h3 className="shrink-0 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
           {title}
         </h3>
         <span aria-hidden className="h-px flex-1 bg-border" />
-      </div>
-      {children}
+      </button>
+      {open && children}
     </section>
   );
 }
@@ -668,15 +659,6 @@ function ToggleField({
         />
       </span>
     </button>
-  );
-}
-
-function settingsEqual(
-  left: PromptStyleSettings,
-  right: PromptStyleSettings,
-): boolean {
-  return (Object.keys(right) as Array<keyof PromptStyleSettings>).every(
-    (key) => left[key] === right[key],
   );
 }
 

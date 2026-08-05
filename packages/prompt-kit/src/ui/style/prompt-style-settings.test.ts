@@ -4,7 +4,6 @@ import {
 	loadPromptStyleSettings,
 	normalizePromptStyleSettings,
 	PROMPT_STYLE_DEFAULTS,
-	PROMPT_STYLE_PRESETS,
 	PROMPT_STYLE_STORAGE_KEY,
 	promptStyleVars,
 	savePromptStyleSettings,
@@ -27,8 +26,11 @@ function memoryStorage(
 	};
 }
 
-describe("prompt style presets", () => {
-	test("exports the frozen balanced defaults", () => {
+describe("prompt style defaults", () => {
+	// ONE global theme (2026-08-04 audit): the painted palette over the
+	// balanced metrics. Presets are gone — there is nothing to switch to,
+	// so a stray click can never reset the look.
+	test("exports the frozen painted baseline", () => {
 		expect(PROMPT_STYLE_DEFAULTS).toEqual({
 			fontFamily: "system",
 			fontSize: 13,
@@ -36,35 +38,34 @@ describe("prompt style presets", () => {
 			letterSpacing: 0,
 			indentWidth: 20,
 			contentWidth: 136,
-			gutterWidth: 56,
+			marginLeft: 48,
+			marginTop: 24,
+			panelInset: 24,
+			panelTopInset: 12,
+			composerWidth: 640,
 			landmarkFontScale: 1.08,
-			gapRamp: 1,
-			// Off by default: the flow is a structured document, not source code.
-			showLineNumbers: false,
+			gapRamp: 0.5,
 			showGuides: true,
-			rowShading: "none",
 			surfaceColor: "#1E1E1E",
 			foregroundColor: "#D4D6D3",
 			gutterColor: "#1E1E1E",
-			lineNumberColor: "#454A51",
+			lineNumberColor: "#5F6672",
 			activeLineNumberColor: "#C6CCD2",
-			tagPunctuationColor: "#4B5057",
-			tagNameColor: "#9D8AAF",
-			tagLandmarkColor: "#BC9AD3",
-			tagSublandmarkColor: "#A992BE",
+			tagPunctuationColor: "#6E7681",
+			tagNameColor: "#9A7CAC",
+			tagLandmarkColor: "#CBA6DE",
+			tagSublandmarkColor: "#B48EC7",
 			attributeNameColor: "#85AECB",
-			attributeValueColor: "#AB8E70",
-			variableColor: "#D9C578",
+			attributeValueColor: "#C09A78",
+			variableColor: "#CFBC74",
 			referenceColor: "#58A794",
 			inlineCodeColor: "#5FBCA5",
 			inlineChipOpacity: 0.08,
-			listMarkerColor: "#565C64",
+			listMarkerColor: "#6C737B",
 			guideColor: "#FFFFFF",
 			guideOpacity: 0.1,
-			ruleColor: "#FFFFFF",
-			ruleOpacity: 0.025,
 			landmarkColor: "#FFFFFF",
-			landmarkOpacity: 0.06,
+			landmarkOpacity: 0,
 			selectionColor: "#3D7BBF",
 			selectionOpacity: 0.16,
 			selectionAccentColor: "#4D9DE0",
@@ -79,64 +80,6 @@ describe("prompt style presets", () => {
 			dropIndicatorWidth: 2,
 			dropIndicatorOpacity: 0.95,
 		});
-		expect(PROMPT_STYLE_DEFAULTS).toEqual(PROMPT_STYLE_PRESETS.balanced);
-	});
-
-	test("exports five complete, independently normalizable presets", () => {
-		expect(Object.keys(PROMPT_STYLE_PRESETS)).toEqual([
-			"dense",
-			"balanced",
-			"reading",
-			"painted",
-			"classic",
-		]);
-		expect(PROMPT_STYLE_PRESETS.dense).toEqual({
-			...PROMPT_STYLE_DEFAULTS,
-			fontSize: 12,
-			lineHeight: 18,
-			letterSpacing: -0.01,
-			indentWidth: 16,
-			contentWidth: 148,
-			gutterWidth: 48,
-			rowShading: "rules",
-			ruleOpacity: 0.05,
-		});
-		expect(PROMPT_STYLE_PRESETS.reading).toEqual({
-			...PROMPT_STYLE_DEFAULTS,
-			fontSize: 14.5,
-			lineHeight: 25,
-			letterSpacing: 0.01,
-			indentWidth: 24,
-			contentWidth: 88,
-			gutterWidth: 60,
-			rowShading: "none",
-			ruleOpacity: 0.025,
-		});
-		expect(PROMPT_STYLE_PRESETS.classic).toEqual({
-			...PROMPT_STYLE_DEFAULTS,
-			// The pre-redesign look always carried the code-editor gutter.
-			showLineNumbers: true,
-			rowShading: "zebra",
-			foregroundColor: "#E4E4E2",
-			lineNumberColor: "#5F6672",
-			tagPunctuationColor: "#6E7681",
-			tagNameColor: "#B48EC7",
-			tagLandmarkColor: "#B48EC7",
-			tagSublandmarkColor: "#B48EC7",
-			attributeValueColor: "#C09A78",
-			referenceColor: "#5FBCA5",
-			inlineCodeColor: "#E4E4E2",
-			inlineChipOpacity: 0,
-			listMarkerColor: "#7E8590",
-			landmarkFontScale: 1,
-			gapRamp: 0,
-		});
-
-		const expectedKeys = Object.keys(PROMPT_STYLE_DEFAULTS).sort();
-		for (const preset of Object.values(PROMPT_STYLE_PRESETS)) {
-			expect(Object.keys(preset).sort()).toEqual(expectedKeys);
-			expect(normalizePromptStyleSettings(preset)).toEqual(preset);
-		}
 	});
 });
 
@@ -149,10 +92,7 @@ describe("normalizePromptStyleSettings", () => {
 			letterSpacing: -4,
 			indentWidth: 17.7,
 			contentWidth: 10,
-			gutterWidth: 200,
-			showLineNumbers: "yes",
 			showGuides: false,
-			rowShading: "bands",
 			surfaceColor: "#abc",
 			foregroundColor: "red",
 			dropIndicatorWidth: 99,
@@ -168,11 +108,7 @@ describe("normalizePromptStyleSettings", () => {
 		expect(
 			normalizePromptStyleSettings({ contentWidth: 999 }).contentWidth,
 		).toBe(180);
-		expect(normalized.gutterWidth).toBe(96);
-		// Non-boolean input falls back to the default: off.
-		expect(normalized.showLineNumbers).toBe(false);
 		expect(normalized.showGuides).toBe(false);
-		expect(normalized.rowShading).toBe("none");
 		expect(normalized.surfaceColor).toBe("#AABBCC");
 		expect(normalized.foregroundColor).toBe(
 			PROMPT_STYLE_DEFAULTS.foregroundColor,
@@ -181,28 +117,21 @@ describe("normalizePromptStyleSettings", () => {
 		expect(normalized.dropIndicatorOpacity).toBe(0);
 	});
 
-	test("normalizes row shading and migrates legacy line-rule booleans", () => {
-		expect(
-			normalizePromptStyleSettings({
-				rowShading: "none",
-				showRules: true,
-			}).rowShading,
-		).toBe("none");
-		expect(
-			normalizePromptStyleSettings({ showRules: true }).rowShading,
-		).toBe("rules");
-		expect(
-			normalizePromptStyleSettings({ showRules: false }).rowShading,
-		).toBe("none");
-		expect(
-			normalizePromptStyleSettings({
-				rowShading: "invalid",
-				showRules: true,
-			}).rowShading,
-		).toBe("rules");
-		expect(
-			normalizePromptStyleSettings({ rowShading: "invalid" }).rowShading,
-		).toBe(PROMPT_STYLE_DEFAULTS.rowShading);
+	test("ignores retired fields (presets, line numbers, row shading)", () => {
+		// Payloads persisted before the one-theme cleanup carry retired keys —
+		// they normalize away without leaking into the result.
+		const normalized = normalizePromptStyleSettings({
+			gutterWidth: 96,
+			showLineNumbers: true,
+			rowShading: "zebra",
+			ruleColor: "#102030",
+			ruleOpacity: 0.2,
+			showRules: true,
+		});
+		expect(normalized).toEqual(PROMPT_STYLE_DEFAULTS);
+		expect("rowShading" in normalized).toBe(false);
+		expect("showLineNumbers" in normalized).toBe(false);
+		expect("gutterWidth" in normalized).toBe(false);
 	});
 
 	test("rejects non-object and non-finite input without sharing defaults", () => {
@@ -224,7 +153,6 @@ describe("prompt style persistence", () => {
 			...PROMPT_STYLE_DEFAULTS,
 			fontFamily: "jetbrains-mono",
 			fontSize: 14.5,
-			rowShading: "none",
 			tagNameColor: "#abc",
 		});
 
@@ -240,30 +168,10 @@ describe("prompt style persistence", () => {
 			[PROMPT_STYLE_STORAGE_KEY]: '{"version":2,"settings":{"fontSize":19}}',
 		});
 
-		savePromptStyleSettings(
-			{ ...PROMPT_STYLE_DEFAULTS },
-			storage,
-		);
+		savePromptStyleSettings({ ...PROMPT_STYLE_DEFAULTS }, storage);
 
 		expect(storage.entries.has(PROMPT_STYLE_STORAGE_KEY)).toBe(false);
 		expect(loadPromptStyleSettings(storage)).toEqual(PROMPT_STYLE_DEFAULTS);
-	});
-
-	test("the line-number toggle persists as an override and round-trips", () => {
-		const storage = memoryStorage();
-
-		// Enabling numbers deviates from the off default, so it persists…
-		savePromptStyleSettings(
-			{ ...PROMPT_STYLE_DEFAULTS, showLineNumbers: true },
-			storage,
-		);
-		expect(storage.entries.has(PROMPT_STYLE_STORAGE_KEY)).toBe(true);
-		expect(loadPromptStyleSettings(storage).showLineNumbers).toBe(true);
-
-		// …and turning them back off returns to defaults, clearing the override.
-		savePromptStyleSettings({ ...PROMPT_STYLE_DEFAULTS }, storage);
-		expect(storage.entries.has(PROMPT_STYLE_STORAGE_KEY)).toBe(false);
-		expect(loadPromptStyleSettings(storage).showLineNumbers).toBe(false);
 	});
 
 	test("falls back safely for corrupt and wrong-version payloads", () => {
@@ -310,8 +218,6 @@ describe("promptStyleVars", () => {
 			...PROMPT_STYLE_DEFAULTS,
 			fontFamily: "ibm-plex-mono",
 			fontSize: 16,
-			showLineNumbers: false,
-			rowShading: "rules",
 			guideColor: "#102030",
 			guideOpacity: 0.25,
 			dropIndicatorWidth: 3,
@@ -320,16 +226,13 @@ describe("promptStyleVars", () => {
 		expect(vars["--prompt-editor-font-family"]).toContain("IBM Plex Mono");
 		expect(vars["--prompt-editor-font-size"]).toBe("16px");
 		expect(vars["--prompt-editor-line-height"]).toBe("22px");
-		expect(vars["--prompt-editor-line-numbers-display"]).toBe("none");
-		expect(vars["--prompt-editor-line-number-visibility"]).toBe("hidden");
-		expect(vars["--prompt-editor-show-line-numbers"]).toBe("0");
-		// Numbers off collapses the gutter to the affordance strip, ignoring
-		// the configured (numbers-on) gutter width.
+		// Line numbers, rules, and zebra retired: the gutter is always the
+		// collapsed affordance strip and their toggles no longer exist.
 		expect(vars["--prompt-editor-gutter-width"]).toBe("36px");
-		expect(vars["--prompt-editor-show-rules"]).toBe("1");
-		expect(vars["--prompt-editor-show-zebra"]).toBe("0");
-		expect(vars["--prompt-editor-rules-display"]).toBe("block");
-		expect(vars["--prompt-editor-zebra-display"]).toBe("none");
+		expect("--prompt-editor-show-line-numbers" in vars).toBe(false);
+		expect("--prompt-editor-show-rules" in vars).toBe(false);
+		expect("--prompt-editor-show-zebra" in vars).toBe(false);
+		expect("--prompt-editor-rule" in vars).toBe(false);
 		expect(vars["--prompt-editor-guide"]).toBe("rgb(16 32 48 / 0.25)");
 		expect(vars["--prompt-editor-syntax-tag"]).toBe(
 			PROMPT_STYLE_DEFAULTS.tagNameColor,
@@ -374,45 +277,5 @@ describe("promptStyleVars", () => {
 		expect(flat["--prompt-editor-gap-height-base"]).toBe("22px");
 		expect(flat["--prompt-editor-gap-height-sub"]).toBe("22px");
 		expect(flat["--prompt-editor-gap-height-top"]).toBe("22px");
-	});
-
-	test("line numbers default off; enabling them restores the numbered gutter", () => {
-		// Default (off): no number column, collapsed gutter.
-		const off = promptStyleVars({
-			...PROMPT_STYLE_DEFAULTS,
-		}) as Record<string, string>;
-		expect(off["--prompt-editor-line-numbers-display"]).toBe("none");
-		expect(off["--prompt-editor-line-number-visibility"]).toBe("hidden");
-		expect(off["--prompt-editor-gutter-width"]).toBe("36px");
-
-		// Toggled on: exactly the classic rendering — visible numbers in the
-		// configured gutter width.
-		const on = promptStyleVars({
-			...PROMPT_STYLE_DEFAULTS,
-			showLineNumbers: true,
-		}) as Record<string, string>;
-		expect(on["--prompt-editor-line-numbers-display"]).toBe("block");
-		expect(on["--prompt-editor-line-number-visibility"]).toBe("visible");
-		expect(on["--prompt-editor-show-line-numbers"]).toBe("1");
-		expect(on["--prompt-editor-gutter-width"]).toBe(
-			`${PROMPT_STYLE_DEFAULTS.gutterWidth}px`,
-		);
-	});
-
-	test("emits the zebra toggles and shared shading tokens", () => {
-		const vars = promptStyleVars({
-			...PROMPT_STYLE_DEFAULTS,
-			rowShading: "zebra",
-			ruleColor: "#102030",
-			ruleOpacity: 0.2,
-		}) as Record<string, string>;
-
-		expect(vars["--prompt-editor-show-rules"]).toBe("0");
-		expect(vars["--prompt-editor-show-zebra"]).toBe("1");
-		expect(vars["--prompt-editor-rules-display"]).toBe("none");
-		expect(vars["--prompt-editor-zebra-display"]).toBe("block");
-		expect(vars["--prompt-editor-rule-color"]).toBe("#102030");
-		expect(vars["--prompt-editor-rule-opacity"]).toBe("0.2");
-		expect(vars["--prompt-editor-rule"]).toBe("rgb(16 32 48 / 0.2)");
 	});
 });

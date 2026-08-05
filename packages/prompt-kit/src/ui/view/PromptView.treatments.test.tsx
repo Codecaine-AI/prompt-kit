@@ -153,10 +153,10 @@ describe("PromptView structural treatments", () => {
 		expect(rows[9]).not.toContain("background-image:linear-gradient");
 	});
 
-	test("zebra striping stays indexed by logical line", () => {
-		expect(rows[0]).not.toContain("--prompt-editor-row-zebra:");
-		expect(rows[1]).toContain("--prompt-editor-row-zebra:");
-		expect(rows[2]).not.toContain("--prompt-editor-row-zebra:");
+	test("zebra striping is retired — no row carries the zebra token", () => {
+		for (const row of rows) {
+			expect(row).not.toContain("--prompt-editor-row-zebra:");
+		}
 	});
 
 	test("fenced XML-looking lines get no structural treatment", () => {

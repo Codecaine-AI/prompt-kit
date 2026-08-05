@@ -1,0 +1,10 @@
+{
+	"label": "mid-session",
+	"state": {
+		"targetAgent": "research-coordinator",
+		"targetPromptRender": "<!-- #sec-purpose -->\n<purpose>\n  <!-- #purpose-identity -->\n  You coordinate research across a fleet of scout agents.\n  <!-- #purpose-scope -->\n  You never gather sources yourself — route, dedupe, and synthesize the scouts' findings.\n</purpose>\n<!-- #sec-rules -->\n<rules>\n  <!-- #rules-voice -->\n  Be blunt with scouts; sloppy sourcing gets sent back.\n  <!-- #inputs-requests -->\n  Every incoming request names a question, a deadline, and a depth budget.\n  <!-- #workflow-order -->\n  Stage findings first, then validate, then publish the digest.\n</rules>",
+		"targetPromptHash": "pk1-9f2c41d8b06a75e3",
+		"appliedDiffs": "T1 pk1-4b81d2e6a90f37c5 → pk1-9f2c41d8b06a75e3\n  update_node purpose-scope: added synthesis of scouts' findings",
+		"requestQueue": "REQUESTS · 1/4 disposed\n  R1 done \"Merged the duplicate scope sentence — accepted as pk1-9f2c41d8b06a75e3.\"\n  R2 proposal-staged  node:purpose-identity  ford — \"Name the fleet — 'scout agents' is too generic.\"\n  R3 open  node:rules-voice  ford — \"Soften the tone rule — it reads hostile.\"\n    > human — \"Keep the standards, lose the hostility.\"\n  R4 open  doc  ford — \"Overall: the back half drifts formal — even it out.\""
+	}
+}

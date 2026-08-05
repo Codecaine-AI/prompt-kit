@@ -32,6 +32,14 @@ export interface PromptFlowInlineInsert {
 	/** Line-model row index the element renders immediately above. */
 	row: number;
 	element: ReactNode;
+	/**
+	 * Horizontal alignment. `text` (default) starts at the content glyphs —
+	 * past the gutter. `ring` matches the annotation targeting ring's box:
+	 * the ring hugs each row's `[data-prompt-row-text]` region (the row minus
+	 * its gutter cell) with a 3px outset, so a widget (the composer) lines up
+	 * edge-to-edge with the dotted ring below it.
+	 */
+	align?: "text" | "ring";
 }
 
 /** In-flow wrapper aligning an inserted widget with the content column. */
@@ -48,11 +56,19 @@ export function InlineInsertSlot({
 			// lab's capture-phase click hijack) away from the widget's controls.
 			data-annotation-ui="inline-insert"
 			data-prompt-inline-insert={insert.key}
-			style={{
-				paddingLeft: `calc(${gutterWidth} + 0.75rem)`,
-				paddingRight: "1rem",
-				marginBlock: "4px",
-			}}
+			style={
+				insert.align === "ring"
+					? {
+							marginLeft: `calc(${gutterWidth} - 3px)`,
+							marginRight: "-3px",
+							marginBlock: "4px",
+						}
+					: {
+							paddingLeft: `calc(${gutterWidth} + 0.75rem)`,
+							paddingRight: "1rem",
+							marginBlock: "4px",
+						}
+			}
 		>
 			{insert.element}
 		</div>

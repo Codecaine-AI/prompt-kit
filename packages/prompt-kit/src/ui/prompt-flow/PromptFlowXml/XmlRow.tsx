@@ -14,7 +14,6 @@ import {
 	EDITOR_COLORS,
 	EDITOR_METRICS,
 	promptEditorIndentForSpaces,
-	promptEditorZebraBackground,
 } from "../../surface/editor-surface";
 import type { PromptFlowViewProps } from "../types";
 import { lineRendersDecodedEntities, type XmlLine } from "../xml-line-model";
@@ -202,7 +201,6 @@ export function XmlRow({
 			style={{
 				...rowGridStyle,
 				...roleInk,
-				background: promptEditorZebraBackground(lineNumber - 1),
 				opacity: dragging
 					? "var(--prompt-editor-drag-opacity, 0.3)"
 					: undefined,
@@ -267,16 +265,12 @@ export function XmlRow({
 			)}
 
 			{/* Gutter: by default just the strip the block affordances need — the
-			    flow renders a structured document, so line numbers are OFF unless
-			    the host opts in (their one use: correlating with Raw line-for-line).
-			    When enabled via the style vars the number renders right-aligned in
-			    a widened gutter, exactly as the classic code-editor look. The
-			    transparent resting state lets row shading span the full width.
-			    Block affordances live in one cluster (see BlockCluster) anchored
-			    at the gutter's right edge, so hover/selection controls are in a
-			    single spot. */}
+			    flow renders a structured document — line numbers retired with the
+			    preset system (2026-08-04 audit). The gutter keeps its collapsed
+			    affordance width; block affordances live in one cluster (see
+			    BlockCluster) anchored at its right edge. */}
 			<div
-				className="sticky left-0 z-10 flex shrink-0 select-none items-start justify-end pr-3 text-right tabular-nums"
+				className="sticky left-0 z-10 flex shrink-0 select-none items-start justify-end pr-3 text-right"
 				style={{
 					minWidth: gutterWidth,
 					background:
@@ -284,25 +278,7 @@ export function XmlRow({
 							? EDITOR_COLORS.activeLineBg
 							: "transparent",
 				}}
-			>
-				<span
-					style={{
-						color: selected
-							? EDITOR_COLORS.lineNumberActive
-							: EDITOR_COLORS.lineNumber,
-						visibility: handleHere
-							? "hidden"
-							: ("var(--prompt-editor-line-number-visibility, hidden)" as React.CSSProperties["visibility"]),
-						// Default `none`: without host style vars the number column
-						// does not exist and the gutter keeps only its collapsed
-						// affordance width (see PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH).
-						display:
-							"var(--prompt-editor-line-numbers-display, none)",
-					}}
-				>
-					{lineNumber}
-				</span>
-			</div>
+			/>
 
 			{/* THE drag handle (Notion model — see resolveDragHandleUnit): at most
 			    one exists in the whole surface, mounted on the resolved unit's

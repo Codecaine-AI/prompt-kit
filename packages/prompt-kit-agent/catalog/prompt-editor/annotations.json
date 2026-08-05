@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "annotations": [
+    {
+      "id": "c0dd8595-1592-4d25-889d-c407cbd30ac6",
+      "target": {
+        "kind": "prompt-node",
+        "docId": "promptEditorPrompt",
+        "nodeId": "node-purpose-identity"
+      },
+      "body": "Trace-pipeline smoke test: propose a one-word tightening of this paragraph. The proposal will be discarded.",
+      "intent": "agent-request",
+      "author": "human",
+      "status": "resolved",
+      "createdAt": "2026-08-04T15:38:06.397Z",
+      "resolution": "Trace-pipeline smoke test only — discarding by design."
+    }
+  ]
+}

@@ -8,13 +8,6 @@ export type PromptMonoFontFamily =
 	| "jetbrains-mono"
 	| "ibm-plex-mono";
 
-export type PromptStylePresetId =
-	| "dense"
-	| "balanced"
-	| "reading"
-	| "painted"
-	| "classic";
-export type PromptRowShading = "none" | "rules" | "zebra";
 
 /**
  * Viewer-only presentation preferences for the XML-shaped prompt surfaces.
@@ -29,13 +22,23 @@ export interface PromptStyleSettings {
 	letterSpacing: number;
 	indentWidth: number;
 	contentWidth: number;
-	gutterWidth: number;
+	/** Left-justified layout: the fixed gap between the region's left edge and
+	 * the content column (the column no longer centers). */
+	marginLeft: number;
+	/** Breathing room above the document's first line. */
+	marginTop: number;
+	/** Gap between the glass panel and the region's right edge — breathing
+	 * room around the scrollbar. */
+	panelInset: number;
+	/** Gap between the glass panel's pinned corner and the region's top. */
+	panelTopInset: number;
+	/** The inline composer's width. Left edge stays pinned to the targeting
+	 * ring; this caps how far right the box reaches (never past the ring). */
+	composerWidth: number;
 	landmarkFontScale: number;
 	gapRamp: number;
 
-	showLineNumbers: boolean;
 	showGuides: boolean;
-	rowShading: PromptRowShading;
 
 	surfaceColor: string;
 	foregroundColor: string;
@@ -57,8 +60,6 @@ export interface PromptStyleSettings {
 
 	guideColor: string;
 	guideOpacity: number;
-	ruleColor: string;
-	ruleOpacity: number;
 	landmarkColor: string;
 	landmarkOpacity: number;
 
@@ -84,7 +85,7 @@ export interface PromptStyleStorage {
 	removeItem(key: string): void;
 }
 
-export const PROMPT_STYLE_STORAGE_KEY = "agentKernel.promptEditorStyle.v1";
+export const PROMPT_STYLE_STORAGE_KEY = "agentKernel.promptEditorStyle.v2";
 
 const STORAGE_VERSION = 2;
 
@@ -99,7 +100,10 @@ const FONT_STACKS: Record<PromptMonoFontFamily, string> = {
 		'"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
 };
 
-const BALANCED_SETTINGS: PromptStyleSettings = {
+// THE one theme (2026-08-04 audit): the "painted" palette over the balanced
+// metrics. Presets are gone — this is the global baseline every surface
+// shares, and the style rail adjusts it directly.
+const BASE_SETTINGS: PromptStyleSettings = {
 	fontFamily: "system",
 	fontSize: 13,
 	lineHeight: 22,
@@ -109,44 +113,46 @@ const BALANCED_SETTINGS: PromptStyleSettings = {
 	// column would otherwise stop well short of the inspector and the prose
 	// would wrap far more than it needs to.
 	contentWidth: 136,
-	gutterWidth: 56,
+	marginLeft: 48,
+	marginTop: 24,
+	panelInset: 24,
+	panelTopInset: 12,
+	composerWidth: 640,
 	landmarkFontScale: 1.08,
-	gapRamp: 1,
+	// Half ramp: the full 64px chapter break read as too much air between
+	// top-level sections once the landmark wash came off. The rail's slider
+	// still walks the whole 0–1 range.
+	gapRamp: 0.5,
 
-	// Off by default: the flow renders a structured document, not source code.
-	// Node ids, targeting rings, and quoted ranges are the address system;
-	// numbers are a competing code-editor affordance that eats the left edge
-	// and crowds the drag grip. Their one legitimate use — correlating with
-	// the Raw view line-for-line (the xml-line-model invariant) — stays
-	// available behind this toggle.
-	showLineNumbers: false,
 	showGuides: true,
-	rowShading: "none",
 
 	surfaceColor: "#1E1E1E",
 	foregroundColor: "#D4D6D3",
 	gutterColor: "#1E1E1E",
-	lineNumberColor: "#454A51",
+	lineNumberColor: "#5F6672",
 	activeLineNumberColor: "#C6CCD2",
 
-	tagPunctuationColor: "#4B5057",
-	tagNameColor: "#9D8AAF",
-	tagLandmarkColor: "#BC9AD3",
-	tagSublandmarkColor: "#A992BE",
+	// The "painted landmarks" palette: one purple family for structure, with
+	// hierarchy carried by brightness.
+	tagPunctuationColor: "#6E7681",
+	tagNameColor: "#9A7CAC",
+	tagLandmarkColor: "#CBA6DE",
+	tagSublandmarkColor: "#B48EC7",
 	attributeNameColor: "#85AECB",
-	attributeValueColor: "#AB8E70",
-	variableColor: "#D9C578",
+	attributeValueColor: "#C09A78",
+	variableColor: "#CFBC74",
 	referenceColor: "#58A794",
 	inlineCodeColor: "#5FBCA5",
 	inlineChipOpacity: 0.08,
-	listMarkerColor: "#565C64",
+	listMarkerColor: "#6C737B",
 
 	guideColor: "#FFFFFF",
 	guideOpacity: 0.1,
-	ruleColor: "#FFFFFF",
-	ruleOpacity: 0.025,
 	landmarkColor: "#FFFFFF",
-	landmarkOpacity: 0.06,
+	// Off by default: landmark rows already read as landmarks from the larger
+	// tag type and band padding; the full-width wash competes with selection
+	// and hover paint. The slider keeps the wash available.
+	landmarkOpacity: 0,
 
 	selectionColor: "#3D7BBF",
 	selectionOpacity: 0.16,
@@ -164,84 +170,12 @@ const BALANCED_SETTINGS: PromptStyleSettings = {
 	dropIndicatorOpacity: 0.95,
 };
 
-function withPresetOverrides(
-	overrides: Partial<PromptStyleSettings>,
-): PromptStyleSettings {
-	return { ...BALANCED_SETTINGS, ...overrides };
-}
-
-/**
- * Complete presets let consumers switch atomically with every presentation
- * field defined by the selected preset.
- */
-export const PROMPT_STYLE_PRESETS: Readonly<
-	Record<PromptStylePresetId, Readonly<PromptStyleSettings>>
-> = {
-	dense: withPresetOverrides({
-		fontSize: 12,
-		lineHeight: 18,
-		letterSpacing: -0.01,
-		indentWidth: 16,
-		// `ch` scales with font size, so dense needs proportionally MORE columns
-		// than balanced to stay at least as wide on screen (136 × 13/12).
-		contentWidth: 148,
-		gutterWidth: 48,
-		rowShading: "rules",
-		ruleOpacity: 0.05,
-	}),
-	balanced: { ...BALANCED_SETTINGS },
-	reading: withPresetOverrides({
-		fontSize: 14.5,
-		lineHeight: 25,
-		letterSpacing: 0.01,
-		indentWidth: 24,
-		contentWidth: 88,
-		gutterWidth: 60,
-		rowShading: "none",
-		ruleOpacity: 0.025,
-	}),
-	// The full syntax palette from the "painted landmarks" exploration: one
-	// purple family for structure with hierarchy carried by brightness.
-	painted: withPresetOverrides({
-		foregroundColor: "#D4D6D3",
-		tagPunctuationColor: "#6E7681",
-		tagNameColor: "#9A7CAC",
-		tagLandmarkColor: "#CBA6DE",
-		tagSublandmarkColor: "#B48EC7",
-		attributeNameColor: "#85AECB",
-		attributeValueColor: "#C09A78",
-		variableColor: "#CFBC74",
-		listMarkerColor: "#6C737B",
-		lineNumberColor: "#5F6672",
-	}),
-	// The surface exactly as it looked before the landmark redesign: every
-	// new capability sits at its neutral value — including the code-editor
-	// line-number gutter, which the classic look always carried.
-	classic: withPresetOverrides({
-		showLineNumbers: true,
-		rowShading: "zebra",
-		foregroundColor: "#E4E4E2",
-		lineNumberColor: "#5F6672",
-		tagPunctuationColor: "#6E7681",
-		tagNameColor: "#B48EC7",
-		tagLandmarkColor: "#B48EC7",
-		tagSublandmarkColor: "#B48EC7",
-		attributeValueColor: "#C09A78",
-		referenceColor: "#5FBCA5",
-		inlineCodeColor: "#E4E4E2",
-		inlineChipOpacity: 0,
-		listMarkerColor: "#7E8590",
-		landmarkFontScale: 1,
-		gapRamp: 0,
-	}),
-};
-
 /**
  * The application default is a complete value, not a patch. Resetting means
  * removing persisted overrides and returning this object.
  */
 export const PROMPT_STYLE_DEFAULTS: Readonly<PromptStyleSettings> =
-	PROMPT_STYLE_PRESETS.balanced;
+	BASE_SETTINGS;
 
 const FONT_FAMILIES = new Set<PromptMonoFontFamily>([
 	"system",
@@ -249,12 +183,6 @@ const FONT_FAMILIES = new Set<PromptMonoFontFamily>([
 	"jetbrains-mono",
 	"ibm-plex-mono",
 ]);
-const ROW_SHADING_MODES = new Set<PromptRowShading>([
-	"none",
-	"rules",
-	"zebra",
-]);
-
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -290,23 +218,6 @@ function fontFamilyOr(
 		FONT_FAMILIES.has(value as PromptMonoFontFamily)
 		? (value as PromptMonoFontFamily)
 		: fallback;
-}
-
-function rowShadingOr(
-	value: unknown,
-	legacyShowRules: unknown,
-	fallback: PromptRowShading,
-): PromptRowShading {
-	if (
-		typeof value === "string" &&
-		ROW_SHADING_MODES.has(value as PromptRowShading)
-	) {
-		return value as PromptRowShading;
-	}
-	if (typeof legacyShowRules === "boolean") {
-		return legacyShowRules ? "rules" : "none";
-	}
-	return fallback;
 }
 
 /**
@@ -358,11 +269,35 @@ export function normalizePromptStyleSettings(
 			60,
 			180,
 		),
-		gutterWidth: integerInRange(
-			source.gutterWidth,
-			defaults.gutterWidth,
-			36,
+		marginLeft: integerInRange(
+			source.marginLeft,
+			defaults.marginLeft,
+			0,
+			240,
+		),
+		marginTop: integerInRange(
+			source.marginTop,
+			defaults.marginTop,
+			0,
+			160,
+		),
+		panelInset: integerInRange(
+			source.panelInset,
+			defaults.panelInset,
+			8,
 			96,
+		),
+		panelTopInset: integerInRange(
+			source.panelTopInset,
+			defaults.panelTopInset,
+			0,
+			120,
+		),
+		composerWidth: integerInRange(
+			source.composerWidth,
+			defaults.composerWidth,
+			320,
+			1600,
 		),
 		landmarkFontScale: numberInRange(
 			source.landmarkFontScale,
@@ -372,16 +307,7 @@ export function normalizePromptStyleSettings(
 		),
 		gapRamp: numberInRange(source.gapRamp, defaults.gapRamp, 0, 1),
 
-		showLineNumbers: booleanOr(
-			source.showLineNumbers,
-			defaults.showLineNumbers,
-		),
 		showGuides: booleanOr(source.showGuides, defaults.showGuides),
-		rowShading: rowShadingOr(
-			source.rowShading,
-			source.showRules,
-			defaults.rowShading,
-		),
 
 		surfaceColor: colorOr(source.surfaceColor, defaults.surfaceColor),
 		foregroundColor: colorOr(
@@ -440,13 +366,6 @@ export function normalizePromptStyleSettings(
 		guideOpacity: numberInRange(
 			source.guideOpacity,
 			defaults.guideOpacity,
-			0,
-			1,
-		),
-		ruleColor: colorOr(source.ruleColor, defaults.ruleColor),
-		ruleOpacity: numberInRange(
-			source.ruleOpacity,
-			defaults.ruleOpacity,
 			0,
 			1,
 		),
@@ -609,28 +528,17 @@ export function promptStyleVars(settings: PromptStyleSettings): CSSProperties {
 		"--prompt-editor-letter-spacing": `${value.letterSpacing}em`,
 		"--prompt-editor-indent-width": `${value.indentWidth}px`,
 		"--prompt-editor-content-width": `${value.contentWidth}ch`,
-		// With numbers off the gutter collapses to what the drag grip and block
-		// affordances actually need; the content's left edge moves left with it.
-		// Every gutter consumer (row gutter, indent guides, drop indicator,
-		// grip cluster) reads this one variable, so geometry stays consistent.
-		"--prompt-editor-gutter-width": value.showLineNumbers
-			? `${value.gutterWidth}px`
-			: PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH,
-		"--prompt-editor-show-line-numbers": value.showLineNumbers ? "1" : "0",
+		"--prompt-editor-margin-left": `${value.marginLeft}px`,
+		"--prompt-editor-margin-top": `${value.marginTop}px`,
+		"--prompt-editor-panel-right": `${value.panelInset}px`,
+		"--prompt-editor-composer-width": `${value.composerWidth}px`,
+		// The gutter is the collapsed affordance rail — line numbers retired
+		// with the preset system (2026-08-04 audit). Every gutter consumer
+		// (row gutter, indent guides, drop indicator, grip cluster) reads this
+		// one variable, so geometry stays consistent.
+		"--prompt-editor-gutter-width": PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH,
 		"--prompt-editor-show-guides": value.showGuides ? "1" : "0",
-		"--prompt-editor-show-rules": value.rowShading === "rules" ? "1" : "0",
-		"--prompt-editor-show-zebra": value.rowShading === "zebra" ? "1" : "0",
-		"--prompt-editor-line-number-visibility": value.showLineNumbers
-			? "visible"
-			: "hidden",
-		"--prompt-editor-line-numbers-display": value.showLineNumbers
-			? "block"
-			: "none",
 		"--prompt-editor-guides-display": value.showGuides ? "block" : "none",
-		"--prompt-editor-rules-display":
-			value.rowShading === "rules" ? "block" : "none",
-		"--prompt-editor-zebra-display":
-			value.rowShading === "zebra" ? "block" : "none",
 
 		"--prompt-editor-bg": value.surfaceColor,
 		"--prompt-editor-fg": value.foregroundColor,
@@ -672,12 +580,6 @@ export function promptStyleVars(settings: PromptStyleSettings): CSSProperties {
 		"--prompt-editor-guide": hexWithOpacity(
 			value.guideColor,
 			value.guideOpacity,
-		),
-		"--prompt-editor-rule-color": value.ruleColor,
-		"--prompt-editor-rule-opacity": String(value.ruleOpacity),
-		"--prompt-editor-rule": hexWithOpacity(
-			value.ruleColor,
-			value.ruleOpacity,
 		),
 		"--prompt-editor-landmark-color": value.landmarkColor,
 		"--prompt-editor-landmark-opacity": String(value.landmarkOpacity),

@@ -6,10 +6,8 @@ import {
 	EDITOR_FONT_PX,
 	EDITOR_METRICS,
 	LINE_HEIGHT_PX,
-	editorRuleBackground,
 	promptEditorIndentForDepth,
 	promptEditorIndentForSpaces,
-	promptEditorZebraBackground,
 } from "./editor-surface";
 import { highlightXmlLine } from "./xml-highlight";
 
@@ -105,20 +103,6 @@ describe("prompt editor surface contract", () => {
 			diffAddFg: "var(--prompt-editor-diff-add-fg, #3FB950)",
 			threadAccent: "var(--prompt-editor-thread-accent, #D29922)",
 		});
-		expect(editorRuleBackground.backgroundImage).toContain(
-			"var(--prompt-editor-show-rules, 0)",
-		);
-	});
-
-	test("tints only zero-based odd rows with the shared zebra expression", () => {
-		expect(promptEditorZebraBackground(0)).toBeUndefined();
-		expect(promptEditorZebraBackground(1)).toBe(
-			`color-mix(in srgb, ${EDITOR_COLORS.rule} calc(var(--prompt-editor-show-zebra, 1) * 100%), transparent)`,
-		);
-		expect(promptEditorZebraBackground(2)).toBeUndefined();
-		expect(promptEditorZebraBackground(3)).toBe(
-			promptEditorZebraBackground(1),
-		);
 	});
 
 	test("builds indentation expressions without CSS length multiplication", () => {

@@ -15,7 +15,6 @@ import {
 	EDITOR_METRICS,
 	LINE_HEIGHT_PX,
 	PROMPT_EDITOR_ROOT_CLASS,
-	editorRuleBackground,
 	editorTypeStyle,
 	PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH,
 	promptEditorGutterWidth,
@@ -149,14 +148,32 @@ export function PromptFlowXml({
 	onSelectNode,
 	onPromptChange,
 	showOutline = false,
+	centerContent = false,
 	stagedRegions,
 	inlineInserts,
+	leadContent,
 }: PromptFlowViewProps & {
 	/**
 	 * Render the top-level section outline column beside the buffer. Hosts
 	 * pass false only when the pane is too narrow to carry it.
 	 */
 	showOutline?: boolean;
+	/**
+	 * Center the content column inside the scroller instead of left-aligning
+	 * it. Hosts whose scroller spans wider than the content width (the lab's
+	 * full-region document area, where the scrollbar belongs at the region's
+	 * far right) pass true; the default keeps existing consumers byte-
+	 * identical. Overlays are unaffected: everything absolute renders inside
+	 * the rows container (which the auto margins move as one unit), and the
+	 * drag ghost / drop indicator position from live viewport rects.
+	 */
+	centerContent?: boolean;
+	/**
+	 * Rendered INSIDE the scroller, above the rows, on the same content
+	 * column (Notion-page header): it scrolls away with the document instead
+	 * of sitting as fixed chrome above it.
+	 */
+	leadContent?: React.ReactNode;
 	/**
 	 * Staged-proposal regions: each replaces its row range with red del rows +
 	 * green add rows (plus an optional in-flow action bar). Replaced rows are
@@ -1040,25 +1057,35 @@ export function PromptFlowXml({
 					line && nodeRanges.has(line.nodeId)
 						? line.nodeId
 						: blockGroup.blockIds[0]!;
-				drag.startBlockRunDrag(lift, {
-					parentId: blockGroup.parentId,
-					fromIndex: blockGroup.fromIndex,
-					count: blockGroup.count,
-					blockIds: blockGroup.blockIds,
-					grabbedId,
-				});
+				drag.startBlockRunDrag(
+					lift,
+					{
+						parentId: blockGroup.parentId,
+						fromIndex: blockGroup.fromIndex,
+						count: blockGroup.count,
+						blockIds: blockGroup.blockIds,
+						grabbedId,
+					},
+					// This gesture already crossed the body-move threshold.
+					{ immediate: true },
+				);
 				return;
 			}
 			if (itemGroup) {
-				drag.startItemDrag(lift, {
-					listId: itemGroup.listId,
-					// The innermost item owning the pressed row anchors the
-					// ghost — the carried run stays the whole group.
-					itemId: rowItemIds[gesture.row] ?? itemGroup.itemIds[0]!,
-					itemIndex: itemGroup.fromIndex,
-					count: itemGroup.count,
-					itemIds: itemGroup.itemIds,
-				});
+				drag.startItemDrag(
+					lift,
+					{
+						listId: itemGroup.listId,
+						// The innermost item owning the pressed row anchors the
+						// ghost — the carried run stays the whole group.
+						itemId: rowItemIds[gesture.row] ?? itemGroup.itemIds[0]!,
+						itemIndex: itemGroup.fromIndex,
+						count: itemGroup.count,
+						itemIds: itemGroup.itemIds,
+					},
+					// This gesture already crossed the body-move threshold.
+					{ immediate: true },
+				);
 			}
 		};
 
@@ -1288,30 +1315,74 @@ export function PromptFlowXml({
 				onScroll={outlineShown ? updateActiveSection : undefined}
 				style={{
 					background: EDITOR_COLORS.bg,
+					// The lab's floating glass reserves space INSIDE the scroller —
+					// padding on the scroll container keeps its scrollbar at the far
+					// right edge, right of the glass, not mid-screen.
+					paddingRight: "var(--prompt-editor-reserved-right, 0px)",
+					transition: "padding-right 260ms cubic-bezier(0.32, 0.72, 0, 1)",
 					// Rows carry their own type; the scroller repeats the font so the
 					// `ch`-based max width below resolves in editor characters rather
 					// than the shell's.
 					fontFamily: EDITOR_METRICS.fontFamily,
 					fontSize: EDITOR_METRICS.fontSize,
-					...editorRuleBackground,
 					// Alongside the outline the buffer stops at the content width,
 					// so the column hugs the text instead of stranding a band of
 					// empty canvas between them.
 					...(outlineShown ? { maxWidth: EDITOR_METRICS.contentWidth } : null),
 				}}
 			>
+				{/* THE NOTION PAGE HEADER (2026-08-04, third pass): inside the
+				    scroller on the SAME content column as the rows — it scrolls
+				    away with the document, part of the page rather than chrome
+				    above it. */}
+				{leadContent && (
+					<div
+						data-prompt-flow-lead=""
+						style={{
+							...editorTypeStyle,
+							maxWidth: EDITOR_METRICS.contentWidth,
+							marginInline: "var(--prompt-editor-margin-left, 0px) auto",
+							paddingTop: "var(--prompt-editor-margin-top, 0px)",
+							// Flush with the TEXT, not the rows container: rows lead
+							// with the gutter cell + the text region's own padding,
+							// so the title starts exactly where depth-0 content does.
+							paddingLeft: `calc(${EDITOR_METRICS.gutterWidth} + 0.75rem)`,
+						}}
+					>
+						{leadContent}
+					</div>
+				)}
 				{model.tree.length === 0 ? (
-					<div className="p-4">
+					<div
+						className="p-4"
+						style={{
+							maxWidth: EDITOR_METRICS.contentWidth,
+							marginInline: "var(--prompt-editor-margin-left, 0px) auto",
+						}}
+					>
 						<EmptyFlow onInsert={(type) => flow.insertBlock(type, null)} />
 					</div>
 				) : (
 					<div
 						ref={rowsRef}
 						data-prompt-flow-rows=""
-						className={cn("relative w-full", ROW_TEXT)}
+						className={cn("relative", ROW_TEXT)}
 						style={{
 							...editorTypeStyle,
+							// Width leaves room for the left margin below — `w-full` plus
+							// that margin overflowed the scroller by exactly the margin,
+							// pinning a permanent horizontal scrollbar to the buffer.
+							width: "calc(100% - var(--prompt-editor-margin-left, 0px))",
 							maxWidth: EDITOR_METRICS.contentWidth,
+							// LEFT-JUSTIFIED (2026-08-04 audit): the column starts at the
+							// style rail's left margin instead of centering — in every
+							// host (the old centerContent gate died with the in-margin
+							// dock). Absolute overlays live inside this container and
+							// ride along; hit-tests measure against its own rect, so
+							// the offset never leaks into their math. Top margin adds
+							// reading room above line 1.
+							marginInline: "var(--prompt-editor-margin-left, 0px) auto",
+							marginTop: "var(--prompt-editor-margin-top, 0px)",
 							// Breathing room above line 1 / below the last line. One
 							// line-height keeps the ruled-paper hairlines (drawn on
 							// the scroller from y=0) aligned with row boundaries, and

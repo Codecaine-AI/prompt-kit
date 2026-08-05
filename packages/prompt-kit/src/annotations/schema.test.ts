@@ -6,10 +6,15 @@ import {
   promptAnnotationSchema,
   promptNodeTargetAdapter,
   promptRangeTargetAdapter,
+  promptTargetFingerprint,
   targetForNode,
+  targetFingerprintChanged,
+  withTargetFingerprint,
   type PromptAnnotation,
   type PromptAnnotationsDocument,
+  type PromptNodeTarget,
   type PromptRangeTarget,
+  type ValidationIssue,
 } from "./schema";
 import {
   buildXmlLineModel,
@@ -437,5 +442,115 @@ describe("promptAnnotationSchema.detectDanglingTargets", () => {
       { "prompt-node": doc },
     );
     expect(dangling).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* Target fingerprints                                                 */
+/* ------------------------------------------------------------------ */
+
+describe("target fingerprints", () => {
+  test("withTargetFingerprint stamps the node's content, and drift is detectable", () => {
+    const filed = withTargetFingerprint(doc, targetForNode(doc, paragraphId));
+    expect(filed.fingerprint).toEqual(expect.any(String));
+    // Nothing has moved yet.
+    expect(targetFingerprintChanged(doc, filed)).toBe(false);
+
+    // An accepted change rewrites the paragraph under the filed note.
+    const edited: PromptDocument = ensurePromptNodeIds({
+      ...doc,
+      nodes: [
+        {
+          type: "section",
+          tag: "context",
+          id: sectionId,
+          children: [
+            { type: "paragraph", id: paragraphId, content: ["Different now."] },
+          ],
+        },
+        ...doc.nodes.slice(1),
+      ],
+    });
+    expect(targetFingerprintChanged(edited, filed)).toBe(true);
+    // A node the change did not touch is still quiet.
+    const untouched = withTargetFingerprint(doc, targetForNode(doc, itemId));
+    expect(targetFingerprintChanged(edited, untouched)).toBe(false);
+  });
+
+  test("an UNSTAMPED target never reports drift (older documents stay quiet)", () => {
+    const plain = targetForNode(doc, paragraphId);
+    expect(plain.fingerprint).toBeUndefined();
+    expect(targetFingerprintChanged(doc, plain)).toBe(false);
+  });
+
+  test("document-level targets carry no fingerprint", () => {
+    const target: PromptNodeTarget = {
+      kind: "prompt-node",
+      docId: doc.id,
+      nodeId: doc.id,
+    };
+    const wholeDoc = withTargetFingerprint(doc, target);
+    expect(wholeDoc.fingerprint).toBeUndefined();
+    expect(promptTargetFingerprint(doc, wholeDoc)).toBeUndefined();
+  });
+
+  test("the field is additive: absent validates, present validates, junk does not", () => {
+    const issues: ValidationIssue[] = [];
+    // Absent — every document written before the field existed.
+    expect(
+      promptNodeTargetAdapter.validateTarget(
+        { kind: "prompt-node", docId: doc.id, nodeId: paragraphId },
+        "$.target",
+        issues,
+      ),
+    ).toEqual({ kind: "prompt-node", docId: doc.id, nodeId: paragraphId });
+    // Present — round-trips through validation.
+    expect(
+      promptNodeTargetAdapter.validateTarget(
+        {
+          kind: "prompt-node",
+          docId: doc.id,
+          nodeId: paragraphId,
+          fingerprint: "deadbeef",
+        },
+        "$.target",
+        issues,
+      ),
+    ).toEqual({
+      kind: "prompt-node",
+      docId: doc.id,
+      nodeId: paragraphId,
+      fingerprint: "deadbeef",
+    });
+    expect(issues).toEqual([]);
+
+    // Junk is rejected rather than silently dropped.
+    expect(
+      promptNodeTargetAdapter.validateTarget(
+        { kind: "prompt-node", docId: doc.id, nodeId: paragraphId, fingerprint: 7 },
+        "$.target",
+        issues,
+      ),
+    ).toBeNull();
+    expect(issues).toEqual([
+      {
+        path: "$.target.fingerprint",
+        message: "Annotation target fingerprint must be a non-empty string.",
+      },
+    ]);
+  });
+
+  test("a fingerprint never changes a target's identity or its dangling check", () => {
+    const plain = targetForNode(doc, paragraphId);
+    const filed = withTargetFingerprint(doc, plain);
+    expect(promptAnnotationSchema.targetKey(filed)).toBe(
+      promptAnnotationSchema.targetKey(plain),
+    );
+    expect(
+      promptAnnotationSchema.detectDanglingTargets(
+        documentWith(annotation({ target: filed })),
+        { "prompt-node": doc },
+      ),
+    ).toEqual([]);
   });
 });

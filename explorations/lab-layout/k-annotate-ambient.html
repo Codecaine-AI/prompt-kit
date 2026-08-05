@@ -1,0 +1,2605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt lab layout — K, ambient shift</title>
+<style>
+  /* -----------------------------------------------------------------
+     Variant K — "the ambient mode shift".
+
+     The mode is a temperature, not a gesture. Nothing slides and
+     nothing resizes: the chat panel cross-fades into the dock's exact
+     slot, one restrained violet appears in four places at once (the
+     left edge of the viewport, the dock's hairlines and headers, the
+     section tag names, and a chip at the bottom centre), and replies
+     land whole rather than streaming.
+
+     This revision settles the interaction:
+
+       THREE GESTURES. Opening the composer on a target — gutter `+`,
+       or select text in a row and press ⌘K — offers exactly three
+       dispositions: Run now (Enter, primary), Add to batch (⇧Enter),
+       Add to global (⌘⏎, a document-target note that needs no row).
+
+       RUN NOW LIVES AT THE SECTION. The composer collapses into a
+       compact inline thread pinned above the target row. The row
+       shimmers while the agent works, the reply lands whole, the diff
+       fades onto the row. A reply in the thread re-runs and re-stages.
+       Accept closes that one loop: the diff lands, the thread
+       collapses, and the request files itself into the sidebar as a
+       record. Run-now work never appears in the sidebar in flight —
+       only afterwards, as history.
+
+       BATCH AND GLOBAL ARE THE SIDEBAR'S JOB. Those notes file
+       instantly into the queue and nothing runs until Apply. Then the
+       panel narrates the run one card at a time — processing, queued ·
+       next, queued · #3 — auto-advancing as each stages. If a run-now
+       accept has changed a node a queued note targets, that card picks
+       up a quiet `target changed since filed` chip.
+
+     Leaving is one transition back, and the chip morphs into what the
+     session left behind before it fades.
+     ----------------------------------------------------------------- */
+  :root {
+    --bg: #161719;
+    --surface: #1c1e21;
+    --line: #26282c;
+    --line-soft: #202226;
+    --fg: #c9ccd1;
+    --bright: #e2e5ea;
+    --muted: #868c95;
+    --faint: #5b616a;
+    --tag: #8f7bb5;
+    --tag-dim: #6f6189;
+    --var: #d0a45c;
+    --accent: #8fa2bd;
+    --open: #b8894a;
+    --done: #4c5158;
+    --add: #6f9a6a;
+    --add-lit: #8bb886;
+    --del: #a8635f;
+
+    /* the mode's hue — a desaturated violet, one step off the tag purple */
+    --am: #8a7ab0;
+    --am-lit: #ad9dd0;
+    --am-dim: #7a6d98;
+    --am-line: rgba(138, 122, 176, 0.26);
+    --am-wash: rgba(138, 122, 176, 0.075);
+    --am-fill: rgba(138, 122, 176, 0.055);
+
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+    --col: 90ch;       /* the document column */
+    --dock: 320px;     /* furniture in the margin — the panel uses the same slot */
+    --dock-gap: 20px;
+    --top: 30px;       /* the one vertical rhythm: doc top == dock top */
+    --shift: 250ms;    /* the temperature change */
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea {
+    font-family: inherit;
+    font-size: 12px;
+    background: transparent;
+    color: inherit;
+    border: 0;
+    padding: 0;
+    line-height: inherit;
+  }
+  button { cursor: pointer; }
+  ::selection { background: rgba(143, 162, 189, 0.22); }
+  .mode-annotate ::selection { background: rgba(138, 122, 176, 0.3); }
+
+  /* =================================================================
+     AMBIENT SIGNAL (a) — the edge of the viewport
+     ================================================================= */
+  #edge {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--am);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 6;
+    transition: opacity var(--shift) var(--ease);
+  }
+  .mode-annotate #edge { opacity: 0.82; }
+
+  /* ---------- document surface — nothing above it, and it never moves ---------- */
+  #main { flex: 1; min-height: 0; display: flex; }
+  #stage {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  #doc {
+    max-width: var(--col);
+    margin: 0 auto;
+    padding: var(--top) 0 46vh;
+  }
+  #note {
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    padding-left: 2ch;
+    margin-bottom: 22px;
+  }
+  #note:empty { display: none; }
+  #gcomp:empty { display: none; }
+
+  .sec { margin-bottom: 30px; }
+  .sec:last-child { margin-bottom: 0; }
+
+  /* AMBIENT SIGNAL (c) — the section tag names warm toward the hue */
+  .tagline {
+    color: var(--tag);
+    white-space: pre;
+    padding-left: 2ch;
+    transition: color var(--shift) var(--ease);
+  }
+  .mode-annotate .tagline { color: var(--am-lit); }
+  .itag { color: var(--tag-dim); transition: color var(--shift) var(--ease); }
+  .mode-annotate .itag { color: var(--am-dim); }
+
+  .row { display: flex; align-items: baseline; }
+  .row .body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    padding: 1px 10px 1px 6px;
+    transition: background-color var(--shift) var(--ease), box-shadow var(--shift) var(--ease);
+  }
+  .row.sub .body { padding-left: calc(3ch + 6px); }
+  .row.para .body { margin-top: 8px; margin-bottom: 8px; }
+  .row .mk { color: var(--muted); flex: 0 0 auto; }
+  .row .kk { color: var(--muted); flex: 0 0 21ch; }
+  .row .tx { color: var(--fg); min-width: 0; }
+  .row.spacer { height: 10px; }
+
+  #doc.live .row .body { cursor: pointer; }
+  #doc.live .row:hover .body { background-color: rgba(255, 255, 255, 0.028); }
+  .mode-annotate #doc.live .row:hover .body { background-color: var(--am-wash); }
+  .row.sel .body {
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .row.flash .body {
+    background-color: rgba(184, 137, 74, 0.13);
+    box-shadow: inset 2px 0 0 var(--open);
+  }
+  .mode-annotate .row.flash .body {
+    background-color: rgba(138, 122, 176, 0.15);
+    box-shadow: inset 2px 0 0 var(--am);
+  }
+
+  /* the annotated rows keep their rail for as long as the mode lasts.
+     nothing else dims — the background never changes. */
+  .mode-annotate .row.tgt .body { box-shadow: inset 2px 0 0 rgba(138, 122, 176, 0.45); }
+  .mode-annotate .row.tgt.act .body {
+    background-color: var(--am-wash);
+    box-shadow: inset 2px 0 0 var(--am);
+  }
+
+  /* ---------- THE WORKING SHIMMER — processing, at the section ---------- */
+  @keyframes shimmer {
+    from { background-position: -130% 0; }
+    to   { background-position: 230% 0; }
+  }
+  .row.work .body {
+    background-image: linear-gradient(100deg,
+      rgba(138, 122, 176, 0) 22%,
+      rgba(138, 122, 176, 0.19) 46%,
+      rgba(138, 122, 176, 0.05) 58%,
+      rgba(138, 122, 176, 0) 76%);
+    background-size: 230% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 1.6s linear infinite;
+    box-shadow: inset 2px 0 0 var(--am);
+  }
+  .row.work .tx { color: var(--bright); }
+
+  /* the gutter is a mode affordance, not permanent furniture */
+  .gut {
+    flex: 0 0 2ch;
+    align-self: flex-start;
+    color: var(--faint);
+    text-align: left;
+    opacity: 0;
+    transition: opacity 110ms ease, color 110ms ease;
+  }
+  .row.para .gut { margin-top: 8px; }
+  .mode-annotate .row:hover .gut { opacity: 1; }
+  .mode-annotate .gut:hover { color: var(--am-lit); }
+  .mode-annotate .gut.pinned { opacity: 1; color: var(--am); font-size: 9px; }
+
+  /* the staged-change marker: a thin bar, not a badge */
+  .gut.mark { opacity: 1; }
+  .gut.mark::before {
+    content: "";
+    display: block;
+    width: 2px;
+    height: 1.55em;
+    margin-left: 3px;
+    background: var(--del);
+    opacity: 0.6;
+  }
+  .gut.mark.add::before { background: var(--add); }
+
+  .rchip {
+    flex: 0 0 auto;
+    color: var(--am);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .rchip.staged { color: var(--add); }
+
+  .var { color: var(--var); }
+  .tool { color: #a1a7b1; }
+
+  /* ---------- staged diff, in place ---------- */
+  .row.dold .body { background-color: rgba(168, 99, 95, 0.075); }
+  .row.dnew .body { background-color: rgba(111, 154, 106, 0.075); }
+  .row.dold .tx { color: #9a8f8f; text-decoration: line-through; text-decoration-color: rgba(168, 99, 95, 0.55); }
+  .row.dold .mk, .row.dnew .mk { color: var(--faint); }
+  #doc.live .row.dold:hover .body { background-color: rgba(168, 99, 95, 0.11); }
+  #doc.live .row.dnew:hover .body { background-color: rgba(111, 154, 106, 0.11); }
+  .row.para.dold .body { margin-bottom: 0; }
+  .row.para.dnew .body { margin-top: 0; }
+  .row.dold .gut, .row.dnew .gut { opacity: 1; }
+
+  /* the diff arriving: a fade onto the row, nothing that moves */
+  @keyframes stageIn { from { opacity: 0; } to { opacity: 1; } }
+  .row.stin { animation: stageIn 340ms var(--ease) both; }
+  .row.stin.dnew { animation-delay: 90ms; }
+
+  /* ---------- the inline composer: three gestures ---------- */
+  .composer {
+    margin: 7px 0 9px calc(2ch + 6px);
+    padding: 10px 13px 11px;
+    max-width: 76ch;
+    border-left: 2px solid var(--am-dim);
+    background: var(--am-fill);
+    animation: stageIn 180ms var(--ease) both;
+  }
+  #gcomp .composer { margin-left: 2ch; margin-bottom: 20px; }
+  .ctarget {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    padding-bottom: 6px;
+  }
+  .ctarget .ctk { color: var(--faint); }
+  .csel {
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--am-lit);
+    padding-bottom: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cin {
+    display: block;
+    width: 100%;
+    color: var(--bright);
+    border-bottom: 1px solid var(--am-line);
+    padding: 3px 0 6px;
+    outline: none;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .cin::placeholder { color: var(--faint); }
+  .cin:focus { border-bottom-color: var(--am); }
+  .cacts {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    padding-top: 9px;
+  }
+  .cact {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 2px 9px 3px;
+    transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+  }
+  .cact:hover { color: var(--bright); background: rgba(255, 255, 255, 0.045); }
+  .cact.pri {
+    color: var(--am-lit);
+    border-color: var(--am-line);
+    background: rgba(138, 122, 176, 0.11);
+  }
+  .cact.pri:hover { color: var(--bright); background: rgba(138, 122, 176, 0.18); }
+  .cact .ck { font-size: 10px; letter-spacing: 0.05em; color: var(--faint); }
+  .cact.pri .ck { color: var(--am-dim); }
+  .csp2 { flex: 1; }
+  .chint { color: var(--faint); font-size: 11px; letter-spacing: 0.04em; }
+
+  /* ---------- THE INLINE THREAD — run-now, pinned above its row ---------- */
+  .ithread {
+    margin: 7px 0 9px calc(2ch + 6px);
+    padding: 10px 13px 11px;
+    max-width: 76ch;
+    border-left: 2px solid var(--am);
+    background: var(--am-fill);
+    overflow: hidden;
+    animation: stageIn 200ms var(--ease) both;
+  }
+  .ithread.out {
+    transition: height 220ms var(--ease), opacity 170ms ease, margin 220ms var(--ease);
+    animation: none;
+  }
+  .ihead {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding-bottom: 5px;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .ihead .ial { color: var(--am-lit); }
+  .ihead .itg { color: var(--faint); }
+  .ihead .isp { flex: 1; }
+  .ihead .ist { color: var(--muted); }
+  .ihead .ist.act { color: var(--am-lit); }
+  .ihead .ist.stg { color: var(--add-lit); }
+
+  .imsg { padding: 4px 0 5px; }
+  .imeta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--faint);
+  }
+  .imeta .iwho { color: var(--muted); }
+  .imeta .iwho.agent { color: var(--am-lit); }
+  .imeta .isp { flex: 1; }
+  .ibody {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--bright);
+    overflow-wrap: break-word;
+  }
+  .imsg.agent .ibody { color: var(--fg); }
+  .imsg.new { animation: stageIn 260ms var(--ease) both; }
+  .istate {
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    color: var(--am-lit);
+    padding: 4px 0 3px;
+  }
+  .iacts {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--am-line);
+    font-size: 12px;
+  }
+  .iacts .istg { flex: 1; color: var(--faint); font-size: 11px; letter-spacing: 0.04em; }
+  .iacts .istg .tsq { color: var(--add); opacity: 0.85; margin-right: 4px; }
+  .iact {
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 1px 9px 2px;
+  }
+  .iact.acc { color: var(--add-lit); border-color: rgba(111, 154, 106, 0.3); }
+  .iact.acc:hover { background: rgba(111, 154, 106, 0.14); color: #a3cf9d; }
+  .iact.dis:hover { color: var(--del); background: rgba(168, 99, 95, 0.11); }
+  .irep {
+    display: block;
+    width: 100%;
+    margin-top: 9px;
+    padding: 4px 0 5px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--bright);
+    border-bottom: 1px solid var(--am-line);
+    outline: none;
+  }
+  .irep::placeholder { color: var(--faint); }
+  .irep:focus { border-bottom-color: var(--am); }
+
+  /* =================================================================
+     THE SLOT — dock and panel share it exactly, and cross-fade
+     ================================================================= */
+  #dock, #chat {
+    position: fixed;
+    right: var(--dock-gap);
+    top: var(--top);
+    width: var(--dock);
+  }
+  #dock {
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 46px;
+    opacity: 1;
+    transition: opacity 170ms ease;
+  }
+  #dock.hid {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: opacity 130ms ease, visibility 0s linear 130ms;
+  }
+
+  /* AMBIENT SIGNAL (b) — the dock's own hairlines and headers tint,
+     so the furniture is already the new temperature as it fades out */
+  .zone {
+    border-bottom: 1px solid var(--line-soft);
+    transition: border-color var(--shift) var(--ease);
+  }
+  .zone.gone { display: none; }
+  .zone.tail { border-bottom: 0; }
+  .mode-annotate .zone { border-bottom-color: var(--am-line); }
+  .zhead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 0 7px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    cursor: default;
+    transition: color var(--shift) var(--ease);
+  }
+  .mode-annotate .zhead { color: var(--am-dim); }
+  .zhead.tog { cursor: pointer; }
+  .zhead.tog:hover { color: var(--muted); }
+  .zsp { flex: 1; }
+  .zhead .zn { letter-spacing: 0.06em; white-space: nowrap; }
+  .zhead .zc { font-size: 9px; transition: transform 120ms ease; }
+  .zone.closed .zc { transform: rotate(-90deg); }
+  .zbody { padding-bottom: 12px; }
+  .zone.closed .zbody { display: none; }
+
+  /* the one action that lives in a zone header: the door into the mode */
+  .zsep { color: var(--line); margin: 0 -3px 0 -2px; }
+  .zact {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    cursor: pointer;
+  }
+  .zact:hover { color: var(--am-lit); }
+
+  /* agent */
+  .aname { color: var(--fg); }
+  .amodel { color: var(--muted); font-size: 11px; }
+  .adesc { color: var(--faint); font-size: 11px; line-height: 1.6; margin-top: 4px; }
+
+  /* ---------- view switcher ---------- */
+  #zView .zbody { padding-bottom: 14px; }
+  .vitem {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    padding: 5px 0 5px 12px;
+    border-left: 1px solid transparent;
+    transition: border-color var(--shift) var(--ease);
+  }
+  .vitem:hover { color: var(--fg); }
+  .vitem.active { color: var(--bright); border-left-color: var(--accent); }
+  .mode-annotate .vitem.active { border-left-color: var(--am); }
+  .vitem .vn { flex: 0 0 auto; }
+  .vitem .vt {
+    flex: 0 0 auto;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .vitem.active .vt { color: var(--muted); }
+
+  /* outline */
+  .oitem {
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 1px 0 1px 12px;
+    border-left: 1px solid transparent;
+    transition: border-color var(--shift) var(--ease);
+  }
+  .oitem:hover { color: var(--fg); }
+  .oitem.active { color: var(--fg); border-left-color: var(--accent); }
+  .mode-annotate .oitem.active { border-left-color: var(--am); }
+
+  /* fixture */
+  .fitem {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 2px 0 2px 12px;
+    border-left: 1px solid transparent;
+  }
+  .fitem:hover { color: var(--fg); }
+  .fitem.active { color: var(--fg); border-left-color: var(--accent); }
+  .fitem .fn { color: var(--faint); font-size: 10px; }
+
+  /* details */
+  .drow { display: flex; gap: 8px; font-size: 11px; line-height: 1.7; }
+  .drow .dk { color: var(--faint); flex: 0 0 42px; }
+  .drow .dv { color: var(--muted); min-width: 0; overflow-wrap: break-word; }
+  .drow .dv.id { color: var(--fg); word-break: break-all; }
+
+  /* requests, in the dock — same state vocabulary as the panel */
+  .rrow {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 3px 0;
+    color: var(--muted);
+  }
+  .rrow:hover { color: var(--fg); }
+  .rrow .ra { flex: 0 0 auto; color: var(--fg); font-size: 11px; }
+  .rrow .rt {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rrow .rs {
+    flex: 0 0 auto;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+
+  /* the one dot shared by dock and panel */
+  .sdot {
+    flex: 0 0 6px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--done);
+    align-self: center;
+  }
+  .sdot.open, .sdot.sending, .sdot.working, .sdot.processing { background: var(--am); }
+  .sdot.queued { background: var(--am-dim); opacity: 0.65; }
+  .sdot.staged { background: var(--add); }
+  .sdot.resolved { background: var(--done); }
+  .sdot.discarded { background: var(--done); opacity: 0.55; }
+  @keyframes dotWork {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 1; }
+  }
+  .sdot.working, .sdot.sending, .sdot.processing { animation: dotWork 900ms ease-in-out infinite; }
+
+  /* history */
+  .hrow { display: flex; align-items: baseline; gap: 8px; font-size: 11px; color: var(--muted); padding: 2px 0; }
+  .hrow.past .hh { color: var(--muted); }
+  .hrow .hh { color: var(--fg); }
+  .hrow .hsp { flex: 1; }
+  .hrow .ht { color: var(--faint); }
+  .hrow .hcur { color: var(--faint); font-size: 9px; letter-spacing: 0.1em; }
+
+  /* =================================================================
+     THE PANEL — the dock's slot, same width, cross-faded
+     ================================================================= */
+  #chat {
+    bottom: 28px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 130ms ease, visibility 0s linear 130ms;
+  }
+  #chat.on {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 190ms ease 60ms, visibility 0s;
+  }
+
+  .chead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding: 10px 0 7px;
+    font-size: 10px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    color: var(--am-lit);
+  }
+  .cdone {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+  }
+  .cdone:hover { color: var(--bright); }
+  .cdone .xk { margin-right: 3px; }
+
+  /* the queue progress line */
+  .cprog {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    padding-bottom: 6px;
+  }
+  .cprog .pq { flex: 1; }
+  .cprog .pn { color: var(--faint); }
+  .ptrack {
+    flex: 0 0 auto;
+    height: 1px;
+    background: var(--line-soft);
+    margin-bottom: 6px;
+  }
+  #pfill {
+    display: block;
+    height: 1px;
+    width: 0;
+    background: var(--am);
+    opacity: 0.75;
+    transition: width 320ms var(--ease);
+  }
+
+  #chatList {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 0 10px;
+    border-top: 1px solid var(--am-line);
+  }
+
+  /* ---------- section headers inside the panel ---------- */
+  .lhead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 0 7px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--am-dim);
+  }
+  .lhead.top { padding-top: 9px; }
+  .lhead .lsp { flex: 1; }
+  .qapply {
+    flex: 0 0 auto;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    color: var(--am-lit);
+    border: 1px solid var(--am-line);
+    border-radius: 3px;
+    padding: 1px 10px 2px;
+    background: rgba(138, 122, 176, 0.09);
+    transition: color 120ms ease, background 120ms ease;
+  }
+  .qapply:hover { color: var(--bright); background: rgba(138, 122, 176, 0.2); }
+  .qapply.off {
+    color: var(--faint);
+    border-color: var(--line);
+    background: transparent;
+    cursor: default;
+  }
+  .lempty {
+    color: var(--faint);
+    font-size: 12px;
+    line-height: 1.55;
+    padding: 2px 0 8px 11px;
+  }
+
+  /* ---------- the annotation cards ---------- */
+  .card {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    padding: 9px 8px 10px 11px;
+    border-left: 1px solid transparent;
+    transition: background 140ms ease, border-color 140ms ease;
+  }
+  .card:hover { background: rgba(255, 255, 255, 0.022); }
+  .card.on {
+    border-left-color: var(--am);
+    background: rgba(138, 122, 176, 0.06);
+  }
+  .cline { display: flex; align-items: baseline; gap: 8px; }
+  .card .ca { flex: 0 0 auto; color: var(--bright); font-size: 12px; letter-spacing: 0.04em; }
+  .card.res .ca { color: var(--muted); }
+  .card .csp { flex: 1; }
+  .card .cst {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .card .cst.act { color: var(--am-lit); }
+  .card .cst.stg { color: var(--add-lit); }
+  .cnote {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--fg);
+    padding-left: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card.on .cnote { -webkit-line-clamp: unset; color: var(--bright); }
+  .cmeta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-left: 14px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--faint);
+  }
+  .cmeta .ck { color: var(--faint); }
+  .cmeta .cv { color: var(--muted); }
+  .tchip {
+    border: 1px solid var(--am-line);
+    border-radius: 3px;
+    padding: 0 6px 1px;
+    color: var(--am-lit);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+  }
+  .wchip {
+    border: 1px solid rgba(184, 137, 74, 0.4);
+    border-radius: 3px;
+    padding: 0 6px 1px;
+    color: var(--open);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+
+  /* the working ellipsis: three dots, cycling, no spinner anywhere */
+  .ell { letter-spacing: 0.06em; }
+  .ell i { font-style: normal; opacity: 0.18; animation: ellip 1.25s linear infinite; }
+  .ell i:nth-child(2) { animation-delay: 0.2s; }
+  .ell i:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes ellip {
+    0%, 62%, 100% { opacity: 0.18; }
+    28%           { opacity: 1; }
+  }
+
+  /* ---------- the thread: the active card, unfolded ---------- */
+  .thread {
+    margin: 2px 0 14px 12px;
+    padding: 4px 0 0 12px;
+    border-left: 1px solid var(--am-line);
+  }
+  .tmsg { padding: 4px 0 6px; }
+  .tmeta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--faint);
+  }
+  .tmeta .who { color: var(--muted); }
+  .tmeta .who.agent { color: var(--am-lit); }
+  .tsp { flex: 1; }
+  .tbody {
+    color: var(--bright);
+    font-size: 13px;
+    line-height: 1.55;
+    overflow-wrap: break-word;
+  }
+  .tmsg.agent .tbody { color: var(--fg); }
+  /* a reply lands whole — one fade, no typing */
+  .tmsg.new { animation: stageIn 260ms var(--ease) both; }
+
+  /* the in-thread state line, mirroring the card's state text */
+  .tstate {
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    color: var(--am-lit);
+    padding: 3px 0 6px;
+  }
+
+  .tacts {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0 2px;
+    border-top: 1px solid var(--am-line);
+    margin-top: 6px;
+  }
+  .tstaged { flex: 1; color: var(--faint); font-size: 11px; letter-spacing: 0.03em; }
+  .tstaged .tsq { color: var(--add); opacity: 0.85; margin-right: 4px; }
+  .tact {
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 1px 9px 2px;
+  }
+  .tact.acc { color: var(--add-lit); border-color: rgba(111, 154, 106, 0.3); }
+  .tact.acc:hover { background: rgba(111, 154, 106, 0.14); color: #a3cf9d; }
+  .tact.dis:hover { color: var(--del); background: rgba(168, 99, 95, 0.11); }
+  .tdone { color: var(--faint); font-size: 11px; letter-spacing: 0.04em; padding: 4px 0 2px; }
+
+  /* ---------- the resolved records: run-now history ---------- */
+  .rec {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 4px 8px 4px 11px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+  .rec .rmk { flex: 0 0 auto; color: var(--add); font-size: 11px; }
+  .rec.no .rmk { color: var(--faint); }
+  .rec .rca { flex: 0 0 auto; color: var(--fg); }
+  .rec .rsep { color: var(--faint); }
+  .rec .rnode { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rec .rsp { flex: 1; }
+  .rec .rst { flex: 0 0 auto; color: var(--faint); font-size: 11px; }
+  .rec.fresh { animation: stageIn 320ms var(--ease) both; }
+
+  .cfoot { flex: 0 0 auto; border-top: 1px solid var(--am-line); }
+  .cin2 {
+    display: block;
+    width: 100%;
+    min-height: 46px;
+    max-height: 30vh;
+    resize: none;
+    color: var(--bright);
+    font-size: 13px;
+    line-height: 1.55;
+    padding: 9px 0 3px;
+    outline: none;
+    overflow-y: auto;
+  }
+  .cin2::placeholder { color: var(--faint); }
+  .chint2 {
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    padding-bottom: 4px;
+  }
+
+  /* =================================================================
+     AMBIENT SIGNAL (d) — the chip, bottom centre
+     ================================================================= */
+  #chip {
+    position: fixed;
+    left: 50%;
+    bottom: 9px;
+    transform: translateX(-50%) translateY(3px);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 2px 11px 3px;
+    border: 1px solid var(--am-line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--am-lit);
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    user-select: none;
+    z-index: 6;
+    transition: opacity var(--shift) var(--ease), transform var(--shift) var(--ease),
+                color var(--shift) var(--ease), border-color var(--shift) var(--ease),
+                visibility 0s linear var(--shift);
+  }
+  #chip.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+    transition: opacity var(--shift) var(--ease), transform var(--shift) var(--ease),
+                color var(--shift) var(--ease), border-color var(--shift) var(--ease),
+                visibility 0s;
+  }
+  #chipDot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--am);
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+  #chipDot.fast { animation-duration: 0.72s; }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.3; transform: scale(0.82); }
+    50%      { opacity: 1;   transform: scale(1); }
+  }
+  /* the morph on the way out */
+  #chip.saved {
+    color: var(--muted);
+    border-color: var(--line);
+    animation: chipMorph 280ms var(--ease);
+  }
+  #chip.saved #chipDot {
+    background: var(--done);
+    animation: none;
+    opacity: 0.8;
+  }
+  @keyframes chipMorph {
+    from { opacity: 0.25; }
+    to   { opacity: 1; }
+  }
+
+  /* ---------- corners ---------- */
+  #status {
+    position: fixed;
+    right: var(--dock-gap);
+    bottom: 9px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    pointer-events: none;
+    user-select: none;
+    transition: opacity 200ms ease;
+  }
+  #stamp {
+    position: fixed;
+    left: 14px;
+    bottom: 9px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* ---------- fallback: too narrow to keep the slot in a margin ---------- */
+  @media (max-width: 1439px) {
+    #dock, #chat {
+      position: static;
+      flex: 0 0 320px;
+      width: 320px;
+      border-left: 1px solid var(--line);
+      background: var(--surface);
+      padding: 0 14px 40px;
+      overflow-y: auto;
+    }
+    #chat { padding-bottom: 10px; display: none; }
+    #dock.hid { display: none; }
+    #chat.on { display: flex; }
+    #doc { margin: 0; padding-left: max(2ch, 20px); padding-right: 24px; }
+    #status { right: 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #24262a; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<div id="edge"></div>
+
+<div id="main">
+  <main id="stage">
+    <div id="doc">
+      <div id="note"></div>
+      <div id="gcomp"></div>
+      <div id="sections"></div>
+    </div>
+  </main>
+
+  <aside id="dock">
+    <div class="zone" id="zAgent">
+      <div class="zhead"><span>Agent</span></div>
+      <div class="zbody">
+        <div class="aname">prompt-editor</div>
+        <div class="amodel">claude-fable-5</div>
+        <div class="adesc">Edits an agent&rsquo;s system prompt on behalf of the human who owns it.</div>
+      </div>
+    </div>
+
+    <div class="zone" id="zView">
+      <div class="zhead"><span>View</span></div>
+      <div class="zbody" id="viewBody"></div>
+    </div>
+
+    <div class="zone gone" id="zFixture">
+      <div class="zhead"><span>Fixture</span></div>
+      <div class="zbody" id="fixtureBody"></div>
+    </div>
+
+    <div class="zone gone" id="zOutline">
+      <div class="zhead"><span>Outline</span></div>
+      <div class="zbody" id="outlineBody"></div>
+    </div>
+
+    <div class="zone gone" id="zDetails">
+      <div class="zhead"><span>Details</span></div>
+      <div class="zbody" id="detailsBody"></div>
+    </div>
+
+    <div class="zone gone" id="zRequests">
+      <div class="zhead">
+        <span>Requests</span><span class="zsp"></span>
+        <span class="zn" id="reqCount"></span><span class="zsep">&middot;</span>
+        <button class="zact" id="goAnnot">annotate</button>
+      </div>
+      <div class="zbody" id="requestsBody"></div>
+    </div>
+
+    <div class="zone gone closed" id="zHistory">
+      <button class="zhead tog" id="histHead">
+        <span>History</span><span class="zsp"></span><span class="zc">&#9662;</span>
+      </button>
+      <div class="zbody" id="historyBody"></div>
+    </div>
+  </aside>
+
+  <!-- the same slot, same width: the furniture becomes the conversation -->
+  <aside id="chat">
+    <div class="chead">
+      <span>Annotating</span><span class="zsp"></span>
+      <button class="cdone" id="chatDone"><span class="xk">&#10005;</span>done</button>
+    </div>
+    <div class="cprog">
+      <span class="pq" id="progText"></span>
+      <span class="pn" id="progNote"></span>
+    </div>
+    <div class="ptrack"><span id="pfill"></span></div>
+    <div id="chatList"></div>
+    <div class="cfoot">
+      <textarea class="cin2" id="chatMsg" rows="2" spellcheck="false"
+        placeholder="Note about the whole document &mdash; Enter files it to global"></textarea>
+      <div class="chint2" id="chatHint">Enter files to global &middot; Esc to finish</div>
+    </div>
+  </aside>
+</div>
+
+<div id="chip"><span id="chipDot"></span><span id="chipText"></span></div>
+
+<div id="status"></div>
+<div id="stamp">K &mdash; ambient shift</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Documents. Node ids are the real ones from the prompt-editor
+   prompt.json, so DETAILS reports something true.
+   ===================================================================== */
+
+const SYSTEM = [
+  { tag: "purpose", rows: [
+    { id: "node-purpose-identity", kind: "paragraph", type: "para",
+      diag: "1 variable · {{targetAgent}} declared",
+      text: "You are the prompt editor for {{targetAgent}} — you change that agent's system prompt on behalf of the human who owns it." },
+    { spacer: true },
+    { id: "node-purpose-frame-ast", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-purpose-frame · 1 of 3",
+      text: "The prompt is a structured document — a tree of identified nodes — and its rendered markdown is a projection you never touch." },
+    { id: "node-purpose-frame-requests", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-purpose-frame · 2 of 3",
+      text: "Work arrives as requests: human notes pinned to a node or range of that document, queued in the <requests> block." },
+    { id: "node-purpose-frame-staged", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-purpose-frame · 3 of 3",
+      text: "Your edits are staged proposals for human review, and nothing lands in the live prompt until the human accepts it." },
+  ]},
+  { tag: "inputs", rows: [
+    { id: "node-inputs-intro", kind: "paragraph", type: "para",
+      diag: "leads bulletList node-inputs-blocks",
+      text: "Your standing context carries three blocks:" },
+    { spacer: true },
+    { id: "node-inputs-authoring", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-inputs-blocks · 1 of 3",
+      text: "<prompt_kit_authoring> — the house reference for how prompts here are built: the document model, the editing method, and the anti-patterns to avoid." },
+    { id: "node-inputs-target", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-inputs-blocks · 2 of 3 · 1 child",
+      text: "<target_prompt> — the target agent's current prompt rendered with every node's id stamped in place, under the base hash your transactions build on." },
+    { id: "node-inputs-target-ids", kind: "listItem", type: "sub",
+      diag: "nested under node-inputs-target",
+      text: "Those ids are the only addresses your edits use — quote them exactly." },
+    { id: "node-inputs-requests", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-inputs-blocks · 3 of 3 · 2 children",
+      text: "<requests> — the open queue, one entry per request." },
+    { id: "node-inputs-requests-entry", kind: "listItem", type: "sub",
+      diag: "nested under node-inputs-requests",
+      text: "Each entry carries its alias (R1, R2 …), its target node or range, the human's note, and the thread so far." },
+    { id: "node-inputs-requests-doclevel", kind: "listItem", type: "sub",
+      diag: "nested under node-inputs-requests",
+      text: "An entry whose target is the document itself is a message about the whole prompt, not about one node." },
+    { spacer: true },
+    { id: "node-inputs-fresh", kind: "paragraph", type: "para",
+      diag: "closes <inputs> · references tool read_prompt",
+      text: "The stamped render is your starting picture; read_prompt returns the live document — ids and hash included — whenever you need to confirm the tree or see it after a proposal." },
+  ]},
+  { tag: "editing_rules", rows: [
+    { id: "node-rules-structural", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 1 of 6",
+      text: "Propose structure, never prose: an edit is a transaction of id-relative steps against the document tree, and rewritten markdown is never an edit." },
+    { id: "node-rules-ids", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 2 of 6",
+      text: "Preserve node ids: change nodes in place and leave untouched nodes untouched, because ids are how requests, diffs, and undo stay anchored." },
+    { id: "node-rules-minimal", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 3 of 6",
+      text: "Prefer the minimal transaction: the fewest steps that satisfy the request, touching nothing the request did not name." },
+    { id: "node-rules-valid", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 4 of 6",
+      text: "Keep the document valid: every variable placeholder it references must stay declared, and a proposal that fails validation bounces straight back to you — repair it and propose again." },
+    { id: "node-rules-voice", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 5 of 6 · changed this session by R1",
+      text: "Respect the target prompt's voice: match its tense, person, and section idiom, and change style only when a note asks for style." },
+    { id: "node-rules-terse", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 6 of 6",
+      text: "Write tersely: notes, replies, and resolutions are plain language — two sentences at most — and never a restatement of a diff the human can already see." },
+  ]},
+  { tag: "workflow", rows: [
+    { id: "node-workflow-read", kind: "listItem", type: "step", n: 1,
+      diag: "in orderedList node-workflow-steps · 1 of 6 · 1 child",
+      text: "Read the whole queue before editing anything, because requests can overlap, conflict, or share nodes." },
+    { id: "node-workflow-read-collide", kind: "listItem", type: "sub",
+      diag: "nested under node-workflow-read",
+      text: "When requests collide, work them in alias order and name the interaction in each resolution." },
+    { id: "node-workflow-plan", kind: "listItem", type: "step", n: 2,
+      diag: "in orderedList node-workflow-steps · 2 of 6",
+      text: "Plan each request against the current tree, confirming targets with read_prompt when the stamped render leaves doubt." },
+    { id: "node-workflow-propose", kind: "listItem", type: "step", n: 3,
+      diag: "in orderedList node-workflow-steps · 3 of 6 · 1 child",
+      text: "Propose exactly one transaction per request with propose_transaction, tagged to that request's alias." },
+    { id: "node-workflow-propose-nochange", kind: "listItem", type: "sub",
+      diag: "nested under node-workflow-propose",
+      text: "A request needing no change gets no transaction — it gets a resolution." },
+    { id: "node-workflow-resolve", kind: "listItem", type: "step", n: 4,
+      diag: "in orderedList node-workflow-steps · 4 of 6 · 1 child",
+      text: "Resolve every request individually with resolve_request: done with a short note of what changed, or declined with the reason." },
+    { id: "node-workflow-resolve-nolump", kind: "listItem", type: "sub",
+      diag: "nested under node-workflow-resolve",
+      text: "A batch never resolves as a lump, and the session ends with no request still open that you could have disposed." },
+    { id: "node-workflow-ask", kind: "listItem", type: "step", n: 5,
+      diag: "in orderedList node-workflow-steps · 5 of 6",
+      text: "When a request is ambiguous, open the question with reply_request on that request's thread and keep working the others — the run never stalls waiting for an answer." },
+    { id: "node-workflow-doclevel", kind: "listItem", type: "step", n: 6,
+      diag: "in orderedList node-workflow-steps · 6 of 6",
+      text: "Work a document-level request by pinning placed notes with add_note at the specific nodes it implicates, then propose and resolve as usual." },
+  ]},
+  { tag: "tools", rows: [
+    { id: "node-tools-intro", kind: "paragraph", type: "para",
+      diag: "leads bulletList node-tools-list",
+      text: "Five tools carry the loop; the semantics that matter:" },
+    { spacer: true },
+    { id: "node-tools-read", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 1 of 5",
+      text: "read_prompt — the target document as it stands now, with node ids and the current hash." },
+    { id: "node-tools-propose", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 2 of 5",
+      text: "propose_transaction — one request's edit as ordered id-relative steps, compiled and validated by the service and staged as a diff for the human." },
+    { id: "node-tools-resolve", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 3 of 5",
+      text: "resolve_request — the only way a request leaves the queue: done or declined, always with a note." },
+    { id: "node-tools-reply", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 4 of 5",
+      text: "reply_request — adds to one request's thread, for questions and brief progress notes." },
+    { id: "node-tools-note", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 5 of 5",
+      text: "add_note — pins a new note of yours at a node, opening an inline thread the human sees." },
+  ]},
+];
+
+const CONTEXT = [
+  { tag: "prompt_kit_authoring", rows: [
+    { id: "ctx-authoring-src", kind: "context block", type: "para",
+      text: "source: prompt-kit/docs/authoring.md · 1,412 tokens · pinned for every run" },
+    { id: "ctx-authoring-model", kind: "context bullet", type: "bullet",
+      text: "The document model: sections hold paragraphs, bullet lists, and ordered lists; every node carries a stable id." },
+    { id: "ctx-authoring-method", kind: "context bullet", type: "bullet",
+      text: "The editing method: address a node by id, apply a step, let the service compile and validate the transaction." },
+    { id: "ctx-authoring-anti", kind: "context bullet", type: "bullet",
+      text: "Anti-patterns: rewriting whole sections, inventing ids, and shipping prose where a step was asked for." },
+  ]},
+  { tag: "target_prompt", rows: [
+    { id: "ctx-target-head", kind: "context block", type: "para",
+      text: "agent: layout-editor · base hash pk1-7f1bc2eb · 38 nodes stamped" },
+    { id: "ctx-target-n1", kind: "stamped node", type: "sub",
+      text: "[node-purpose-identity] You are the layout editor for {{surface}} — you shape how the surface reads." },
+    { id: "ctx-target-n2", kind: "stamped node", type: "sub",
+      text: "[node-purpose-frame-ast] Each surface makes intelligence legible through a typed artifact." },
+    { id: "ctx-target-n3", kind: "stamped node", type: "sub",
+      text: "[node-constraints-live] Apply edits to the live document immediately; the registry reloads the prompt on save." },
+    { id: "ctx-target-more", kind: "elision", type: "para",
+      text: "… 35 more stamped nodes elided in this preview" },
+  ]},
+  { tag: "requests", rows: [
+    { id: "ctx-req-r1", kind: "request entry", type: "bullet",
+      text: "R1 · target node-rules-voice · \"say what 'voice' actually covers here.\" · run now · resolved" },
+    { id: "ctx-req-r2", kind: "request entry", type: "bullet",
+      text: "R2 · target node-rules-voice · \"'section idiom' is vague — define it or cut it.\" · batch · queued" },
+    { id: "ctx-req-r3", kind: "request entry", type: "bullet",
+      text: "R3 · target document · \"'staged' does three different jobs in this prompt.\" · global · queued" },
+  ]},
+];
+
+const FIXTURES = [
+  { name: "empty-run", note: "0 turns", tok: "412",
+    v: { turn: "0", open: "0", resolved: "0", staged: "0", tools: "—", started: "—",
+         last: "session initialized", assembled: "4,634 (2.3%)" } },
+  { name: "mid-session", note: "3 turns", tok: "468",
+    v: { turn: "3", open: "2", resolved: "1", staged: "1", tools: "read_prompt, propose_transaction",
+         started: "3:31 PM", last: "R4 · proposal staged", assembled: "5,207 (2.6%)" } },
+  { name: "long-run", note: "11 turns", tok: "531",
+    v: { turn: "11", open: "1", resolved: "6", staged: "0",
+         tools: "read_prompt, propose_transaction, resolve_request, reply_request, add_note",
+         started: "2:58 PM", last: "R6 · resolved (declined)", assembled: "6,910 (3.5%)" } },
+];
+
+function buildState(fixture) {
+  const f = FIXTURES.find((x) => x.name === fixture) || FIXTURES[0];
+  const v = f.v;
+  return [
+    { tag: "session_state", rows: [
+      { id: "state-fixture", kind: "state key", type: "kv", k: "fixture", v: f.name },
+      { id: "state-agent", kind: "state key", type: "kv", k: "target_agent", v: "layout-editor" },
+      { id: "state-hash", kind: "state key", type: "kv", k: "base_hash", v: "pk1-7f1bc2eb" },
+      { id: "state-turn", kind: "state key", type: "kv", k: "turn", v: v.turn },
+      { id: "state-open", kind: "state key", type: "kv", k: "requests_open", v: v.open },
+      { id: "state-resolved", kind: "state key", type: "kv", k: "requests_resolved", v: v.resolved },
+      { id: "state-staged", kind: "state key", type: "kv", k: "proposals_staged", v: v.staged },
+      { id: "state-tools", kind: "state key", type: "kv", k: "tools_called", v: v.tools },
+      { id: "state-started", kind: "state key", type: "kv", k: "started_at", v: v.started },
+      { id: "state-last", kind: "state key", type: "kv", k: "last_event", v: v.last },
+    ]},
+    { tag: "budget", rows: [
+      { id: "budget-window", kind: "state key", type: "kv", k: "context_window", v: "200,000" },
+      { id: "budget-used", kind: "state key", type: "kv", k: "assembled", v: v.assembled },
+      { id: "budget-cache", kind: "state key", type: "kv", k: "cached_prefix", v: "prompt_kit_authoring" },
+    ]},
+  ];
+}
+
+const NOTE = {
+  system: "",
+  context: "assembled at run time · read-only",
+  state: "fixture snapshot · read-only",
+};
+
+const VIEWS = [
+  { id: "system", tok: () => "1,008" },
+  { id: "context", tok: () => "3,214" },
+  { id: "state", tok: () => (FIXTURES.find((f) => f.name === state.fixture) || FIXTURES[0]).tok },
+];
+
+/* =====================================================================
+   The queue, seeded to the settled spec:
+
+     R1 · run now · resolved      → a record in the sidebar, nothing more
+     R2 · batch   · queued        → and its target has moved under it
+     R3 · global  · queued        → document target, batch-only
+
+   Two notes waiting, one record behind them, and one conflict already
+   visible: R1 accepted a change on node-rules-voice after R2 was filed
+   against it.
+   ===================================================================== */
+const REQUESTS = [
+  { alias: "R1", mode: "run", node: "node-rules-voice", st: "resolved",
+    note: "“voice” is doing a lot of work here — say what it actually covers",
+    hash: "pk1-7f1bc2eb", when: "3:34 PM",
+    thread: [
+      { who: "you", t: "3:33 PM", text: "“Voice” is doing a lot of work in this rule. Say what it actually covers." },
+      { who: "agent", t: "3:34 PM", text: "Named the three things it covers — tense, person, section idiom — and left the exception clause alone." },
+      { who: "agent", t: "3:34 PM", text: "Accepted — landed on rules-voice as pk1-7f1bc2eb." },
+    ],
+    diff: null, stage: null, conflict: false },
+
+  { alias: "R2", mode: "batch", node: "node-rules-voice", st: "queued",
+    note: "“section idiom” is vague — define it or cut it",
+    when: "3:31 PM",
+    thread: [
+      { who: "you", t: "3:31 PM", text: "“Section idiom” is vague — define it or cut it." },
+    ],
+    diff: null,
+    conflict: true, conflictBy: "R1",
+    stage: {
+      say: "It reads as jargon. Staged a version that says the thing instead of naming it — headings, list style, sentence length.",
+      new: "Respect the target prompt's voice: match its tense, person, and the shape its sections already use — headings, list style, sentence length — and change style only when a note asks for style.",
+    } },
+
+  { alias: "R3", mode: "global", node: null, st: "queued",
+    note: "“staged” does three different jobs across this prompt — pick one meaning and hold it",
+    when: "3:38 PM",
+    thread: [
+      { who: "you", t: "3:38 PM", text: "“Staged” means proposal, queue position, and diff state depending on where you read it. Pick one meaning and hold it." },
+    ],
+    diff: null,
+    conflict: false,
+    stage: {
+      node: "node-purpose-frame-staged",
+      say: "Document-level, so I pinned it where the word is defined. Staged one clause on purpose-frame-staged that fixes the meaning; the other two uses inherit it.",
+      new: "Your edits are staged proposals — a staged edit is one the agent has written and the human has not yet accepted — and nothing lands in the live prompt until the human accepts it.",
+    } },
+];
+
+const HISTORY = [
+  { hash: "pk1-7f1bc2eb", when: "3:34 PM", cur: true },
+  { hash: "pk1-3c91d0aa", when: "2h ago", cur: false },
+  { hash: "pk1-9e42b7f1", when: "yesterday", cur: false },
+  { hash: "pk1-5b17c44e", when: "3d ago", cur: false },
+];
+
+/* =====================================================================
+   State
+   ===================================================================== */
+const state = {
+  view: "system",
+  fixture: "empty-run",
+  sections: [],
+  active: null,        /* outline section in view */
+  selected: null,      /* the row DETAILS is reporting on */
+  historyOpen: false,
+  composer: null,      /* { node: id|null, sel: string, text: string } */
+  replies: {},         /* alias -> the draft in that inline thread */
+  focus: null,         /* "composer" | "rep:R5" — restored after a render */
+  nextAlias: 4,
+  annot: false,        /* the mode */
+  card: null,          /* the unfolded sidebar card */
+  fresh: null,         /* the alias whose staged diff should fade in */
+  newMsg: null,        /* the alias whose last agent message just landed */
+  freshRec: null,      /* the record that just filed itself */
+  applying: false,     /* the batch run is draining */
+};
+
+const $ = (s) => document.querySelector(s);
+const root = document.documentElement;
+const stageEl = $("#stage");
+const docEl = $("#doc");
+const gcompEl = $("#gcomp");
+const sectionsEl = $("#sections");
+const dockEl = $("#dock");
+const chatEl = $("#chat");
+const listEl = $("#chatList");
+const msgEl = $("#chatMsg");
+const hintEl = $("#chatHint");
+const chipEl = $("#chip");
+const chipDot = $("#chipDot");
+const chipText = $("#chipText");
+
+/* =====================================================================
+   Small helpers
+   ===================================================================== */
+function esc(t) {
+  return String(t)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function clock() {
+  const d = new Date();
+  let h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, "0");
+  const ap = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return h + ":" + m + " " + ap;
+}
+
+function tidy(t) { return String(t).replace(/\s+/g, " ").trim(); }
+
+function trunc(t, n) {
+  const s = tidy(t);
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function shortId(id) { return id ? String(id).replace(/^node-/, "") : "document"; }
+
+function reqBy(alias) { return REQUESTS.find((r) => r.alias === alias) || null; }
+
+/* the two populations, kept strictly apart */
+function isQueue(r) { return r.mode === "batch" || r.mode === "global"; }
+function queueItems() {
+  return REQUESTS.filter((r) => isQueue(r) && r.st !== "resolved" && r.st !== "discarded");
+}
+function queuedItems() { return REQUESTS.filter((r) => isQueue(r) && r.st === "queued"); }
+function processingItem() { return REQUESTS.find((r) => r.st === "processing") || null; }
+function stagedItems() { return REQUESTS.filter((r) => r.st === "staged"); }
+function records() { return REQUESTS.filter((r) => r.st === "resolved" || r.st === "discarded"); }
+function runInFlight() {
+  return REQUESTS.filter((r) => r.mode === "run" && (r.st === "sending" || r.st === "working"));
+}
+function busy() { return runInFlight().length > 0 || !!processingItem(); }
+
+/* the run-now request that owns a row right now — the inline thread's anchor */
+function activeRun(id) {
+  return REQUESTS.find((r) => r.mode === "run" && r.node === id &&
+    (r.st === "sending" || r.st === "working" || r.st === "staged")) || null;
+}
+/* queued notes pinned on a row, so the batch is visible in the document */
+function pinnedFor(id) {
+  return REQUESTS.filter((r) => isQueue(r) && r.node === id &&
+    (r.st === "queued" || r.st === "processing"));
+}
+function stagedFor(id) {
+  return REQUESTS.find((r) => r.st === "staged" && r.diff && r.diff.node === id) || null;
+}
+
+/* =====================================================================
+   Document rendering
+   ===================================================================== */
+const TOOL_RE = /\b(read_prompt|propose_transaction|resolve_request|reply_request|add_note)\b/g;
+
+function highlight(t) {
+  let h = esc(t);
+  h = h.replace(/&lt;(\/?[a-z_][\w_]*)&gt;/g, '<span class="itag">&lt;$1&gt;</span>');
+  h = h.replace(/\{\{([a-zA-Z]+)\}\}/g, '<span class="var">{{$1}}</span>');
+  h = h.replace(TOOL_RE, '<span class="tool">$1</span>');
+  return h;
+}
+
+function innerHtml(r, text, chips) {
+  if (r.type === "kv") {
+    return '<span class="kk">' + esc(r.k) + ':</span>' + chips +
+      '<span class="tx">' + highlight(r.v) + "</span>";
+  }
+  if (r.type === "bullet" || r.type === "sub") {
+    return '<span class="mk">-</span>' + chips + '<span class="tx">' + highlight(text) + "</span>";
+  }
+  if (r.type === "step") {
+    return '<span class="mk">' + r.n + '.</span>' + chips +
+      '<span class="tx">' + highlight(text) + "</span>";
+  }
+  return chips + '<span class="tx">' + highlight(text) + "</span>";
+}
+
+function shellHtml(r, cls, gut, inner) {
+  return '<div class="row ' + r.type + cls + '" data-id="' + r.id +
+    '" data-kind="' + esc(r.kind) + '" data-diag="' + esc(r.diag || "") + '">' +
+    gut + '<div class="body">' + inner + "</div></div>";
+}
+
+/* -------- the three-gesture composer -------- */
+function composerHtml(c) {
+  const global = !c.node;
+  const target = global
+    ? '<span class="tchip">document</span>'
+    : '<span class="cv">' + esc(shortId(c.node)) + "</span>";
+
+  let acts = "";
+  if (global) {
+    acts =
+      '<button class="cact pri" data-do="global">Add to global<span class="ck">Enter</span></button>';
+  } else {
+    acts =
+      '<button class="cact pri" data-do="run">Run now<span class="ck">Enter</span></button>' +
+      '<button class="cact" data-do="batch">Add to batch<span class="ck">&#8679;Enter</span></button>' +
+      '<button class="cact" data-do="global">Add to global<span class="ck">&#8984;Enter</span></button>';
+  }
+
+  return '<div class="composer' + (global ? " gl" : "") + '">' +
+    '<div class="ctarget"><span class="ctk">target</span>' + target + "</div>" +
+    (c.sel ? '<div class="csel">“' + esc(trunc(c.sel, 68)) + "”</div>" : "") +
+    '<input class="cin" type="text" spellcheck="false" value="' + esc(c.text || "") +
+      '" placeholder="' + (global ? "note about the whole document" : "what should change here?") + '" />' +
+    '<div class="cacts">' + acts +
+      '<span class="csp2"></span><span class="chint">Esc to cancel</span>' +
+    "</div>" +
+  "</div>";
+}
+
+/* -------- the inline thread: run-now, at the section -------- */
+const ELL = '<span class="ell"><i>.</i><i>.</i><i>.</i></span>';
+
+function ithreadHtml(r) {
+  const msgs = r.thread.map((m, i) => {
+    const fresh = (state.newMsg === r.alias && i === r.thread.length - 1) ? " new" : "";
+    return '<div class="imsg ' + m.who + fresh + '">' +
+      '<div class="imeta"><span class="iwho ' + m.who + '">' + m.who + "</span>" +
+        '<span class="isp"></span><span>' + esc(m.t) + "</span></div>" +
+      '<div class="ibody">' + esc(m.text) + "</div>" +
+    "</div>";
+  }).join("");
+
+  let tail = "";
+  if (r.st === "sending" || r.st === "working") {
+    tail = '<div class="istate">' + stateText(r, true) + "</div>";
+  } else if (r.st === "staged" && r.diff) {
+    tail =
+      '<div class="iacts">' +
+        '<span class="istg"><span class="tsq">&#9612;</span>staged on ' +
+          esc(shortId(r.diff.node)) + "</span>" +
+        '<button class="iact acc" data-acc="' + r.alias + '">Accept</button>' +
+        '<button class="iact dis" data-dis="' + r.alias + '">Discard</button>' +
+      "</div>";
+  }
+
+  const draft = state.replies[r.alias] || "";
+  const reply = '<input class="irep" type="text" spellcheck="false" data-rep="' + r.alias +
+    '" value="' + esc(draft) + '" placeholder="reply to re-run — Enter" />';
+
+  return '<div class="ithread" data-ith="' + r.alias + '">' +
+    '<div class="ihead"><span class="ial">' + r.alias + "</span>" +
+      '<span class="itg">run now &middot; ' + esc(shortId(r.node)) + "</span>" +
+      '<span class="isp"></span>' +
+      '<span class="ist' + stateClass(r) + '">' + stateText(r, true) + "</span>" +
+    "</div>" +
+    msgs + tail + reply +
+  "</div>";
+}
+
+function rowHtml(r, live) {
+  if (r.spacer) return '<div class="row spacer"></div>';
+
+  let pre = "";
+  if (live && state.annot) {
+    if (state.composer && state.composer.node === r.id) pre += composerHtml(state.composer);
+    const run = activeRun(r.id);
+    if (run) pre += ithreadHtml(run);
+  }
+
+  /* a staged diff is a fact of the session — it shows in the mode, in place */
+  const staged = state.annot && live ? stagedFor(r.id) : null;
+  if (staged) {
+    const fresh = state.fresh === staged.alias ? " stin" : "";
+    const act = (state.card === staged.alias || staged.mode === "run") ? " act" : "";
+    const oldRow = shellHtml(r, " dold tgt" + act + fresh,
+      '<span class="gut mark"></span>', innerHtml(r, r.text, ""));
+    const chip = '<span class="rchip staged">' + staged.alias + "</span>";
+    const newRow = shellHtml(r, " dnew tgt" + act + fresh,
+      '<span class="gut mark add"></span>', innerHtml(r, staged.diff.new, chip));
+    return pre + oldRow + newRow;
+  }
+
+  const pinned = state.annot && live ? pinnedFor(r.id) : [];
+  const run = state.annot && live ? activeRun(r.id) : null;
+  const gut = live && state.annot
+    ? '<button class="gut' + (pinned.length ? " pinned" : "") + '" data-gut="' + r.id +
+      '" title="' + (pinned.length ? "note queued here" : "annotate this node") + '">' +
+      (pinned.length ? "&#9679;" : "+") + "</button>"
+    : '<span class="gut"></span>';
+
+  const chips = pinned.map((p) => '<span class="rchip">' + p.alias + "</span>").join("");
+  let cls = state.selected === r.id ? " sel" : "";
+  if (pinned.length) {
+    cls += " tgt";
+    if (pinned.some((p) => p.alias === state.card)) cls += " act";
+  }
+  /* THE WORKING SHIMMER — processing lives at the section, not the sidebar */
+  if (run && (run.st === "sending" || run.st === "working")) cls += " work";
+
+  return pre + shellHtml(r, cls, gut, innerHtml(r, r.text, chips));
+}
+
+function renderDoc(keepScroll) {
+  const live = state.view === "system";
+  const top = keepScroll ? stageEl.scrollTop : 0;
+
+  state.sections = state.view === "system" ? SYSTEM
+    : state.view === "context" ? CONTEXT
+    : buildState(state.fixture);
+
+  docEl.classList.toggle("live", live);
+  $("#note").textContent = NOTE[state.view] || "";
+
+  /* ⌘K with nothing selected: a document-target composer, above everything */
+  gcompEl.innerHTML = (state.annot && live && state.composer && !state.composer.node)
+    ? composerHtml(state.composer) : "";
+
+  sectionsEl.innerHTML = state.sections.map((s) =>
+    '<section class="sec" data-tag="' + s.tag + '">' +
+      '<div class="tagline">&lt;' + s.tag + "&gt;</div>" +
+      s.rows.map((r) => rowHtml(r, live)).join("") +
+      '<div class="tagline">&lt;/' + s.tag + "&gt;</div>" +
+    "</section>"
+  ).join("");
+
+  stageEl.scrollTop = top;
+  state.active = null;
+  spy();
+  restoreFocus();
+}
+
+/* inputs live inside re-rendered HTML, so focus is state, not DOM */
+function restoreFocus() {
+  if (!state.focus) return;
+  let el = null;
+  if (state.focus === "composer") el = docEl.querySelector(".cin");
+  else if (state.focus.indexOf("rep:") === 0) {
+    el = docEl.querySelector('.irep[data-rep="' + state.focus.slice(4) + '"]');
+  }
+  if (!el) return;
+  el.focus({ preventScroll: true });
+  const v = el.value;
+  el.value = "";
+  el.value = v;
+}
+
+/* =====================================================================
+   Dock
+   ===================================================================== */
+function show(id, on) {
+  document.getElementById(id).classList.toggle("gone", !on);
+}
+
+function renderDock() {
+  const view = state.view;
+  show("zAgent", true);
+  show("zView", true);
+  show("zFixture", view === "state");
+  show("zOutline", true);
+  show("zDetails", view === "system" && !!state.selected);
+  show("zRequests", view === "system" && REQUESTS.length > 0);
+  show("zHistory", view === "system");
+
+  renderViews();
+  renderOutline();
+  renderFixtures();
+  renderDetails();
+  renderRequests();
+  trimRule();
+}
+
+/* the last visible zone drops its hairline, whatever it happens to be */
+function trimRule() {
+  const zones = [...document.querySelectorAll("#dock .zone")];
+  let last = null;
+  zones.forEach((z) => {
+    z.classList.remove("tail");
+    if (!z.classList.contains("gone")) last = z;
+  });
+  if (last) last.classList.add("tail");
+}
+
+function renderViews() {
+  $("#viewBody").innerHTML = VIEWS.map((v) =>
+    '<button class="vitem' + (v.id === state.view ? " active" : "") +
+    '" data-view="' + v.id + '"><span class="vn">' + v.id + "</span>" +
+    '<span class="zsp"></span><span class="vt">' + v.tok() + "</span></button>"
+  ).join("");
+}
+
+function renderOutline() {
+  $("#outlineBody").innerHTML = state.sections.map((s) =>
+    '<button class="oitem' + (s.tag === state.active ? " active" : "") +
+    '" data-sec="' + s.tag + '">' + s.tag + "</button>"
+  ).join("");
+}
+
+function renderFixtures() {
+  $("#fixtureBody").innerHTML = FIXTURES.map((f) =>
+    '<button class="fitem' + (f.name === state.fixture ? " active" : "") +
+    '" data-fix="' + f.name + '"><span>' + f.name + '</span>' +
+    '<span class="zsp"></span><span class="fn">' + f.note + "</span></button>"
+  ).join("");
+}
+
+function findRow(id) {
+  for (const s of state.sections) {
+    for (const r of s.rows) if (r.id === id) return { sec: s, row: r };
+  }
+  return null;
+}
+
+function renderDetails() {
+  if (!state.selected) { $("#detailsBody").innerHTML = ""; return; }
+  const found = findRow(state.selected);
+  if (!found) { $("#detailsBody").innerHTML = ""; return; }
+  const r = found.row;
+  $("#detailsBody").innerHTML =
+    '<div class="drow"><span class="dk">id</span><span class="dv id">' + esc(r.id) + "</span></div>" +
+    '<div class="drow"><span class="dk">kind</span><span class="dv">' + esc(r.kind) +
+      " · &lt;" + found.sec.tag + "&gt;</span></div>" +
+    '<div class="drow"><span class="dk">note</span><span class="dv">' + esc(r.diag || "—") + "</span></div>";
+}
+
+/* =====================================================================
+   THE STATE VOCABULARY — one set of words, used by the dock, the queue
+   cards and both threads:
+     queued → processing → staged → resolved
+     open   → sending → agent working → staged → resolved
+   ===================================================================== */
+function stateText(r, withEll) {
+  if (r.st === "sending") return "sending" + (withEll ? ELL : "…");
+  if (r.st === "working") return "agent working" + (withEll ? ELL : "…");
+  if (r.st === "processing") return "processing" + (withEll ? ELL : "…");
+  if (r.st === "staged") return "staged";
+  if (r.st === "resolved") return "resolved";
+  if (r.st === "discarded") return "discarded";
+  if (r.st === "queued") return "queued";
+  return "open";
+}
+
+/* the queue's own position language, only for what has not started */
+function queueText(r) {
+  if (r.st !== "queued") return stateText(r, true);
+  const i = queuedItems().indexOf(r);
+  if (i <= 0) return "queued &middot; next";
+  return "queued &middot; #" + (i + 1);
+}
+
+function stateClass(r) {
+  if (r.st === "sending" || r.st === "working" || r.st === "processing") return " act";
+  if (r.st === "staged") return " stg";
+  return "";
+}
+
+function renderRequests() {
+  $("#reqCount").textContent = queueItems().length + " queued";
+  $("#requestsBody").innerHTML = REQUESTS.map((r) =>
+    '<button class="rrow" data-req="' + r.alias + '">' +
+      '<span class="sdot ' + r.st + '"></span>' +
+      '<span class="ra">' + r.alias + "</span>" +
+      '<span class="rt">' + esc(tidy(r.note)) + "</span>" +
+      '<span class="rs">' + stateText(r, true) + "</span>" +
+    "</button>"
+  ).join("");
+}
+
+function renderHistory() {
+  $("#historyBody").innerHTML = HISTORY.map((h) =>
+    '<div class="hrow' + (h.cur ? "" : " past") + '">' +
+      '<span class="hh">' + h.hash + "</span><span class=\"hsp\"></span>" +
+      (h.cur ? '<span class="hcur">CURRENT</span>' : '<span class="ht">' + h.when + "</span>") +
+    "</div>"
+  ).join("");
+}
+
+/* the whisper carries the save when the mode is not on */
+function renderStatus() {
+  $("#status").textContent = (!state.annot && state.view === "system") ? "saved 3:42 PM" : "";
+}
+
+/* =====================================================================
+   Scroll spy
+   ===================================================================== */
+function spy() {
+  const secs = [...sectionsEl.querySelectorAll(".sec")];
+  if (!secs.length) return;
+  const base = stageEl.getBoundingClientRect().top;
+  let cur = secs[0].dataset.tag;
+  for (const s of secs) {
+    if (s.getBoundingClientRect().top - base <= 110) cur = s.dataset.tag;
+  }
+  if (cur === state.active) return;
+  state.active = cur;
+  document.querySelectorAll(".oitem").forEach((o) =>
+    o.classList.toggle("active", o.dataset.sec === cur));
+}
+
+stageEl.addEventListener("scroll", spy);
+
+function scrollToEl(el, offset) {
+  const top = el.getBoundingClientRect().top - stageEl.getBoundingClientRect().top +
+    stageEl.scrollTop - offset;
+  stageEl.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+}
+
+function scrollToNode(id, offset) {
+  if (!id) return;
+  const row = sectionsEl.querySelector('.row[data-id="' + id + '"]');
+  if (row) scrollToEl(row, offset === undefined ? 190 : offset);
+}
+
+function flash(id) {
+  if (!id) return;
+  const row = sectionsEl.querySelector('.row[data-id="' + id + '"]');
+  if (!row) return;
+  row.classList.add("flash");
+  setTimeout(() => row.classList.remove("flash"), 1100);
+}
+
+function renderAll(keepScroll) {
+  renderDoc(keepScroll !== false);
+  renderPanel();
+  renderDock();
+  syncChip();
+}
+
+/* =====================================================================
+   View switching — the mode pins the view to System
+   ===================================================================== */
+function setView(view) {
+  if (state.view === view) return;
+  if (state.annot && view !== "system") return;
+  state.view = view;
+  state.selected = null;
+  closeComposer();
+  renderDoc(false);
+  renderDock();
+  renderStatus();
+}
+
+$("#viewBody").addEventListener("click", (e) => {
+  const item = e.target.closest(".vitem");
+  if (!item) return;
+  setView(item.dataset.view);
+});
+
+/* =====================================================================
+   Selection · details
+   ===================================================================== */
+sectionsEl.addEventListener("click", (e) => {
+  if (e.target.closest(".gut") || e.target.closest(".composer") || e.target.closest(".ithread")) return;
+  if (state.view !== "system") return;
+  const row = e.target.closest(".row");
+  if (!row || !row.dataset.id) return;
+
+  /* inside the mode, clicking a queued row changes the sidebar's subject */
+  if (state.annot) {
+    const owner = stagedFor(row.dataset.id) || pinnedFor(row.dataset.id)[0];
+    if (owner && isQueue(owner)) openCard(owner.alias);
+    return;
+  }
+
+  state.selected = state.selected === row.dataset.id ? null : row.dataset.id;
+  renderDoc(true);
+  renderDock();
+});
+
+/* =====================================================================
+   THE COMPOSER — one opening, three dispositions
+   ===================================================================== */
+function closeComposer() {
+  state.composer = null;
+  if (state.focus === "composer") state.focus = null;
+}
+
+function openComposer(id, sel) {
+  if (!state.annot) return;
+  if (state.composer && state.composer.node === id) { closeComposer(); renderDoc(true); return; }
+  state.composer = { node: id || null, sel: sel || "", text: "" };
+  state.focus = "composer";
+  renderDoc(true);
+  if (id) scrollToNode(id, 240);
+}
+
+sectionsEl.addEventListener("click", (e) => {
+  const gut = e.target.closest(".gut");
+  if (!gut || !gut.dataset.gut) return;
+  e.stopPropagation();
+  openComposer(gut.dataset.gut, "");
+});
+
+/* keep the draft in state so a re-render never eats it */
+docEl.addEventListener("input", (e) => {
+  if (e.target.classList.contains("cin")) {
+    if (state.composer) state.composer.text = e.target.value;
+    return;
+  }
+  if (e.target.classList.contains("irep")) {
+    state.replies[e.target.dataset.rep] = e.target.value;
+  }
+});
+
+docEl.addEventListener("focusin", (e) => {
+  if (e.target.classList.contains("cin")) state.focus = "composer";
+  else if (e.target.classList.contains("irep")) state.focus = "rep:" + e.target.dataset.rep;
+});
+
+docEl.addEventListener("keydown", (e) => {
+  if (e.target.classList.contains("cin")) {
+    if (e.key === "Escape") {
+      e.preventDefault(); e.stopPropagation();
+      closeComposer(); renderDoc(true);
+      return;
+    }
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const global = !state.composer || !state.composer.node;
+    if (global) { fileNote("global"); return; }
+    if (e.metaKey || e.ctrlKey) { fileNote("global"); return; }
+    if (e.shiftKey) { fileNote("batch"); return; }
+    fileNote("run");
+    return;
+  }
+  if (e.target.classList.contains("irep")) {
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); e.target.blur(); state.focus = null; return; }
+    if (e.key !== "Enter" || e.shiftKey) return;
+    e.preventDefault();
+    const alias = e.target.dataset.rep;
+    const text = (state.replies[alias] || e.target.value || "").trim();
+    if (!text) return;
+    replyRun(alias, text);
+  }
+});
+
+docEl.addEventListener("click", (e) => {
+  const act = e.target.closest(".cact");
+  if (act) { e.stopPropagation(); fileNote(act.dataset.do); return; }
+  const acc = e.target.closest(".iact.acc");
+  if (acc) { e.stopPropagation(); acceptRun(acc.dataset.acc); return; }
+  const dis = e.target.closest(".iact.dis");
+  if (dis) { e.stopPropagation(); discardRun(dis.dataset.dis); return; }
+});
+
+/* =====================================================================
+   FILING — the three gestures diverge here
+   ===================================================================== */
+function fileNote(how) {
+  const c = state.composer;
+  if (!c) return;
+  const text = tidy(c.text || "");
+  if (!text) { closeComposer(); renderDoc(true); return; }
+
+  const alias = "R" + state.nextAlias++;
+  const global = how === "global";
+  const r = {
+    alias: alias,
+    mode: how === "run" ? "run" : (global ? "global" : "batch"),
+    node: global ? null : c.node,
+    st: how === "run" ? "open" : "queued",
+    note: text,
+    when: clock(),
+    thread: [{ who: "you", t: clock(), text: text }],
+    diff: null,
+    stage: null,
+    conflict: false,
+    sel: c.sel || "",
+  };
+  REQUESTS.push(r);
+  closeComposer();
+
+  if (how === "run") {
+    /* run now never touches the sidebar — the work happens at the row */
+    state.focus = null;
+    runNow(r);
+    return;
+  }
+
+  /* batch and global file instantly, and nothing runs */
+  state.card = alias;
+  state.focus = null;
+  renderAll(true);
+  if (r.node) flash(r.node);
+}
+
+/* =====================================================================
+   RUN NOW — the loop that lives at the section
+   sending → agent working (shimmer) → the reply lands whole → diff stages
+   ===================================================================== */
+function synthStage(r, node) {
+  const id = node || r.node;
+  const found = findRow(id);
+  if (!found) return null;
+  const base = tidy(found.row.text).replace(/\.\s*$/, "");
+  const note = tidy(r.note).replace(/\.\s*$/, "");
+  return {
+    say: "Read that node against your note. Staged one clause on " + shortId(id) +
+      " — nothing else in the section is touched.",
+    new: base + " — " + note.charAt(0).toLowerCase() + note.slice(1) + ".",
+  };
+}
+
+/* the scripted second iteration: a reply that asks for less gets less */
+function tighten(t) {
+  const orig = tidy(t);
+  let s = orig.replace(/\.\s*$/, "");
+  const head = s.split(/\s+—\s+|,\s+(?:and|because|so|which)\s+/)[0];
+  if (head && head.length > 28) s = head;
+  if (s.length >= orig.length - 2) {
+    s = orig.slice(0, Math.max(44, Math.floor(orig.length * 0.55))).replace(/\s+\S*$/, "");
+  }
+  return s.replace(/[,;:—\s]+$/, "") + ".";
+}
+
+function revise(r, text) {
+  const base = r.diff ? r.diff.new : (findRow(r.node) || { row: { text: "" } }).row.text;
+  if (/tight|short|terse|trim|cut|brief|less|smaller/i.test(text)) {
+    return {
+      say: "Tighter. Dropped the trailing clause and the qualifier — one sentence, same rule.",
+      new: tighten(base),
+    };
+  }
+  return {
+    say: "Reworked the staged clause on " + shortId(r.node) + " against that, and left the rest alone.",
+    new: tidy(base).replace(/\.\s*$/, "") + " — " + tidy(text).toLowerCase().replace(/\.$/, "") + ".",
+  };
+}
+
+function runNow(r) {
+  const spec = r.pending || synthStage(r);
+  r.pending = null;
+  if (!spec) return;
+
+  r.st = "sending";
+  renderAll(true);
+  scrollToNode(r.node, 240);
+
+  clearTimeout(r.timer);
+  r.timer = setTimeout(() => {
+    r.st = "working";                       /* the row shimmers from here */
+    renderAll(true);
+
+    clearTimeout(r.timer);
+    r.timer = setTimeout(() => {
+      r.thread.push({ who: "agent", t: clock(), text: spec.say });
+      r.diff = { node: r.node, new: spec.new };
+      r.st = "staged";
+      state.newMsg = r.alias;
+      state.fresh = r.alias;
+      renderAll(true);
+      setTimeout(() => { state.fresh = null; state.newMsg = null; }, 900);
+    }, 2000);
+  }, 380);
+}
+
+function replyRun(alias, text) {
+  const r = reqBy(alias);
+  if (!r) return;
+  r.thread.push({ who: "you", t: clock(), text: text });
+  r.pending = revise(r, text);
+  r.diff = null;                            /* the old stage comes off the row */
+  state.replies[alias] = "";
+  state.focus = null;
+  runNow(r);
+}
+
+/* the thread folds away before the row is re-rendered without it */
+function collapseIthread(alias, then) {
+  const el = docEl.querySelector('.ithread[data-ith="' + alias + '"]');
+  if (!el) { then(); return; }
+  el.style.height = el.offsetHeight + "px";
+  el.classList.add("out");
+  requestAnimationFrame(() => {
+    el.style.height = "0px";
+    el.style.opacity = "0";
+    el.style.marginTop = "0px";
+    el.style.marginBottom = "0px";
+  });
+  setTimeout(then, 230);
+}
+
+/* a run-now accept changes a node other notes may already be aimed at */
+function markConflicts(node, byAlias) {
+  REQUESTS.forEach((r) => {
+    if (isQueue(r) && r.st === "queued" && r.node === node) {
+      r.conflict = true;
+      r.conflictBy = byAlias;
+    }
+  });
+}
+
+function fileRecord(r) {
+  state.freshRec = r.alias;
+  setTimeout(() => { state.freshRec = null; }, 900);
+}
+
+function acceptRun(alias) {
+  const r = reqBy(alias);
+  if (!r || !r.diff) return;
+  const node = r.diff.node;
+  const found = findRow(node);
+  if (found) found.row.text = r.diff.new;
+  r.diff = null;
+  r.st = "resolved";
+  r.when = clock();
+  r.hash = "pk1-" + Math.random().toString(16).slice(2, 10);
+  r.thread.push({ who: "agent", t: clock(),
+    text: "Accepted — landed on " + shortId(node) + " as " + r.hash + "." });
+
+  markConflicts(node, r.alias);
+
+  HISTORY.forEach((h) => { if (h.cur) { h.cur = false; h.when = "moments ago"; } });
+  HISTORY.unshift({ hash: r.hash, when: "just now", cur: true });
+  state.historyOpen = true;
+  $("#zHistory").classList.remove("closed");
+
+  fileRecord(r);
+  collapseIthread(alias, () => {
+    renderAll(true);
+    renderHistory();
+    flash(node);
+  });
+}
+
+function discardRun(alias) {
+  const r = reqBy(alias);
+  if (!r || !r.diff) return;
+  const node = r.diff.node;
+  r.diff = null;
+  r.st = "discarded";
+  r.when = clock();
+  r.thread.push({ who: "you", t: clock(), text: "Discarded that proposal." });
+  fileRecord(r);
+  collapseIthread(alias, () => {
+    renderAll(true);
+    flash(node);
+  });
+}
+
+/* =====================================================================
+   THE BATCH — filed instantly, run only on Apply, narrated one at a time
+   ===================================================================== */
+function applyQueue() {
+  if (state.applying) return;
+  if (!queuedItems().length) return;
+  state.applying = true;
+  advanceQueue();
+}
+
+function advanceQueue() {
+  const next = queuedItems()[0];
+  if (!next) { state.applying = false; renderAll(true); return; }
+
+  next.st = "processing";
+  state.card = next.alias;
+  renderAll(true);
+  const shownNode = next.stage && next.stage.node ? next.stage.node : next.node;
+  if (shownNode) scrollToNode(shownNode, 220);
+
+  clearTimeout(next.timer);
+  next.timer = setTimeout(() => {
+    const spec = next.stage || synthStage(next, next.node);
+    next.stage = null;
+    if (!spec) { next.st = "queued"; state.applying = false; renderAll(true); return; }
+
+    const node = spec.node || next.node;
+    next.thread.push({ who: "agent", t: clock(), text: spec.say });
+    next.diff = { node: node, new: spec.new };
+    next.st = "staged";
+    state.newMsg = next.alias;
+    state.fresh = next.alias;
+    renderAll(true);
+    setTimeout(() => { state.fresh = null; state.newMsg = null; }, 900);
+
+    setTimeout(advanceQueue, 780);
+  }, 1800);
+}
+
+function acceptCard(alias) {
+  const r = reqBy(alias);
+  if (!r || !r.diff) return;
+  const node = r.diff.node;
+  const found = findRow(node);
+  if (found) found.row.text = r.diff.new;
+  r.diff = null;
+  r.st = "resolved";
+  r.when = clock();
+  r.hash = "pk1-" + Math.random().toString(16).slice(2, 10);
+  r.thread.push({ who: "agent", t: clock(),
+    text: "Accepted — landed on " + shortId(node) + " as " + r.hash + "." });
+  markConflicts(node, r.alias);
+
+  HISTORY.forEach((h) => { if (h.cur) { h.cur = false; h.when = "moments ago"; } });
+  HISTORY.unshift({ hash: r.hash, when: "just now", cur: true });
+  $("#zHistory").classList.remove("closed");
+  state.historyOpen = true;
+
+  fileRecord(r);
+  const nxt = queueItems()[0];
+  state.card = nxt ? nxt.alias : null;
+  renderAll(true);
+  renderHistory();
+  flash(node);
+}
+
+function discardCard(alias) {
+  const r = reqBy(alias);
+  if (!r || !r.diff) return;
+  const node = r.diff.node;
+  r.diff = null;
+  r.st = "discarded";
+  r.when = clock();
+  r.thread.push({ who: "you", t: clock(), text: "Discarded that proposal." });
+  fileRecord(r);
+  const nxt = queueItems()[0];
+  state.card = nxt ? nxt.alias : null;
+  renderAll(true);
+  flash(node);
+}
+
+/* =====================================================================
+   THE PANEL — the queue, and the records the run-now loop leaves behind
+   ===================================================================== */
+function threadHtml(r) {
+  let out = r.thread.map((m, i) => {
+    const fresh = (state.newMsg === r.alias && i === r.thread.length - 1) ? " new" : "";
+    return '<div class="tmsg ' + m.who + fresh + '">' +
+      '<div class="tmeta"><span class="who ' + m.who + '">' + m.who + "</span>" +
+      '<span class="tsp"></span><span>' + esc(m.t) + "</span></div>" +
+      '<div class="tbody">' + esc(m.text) + "</div>" +
+    "</div>";
+  }).join("");
+
+  if (r.st === "processing") out += '<div class="tstate">' + stateText(r, true) + "</div>";
+
+  if (r.st === "staged" && r.diff) {
+    out +=
+      '<div class="tacts">' +
+        '<span class="tstaged"><span class="tsq">&#9612;</span>staged on ' +
+          esc(shortId(r.diff.node)) + "</span>" +
+        '<button class="tact acc" data-acc="' + r.alias + '">Accept</button>' +
+        '<button class="tact dis" data-dis="' + r.alias + '">Discard</button>' +
+      "</div>";
+  }
+
+  return '<div class="thread" data-thread="' + r.alias + '">' + out + "</div>";
+}
+
+function cardHtml(r) {
+  const on = state.card === r.alias;
+  const meta = [];
+  if (r.mode === "global") meta.push('<span class="tchip">document</span>');
+  else meta.push('<span class="ck">target</span><span class="cv">' + esc(shortId(r.node)) + "</span>");
+  if (r.conflict) {
+    meta.push('<span class="wchip" title="' + esc(r.conflictBy || "") +
+      ' changed this node after the note was filed">target changed since filed</span>');
+  }
+
+  const head =
+    '<button class="card' + (on ? " on" : "") + '" data-card="' + r.alias + '">' +
+      '<span class="cline">' +
+        '<span class="sdot ' + r.st + '"></span>' +
+        '<span class="ca">' + r.alias + "</span>" +
+        '<span class="csp"></span>' +
+        '<span class="cst' + stateClass(r) + '">' + queueText(r) + "</span>" +
+      "</span>" +
+      '<span class="cnote">' + esc(tidy(r.note)) + "</span>" +
+      '<span class="cmeta">' + meta.join("") + "</span>" +
+    "</button>";
+  return head + (on ? threadHtml(r) : "");
+}
+
+function recHtml(r) {
+  const ok = r.st === "resolved";
+  const node = r.mode === "global" ? "document" : shortId(r.diff ? r.diff.node : r.node);
+  return '<div class="rec' + (ok ? "" : " no") + (state.freshRec === r.alias ? " fresh" : "") + '">' +
+    '<span class="rmk">' + (ok ? "&#10003;" : "&#10005;") + "</span>" +
+    '<span class="rca">' + r.alias + "</span>" +
+    '<span class="rsep">&middot;</span>' +
+    '<span class="rnode">' + esc(node) + "</span>" +
+    '<span class="rsep">&middot;</span>' +
+    '<span class="rst">' + (ok ? "resolved" : "discarded") + "</span>" +
+  "</div>";
+}
+
+/* the pipeline line: what is running, what is waiting, what is staged */
+function renderProgress() {
+  const p = processingItem();
+  const run = runInFlight()[0];
+  const nq = queuedItems().length;
+  const ns = stagedItems().length;
+
+  const parts = [];
+  if (p) parts.push("processing " + p.alias);
+  if (run) parts.push("running " + run.alias + " inline");
+  if (nq) parts.push(nq + " queued");
+  if (ns) parts.push(ns + " staged");
+
+  $("#progText").textContent = parts.length ? parts.join(" · ") : "queue idle";
+
+  const done = records().length;
+  $("#progNote").textContent = done ? done + " resolved" : "";
+
+  const total = queueItems().length + records().length;
+  $("#pfill").style.width = (total ? Math.round((done / total) * 100) : 0) + "%";
+}
+
+function syncChip() {
+  chipDot.classList.toggle("fast", busy());
+}
+
+function renderPanel() {
+  renderProgress();
+
+  const q = queueItems();
+  const recs = records();
+  const canApply = !state.applying && queuedItems().length > 0;
+
+  let html =
+    '<div class="lhead top"><span>Queue</span><span class="lsp"></span>' +
+      '<button class="qapply' + (canApply ? "" : " off") + '" id="applyQ">' +
+        (state.applying ? "running" : "Apply") + "</button>" +
+    "</div>";
+
+  html += q.length
+    ? q.map(cardHtml).join("")
+    : '<div class="lempty">nothing queued — ⇧Enter in a composer files here</div>';
+
+  html += '<div class="lhead"><span>Requests</span><span class="lsp"></span>' +
+    '<span class="ck">' + recs.length + "</span></div>";
+  html += recs.length
+    ? recs.map(recHtml).join("")
+    : '<div class="lempty">no requests disposed yet</div>';
+
+  const top = listEl.scrollTop;
+  listEl.innerHTML = html;
+  listEl.scrollTop = top;
+
+  /* the panel composer follows whatever the sidebar has open */
+  const cur = reqBy(state.card);
+  if (cur && cur.st === "staged") {
+    msgEl.placeholder = "Reply on " + cur.alias + " — Enter to re-run";
+    hintEl.textContent = "Enter replies on " + cur.alias + " · Esc to finish";
+  } else {
+    msgEl.placeholder = "Note about the whole document — Enter files it to global";
+    hintEl.textContent = "Enter files to global · Esc to finish";
+  }
+
+  syncChip();
+}
+
+function openCard(alias) {
+  state.card = state.card === alias ? null : alias;
+  const r = reqBy(alias);
+  renderPanel();
+  renderDoc(true);
+  if (r && state.card === alias) {
+    const node = r.diff ? r.diff.node : r.node;
+    if (node) { scrollToNode(node); flash(node); }
+  }
+}
+
+/* a reply in the sidebar re-runs whatever batch card is open and staged */
+function replyCard(alias, text) {
+  const r = reqBy(alias);
+  if (!r || !r.diff) return;
+  r.thread.push({ who: "you", t: clock(), text: text });
+  const node = r.diff.node;
+  const revised = /tight|short|terse|trim|cut|brief|less|smaller/i.test(text)
+    ? { say: "Tighter. One sentence, same rule.", new: tighten(r.diff.new) }
+    : { say: "Reworked the staged clause against that.",
+        new: tidy(r.diff.new).replace(/\.\s*$/, "") + " — " + tidy(text).toLowerCase().replace(/\.$/, "") + "." };
+
+  r.diff = null;
+  r.st = "processing";
+  renderAll(true);
+
+  clearTimeout(r.timer);
+  r.timer = setTimeout(() => {
+    r.thread.push({ who: "agent", t: clock(), text: revised.say });
+    r.diff = { node: node, new: revised.new };
+    r.st = "staged";
+    state.newMsg = r.alias;
+    state.fresh = r.alias;
+    renderAll(true);
+    setTimeout(() => { state.fresh = null; state.newMsg = null; }, 900);
+  }, 1600);
+}
+
+/* the panel composer: a reply on an open staged card, else a global note */
+function sendPanel(text) {
+  const cur = reqBy(state.card);
+  if (cur && cur.st === "staged") { replyCard(cur.alias, text); return; }
+
+  const alias = "R" + state.nextAlias++;
+  const r = {
+    alias: alias, mode: "global", node: null, st: "queued",
+    note: text, when: clock(),
+    thread: [{ who: "you", t: clock(), text: text }],
+    diff: null, stage: null, conflict: false,
+  };
+  REQUESTS.push(r);
+  state.card = alias;
+  renderAll(true);
+}
+
+/* =====================================================================
+   ENTER · EXIT — one class, one transition, the whole surface
+   ===================================================================== */
+let chipTimer = null;
+let chipClear = null;
+
+function enterAnnotate() {
+  if (state.annot) return;
+  if (state.view !== "system") setView("system");
+  state.annot = true;
+  state.selected = null;
+
+  const cur = reqBy(state.card);
+  if (!cur || !isQueue(cur) || cur.st === "resolved" || cur.st === "discarded") {
+    const next = queueItems()[0];
+    state.card = next ? next.alias : null;
+  }
+
+  root.classList.add("mode-annotate");   /* (a)(b)(c)(d), all at once */
+  dockEl.classList.add("hid");
+  chatEl.classList.add("on");
+
+  clearTimeout(chipTimer);
+  clearTimeout(chipClear);
+  chipEl.classList.remove("saved");
+  chipText.textContent = "annotating — esc to finish";
+  chipEl.classList.add("show");
+
+  renderAll(true);
+  renderStatus();
+
+  /* open onto the thing being discussed, not a paragraph nobody named */
+  const cur2 = reqBy(state.card);
+  const node = cur2 ? (cur2.diff ? cur2.diff.node : cur2.node) : null;
+  if (node) {
+    scrollToNode(node, 200);
+    setTimeout(() => flash(node), 240);
+  }
+}
+
+function exitAnnotate() {
+  if (!state.annot) return;
+  state.annot = false;
+  closeComposer();
+  state.focus = null;
+
+  root.classList.remove("mode-annotate");
+  chatEl.classList.remove("on");
+  dockEl.classList.remove("hid");
+
+  renderDoc(true);
+  renderDock();
+  renderStatus();
+
+  /* the chip morphs into what the session left behind, then goes */
+  const n = stagedItems().length;
+  chipEl.classList.add("saved");
+  chipText.textContent = "saved · " + n + " change" + (n === 1 ? "" : "s") + " staged";
+  clearTimeout(chipTimer);
+  clearTimeout(chipClear);
+  chipTimer = setTimeout(() => {
+    chipEl.classList.remove("show");
+    chipClear = setTimeout(() => chipEl.classList.remove("saved"), 320);
+  }, 2000);
+}
+
+$("#goAnnot").addEventListener("click", (e) => {
+  e.stopPropagation();
+  enterAnnotate();
+});
+$("#chatDone").addEventListener("click", exitAnnotate);
+
+/* =====================================================================
+   Wiring
+   ===================================================================== */
+listEl.addEventListener("click", (e) => {
+  if (e.target.closest("#applyQ")) { e.stopPropagation(); applyQueue(); return; }
+  const acc = e.target.closest(".tact.acc");
+  if (acc) { e.stopPropagation(); acceptCard(acc.dataset.acc); return; }
+  const dis = e.target.closest(".tact.dis");
+  if (dis) { e.stopPropagation(); discardCard(dis.dataset.dis); return; }
+  const card = e.target.closest(".card");
+  if (!card) return;
+  openCard(card.dataset.card);
+});
+
+msgEl.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    e.preventDefault();
+    if (msgEl.value.trim()) { msgEl.value = ""; return; }
+    exitAnnotate();
+    return;
+  }
+  if (e.key !== "Enter" || e.shiftKey) return;
+  e.preventDefault();
+  const text = tidy(msgEl.value);
+  if (!text) return;
+  msgEl.value = "";
+  sendPanel(text);
+});
+
+/* ⌘K — with a selection it targets that row, without one it goes global */
+function rowFromSelection() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  let n = sel.anchorNode;
+  if (n && n.nodeType === 3) n = n.parentElement;
+  if (!n || !n.closest) return null;
+  const row = n.closest(".row");
+  if (!row || !row.dataset.id) return null;
+  return { id: row.dataset.id, text: tidy(sel.toString()) };
+}
+
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+    e.preventDefault();
+    if (!state.annot) enterAnnotate();
+    const hit = rowFromSelection();
+    if (hit && hit.text) openComposer(hit.id, hit.text);
+    else openComposer(null, "");
+    return;
+  }
+  if (e.key !== "Escape") return;
+  if (state.composer) { closeComposer(); renderDoc(true); return; }
+  if (state.annot && document.activeElement !== msgEl &&
+      !(document.activeElement && document.activeElement.classList &&
+        document.activeElement.classList.contains("irep"))) {
+    exitAnnotate();
+  }
+});
+
+$("#outlineBody").addEventListener("click", (e) => {
+  const item = e.target.closest(".oitem");
+  if (!item) return;
+  const sec = sectionsEl.querySelector('.sec[data-tag="' + item.dataset.sec + '"]');
+  if (sec) scrollToEl(sec, 24);
+});
+
+/* a request in the dock is a door into the mode, already on that card */
+$("#requestsBody").addEventListener("click", (e) => {
+  const rr = e.target.closest(".rrow");
+  if (!rr) return;
+  state.card = rr.dataset.req;
+  enterAnnotate();
+  const r = reqBy(rr.dataset.req);
+  const node = r ? (r.diff ? r.diff.node : r.node) : null;
+  if (node) { scrollToNode(node); flash(node); }
+});
+
+$("#fixtureBody").addEventListener("click", (e) => {
+  const fi = e.target.closest(".fitem");
+  if (!fi) return;
+  state.fixture = fi.dataset.fix;
+  renderDoc(false);
+  renderDock();
+  renderStatus();
+});
+
+$("#histHead").addEventListener("click", () => {
+  state.historyOpen = !state.historyOpen;
+  $("#zHistory").classList.toggle("closed", !state.historyOpen);
+});
+
+/* =====================================================================
+   Boot — two notes queued, one record behind them, nothing in flight
+   ===================================================================== */
+state.card = "R2";
+renderDoc(false);
+renderDock();
+renderHistory();
+renderPanel();
+renderStatus();
+</script>
+</body>
+</html>

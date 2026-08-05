@@ -11,11 +11,9 @@ import {
 	EDITOR_COLORS,
 	EDITOR_METRICS,
 	PROMPT_EDITOR_ROOT_CLASS,
-	editorRuleBackground,
 	promptEditorGutterWidth,
 	promptEditorIndentForDepth,
 	promptEditorIndentForSpaces,
-	promptEditorZebraBackground,
 } from "../surface/editor-surface";
 import { highlightXmlLine } from "../surface/xml-highlight";
 import {
@@ -198,7 +196,6 @@ export function PromptView({
 				style={{
 					backgroundColor: EDITOR_COLORS.bg,
 					color: EDITOR_COLORS.fg,
-					...editorRuleBackground,
 				}}
 			>
 				<table
@@ -224,37 +221,23 @@ export function PromptView({
 								// CONTEXT surface) addresses a row by its zero-based line index.
 								// Attribute only — nothing styles off it.
 								data-prompt-row={index}
-								style={{
-									"--prompt-editor-row-zebra":
-										promptEditorZebraBackground(index),
-									...rowRoleStyle(info),
-								} as React.CSSProperties}
+								style={rowRoleStyle(info) as React.CSSProperties}
 							>
+								{/* Line numbers retired (2026-08-04 audit): the gutter cell
+								    keeps row geometry and the landmark band only. */}
 								<td
-									className="sticky left-0 select-none px-3 text-right align-top tabular-nums"
+									className="sticky left-0 select-none px-3 text-right align-top"
 									style={{
 										minWidth: gutterWidth,
 										width: gutterWidth,
 										background: "transparent",
-										color: EDITOR_COLORS.lineNumber,
 										// Landmark band: both cells share the block padding so
 										// the row grows into a tinted band around the open tag.
 										...(isLandmark
 											? { paddingBlock: EDITOR_METRICS.landmarkPad }
 											: undefined),
 									}}
-								>
-									<span
-										style={{
-											visibility:
-												"var(--prompt-editor-line-number-visibility, visible)" as React.CSSProperties["visibility"],
-											display:
-												"var(--prompt-editor-line-numbers-display, block)",
-										}}
-									>
-										{startLine + index}
-									</span>
-								</td>
+								/>
 								<td
 									className="w-full pr-4"
 									style={{

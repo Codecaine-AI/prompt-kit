@@ -1,0 +1,10 @@
+{
+	"label": "default",
+	"state": {
+		"targetAgent": "source-scout",
+		"targetPromptRender": "<!-- #sec-purpose -->\n<purpose>\n  <!-- #para-0 -->\n  You find primary sources.\n  <!-- #para-1 -->\n  Answer in concise, sourced bullets.\n</purpose>\n<!-- #sec-method -->\n<method>\n  <!-- #para-2 -->\n  Prefer firsthand accounts, original data, and contemporaneous records.\n  <!-- #list-checks -->\n  - Name the archive or publication each source came from.\n  - Flag any claim you could not trace to an original record.\n</method>",
+		"targetPromptHash": "pk1-9f4c2e7ab31d58c6",
+		"appliedDiffs": "(no diffs applied yet — the session service sets sessionData.appliedDiffs to the applied-transaction log)",
+		"requestQueue": "REQUESTS · 0/3 disposed\n  R1 open  node:para-0  ford — \"Make the opening say WHAT counts as a primary source.\"\n    > human — \"Firsthand accounts, original data, contemporaneous records — say those.\"\n  R2 open  range:para-1[10..17]  ford — \"\\\"concise\\\" how? Give a bullet budget.\"\n  R3 open  doc  ford — \"The prompt never says when to stop searching.\""
+	}
+}

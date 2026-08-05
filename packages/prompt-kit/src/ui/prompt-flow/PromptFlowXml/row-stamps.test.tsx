@@ -80,12 +80,9 @@ describe("PromptFlowXml row stamps", () => {
 		});
 	});
 
-	it("renders no line-number column by default; the gutter keeps only its collapsed affordance width", () => {
+	it("renders an empty affordance gutter — line numbers are retired", () => {
 		const model = createPromptEditorModel(prompt, {});
-		// Server markup keeps the literal style strings (happy-dom's style
-		// property validation drops `var()` display values on live elements).
-		const host = document.createElement("div");
-		host.innerHTML = renderToStaticMarkup(
+		render(
 			<PromptFlowXml
 				prompt={model.prompt}
 				model={model}
@@ -93,28 +90,12 @@ describe("PromptFlowXml row stamps", () => {
 				onPromptChange={() => {}}
 			/>,
 		);
-
-		const row = host.querySelector<HTMLElement>('[data-row-index="0"]')!;
-		const gutter = row.querySelector<HTMLElement>(".sticky")!;
-		const number = gutter.querySelector<HTMLElement>("span")!;
-
-		// The number text is always in the tree — enabling numbers is purely a
-		// host style-var flip (the style rail's "Line numbers" toggle), which
-		// restores exactly the classic rendering without a re-render.
-		expect(number.textContent).toBe("1");
-		// Off is the default: without host vars the span's display resolves to
-		// `none`, so the number column does not exist in layout.
-		expect(number.getAttribute("style") ?? "").toContain(
-			"var(--prompt-editor-line-numbers-display, none)",
-		);
-		// The gutter's width is the shared variable with the collapsed fallback:
-		// numbers off leaves just the strip the grip/menu cluster needs.
-		expect(gutter.getAttribute("style") ?? "").toContain(
-			"var(--prompt-editor-gutter-width, 36px)",
-		);
-		// Nothing functional reads the rendered digits: range-to-offset mapping
-		// walks [data-prompt-row-text] regions, and the number lives outside them.
-		expect(number.closest("[data-prompt-row-text]")).toBeNull();
+		const gutter = document.querySelector<HTMLElement>(
+			'[data-prompt-node-id="para-1"] > div',
+		)!;
+		// The gutter cell keeps geometry for the grip rail and nothing else.
+		expect(gutter.querySelector("span")).toBeNull();
+		expect(gutter.textContent).toBe("");
 	});
 
 	it("stamps every editor affordance for annotate-mode hiding", () => {

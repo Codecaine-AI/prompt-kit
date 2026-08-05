@@ -199,6 +199,8 @@ describe("PromptFlowXml item drag handle (Notion model)", () => {
 			clientX: 5,
 			clientY: 5,
 		});
+		// The press only ARMS the drag; the first past-threshold move lifts it.
+		fireEvent.pointerMove(window, { clientX: 5, clientY: 25 });
 
 		// Multi-line item (marker row + child row): first line + "+1 more".
 		const more = Array.from(document.querySelectorAll("span")).find(

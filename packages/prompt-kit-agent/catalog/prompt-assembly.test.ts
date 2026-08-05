@@ -2,18 +2,18 @@
  * Prompt shape gate for the first-party prompt-editor bundle (the canvas
  * layout-editor prompt-assembly test, ported to the kernel catalog).
  *
- * The static prompt is the purpose, the inputs picture, the editing rules,
- * the workflow, and the tool semantics — operational text only. The authoring
- * reference lives in the <prompt_kit_authoring> context block, the target
- * prompt and request queue arrive per-session from the session service, and
- * tool mechanics live in the tool schemas.
+ * The static prompt is the purpose, declared state shape, phased workflow,
+ * proposal-repair handling, and final rules — operational text only. Reference
+ * and tool semantics live in five sibling context blocks (section ②); the
+ * target prompt, applied-diff log, and request queue are session STATE rendered
+ * by the state sidecar (section ③), and tool mechanics live in the schemas.
  *
  * Shape is part of the contract: every bullet and step carries one sentence
- * with its qualifications nested beneath it, and the only variable the body
- * references is the manifest's one declaration.
+ * with its qualifications nested beneath it, and the body declares no spawn
+ * variables.
  */
 import { describe, expect, test } from "bun:test";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
@@ -34,14 +34,30 @@ import type {
 	LoadedMap,
 	SpawnContext,
 } from "@agent-kernel/kernel/context";
+import {
+	DEFAULT_WINDOW,
+	normalizeRenderOutput,
+	type RenderContext,
+	type SessionEvent,
+} from "@agent-kernel/kernel/state";
 
 import promptEditorContext, {
-	AUTHORING_REFERENCE_FILES,
+	CONTEXT_BLOCKS,
+	CONTEXT_FILES,
 } from "./prompt-editor/context/index";
+import promptEditorState, {
+	type PromptEditorState,
+} from "./prompt-editor/state/index";
 
 const CATALOG_DIR = import.meta.dir;
 const BUNDLE_DIR = join(CATALOG_DIR, "prompt-editor");
 const PROMPT_FILE = join(BUNDLE_DIR, "prompt", "prompt.json");
+const STATE_FIXTURE_FILE = join(
+	BUNDLE_DIR,
+	"state",
+	"fixtures",
+	"default.json",
+);
 
 interface PromptNode {
 	type: string;
@@ -142,6 +158,52 @@ async function loadDeclaredFiles(): Promise<LoadedMap> {
 	});
 }
 
+/** A state fixture file: the kernel lab's envelope around an S sample. */
+interface StateFixtureEnvelope {
+	label?: unknown;
+	variables?: Record<string, unknown>;
+	state: PromptEditorState;
+}
+
+function readStateFixtureEnvelope(file: string): StateFixtureEnvelope {
+	return JSON.parse(readFileSync(file, "utf8")) as StateFixtureEnvelope;
+}
+
+function readStateFixture(): PromptEditorState {
+	return readStateFixtureEnvelope(STATE_FIXTURE_FILE).state;
+}
+
+function fakeRenderContext(): RenderContext {
+	return {
+		agentName: "prompt-editor",
+		messages: [],
+		turnIndex: 0,
+		window: { ...DEFAULT_WINDOW },
+	};
+}
+
+/** Render S over an empty conversation and flatten the state block's text. */
+function renderStateBlock(state: PromptEditorState): {
+	text: string;
+	stateMessageCount: number;
+	messageCount: number;
+} {
+	const result = normalizeRenderOutput(
+		promptEditorState.render(state, fakeRenderContext()),
+	);
+	const first = result.messages[0] as {
+		content?: Array<{ type: string; text?: string }>;
+	};
+	const text = (first?.content ?? [])
+		.map((entry) => (entry.type === "text" ? (entry.text ?? "") : ""))
+		.join("\n");
+	return {
+		text,
+		stateMessageCount: result.stateMessageCount ?? 0,
+		messageCount: result.messages.length,
+	};
+}
+
 describe("prompt-editor bundle", () => {
 	test("the registry discovers the bundle from the catalog root", async () => {
 		const registry = await buildRegistry({ roots: [CATALOG_DIR] });
@@ -149,7 +211,15 @@ describe("prompt-editor bundle", () => {
 		const def = registry.get("prompt-editor");
 		expect(def.contextResolver).not.toBeNull();
 		expect(def.manifest.model).toBe("prompt-editor");
-		expect(Object.keys(def.manifest.variables)).toEqual(["targetAgent"]);
+		expect(Object.keys(def.manifest.variables)).toEqual([]);
+		// The state sidecar attaches by convention (state/index.ts) and alone
+		// activates the state extension — agent.json carries no state block.
+		expect(def.stateModulePath).toBe(join(BUNDLE_DIR, "state", "index.ts"));
+		expect(def.stateModule).not.toBeNull();
+		expect(typeof def.stateModule?.seed).toBe("function");
+		expect(typeof def.stateModule?.update).toBe("function");
+		expect(typeof def.stateModule?.render).toBe("function");
+		expect(def.stateConfig).toBeNull();
 		// Boot-time variable validation passed with nothing left over.
 		expect(def.warnings).toEqual([]);
 	});
@@ -157,9 +227,11 @@ describe("prompt-editor bundle", () => {
 	test("the bundle is in folder form with no flat-file shadows", () => {
 		expect(resolvePromptEntry(BUNDLE_DIR).form).toBe("folder");
 		expect(existsSync(join(BUNDLE_DIR, "context", "index.ts"))).toBe(true);
+		expect(existsSync(join(BUNDLE_DIR, "state", "index.ts"))).toBe(true);
 		expect(existsSync(join(BUNDLE_DIR, "prompt.json"))).toBe(false);
 		expect(existsSync(join(BUNDLE_DIR, "prompt.rendered.md"))).toBe(false);
 		expect(existsSync(join(BUNDLE_DIR, "context.ts"))).toBe(false);
+		expect(existsSync(join(BUNDLE_DIR, "state.ts"))).toBe(false);
 	});
 
 	test("prompt.json is canonical bytes and hashes as pk1", () => {
@@ -170,9 +242,10 @@ describe("prompt-editor bundle", () => {
 		expect(hashPrompt(document)).toStartWith("pk1-");
 	});
 
-	test("the prompt validates against the manifest's declared variables", () => {
+	test("the prompt validates with no declared variables", () => {
 		const { document } = readPrompt();
 		const declared = manifestVariables();
+		expect(declared).toEqual([]);
 		const result = validatePrompt(document, { declaredVariables: declared });
 		expect(result.diagnostics.filter((d) => d.severity === "error")).toEqual(
 			[],
@@ -202,11 +275,32 @@ describe("prompt-editor bundle", () => {
 		);
 	});
 
-	test("ships exactly the five static sections, in reading order", () => {
+	test("ships the canonical sections and phased workflow in reading order", () => {
 		const { nodes } = readPrompt();
 		expect(
 			nodes.filter((node) => node.type === "section").map((node) => node.tag),
-		).toEqual(["purpose", "inputs", "editing_rules", "workflow", "tools"]);
+		).toEqual([
+			"purpose",
+			"state_structure",
+			"workflow",
+			"error_handling",
+			"rules",
+		]);
+
+		const workflow = nodes.find((node) => node.tag === "workflow");
+		const phases = (workflow?.children ?? []) as PromptNode[];
+		expect(
+			phases.map((phase) => ({
+				name: (phase.attrs as { name?: unknown } | undefined)?.name,
+				fields: ((phase.children ?? []) as PromptNode[]).map(
+					(field) => field.tag,
+				),
+			})),
+		).toEqual([
+			{ name: "survey_queue", fields: ["objective", "steps"] },
+			{ name: "work_requests", fields: ["objective", "steps"] },
+			{ name: "close_out", fields: ["objective", "steps"] },
+		]);
 	});
 
 	test("every bullet and step carries a single sentence", () => {
@@ -221,7 +315,7 @@ describe("prompt-editor bundle", () => {
 	test("pins the identity and the staged-review framing", () => {
 		const { text } = readPrompt();
 		expect(text).toContain(
-			"you change that agent's system prompt on behalf of the human who owns it",
+			"You are the prompt editor: you change a target agent's system prompt on behalf of the human who owns it.",
 		);
 		expect(text).toContain(
 			"its rendered markdown is a projection you never touch",
@@ -231,35 +325,62 @@ describe("prompt-editor bundle", () => {
 		);
 	});
 
-	test("pins the structural-transaction editing rules", () => {
+	test("pins the declared state and structural-transaction rules", () => {
 		const { text } = readPrompt();
+		expect(text).toContain('<target_prompt agent="…" hash="…">');
+		expect(text).toContain("stamped ids are the only edit addresses");
+		expect(text).toContain("hash is the transaction base");
+		expect(text).toContain("<diffs>");
+		expect(text).toContain("the transactions applied so far");
+		expect(text).toContain("the open queue of R-alias entries");
 		expect(text).toContain(
 			"an edit is a transaction of id-relative steps against the document tree, and rewritten markdown is never an edit",
 		);
 		expect(text).toContain("Preserve node ids");
 		expect(text).toContain("Prefer the minimal transaction");
+		expect(text).toContain("prefer update_node over removal and insertion");
 		expect(text).toContain(
-			"a proposal that fails validation bounces straight back to you — repair it and propose again",
+			"every variable placeholder it references must stay declared",
 		);
-		expect(text).toContain("Respect the target prompt's voice");
+		expect(text).toContain("Match the target prompt's voice and nomenclature");
+		expect(text).toContain("never introduce a synonym");
+		expect(text).toContain("Never silently comply with a conflicting request");
+		expect(text).toContain("ask only questions whose answers materially change");
 		expect(text).toContain(
-			"notes, replies, and resolutions are plain language",
+			"notes, replies, and resolutions are a sentence or two",
 		);
+	});
+
+	test("repairs failed proposals by narrowing the transaction", () => {
+		const { text } = readPrompt();
+		expect(text).toContain("proposal validation fails or bounces back");
+		expect(text).toContain("narrow the transaction");
+		expect(text).toContain("re-propose; never widen the edit");
 	});
 
 	test("pins the queue workflow: read all, one proposal each, resolve each", () => {
 		const { text } = readPrompt();
-		expect(text).toContain("Read the whole queue before editing anything");
 		expect(text).toContain(
-			"Propose exactly one transaction per request with propose_transaction",
+			"Read the whole <requests> queue before editing anything",
+		);
+		expect(text).toContain("Read <diffs> before proposing");
+		expect(text).toContain("collisions, overlaps, and shared nodes");
+		expect(text).toContain("Plan each request in alias order");
+		expect(text).toContain(
+			"use propose_transaction to propose exactly one transaction",
+		);
+		expect(text).toContain("when no change is needed, propose none");
+		expect(text).toContain(
+			"Resolve each disposable request individually with resolve_request",
+		);
+		expect(text).toContain("never as a lump");
+		expect(text).toContain("use reply_request to ask an open question");
+		expect(text).toContain("keep working the others");
+		expect(text).toContain(
+			"use add_note to pin placed notes at the implicated nodes",
 		);
 		expect(text).toContain(
-			"Resolve every request individually with resolve_request",
-		);
-		expect(text).toContain("A batch never resolves as a lump");
-		expect(text).toContain("the run never stalls waiting for an answer");
-		expect(text).toContain(
-			"Work a document-level request by pinning placed notes with add_note",
+			"Loop to step 1 until no open request remains that can be disposed",
 		);
 	});
 
@@ -287,19 +408,51 @@ describe("prompt-editor bundle", () => {
 		}
 	});
 
-	test("the rendered body's only moustache is the declared variable", () => {
+	test("the rendered body references no spawn variables", () => {
 		const { document } = readPrompt();
 		const body = renderXmlMarkdown(document);
 		const refs = [...body.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]);
-		expect([...new Set(refs)]).toEqual(["targetAgent"]);
+		expect([...new Set(refs)]).toEqual([]);
 	});
 });
 
 describe("prompt-editor context sidecar", () => {
-	test("declares only file loaders over the authoring reference, and every file exists", () => {
-		expect(promptEditorContext.loaders.length).toBe(
-			AUTHORING_REFERENCE_FILES.length,
+	test("declares the new block files in loader and assembly order", () => {
+		const expectedBlocks = [
+			{
+				tag: "prompt_document_model",
+				files: [join(CATALOG_DIR, "_shared", "blocks", "10-document-model.md")],
+			},
+			{
+				tag: "section_guide",
+				files: [join(CATALOG_DIR, "_shared", "blocks", "20-section-guide-agent.md")],
+			},
+			{
+				tag: "quality_guide",
+				files: [join(CATALOG_DIR, "_shared", "blocks", "50-quality-guide.md")],
+			},
+			{
+				tag: "tool_guide",
+				files: [
+					join(BUNDLE_DIR, "context", "blocks", "20-tool-guide.md"),
+					join(CATALOG_DIR, "_shared", "blocks", "70-transaction-guide.md"),
+				],
+			},
+			{
+				tag: "state_reference",
+				files: [join(BUNDLE_DIR, "context", "blocks", "10-state-reference.md")],
+			},
+		];
+		expect(CONTEXT_BLOCKS).toEqual(expectedBlocks);
+		expect(CONTEXT_FILES).toEqual(
+			expectedBlocks.flatMap((entry) => entry.files),
 		);
+		expect(promptEditorContext.loaders).toHaveLength(CONTEXT_FILES.length);
+		expect(
+			promptEditorContext.loaders.map((decl) =>
+				String((decl as { path?: unknown }).path ?? ""),
+			),
+		).toEqual([...CONTEXT_FILES]);
 		for (const decl of promptEditorContext.loaders) {
 			expect(decl.kind).toBe("file");
 			const path = String((decl as { path?: unknown }).path ?? "");
@@ -307,47 +460,227 @@ describe("prompt-editor context sidecar", () => {
 		}
 	});
 
-	test("assembles placeholders when no session is attached", async () => {
+	test("assembles five standing-knowledge tags and nothing else", async () => {
 		const loaded = await loadDeclaredFiles();
+		const out = await promptEditorContext.assemble(loaded, fakeSpawnContext());
+		// The kernel's L2 context set owns the <context> envelope. These five
+		// self-describing blocks are direct siblings and need no prompt inventory.
+		const tags = [
+			"prompt_document_model",
+			"section_guide",
+			"quality_guide",
+			"tool_guide",
+			"state_reference",
+		];
+		expect(out.startsWith("<prompt_document_model>")).toBe(true);
+		expect(out.endsWith("</state_reference>")).toBe(true);
+		for (const tag of tags) {
+			expect(out).toContain(`<${tag}>`);
+			expect(out).toContain(`</${tag}>`);
+		}
+		expect(tags.map((tag) => out.indexOf(`<${tag}>`))).toEqual(
+			[...tags]
+				.map((tag) => out.indexOf(`<${tag}>`))
+				.sort((a, b) => a - b),
+		);
+		expect(out).not.toContain("<prompt_kit_authoring>");
+		expect(out).not.toContain("<doc ");
+		// Tool call semantics precede the shared transaction vocabulary inside
+		// the one combined tool block.
+		expect(out.indexOf("# Prompt Editor Tool Guide")).toBeLessThan(
+			out.indexOf("# Prompt Edit Transaction Guide"),
+		);
+		// state_reference documents the section-③ vocabulary, but this assembled
+		// context carries no live session instance.
+	});
+
+	test("a missing source degrades its whole block to a status-marked empty tag", async () => {
+		const loaded = await loadDeclaredFiles();
+		const withoutTransactionGuide = loaded.filter((input) => {
+			const path = String((input.decl as { path?: unknown }).path ?? "");
+			return path !== CONTEXT_FILES[4];
+		});
 		const out = await promptEditorContext.assemble(
+			withoutTransactionGuide,
+			fakeSpawnContext(),
+		);
+		expect(out).toContain('<tool_guide status="missing"></tool_guide>');
+		expect(out).not.toContain("# Prompt Editor Tool Guide");
+		expect(out).not.toContain("# Prompt Edit Transaction Guide");
+		// Unaffected tags still assemble normally.
+		expect(out).toContain("# Prompt Editor State Reference");
+	});
+
+	test("assemble ignores session data — context is session-invariant", async () => {
+		const loaded = await loadDeclaredFiles();
+		const fixture = readStateFixture();
+		const withoutSession = await promptEditorContext.assemble(
 			loaded,
 			fakeSpawnContext(),
 		);
-		expect(out).toContain("<prompt_kit_authoring>");
-		expect(out).toContain('<doc name="authoring-model">');
-		expect(out).toContain('<doc name="core-methodology">');
-		expect(out).toContain('<doc name="improve-prompt-ts">');
-		expect(out).toContain('<doc name="anti-patterns">');
-		expect(out).toContain('<target_prompt agent="(unset)" hash="(unset)">');
-		expect(out).toContain(
-			"sessionData.targetPromptRender to the node-id-stamped render",
-		);
-		expect(out).toContain("<requests>");
-		expect(out).toContain("sessionData.requestQueue to the rendered queue");
-	});
-
-	test("assembles the session service's payload when attached", async () => {
-		const loaded = await loadDeclaredFiles();
-		const out = await promptEditorContext.assemble(
+		const withSession = await promptEditorContext.assemble(
 			loaded,
 			fakeSpawnContext({
-				variables: { targetAgent: "source-scout" },
 				sessionData: {
-					targetPromptRender:
-						'<section id="node-section-purpose">the render</section>',
-					targetPromptHash: "pk1-feedface",
-					requestQueue:
-						'R1 open node-section-purpose — "tighten the identity line"',
+					targetAgent: fixture.targetAgent,
+					targetPromptRender: fixture.targetPromptRender,
+					targetPromptHash: fixture.targetPromptHash,
+					appliedDiffs: fixture.appliedDiffs,
+					requestQueue: fixture.requestQueue,
 				},
 			}),
 		);
-		expect(out).toContain(
-			'<target_prompt agent="source-scout" hash="pk1-feedface">',
+		expect(withSession).toBe(withoutSession);
+		expect(withSession).not.toContain(fixture.targetPromptHash);
+		expect(withSession).not.toContain("You find primary sources.");
+		expect(withSession).not.toContain(
+			"Make the opening say WHAT counts as a primary source.",
 		);
-		expect(out).toContain('<section id="node-section-purpose">the render</section>');
-		expect(out).toContain(
-			'R1 open node-section-purpose — "tighten the identity line"',
+	});
+});
+
+describe("prompt-editor state sidecar", () => {
+	test("seed round-trips the spawn payload into the section-③ render", () => {
+		const fixture = readStateFixture();
+		const seeded = promptEditorState.seed(
+			fakeSpawnContext({
+				sessionData: {
+					targetAgent: fixture.targetAgent,
+					targetPromptRender: fixture.targetPromptRender,
+					targetPromptHash: fixture.targetPromptHash,
+					appliedDiffs: fixture.appliedDiffs,
+					requestQueue: fixture.requestQueue,
+				},
+			}),
 		);
-		expect(out).not.toContain("(unset)");
+		expect(seeded).toEqual(fixture);
+		const { text, stateMessageCount, messageCount } =
+			renderStateBlock(seeded);
+		// One kernel:state message over an empty conversation — no tail.
+		expect(stateMessageCount).toBe(1);
+		expect(messageCount).toBe(1);
+		expect(text).toContain(
+			`<target_prompt agent="${fixture.targetAgent}" hash="${fixture.targetPromptHash}">`,
+		);
+		expect(text).toContain("<!-- #sec-purpose -->");
+		expect(text).toContain("<!-- #para-0 -->");
+		expect(text).toContain("You find primary sources.");
+		expect(text).toContain("<diffs>");
+		expect(text).toContain(fixture.appliedDiffs);
+		expect(text).toContain("<requests>");
+		expect(text.indexOf("<target_prompt ")).toBeLessThan(
+			text.indexOf("<diffs>"),
+		);
+		expect(text.indexOf("<diffs>")).toBeLessThan(
+			text.indexOf("<requests>"),
+		);
+		expect(text).toContain("REQUESTS · 0/3 disposed");
+		expect(text).toContain(
+			'R1 open  node:para-0  ford — "Make the opening say WHAT counts as a primary source."',
+		);
+		expect(text).toContain("R2 open  range:para-1[10..17]");
+		expect(text).not.toContain("(unset)");
+		expect(text).not.toContain("(target prompt not loaded");
+		expect(text).not.toContain("(no open requests");
+	});
+
+	test("seed with an empty context renders honest placeholders", () => {
+		const seeded = promptEditorState.seed(fakeSpawnContext());
+		const { text, stateMessageCount } = renderStateBlock(seeded);
+		expect(stateMessageCount).toBe(1);
+		expect(text).toContain('<target_prompt agent="(unset)" hash="(unset)">');
+		expect(text).toContain(
+			"sessionData.targetPromptRender to the node-id-stamped render",
+		);
+		expect(text).toContain("<diffs>");
+		expect(text).toContain(
+			"sessionData.appliedDiffs to the applied-transaction log",
+		);
+		expect(text).toContain("<requests>");
+		expect(text).toContain("sessionData.requestQueue to the rendered queue");
+	});
+
+	test("seed prefers prior state over the spawn payload", () => {
+		const fixture = readStateFixture();
+		const seeded = promptEditorState.seed(fakeSpawnContext(), fixture);
+		expect(seeded).toEqual(fixture);
+		expect(seeded).not.toBe(fixture);
+	});
+
+	test("update is a v1 pass-through", () => {
+		const fixture = readStateFixture();
+		const event: SessionEvent = {
+			kind: "turn_end",
+			seq: 0,
+			messageIndex: 0,
+			timestamp: Date.now(),
+			turnIndex: 0,
+		};
+		expect(promptEditorState.update(fixture, event)).toBe(fixture);
+	});
+
+	test("state/fixtures/default.json is a data-only fixture envelope whose state previews render", () => {
+		const raw = JSON.parse(readFileSync(STATE_FIXTURE_FILE, "utf8")) as Record<
+			string,
+			unknown
+		>;
+		// The kernel lab envelope needs only a label and the complete S sample.
+		expect(Object.keys(raw).sort()).toEqual(["label", "state"]);
+		expect(raw.label).toBe("default");
+		expect(raw.variables).toBeUndefined();
+		// The state key is exactly the S shape, strings throughout.
+		const state = raw.state as Record<string, unknown>;
+		expect(Object.keys(state).sort()).toEqual([
+			"appliedDiffs",
+			"requestQueue",
+			"targetAgent",
+			"targetPromptHash",
+			"targetPromptRender",
+		]);
+		for (const value of Object.values(state)) {
+			expect(typeof value).toBe("string");
+		}
+		// The envelope's state plugs straight into render() as S.
+		const { text, stateMessageCount } = renderStateBlock(
+			state as unknown as PromptEditorState,
+		);
+		expect(stateMessageCount).toBe(1);
+		expect(text).toContain('hash="pk1-9f4c2e7ab31d58c6"');
+		expect(text).toContain("R2 open  range:para-1[10..17]");
+		expect(text).not.toContain("(unset)");
+	});
+
+	test("every state/fixtures/*.json is a valid envelope with an S-shaped state", () => {
+		const fixturesDir = join(BUNDLE_DIR, "state", "fixtures");
+		const files = readdirSync(fixturesDir)
+			.filter((name) => name.endsWith(".json"))
+			.sort();
+		expect(files).toEqual([
+			"default.json",
+			"empty-run.json",
+			"long-run.json",
+			"mid-session.json",
+		]);
+		for (const name of files) {
+			const envelope = readStateFixtureEnvelope(join(fixturesDir, name));
+			expect(typeof envelope.label).toBe("string");
+			expect(Object.keys(envelope).sort()).toEqual(["label", "state"]);
+			expect(envelope.variables).toBeUndefined();
+			const state = envelope.state as unknown as Record<string, unknown>;
+			expect(Object.keys(state).sort()).toEqual([
+				"appliedDiffs",
+				"requestQueue",
+				"targetAgent",
+				"targetPromptHash",
+				"targetPromptRender",
+			]);
+			for (const value of Object.values(state)) {
+				expect(typeof value).toBe("string");
+			}
+			const { text, stateMessageCount } = renderStateBlock(envelope.state);
+			expect(stateMessageCount).toBe(1);
+			expect(text).not.toContain("(unset)");
+			expect(text).not.toContain("(target prompt not loaded");
+		}
 	});
 });

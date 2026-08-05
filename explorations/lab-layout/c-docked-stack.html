@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt lab layout — C, docked stack</title>
+<style>
+  /* -----------------------------------------------------------------
+     Variant C — "docked stack".
+     One 260px dock on the right; every side surface is a stacked,
+     collapsible zone inside it. Nothing ever swaps out — it stacks.
+     Shared frame with variants A and B.
+     ----------------------------------------------------------------- */
+  :root {
+    --bg: #161719;
+    --surface: #1c1e21;
+    --line: #26282c;
+    --fg: #c9ccd1;
+    --muted: #6b7078;
+    --faint: #4c5158;
+    --tag: #9a86c4;      /* pseudo-XML tag names */
+    --var: #d0a45c;      /* {{placeholders}} */
+    --accent: #8fa2bd;   /* active marks, kept nearly neutral */
+    --open: #b8894a;
+    --done: #4c5158;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.75;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button {
+    font-family: inherit; font-size: 12px; cursor: pointer;
+    background: transparent; color: inherit; border: 0; padding: 0;
+    line-height: inherit;
+  }
+
+  /* ---------- row 1 · identity ---------- */
+  #identity {
+    flex: 0 0 auto;
+    display: flex; align-items: baseline; gap: 14px;
+    padding: 14px 20px 13px;
+    border-bottom: 1px solid var(--line);
+  }
+  #identity .name { letter-spacing: 0.01em; }
+  #identity .desc {
+    color: var(--muted); font-size: 12px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #identity .spacer { flex: 1; }
+  .chip {
+    color: var(--muted); font-size: 12px;
+    border: 1px solid var(--line); padding: 2px 10px;
+    white-space: nowrap;
+  }
+  .chip:hover { color: var(--fg); border-color: var(--faint); }
+  .chip .k { color: var(--faint); }
+  .chip .caret { color: var(--faint); margin-left: 6px; }
+  #annotateBtn.on { color: var(--fg); border-color: var(--accent); }
+
+  /* ---------- row 2 · document tabs ---------- */
+  #tabrow {
+    flex: 0 0 auto;
+    display: flex; align-items: stretch; gap: 0;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .tab {
+    color: var(--muted); font-size: 12px;
+    padding: 8px 16px 7px; margin-bottom: -1px;
+    border-bottom: 1px solid transparent;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .tab:first-child { padding-left: 0; }
+  .tab:hover { color: var(--fg); }
+  .tab.active { color: var(--fg); border-bottom-color: var(--accent); }
+  .tab .n { color: var(--faint); font-size: 11px; }
+  #tabrow .spacer { flex: 1; }
+  #tabrow .meta {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--muted); font-size: 11px;
+  }
+  #histGlyph { color: var(--faint); font-size: 13px; }
+  #histGlyph:hover { color: var(--fg); }
+
+  /* ---------- main split ---------- */
+  #main { flex: 1; display: flex; min-height: 0; }
+
+  /* ---------- editor surface ---------- */
+  #editor {
+    flex: 1; min-width: 0; overflow: auto;
+    padding: 22px 32px 60px 20px;
+  }
+  #doc { max-width: 84ch; }
+  .sec { margin-bottom: 26px; }
+  .sec:last-child { margin-bottom: 0; }
+  .tagline { color: var(--tag); white-space: pre-wrap; }
+  .node {
+    color: var(--fg);
+    white-space: pre-wrap;
+    padding: 1px 10px 1px 3ch;
+    border-left: 2px solid transparent;
+    margin-left: -2px;
+  }
+  .node.b { padding-left: 5ch; text-indent: -2ch; }
+  .node.bb { padding-left: 7ch; text-indent: -2ch; }
+  .node.step { padding-left: 6ch; text-indent: -3ch; }
+  .node.blank { min-height: 12px; padding: 0; }
+  .node.sel { border-left-color: var(--accent); color: #dde0e5; }
+  body.annotate .node:not(.blank) { cursor: pointer; }
+  body.annotate .node:not(.blank):hover { background: var(--surface); }
+  .itag { color: var(--tag); opacity: 0.85; }
+  .var { color: var(--var); }
+  .ro {
+    color: var(--muted);
+  }
+  .ro .k { color: var(--faint); }
+  #roNote {
+    color: var(--faint); font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+
+  /* ---------- the dock ---------- */
+  #dock {
+    flex: 0 0 260px; min-width: 0;
+    border-left: 1px solid var(--line);
+    background: var(--surface);
+    overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column;
+  }
+  .zone { border-bottom: 1px solid var(--line); flex: 0 0 auto; }
+  .zone:last-child { border-bottom: 0; }
+  .zone.gone { display: none; }
+  .zhead {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    padding: 9px 14px 8px;
+    color: var(--muted); font-size: 10px; letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .zhead:hover { color: var(--fg); }
+  .zhead .zsp { flex: 1; }
+  .zhead .zn { color: var(--faint); letter-spacing: 0.06em; }
+  .zhead .zc {
+    color: var(--faint); font-size: 9px;
+    transition: transform 120ms; transform-origin: 50% 50%;
+  }
+  .zone.closed .zc { transform: rotate(-90deg); }
+  .zbody { padding: 0 14px 12px; }
+  .zone.closed .zbody { display: none; }
+
+  /* outline */
+  .oitem {
+    display: block; width: 100%; text-align: left;
+    color: var(--muted); font-size: 12px;
+    padding: 2px 0 2px 10px;
+    border-left: 1px solid transparent;
+    margin-left: -1px;
+  }
+  .oitem:hover { color: var(--fg); }
+  .oitem.active { color: var(--fg); border-left-color: var(--accent); }
+
+  /* details */
+  .drow { display: flex; gap: 8px; font-size: 11px; line-height: 1.7; }
+  .drow .dk { color: var(--faint); flex: 0 0 46px; }
+  .drow .dv { color: var(--muted); min-width: 0; overflow-wrap: break-word; }
+  .drow .dv.id { color: var(--fg); word-break: break-all; }
+  .dempty { color: var(--faint); font-size: 11px; font-style: normal; }
+
+  /* requests */
+  .rrow {
+    display: flex; align-items: baseline; gap: 8px;
+    width: 100%; text-align: left;
+    padding: 3px 0; font-size: 12px; color: var(--muted);
+  }
+  .rrow:hover { color: var(--fg); }
+  .rrow .ra { color: var(--fg); flex: 0 0 auto; font-size: 11px; }
+  .rrow .rt {
+    flex: 1; min-width: 0; font-size: 11px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .rdot {
+    flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--done); align-self: center;
+  }
+  .rdot.open { background: var(--open); }
+
+  /* history */
+  .hrow {
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 11px; color: var(--muted); padding: 2px 0;
+  }
+  .hrow .hh { color: var(--fg); }
+  .hrow.past .hh { color: var(--muted); }
+  .hrow .hsp { flex: 1; }
+  .hrow .ht { color: var(--faint); }
+  .hrow .hcur { color: var(--faint); letter-spacing: 0.1em; font-size: 9px; }
+
+  /* ---------- footer label ---------- */
+  #stamp {
+    position: fixed; left: 0; bottom: 0;
+    color: var(--faint); font-size: 10px; letter-spacing: 0.1em;
+    background: var(--bg); padding: 4px 12px 5px 20px;
+    border-top: 1px solid var(--line); border-right: 1px solid var(--line);
+    pointer-events: none; user-select: none;
+  }
+
+  /* thin scrollbars, dark */
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #2c2f34; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<header id="identity">
+  <span class="name">prompt-editor</span>
+  <span class="desc">Edits an agent&rsquo;s system prompt on behalf of the human who owns it.</span>
+  <span class="spacer"></span>
+  <button class="chip" id="fixtureBtn"><span class="k">fixture:</span> empty-run<span class="caret">&#9662;</span></button>
+  <button class="chip" id="annotateBtn">Annotate</button>
+</header>
+
+<nav id="tabrow">
+  <button class="tab active" data-tab="system">System <span class="n">1,008</span></button>
+  <button class="tab" data-tab="context">Context <span class="n">3,214</span></button>
+  <button class="tab" data-tab="state">State <span class="n">412</span></button>
+  <span class="spacer"></span>
+  <span class="meta">
+    <span>saved 3:42 PM</span>
+    <button id="histGlyph" title="Revision history">&#10226;</button>
+  </span>
+</nav>
+
+<div id="main">
+  <section id="editor"><div id="doc"></div></section>
+
+  <aside id="dock">
+    <div class="zone" id="zOutline">
+      <button class="zhead" data-zone="outline">
+        <span>Outline</span><span class="zsp"></span><span class="zc">&#9662;</span>
+      </button>
+      <div class="zbody" id="outlineBody"></div>
+    </div>
+
+    <div class="zone gone" id="zDetails">
+      <button class="zhead" data-zone="details">
+        <span>Details</span><span class="zsp"></span><span class="zc">&#9662;</span>
+      </button>
+      <div class="zbody" id="detailsBody"></div>
+    </div>
+
+    <div class="zone gone" id="zRequests">
+      <button class="zhead" data-zone="requests">
+        <span>Requests</span><span class="zn" id="reqCount"></span>
+        <span class="zsp"></span><span class="zc">&#9662;</span>
+      </button>
+      <div class="zbody" id="requestsBody"></div>
+    </div>
+
+    <div class="zone closed" id="zHistory">
+      <button class="zhead" data-zone="history">
+        <span>History</span><span class="zsp"></span><span class="zc">&#9662;</span>
+      </button>
+      <div class="zbody" id="historyBody"></div>
+    </div>
+  </aside>
+</div>
+
+<div id="stamp">C &mdash; docked stack</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Document model — the real prompt-editor prompt, section by section.
+   Each node carries the id it has in prompt.json so DETAILS can be real.
+   ===================================================================== */
+const SYSTEM = [
+  { tag: "purpose", nodes: [
+    { id: "node-purpose-identity", kind: "paragraph", cls: "",
+      diag: "1 variable · {{targetAgent}} declared",
+      text: "You are the prompt editor for {{targetAgent}} — you change that agent's system prompt on behalf of the human who owns it." },
+    { blank: true },
+    { id: "node-purpose-frame-ast", kind: "listItem", cls: "b",
+      diag: "in bulletList node-purpose-frame · 1 of 3",
+      text: "- The prompt is a structured document — a tree of identified nodes — and its rendered markdown is a projection you never touch." },
+    { id: "node-purpose-frame-requests", kind: "listItem", cls: "b",
+      diag: "in bulletList node-purpose-frame · 2 of 3",
+      text: "- Work arrives as requests: human notes pinned to a node or range of that document, queued in the <requests> block." },
+    { id: "node-purpose-frame-staged", kind: "listItem", cls: "b",
+      diag: "in bulletList node-purpose-frame · 3 of 3",
+      text: "- Your edits are staged proposals for human review, and nothing lands in the live prompt until the human accepts it." },
+  ]},
+  { tag: "inputs", nodes: [
+    { id: "node-inputs-intro", kind: "paragraph", cls: "",
+      diag: "leads bulletList node-inputs-blocks",
+      text: "Your standing context carries three blocks:" },
+    { blank: true },
+    { id: "node-inputs-authoring", kind: "listItem", cls: "b",
+      diag: "in bulletList node-inputs-blocks · 1 of 3",
+      text: "- <prompt_kit_authoring> — the house reference for how prompts here are built: the document model, the editing method, and the anti-patterns to avoid." },
+    { id: "node-inputs-target", kind: "listItem", cls: "b",
+      diag: "in bulletList node-inputs-blocks · 2 of 3 · 1 child",
+      text: "- <target_prompt> — the target agent's current prompt rendered with every node's id stamped in place, under the base hash your transactions build on." },
+    { id: "node-inputs-target-ids", kind: "listItem", cls: "bb",
+      diag: "nested under node-inputs-target",
+      text: "- Those ids are the only addresses your edits use — quote them exactly." },
+    { id: "node-inputs-requests", kind: "listItem", cls: "b",
+      diag: "in bulletList node-inputs-blocks · 3 of 3 · 2 children",
+      text: "- <requests> — the open queue, one entry per request." },
+    { id: "node-inputs-requests-entry", kind: "listItem", cls: "bb",
+      diag: "nested under node-inputs-requests",
+      text: "- Each entry carries its alias (R1, R2 …), its target node or range, the human's note, and the thread so far." },
+    { id: "node-inputs-requests-doclevel", kind: "listItem", cls: "bb",
+      diag: "nested under node-inputs-requests",
+      text: "- An entry whose target is the document itself is a message about the whole prompt, not about one node." },
+    { blank: true },
+    { id: "node-inputs-fresh", kind: "paragraph", cls: "",
+      diag: "closes <inputs> · references tool read_prompt",
+      text: "The stamped render is your starting picture; read_prompt returns the live document — ids and hash included — whenever you need to confirm the tree or see it after a proposal." },
+  ]},
+  { tag: "editing_rules", nodes: [
+    { id: "node-rules-structural", kind: "listItem", cls: "b",
+      diag: "in bulletList node-rules · 1 of 6",
+      text: "- Propose structure, never prose: an edit is a transaction of id-relative steps against the document tree, and rewritten markdown is never an edit." },
+    { id: "node-rules-ids", kind: "listItem", cls: "b",
+      diag: "in bulletList node-rules · 2 of 6",
+      text: "- Preserve node ids: change nodes in place and leave untouched nodes untouched, because ids are how requests, diffs, and undo stay anchored." },
+    { id: "node-rules-minimal", kind: "listItem", cls: "b",
+      diag: "in bulletList node-rules · 3 of 6",
+      text: "- Prefer the minimal transaction: the fewest steps that satisfy the request, touching nothing the request did not name." },
+    { id: "node-rules-valid", kind: "listItem", cls: "b",
+      diag: "in bulletList node-rules · 4 of 6",
+      text: "- Keep the document valid: every variable placeholder it references must stay declared, and a proposal that fails validation bounces straight back to you — repair it and propose again." },
+    { id: "node-rules-voice", kind: "listItem", cls: "b",
+      diag: "in bulletList node-rules · 5 of 6 · 1 open request (R1)",
+      text: "- Respect the target prompt's voice: match its tense, person, and section idiom, and change style only when a note asks for style." },
+    { id: "node-rules-terse", kind: "listItem", cls: "b",
+      diag: "in bulletList node-rules · 6 of 6",
+      text: "- Write tersely: notes, replies, and resolutions are plain language, a sentence or two, never a restatement of a diff the human can already see." },
+  ]},
+  { tag: "workflow", nodes: [
+    { id: "node-workflow-read", kind: "listItem", cls: "step",
+      diag: "in orderedList node-workflow-steps · 1 of 6 · 1 child",
+      text: "1. Read the whole queue before editing anything, because requests can overlap, conflict, or share nodes." },
+    { id: "node-workflow-read-collide", kind: "listItem", cls: "bb",
+      diag: "nested under node-workflow-read",
+      text: "- When requests collide, work them in alias order and name the interaction in each resolution." },
+    { id: "node-workflow-plan", kind: "listItem", cls: "step",
+      diag: "in orderedList node-workflow-steps · 2 of 6",
+      text: "2. Plan each request against the current tree, confirming targets with read_prompt when the stamped render leaves doubt." },
+    { id: "node-workflow-propose", kind: "listItem", cls: "step",
+      diag: "in orderedList node-workflow-steps · 3 of 6 · 1 child",
+      text: "3. Propose exactly one transaction per request with propose_transaction, tagged to that request's alias." },
+    { id: "node-workflow-propose-nochange", kind: "listItem", cls: "bb",
+      diag: "nested under node-workflow-propose",
+      text: "- A request needing no change gets no transaction — it gets a resolution." },
+    { id: "node-workflow-resolve", kind: "listItem", cls: "step",
+      diag: "in orderedList node-workflow-steps · 4 of 6 · 1 child",
+      text: "4. Resolve every request individually with resolve_request: done with a short note of what changed, or declined with the reason." },
+    { id: "node-workflow-resolve-nolump", kind: "listItem", cls: "bb",
+      diag: "nested under node-workflow-resolve",
+      text: "- A batch never resolves as a lump, and the session ends with no request still open that you could have disposed." },
+    { id: "node-workflow-ask", kind: "listItem", cls: "step",
+      diag: "in orderedList node-workflow-steps · 5 of 6 · 1 open request (R2)",
+      text: "5. When a request is ambiguous, open the question with reply_request on that request's thread and keep working the others — the run never stalls waiting for an answer." },
+    { id: "node-workflow-doclevel", kind: "listItem", cls: "step",
+      diag: "in orderedList node-workflow-steps · 6 of 6",
+      text: "6. Work a document-level request by pinning placed notes with add_note at the specific nodes it implicates, then propose and resolve as usual." },
+  ]},
+  { tag: "tools", nodes: [
+    { id: "node-tools-intro", kind: "paragraph", cls: "",
+      diag: "leads bulletList node-tools-list",
+      text: "Five tools carry the loop; the semantics that matter:" },
+    { blank: true },
+    { id: "node-tools-read", kind: "listItem", cls: "b",
+      diag: "in bulletList node-tools-list · 1 of 5",
+      text: "- read_prompt — the target document as it stands now, with node ids and the current hash." },
+    { id: "node-tools-propose", kind: "listItem", cls: "b",
+      diag: "in bulletList node-tools-list · 2 of 5",
+      text: "- propose_transaction — one request's edit as ordered id-relative steps, compiled and validated by the service and staged as a diff for the human." },
+    { id: "node-tools-resolve", kind: "listItem", cls: "b",
+      diag: "in bulletList node-tools-list · 3 of 5",
+      text: "- resolve_request — the only way a request leaves the queue: done or declined, always with a note." },
+    { id: "node-tools-reply", kind: "listItem", cls: "b",
+      diag: "in bulletList node-tools-list · 4 of 5",
+      text: "- reply_request — adds to one request's thread, for questions and brief progress notes." },
+    { id: "node-tools-note", kind: "listItem", cls: "b",
+      diag: "in bulletList node-tools-list · 5 of 5",
+      text: "- add_note — pins a new note of yours at a node, opening an inline thread the human sees." },
+  ]},
+];
+
+/* Read-only assembled context, as the runner would hand it to the model. */
+const CONTEXT = `<prompt_kit_authoring>
+    [ 1,940 tokens · house authoring reference — document model, editing
+      method, anti-patterns. Collapsed here; unchanged between runs. ]
+</prompt_kit_authoring>
+
+<target_prompt base="pk1-7f1bc2eb" agent="layout-editor">
+    <purpose id="node-section-purpose">
+        [id node-purpose-identity] As agent capability grows, its
+        interaction surfaces matter more…
+        [id node-purpose-frame-ast] - Each surface makes intelligence
+        legible through a typed artifact.
+    </purpose>
+    <workflow id="node-section-workflow">
+        [id wf-s1] 1. Read the open requests before touching the document…
+        [id wf-s2] 2. Propose edits as structural steps…
+    </workflow>
+    [ 4 sections · 17 nodes · 1,842 tokens ]
+</target_prompt>
+
+<requests count="2">
+    <request alias="R1" target="node-rules-voice" status="open">
+        "section idiom" is vague — say what a section idiom is, or cut it.
+    </request>
+    <request alias="R2" target="node-workflow-ask" status="open">
+        Should an ambiguous request still get a proposal, or only a question?
+    </request>
+</requests>`;
+
+/* The "empty-run" fixture, rendered as the state block. */
+const STATE = `<session_state fixture="empty-run">
+    run_id:            —
+    base_hash:         pk1-7f1bc2eb
+    target_agent:      layout-editor
+    requests_open:     0
+    requests_resolved: 0
+    proposals_staged:  0
+    tools_called:      none
+    started_at:        —
+</session_state>`;
+
+const REQUESTS = [
+  { alias: "R1", node: "node-rules-voice", status: "open",
+    note: "“section idiom” is vague — define or cut" },
+  { alias: "R2", node: "node-workflow-ask", status: "open",
+    note: "ambiguous request: propose anyway, or only ask?" },
+  { alias: "R0", node: "node-tools-note", status: "resolved",
+    note: "named add_note’s inline thread — resolved" },
+];
+
+const HISTORY = [
+  { hash: "pk1-7f1bc2eb", when: "3:42 PM", cur: true },
+  { hash: "pk1-3c91d0aa", when: "2h ago", cur: false },
+  { hash: "pk1-9e42b7f1", when: "yesterday", cur: false },
+  { hash: "pk1-5b17c44e", when: "3d ago", cur: false },
+];
+
+const OUTLINE = SYSTEM.map((s) => s.tag);
+
+/* =====================================================================
+   State
+   ===================================================================== */
+const state = {
+  tab: "system",
+  annotate: false,
+  selected: null,           // node id
+  active: "purpose",        // outline entry
+  zones: { outline: true, details: true, requests: true, history: false },
+};
+
+/* =====================================================================
+   Rendering — editor surface
+   ===================================================================== */
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function fmt(s) {
+  let h = esc(s);
+  h = h.replace(/\{\{(\w+)\}\}/g, '<span class="var">{{$1}}</span>');
+  h = h.replace(/&lt;(\/?[a-z_][\w_]*(?:\s[^&<>]*?)?)&gt;/g, '<span class="itag">&lt;$1&gt;</span>');
+  return h;
+}
+function nodeById(id) {
+  for (const s of SYSTEM) for (const n of s.nodes) if (n.id === id) return { sec: s, node: n };
+  return null;
+}
+
+const docEl = document.getElementById("doc");
+const editorEl = document.getElementById("editor");
+
+function renderDoc() {
+  if (state.tab === "system") {
+    docEl.innerHTML = SYSTEM.map((s) => {
+      const body = s.nodes.map((n) => {
+        if (n.blank) return '<div class="node blank"></div>';
+        const sel = state.selected === n.id ? " sel" : "";
+        return '<div class="node ' + n.cls + sel + '" data-id="' + n.id +
+          '" data-kind="' + n.kind + '">' + fmt(n.text) + "</div>";
+      }).join("");
+      return '<div class="sec" data-sec="' + s.tag + '">' +
+        '<div class="tagline">&lt;' + s.tag + "&gt;</div>" + body +
+        '<div class="tagline">&lt;/' + s.tag + "&gt;</div></div>";
+    }).join("");
+    docEl.querySelectorAll(".node[data-id]").forEach((el) => {
+      el.addEventListener("click", () => selectNode(el.dataset.id));
+    });
+    return;
+  }
+  const src = state.tab === "context" ? CONTEXT : STATE;
+  const label = state.tab === "context"
+    ? "assembled context · read only"
+    : "run state · fixture empty-run · read only";
+  docEl.innerHTML = '<div id="roNote">' + label + "</div>" +
+    '<div class="tagline ro" style="white-space:pre-wrap">' + fmt(src) + "</div>";
+}
+
+function selectNode(id) {
+  state.selected = state.selected === id ? null : id;
+  const found = nodeById(id);
+  if (found && state.selected) setActive(found.sec.tag, false);
+  renderDoc();
+  renderDetails();
+}
+
+/* =====================================================================
+   Rendering — the dock
+   ===================================================================== */
+function setZone(name, open) {
+  state.zones[name] = open;
+  const el = document.getElementById("z" + name[0].toUpperCase() + name.slice(1));
+  el.classList.toggle("closed", !open);
+}
+document.querySelectorAll(".zhead").forEach((h) => {
+  h.addEventListener("click", () => {
+    const name = h.dataset.zone;
+    setZone(name, !state.zones[name]);
+  });
+});
+
+function setActive(tag, scroll) {
+  state.active = tag;
+  document.querySelectorAll(".oitem").forEach((o) => {
+    o.classList.toggle("active", o.dataset.sec === tag);
+  });
+  if (scroll) {
+    const sec = docEl.querySelector('.sec[data-sec="' + tag + '"]');
+    if (sec) sec.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+}
+
+function renderOutline() {
+  document.getElementById("outlineBody").innerHTML = OUTLINE.map((t) =>
+    '<button class="oitem' + (t === state.active ? " active" : "") +
+    '" data-sec="' + t + '">' + t + "</button>"
+  ).join("");
+  document.querySelectorAll(".oitem").forEach((o) => {
+    o.addEventListener("click", () => {
+      if (state.tab !== "system") setTab("system");
+      setActive(o.dataset.sec, true);
+    });
+  });
+}
+
+function renderDetails() {
+  const zone = document.getElementById("zDetails");
+  const body = document.getElementById("detailsBody");
+  if (!state.selected) { zone.classList.add("gone"); body.innerHTML = ""; return; }
+  const found = nodeById(state.selected);
+  if (!found) { zone.classList.add("gone"); return; }
+  zone.classList.remove("gone");
+  const n = found.node;
+  body.innerHTML =
+    '<div class="drow"><span class="dk">id</span><span class="dv id">' + esc(n.id) + "</span></div>" +
+    '<div class="drow"><span class="dk">kind</span><span class="dv">' + esc(n.kind) +
+      " · &lt;" + found.sec.tag + "&gt;</span></div>" +
+    '<div class="drow"><span class="dk">note</span><span class="dv">' + esc(n.diag) + "</span></div>";
+}
+
+function renderRequests() {
+  const zone = document.getElementById("zRequests");
+  if (!state.annotate) { zone.classList.add("gone"); return; }
+  zone.classList.remove("gone");
+  const open = REQUESTS.filter((r) => r.status === "open").length;
+  document.getElementById("reqCount").textContent = open + " open";
+  document.getElementById("requestsBody").innerHTML = REQUESTS.map((r) =>
+    '<button class="rrow" data-node="' + r.node + '">' +
+    '<span class="rdot ' + r.status + '"></span>' +
+    '<span class="ra">' + r.alias + "</span>" +
+    '<span class="rt">' + esc(r.note) + "</span></button>"
+  ).join("");
+  document.querySelectorAll(".rrow").forEach((el) => {
+    el.addEventListener("click", () => {
+      if (state.tab !== "system") setTab("system");
+      state.selected = el.dataset.node;
+      renderDoc();
+      renderDetails();
+      const t = docEl.querySelector('.node[data-id="' + el.dataset.node + '"]');
+      if (t) t.scrollIntoView({ block: "center", behavior: "smooth" });
+      const f = nodeById(el.dataset.node);
+      if (f) setActive(f.sec.tag, false);
+    });
+  });
+}
+
+function renderHistory() {
+  document.getElementById("historyBody").innerHTML = HISTORY.map((h) =>
+    '<div class="hrow' + (h.cur ? "" : " past") + '">' +
+    '<span class="hh">' + h.hash + "</span><span class=\"hsp\"></span>" +
+    (h.cur ? '<span class="hcur">CURRENT</span>' : '<span class="ht">' + h.when + "</span>") +
+    "</div>"
+  ).join("");
+}
+
+/* =====================================================================
+   Tabs, annotate toggle, history glyph
+   ===================================================================== */
+function setTab(tab) {
+  state.tab = tab;
+  document.querySelectorAll(".tab").forEach((t) =>
+    t.classList.toggle("active", t.dataset.tab === tab));
+  renderDoc();
+  editorEl.scrollTop = 0;
+}
+document.querySelectorAll(".tab").forEach((t) =>
+  t.addEventListener("click", () => setTab(t.dataset.tab)));
+
+const annotateBtn = document.getElementById("annotateBtn");
+annotateBtn.addEventListener("click", () => {
+  state.annotate = !state.annotate;
+  annotateBtn.classList.toggle("on", state.annotate);
+  document.body.classList.toggle("annotate", state.annotate);
+  if (state.annotate) setZone("requests", true);
+  renderRequests();
+});
+
+document.getElementById("histGlyph").addEventListener("click", () => {
+  setZone("history", !state.zones.history);
+  if (state.zones.history) {
+    document.getElementById("zHistory").scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+});
+
+/* scroll spy: keep the outline honest while reading the system prompt */
+editorEl.addEventListener("scroll", () => {
+  if (state.tab !== "system") return;
+  const top = editorEl.getBoundingClientRect().top + 40;
+  let cur = OUTLINE[0];
+  docEl.querySelectorAll(".sec").forEach((s) => {
+    if (s.getBoundingClientRect().top <= top) cur = s.dataset.sec;
+  });
+  if (cur !== state.active) setActive(cur, false);
+});
+
+/* boot */
+renderDoc();
+renderOutline();
+renderDetails();
+renderRequests();
+renderHistory();
+</script>
+</body>
+</html>

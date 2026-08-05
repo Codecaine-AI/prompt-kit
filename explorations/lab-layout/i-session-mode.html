@@ -1,0 +1,1920 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt lab layout — I, session mode</title>
+<style>
+  /* -----------------------------------------------------------------
+     Variant I — "H, plus a mode for working with the agent".
+
+     H answered how a human says something about the prompt: select,
+     ⌘K, file a request; the request is a thread in the dock; the
+     answer comes back as a red/green staged diff in place.
+
+     I answers what happens when that stops being a one-off. Once you
+     hand the prompt to an agent, the dock's furniture — AGENT, VIEW,
+     OUTLINE, DETAILS, HISTORY — is answering questions you are not
+     asking. You are in the System prompt, you are watching one request
+     at a time, and you want to be able to say something to the agent
+     about the whole thing.
+
+     So: `edit with agent` in the REQUESTS header swaps the entire dock
+     for a SESSION PANEL in the same 280px slot.
+
+       · one status line, cycling with the work
+       · the queue, with exactly one request expanded in place — the
+         active thing, moved by clicking another entry
+       · a chat composer pinned to the bottom: a message here files a
+         document-level request and the agent answers by staging a
+         change somewhere plausible
+       · a summary row when anything is staged: accept all writes ONE
+         combined revision
+
+     The document underneath is unchanged: ⌘K, selection, the gutter +,
+     staged diffs, Accept from the thread. The requests they file land
+     in the session queue and become the active entry.
+
+     `✕ end` puts the furniture back, HISTORY carrying whatever the
+     session landed.
+     ----------------------------------------------------------------- */
+  :root {
+    --bg: #161719;
+    --surface: #1c1e21;
+    --line: #26282c;
+    --line-soft: #202226;
+    --fg: #c9ccd1;
+    --bright: #dde0e5;
+    --muted: #6b7078;
+    --faint: #4c5158;
+    --tag: #8f7bb5;
+    --tag-dim: #6f6189;
+    --var: #d0a45c;
+    --accent: #8fa2bd;
+    --open: #b8894a;
+    --reply: #6f8299;
+    --done: #4c5158;
+    --add: #6f9a6a;
+    --del: #a8635f;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+    --col: 96ch;       /* the document column */
+    --dock: 280px;     /* furniture in the margin */
+    --dock-gap: 20px;
+    --top: 30px;       /* the one vertical rhythm: doc top == dock top */
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea {
+    font-family: inherit;
+    font-size: 12px;
+    background: transparent;
+    color: inherit;
+    border: 0;
+    padding: 0;
+    line-height: inherit;
+  }
+  button { cursor: pointer; }
+  ::selection { background: rgba(143, 162, 189, 0.22); }
+
+  /* ---------- document surface — nothing above it ---------- */
+  #main { flex: 1; min-height: 0; display: flex; }
+  #stage {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  #doc {
+    max-width: var(--col);
+    margin: 0 auto;
+    padding: var(--top) 0 46vh;
+  }
+  #note {
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    padding-left: 2ch;
+    margin-bottom: 22px;
+  }
+  #note:empty { display: none; }
+
+  /* document-level requests hang here, above the first section */
+  #docchips { padding-left: calc(2ch + 6px); margin-bottom: 14px; }
+  #docchips:empty { display: none; }
+  .dchip {
+    color: var(--open);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    margin-right: 10px;
+    padding: 0;
+  }
+  .dchip:hover { color: #d09a56; }
+  .dchip .dk { color: var(--faint); margin-right: 4px; }
+  .dchip.flash { color: #e0b070; }
+
+  .sec { margin-bottom: 30px; }
+  .sec:last-child { margin-bottom: 0; }
+  .tagline { color: var(--tag); white-space: pre; padding-left: 2ch; }
+
+  .row { display: flex; align-items: baseline; }
+  .row .body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    padding: 1px 10px 1px 6px;
+  }
+  .row.sub .body { padding-left: calc(3ch + 6px); }
+  .row.para .body { margin-top: 8px; margin-bottom: 8px; }
+  .row .mk { color: var(--muted); flex: 0 0 auto; }
+  .row .kk { color: var(--muted); flex: 0 0 21ch; }
+  .row .tx { color: var(--fg); min-width: 0; }
+  .row.spacer { height: 10px; }
+
+  #doc.live .row:hover .body { background: rgba(255, 255, 255, 0.028); }
+  .row.sel .body {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .row.flash .body {
+    background: rgba(184, 137, 74, 0.13);
+    box-shadow: inset 2px 0 0 var(--open);
+  }
+
+  /* the gutter: always available, never a mode */
+  .gut {
+    flex: 0 0 2ch;
+    align-self: flex-start;
+    color: var(--faint);
+    text-align: left;
+    opacity: 0;
+    transition: opacity 90ms ease;
+  }
+  .row.para .gut { margin-top: 8px; }
+  .row:hover .gut { opacity: 1; }
+  .gut:hover { color: var(--fg); }
+  .gut.pinned { opacity: 1; color: var(--open); font-size: 9px; }
+
+  /* the staged-change marker: a thin bar, not a badge */
+  .gut.mark { opacity: 1; }
+  .gut.mark::before {
+    content: "";
+    display: block;
+    width: 2px;
+    height: 1.55em;
+    margin-left: 3px;
+    background: var(--del);
+    opacity: 0.6;
+  }
+  .gut.mark.add::before { background: var(--add); }
+
+  .rchip {
+    flex: 0 0 auto;
+    color: var(--open);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .rchip.staged { color: var(--add); }
+  .rchip.doc { color: var(--open); opacity: 0.9; }
+
+  .itag { color: var(--tag-dim); }
+  .var { color: var(--var); }
+  .tool { color: #949aa4; }
+
+  /* ---------- staged diff, in place ---------- */
+  .row.dold .body { background: rgba(168, 99, 95, 0.075); }
+  .row.dnew .body { background: rgba(111, 154, 106, 0.075); }
+  .row.dold .tx { color: #9a8f8f; text-decoration: line-through; text-decoration-color: rgba(168, 99, 95, 0.55); }
+  .row.dold .mk, .row.dnew .mk { color: var(--faint); }
+  #doc.live .row.dold:hover .body { background: rgba(168, 99, 95, 0.11); }
+  #doc.live .row.dnew:hover .body { background: rgba(111, 154, 106, 0.11); }
+  .row.para.dold .body { margin-bottom: 0; }
+  .row.para.dnew .body { margin-top: 0; }
+  .row.dold .gut, .row.dnew .gut { opacity: 1; }
+
+  /* ---------- inline composer — the one door, wherever it opens ---------- */
+  .composer { padding: 6px 0 8px calc(2ch + 6px); }
+  #doc > .composer { padding-top: 0; margin-bottom: 16px; }
+  .cq {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.6;
+    max-width: min(62ch, 100%);
+    border-left: 2px solid var(--line);
+    padding: 0 0 0 7px;
+    margin-bottom: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ctgt {
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .cin {
+    display: block;
+    width: min(62ch, 100%);
+    color: var(--bright);
+    border-bottom: 1px solid var(--line);
+    padding: 2px 0 4px;
+    outline: none;
+    font-size: 13px;
+  }
+  .cin::placeholder { color: var(--faint); }
+  .cin:focus { border-bottom-color: #3d4148; }
+  .chint {
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+  }
+
+  /* ---------- the dock: furniture in the right margin ---------- */
+  #dock {
+    position: fixed;
+    right: var(--dock-gap);
+    top: var(--top);
+    width: var(--dock);
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 46px;
+  }
+  #dock.gone, #session.gone { display: none; }
+  .zone { border-bottom: 1px solid var(--line-soft); }
+  .zone.gone { display: none; }
+  .zone.tail { border-bottom: 0; }
+  .zhead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 0 7px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    cursor: default;
+  }
+  .zhead.tog { cursor: pointer; }
+  .zhead.tog:hover { color: var(--muted); }
+  .zsp { flex: 1; }
+  .zhead .zn { letter-spacing: 0.06em; }
+  .zhead .zc { font-size: 9px; transition: transform 120ms ease; }
+  .zone.closed .zc { transform: rotate(-90deg); }
+  .zbody { padding-bottom: 12px; }
+  .zone.closed .zbody { display: none; }
+
+  /* the one action that lives in a zone header */
+  .zsep { color: var(--line); margin: 0 -3px 0 -2px; }
+  .zact {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    cursor: pointer;
+  }
+  .zact:hover { color: var(--bright); }
+
+  /* agent — true of every view, so it sits at the top always */
+  .aname { color: var(--fg); }
+  .amodel { color: var(--muted); font-size: 11px; }
+  .adesc { color: var(--faint); font-size: 11px; line-height: 1.6; margin-top: 4px; }
+
+  /* ---------- view switcher ---------- */
+  #zView .zbody { padding-bottom: 14px; }
+  .vitem {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    padding: 5px 0 5px 12px;
+    border-left: 1px solid transparent;
+  }
+  .vitem:hover { color: var(--fg); }
+  .vitem.active { color: var(--bright); border-left-color: var(--accent); }
+  .vitem .vn { flex: 0 0 auto; }
+  .vitem .vt {
+    flex: 0 0 auto;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .vitem.active .vt { color: var(--muted); }
+
+  /* outline — deliberately quieter and tighter than the switcher */
+  .oitem {
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 1px 0 1px 12px;
+    border-left: 1px solid transparent;
+  }
+  .oitem:hover { color: var(--fg); }
+  .oitem.active { color: var(--fg); border-left-color: var(--accent); }
+
+  /* fixture */
+  .fitem {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 2px 0 2px 12px;
+    border-left: 1px solid transparent;
+  }
+  .fitem:hover { color: var(--fg); }
+  .fitem.active { color: var(--fg); border-left-color: var(--accent); }
+  .fitem .fn { color: var(--faint); font-size: 10px; }
+
+  /* details */
+  .drow { display: flex; gap: 8px; font-size: 11px; line-height: 1.7; }
+  .drow .dk { color: var(--faint); flex: 0 0 42px; }
+  .drow .dv { color: var(--muted); min-width: 0; overflow-wrap: break-word; }
+  .drow .dv.id { color: var(--fg); word-break: break-all; }
+
+  /* requests */
+  .rrow {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    text-align: left;
+    padding: 3px 0 4px;
+    color: var(--muted);
+  }
+  .rrow:hover { color: var(--fg); }
+  .rrow.on { color: var(--fg); }
+  .rline { display: flex; align-items: baseline; gap: 8px; }
+  .rdot {
+    flex: 0 0 6px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--done);
+    align-self: center;
+  }
+  .rdot.open { background: var(--open); }
+  .rdot.replied { background: var(--reply); }
+  .rdot.staged { background: var(--add); }
+  .rrow .ra { flex: 0 0 auto; color: var(--fg); font-size: 11px; }
+  .rrow.res .ra { color: var(--muted); }
+  .rrow .rt {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rrow .rt.res { color: var(--faint); }
+  .rtgt {
+    color: var(--faint);
+    font-size: 9px;
+    letter-spacing: 0.09em;
+    padding-left: 22px;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rtgt .rtk { opacity: 0.7; }
+
+  /* ---------- the thread: the request, unfolded ---------- */
+  .thread {
+    margin: 2px 0 10px 3px;
+    padding: 2px 0 0 11px;
+    border-left: 1px solid var(--line);
+  }
+  .tmsg { padding: 3px 0 5px; }
+  .tmeta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .tmeta .who { color: var(--muted); }
+  .tmeta .who.agent { color: var(--tag-dim); }
+  .tsp { flex: 1; }
+  .tbody {
+    color: var(--fg);
+    font-size: 11px;
+    line-height: 1.65;
+    overflow-wrap: break-word;
+  }
+  .tmsg.agent .tbody { color: var(--muted); }
+  .tq {
+    color: var(--faint);
+    font-size: 10px;
+    line-height: 1.55;
+    border-left: 2px solid var(--line);
+    padding-left: 6px;
+    margin: 2px 0 3px;
+    overflow-wrap: break-word;
+  }
+
+  .tacts {
+    padding: 5px 0 2px;
+    border-top: 1px solid var(--line-soft);
+    margin-top: 4px;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .tstaged {
+    display: block;
+    color: var(--faint);
+    margin-bottom: 2px;
+  }
+  .tstaged .tsq { color: var(--add); opacity: 0.8; }
+  .tact { font-size: 10px; letter-spacing: 0.06em; color: var(--muted); }
+  .tact.acc { color: var(--add); }
+  .tact.acc:hover { color: #8bb886; }
+  .tact.dis:hover { color: var(--del); }
+  .tdot { color: var(--faint); margin: 0 4px; }
+
+  .tin {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    color: var(--bright);
+    font-size: 11px;
+    border-bottom: 1px solid var(--line-soft);
+    padding: 2px 0 3px;
+    outline: none;
+  }
+  .tin::placeholder { color: var(--faint); }
+  .tin:focus { border-bottom-color: #3d4148; }
+  .twait { color: var(--faint); font-size: 10px; letter-spacing: 0.08em; padding: 3px 0; }
+  .tdone { color: var(--faint); font-size: 10px; letter-spacing: 0.06em; padding: 4px 0 2px; }
+
+  /* history */
+  .hrow { display: flex; align-items: baseline; gap: 8px; font-size: 11px; color: var(--muted); padding: 2px 0; }
+  .hrow.past .hh { color: var(--muted); }
+  .hrow .hh { color: var(--fg); }
+  .hrow .hsp { flex: 1; }
+  .hrow .ht { color: var(--faint); }
+  .hrow .hn { color: var(--faint); font-size: 9px; letter-spacing: 0.06em; }
+  .hrow .hcur { color: var(--faint); font-size: 9px; letter-spacing: 0.1em; }
+
+  /* =================================================================
+     SESSION PANEL — the dock, replaced, while you work with the agent
+     ================================================================= */
+  #session {
+    position: fixed;
+    right: var(--dock-gap);
+    top: var(--top);
+    width: var(--dock);
+    bottom: 30px;              /* clears the whisper */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .shead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding: 10px 0 6px;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+  }
+  .sxend {
+    flex: 0 0 auto;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+  }
+  .sxend:hover { color: var(--bright); }
+  .sxend .xk { margin-right: 3px; }
+
+  .sstat {
+    flex: 0 0 auto;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .sstat.work { color: var(--muted); }
+
+  #sessQueue {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 0 10px;
+  }
+  /* the same request row, denser, with the active one marked */
+  #sessQueue .rrow {
+    padding: 2px 0 3px 8px;
+    border-left: 1px solid transparent;
+  }
+  #sessQueue .rrow.on { border-left-color: var(--accent); }
+  #sessQueue .rtgt { padding-left: 22px; }
+  #sessQueue .thread { margin: 2px 0 12px 11px; }
+
+  .sfoot { flex: 0 0 auto; border-top: 1px solid var(--line-soft); }
+  .ssum {
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    color: var(--faint);
+    padding: 6px 0 2px;
+  }
+  .ssum.gone { display: none; }
+  .ssum .sq { color: var(--add); opacity: 0.8; margin-right: 4px; }
+  .sact { font-size: 10px; letter-spacing: 0.05em; color: var(--muted); }
+  .sact.acc { color: var(--add); }
+  .sact.acc:hover { color: #8bb886; }
+  .sact.dis:hover { color: var(--del); }
+  .sdot { color: var(--faint); margin: 0 4px; }
+
+  .sin {
+    display: block;
+    width: 100%;
+    min-height: 46px;
+    max-height: 40vh;
+    resize: none;
+    color: var(--bright);
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 8px 0 4px;
+    outline: none;
+    overflow-y: auto;
+  }
+  .sin::placeholder { color: var(--faint); }
+
+  /* ---------- corners ---------- */
+  #status {
+    position: fixed;
+    right: var(--dock-gap);
+    bottom: 9px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    pointer-events: none;
+    user-select: none;
+  }
+  #status.hint { color: var(--muted); }
+  #stamp {
+    position: fixed;
+    left: 14px;
+    bottom: 9px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* ---------- fallback: too narrow to keep the dock in a margin ---------- */
+  @media (max-width: 1399px) {
+    #dock {
+      position: static;
+      flex: 0 0 260px;
+      width: 260px;
+      border-left: 1px solid var(--line);
+      background: var(--surface);
+      padding: 0 14px 40px;
+      overflow-y: auto;
+    }
+    #session {
+      position: static;
+      flex: 0 0 260px;
+      width: 260px;
+      border-left: 1px solid var(--line);
+      background: var(--surface);
+      padding: 0 14px 12px;
+    }
+    #doc { margin: 0; padding-left: max(2ch, 20px); padding-right: 24px; }
+    #status { right: 14px; }
+  }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #24262a; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<div id="main">
+  <main id="stage">
+    <div id="doc">
+      <div id="note"></div>
+      <div id="docchips"></div>
+      <div id="sections"></div>
+    </div>
+  </main>
+
+  <aside id="dock">
+    <div class="zone" id="zAgent">
+      <div class="zhead"><span>Agent</span></div>
+      <div class="zbody">
+        <div class="aname">prompt-editor</div>
+        <div class="amodel">claude-fable-5</div>
+        <div class="adesc">Edits an agent&rsquo;s system prompt on behalf of the human who owns it.</div>
+      </div>
+    </div>
+
+    <div class="zone" id="zView">
+      <div class="zhead"><span>View</span></div>
+      <div class="zbody" id="viewBody"></div>
+    </div>
+
+    <div class="zone gone" id="zFixture">
+      <div class="zhead"><span>Fixture</span></div>
+      <div class="zbody" id="fixtureBody"></div>
+    </div>
+
+    <div class="zone gone" id="zOutline">
+      <div class="zhead"><span>Outline</span></div>
+      <div class="zbody" id="outlineBody"></div>
+    </div>
+
+    <div class="zone gone" id="zDetails">
+      <div class="zhead"><span>Details</span></div>
+      <div class="zbody" id="detailsBody"></div>
+    </div>
+
+    <div class="zone gone" id="zRequests">
+      <div class="zhead">
+        <span>Requests</span><span class="zsp"></span>
+        <span class="zn" id="reqCount"></span><span class="zsep">&middot;</span>
+        <button class="zact" id="reqAgent">edit with agent</button>
+      </div>
+      <div class="zbody" id="requestsBody"></div>
+    </div>
+
+    <div class="zone gone closed" id="zHistory">
+      <button class="zhead tog" id="histHead">
+        <span>History</span><span class="zsp"></span>
+        <span class="zn" id="histCount"></span><span class="zc">&#9662;</span>
+      </button>
+      <div class="zbody" id="historyBody"></div>
+    </div>
+  </aside>
+
+  <!-- the dock, replaced: one panel for the whole session -->
+  <aside id="session" class="gone">
+    <div class="shead">
+      <span>Editing with agent</span><span class="zsp"></span>
+      <button class="sxend" id="sessEnd"><span class="xk">&#10005;</span>end</button>
+    </div>
+    <div class="sstat" id="sessStat"></div>
+    <div id="sessQueue"></div>
+    <div class="sfoot">
+      <div class="ssum gone" id="sessSum"></div>
+      <textarea class="sin" id="sessMsg" rows="2" spellcheck="false"
+        placeholder="Message the agent &mdash; Enter to send"></textarea>
+    </div>
+  </aside>
+</div>
+
+<div id="status"></div>
+<div id="stamp">I &mdash; session mode</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Documents. Node ids are the real ones from the prompt-editor
+   prompt.json, so DETAILS reports something true.
+   ===================================================================== */
+
+const SYSTEM = [
+  { tag: "purpose", rows: [
+    { id: "node-purpose-identity", kind: "paragraph", type: "para",
+      diag: "1 variable · {{targetAgent}} declared",
+      text: "You are the prompt editor for {{targetAgent}} — you change that agent's system prompt on behalf of the human who owns it." },
+    { spacer: true },
+    { id: "node-purpose-frame-ast", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-purpose-frame · 1 of 3",
+      text: "The prompt is a structured document — a tree of identified nodes — and its rendered markdown is a projection you never touch." },
+    { id: "node-purpose-frame-requests", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-purpose-frame · 2 of 3",
+      text: "Work arrives as requests: human notes pinned to a node or range of that document, queued in the <requests> block." },
+    { id: "node-purpose-frame-staged", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-purpose-frame · 3 of 3",
+      text: "Your edits are staged proposals for human review, and nothing lands in the live prompt until the human accepts it." },
+  ]},
+  { tag: "inputs", rows: [
+    { id: "node-inputs-intro", kind: "paragraph", type: "para",
+      diag: "leads bulletList node-inputs-blocks",
+      text: "Your standing context carries three blocks:" },
+    { spacer: true },
+    { id: "node-inputs-authoring", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-inputs-blocks · 1 of 3",
+      text: "<prompt_kit_authoring> — the house reference for how prompts here are built: the document model, the editing method, and the anti-patterns to avoid." },
+    { id: "node-inputs-target", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-inputs-blocks · 2 of 3 · 1 child",
+      text: "<target_prompt> — the target agent's current prompt rendered with every node's id stamped in place, under the base hash your transactions build on." },
+    { id: "node-inputs-target-ids", kind: "listItem", type: "sub",
+      diag: "nested under node-inputs-target",
+      text: "Those ids are the only addresses your edits use — quote them exactly." },
+    { id: "node-inputs-requests", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-inputs-blocks · 3 of 3 · 2 children",
+      text: "<requests> — the open queue, one entry per request." },
+    { id: "node-inputs-requests-entry", kind: "listItem", type: "sub",
+      diag: "nested under node-inputs-requests",
+      text: "Each entry carries its alias (R1, R2 …), its target node or range, the human's note, and the thread so far." },
+    { id: "node-inputs-requests-doclevel", kind: "listItem", type: "sub",
+      diag: "nested under node-inputs-requests",
+      text: "An entry whose target is the document itself is a message about the whole prompt, not about one node." },
+    { spacer: true },
+    { id: "node-inputs-fresh", kind: "paragraph", type: "para",
+      diag: "closes <inputs> · references tool read_prompt",
+      text: "The stamped render is your starting picture; read_prompt returns the live document — ids and hash included — whenever you need to confirm the tree or see it after a proposal." },
+  ]},
+  { tag: "editing_rules", rows: [
+    { id: "node-rules-structural", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 1 of 6",
+      text: "Propose structure, never prose: an edit is a transaction of id-relative steps against the document tree, and rewritten markdown is never an edit." },
+    { id: "node-rules-ids", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 2 of 6",
+      text: "Preserve node ids: change nodes in place and leave untouched nodes untouched, because ids are how requests, diffs, and undo stay anchored." },
+    { id: "node-rules-minimal", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 3 of 6",
+      text: "Prefer the minimal transaction: the fewest steps that satisfy the request, touching nothing the request did not name." },
+    { id: "node-rules-valid", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 4 of 6",
+      text: "Keep the document valid: every variable placeholder it references must stay declared, and a proposal that fails validation bounces straight back to you — repair it and propose again." },
+    { id: "node-rules-voice", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 5 of 6 · 1 open request",
+      text: "Respect the target prompt's voice: match its tense, person, and section idiom, and change style only when a note asks for style." },
+    { id: "node-rules-terse", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 6 of 6",
+      text: "Write tersely: notes, replies, and resolutions are plain language, a sentence or two, never a restatement of a diff the human can already see." },
+  ]},
+  { tag: "workflow", rows: [
+    { id: "node-workflow-read", kind: "listItem", type: "step", n: 1,
+      diag: "in orderedList node-workflow-steps · 1 of 6 · 1 child",
+      text: "Read the whole queue before editing anything, because requests can overlap, conflict, or share nodes." },
+    { id: "node-workflow-read-collide", kind: "listItem", type: "sub",
+      diag: "nested under node-workflow-read",
+      text: "When requests collide, work them in alias order and name the interaction in each resolution." },
+    { id: "node-workflow-plan", kind: "listItem", type: "step", n: 2,
+      diag: "in orderedList node-workflow-steps · 2 of 6",
+      text: "Plan each request against the current tree, confirming targets with read_prompt when the stamped render leaves doubt." },
+    { id: "node-workflow-propose", kind: "listItem", type: "step", n: 3,
+      diag: "in orderedList node-workflow-steps · 3 of 6 · 1 child",
+      text: "Propose exactly one transaction per request with propose_transaction, tagged to that request's alias." },
+    { id: "node-workflow-propose-nochange", kind: "listItem", type: "sub",
+      diag: "nested under node-workflow-propose",
+      text: "A request needing no change gets no transaction — it gets a resolution." },
+    { id: "node-workflow-resolve", kind: "listItem", type: "step", n: 4,
+      diag: "in orderedList node-workflow-steps · 4 of 6 · 1 child",
+      text: "Resolve every request individually with resolve_request: done with a short note of what changed, or declined with the reason." },
+    { id: "node-workflow-resolve-nolump", kind: "listItem", type: "sub",
+      diag: "nested under node-workflow-resolve",
+      text: "A batch never resolves as a lump, and the session ends with no request still open that you could have disposed." },
+    { id: "node-workflow-ask", kind: "listItem", type: "step", n: 5,
+      diag: "in orderedList node-workflow-steps · 5 of 6",
+      text: "When a request is ambiguous, open the question with reply_request on that request's thread and keep working the others — the run never stalls waiting for an answer." },
+    { id: "node-workflow-doclevel", kind: "listItem", type: "step", n: 6,
+      diag: "in orderedList node-workflow-steps · 6 of 6",
+      text: "Work a document-level request by pinning placed notes with add_note at the specific nodes it implicates, then propose and resolve as usual." },
+  ]},
+  { tag: "tools", rows: [
+    { id: "node-tools-intro", kind: "paragraph", type: "para",
+      diag: "leads bulletList node-tools-list",
+      text: "Five tools carry the loop; the semantics that matter:" },
+    { spacer: true },
+    { id: "node-tools-read", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 1 of 5",
+      text: "read_prompt — the target document as it stands now, with node ids and the current hash." },
+    { id: "node-tools-propose", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 2 of 5",
+      text: "propose_transaction — one request's edit as ordered id-relative steps, compiled and validated by the service and staged as a diff for the human." },
+    { id: "node-tools-resolve", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 3 of 5",
+      text: "resolve_request — the only way a request leaves the queue: done or declined, always with a note." },
+    { id: "node-tools-reply", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 4 of 5",
+      text: "reply_request — adds to one request's thread, for questions and brief progress notes." },
+    { id: "node-tools-note", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 5 of 5",
+      text: "add_note — pins a new note of yours at a node, opening an inline thread the human sees." },
+  ]},
+];
+
+const CONTEXT = [
+  { tag: "prompt_kit_authoring", rows: [
+    { id: "ctx-authoring-src", kind: "context block", type: "para",
+      text: "source: prompt-kit/docs/authoring.md · 1,412 tokens · pinned for every run" },
+    { id: "ctx-authoring-model", kind: "context bullet", type: "bullet",
+      text: "The document model: sections hold paragraphs, bullet lists, and ordered lists; every node carries a stable id." },
+    { id: "ctx-authoring-method", kind: "context bullet", type: "bullet",
+      text: "The editing method: address a node by id, apply a step, let the service compile and validate the transaction." },
+    { id: "ctx-authoring-anti", kind: "context bullet", type: "bullet",
+      text: "Anti-patterns: rewriting whole sections, inventing ids, and shipping prose where a step was asked for." },
+  ]},
+  { tag: "target_prompt", rows: [
+    { id: "ctx-target-head", kind: "context block", type: "para",
+      text: "agent: layout-editor · base hash pk1-7f1bc2eb · 38 nodes stamped" },
+    { id: "ctx-target-n1", kind: "stamped node", type: "sub",
+      text: "[node-purpose-identity] You are the layout editor for {{surface}} — you shape how the surface reads." },
+    { id: "ctx-target-n2", kind: "stamped node", type: "sub",
+      text: "[node-purpose-frame-ast] Each surface makes intelligence legible through a typed artifact." },
+    { id: "ctx-target-n3", kind: "stamped node", type: "sub",
+      text: "[node-constraints-live] Apply edits to the live document immediately; the registry reloads the prompt on save." },
+    { id: "ctx-target-more", kind: "elision", type: "para",
+      text: "… 35 more stamped nodes elided in this preview" },
+  ]},
+  { tag: "requests", rows: [
+    { id: "ctx-req-r1", kind: "request entry", type: "bullet",
+      text: "R1 · target node-rules-voice (range) · \"'section idiom' is vague — define it or cut it.\" · thread: 0 replies" },
+    { id: "ctx-req-r2", kind: "request entry", type: "bullet",
+      text: "R2 · target node-purpose-identity · \"the identity line should say who decides, not who owns.\" · thread: 1 reply · 1 proposal staged" },
+    { id: "ctx-req-r3", kind: "request entry", type: "bullet",
+      text: "R3 · target document · \"the tone drifts formal in the back half — even it out.\" · thread: 0 replies" },
+    { id: "ctx-req-note", kind: "context block", type: "para",
+      text: "Three entries. R3 targets the document itself — a message about the whole prompt." },
+  ]},
+];
+
+const FIXTURES = [
+  { name: "empty-run", note: "0 turns", tok: "412",
+    v: { turn: "0", open: "0", resolved: "0", staged: "0", tools: "—", started: "—",
+         last: "session initialized", assembled: "4,634 (2.3%)" } },
+  { name: "mid-session", note: "3 turns", tok: "468",
+    v: { turn: "3", open: "2", resolved: "1", staged: "1", tools: "read_prompt, propose_transaction",
+         started: "3:31 PM", last: "R1 · proposal staged", assembled: "5,207 (2.6%)" } },
+  { name: "long-run", note: "11 turns", tok: "531",
+    v: { turn: "11", open: "1", resolved: "6", staged: "0",
+         tools: "read_prompt, propose_transaction, resolve_request, reply_request, add_note",
+         started: "2:58 PM", last: "R6 · resolved (declined)", assembled: "6,910 (3.5%)" } },
+];
+
+function buildState(fixture) {
+  const f = FIXTURES.find((x) => x.name === fixture) || FIXTURES[0];
+  const v = f.v;
+  return [
+    { tag: "session_state", rows: [
+      { id: "state-fixture", kind: "state key", type: "kv", k: "fixture", v: f.name },
+      { id: "state-agent", kind: "state key", type: "kv", k: "target_agent", v: "layout-editor" },
+      { id: "state-hash", kind: "state key", type: "kv", k: "base_hash", v: "pk1-7f1bc2eb" },
+      { id: "state-turn", kind: "state key", type: "kv", k: "turn", v: v.turn },
+      { id: "state-open", kind: "state key", type: "kv", k: "requests_open", v: v.open },
+      { id: "state-resolved", kind: "state key", type: "kv", k: "requests_resolved", v: v.resolved },
+      { id: "state-staged", kind: "state key", type: "kv", k: "proposals_staged", v: v.staged },
+      { id: "state-tools", kind: "state key", type: "kv", k: "tools_called", v: v.tools },
+      { id: "state-started", kind: "state key", type: "kv", k: "started_at", v: v.started },
+      { id: "state-last", kind: "state key", type: "kv", k: "last_event", v: v.last },
+    ]},
+    { tag: "budget", rows: [
+      { id: "budget-window", kind: "state key", type: "kv", k: "context_window", v: "200,000" },
+      { id: "budget-used", kind: "state key", type: "kv", k: "assembled", v: v.assembled },
+      { id: "budget-cache", kind: "state key", type: "kv", k: "cached_prefix", v: "prompt_kit_authoring" },
+    ]},
+  ];
+}
+
+const NOTE = {
+  system: "",
+  context: "assembled at run time · read-only",
+  state: "fixture snapshot · read-only",
+};
+
+/* The switcher: the three views, each carrying its own token count. */
+const VIEWS = [
+  { id: "system", tok: () => "1,008" },
+  { id: "context", tok: () => "3,214" },
+  { id: "state", tok: () => (FIXTURES.find((f) => f.name === state.fixture) || FIXTURES[0]).tok },
+];
+
+/* =====================================================================
+   Requests. Three shapes are on the file at load, one of each:
+
+     R1  a range request — filed with ⌘K over a selection, so it
+         carries a quote and no reply yet.
+     R2  a node request the agent has already answered — its staged
+         diff is sitting in the document.
+     R3  a document request — target `document`, no node, no gutter
+         mark; it hangs off the top of the file as a ⌘ chip.
+
+   Entering session mode inherits all three, with R2 already the
+   active, expanded entry.
+   ===================================================================== */
+const REQUESTS = [
+  {
+    alias: "R1",
+    scope: "node",
+    node: "node-rules-voice",
+    status: "open",
+    note: "“section idiom” is vague — define it or cut it",
+    quote: "match its tense, person, and section idiom",
+    thread: [
+      { who: "you", t: "3:38 PM",
+        quote: "match its tense, person, and section idiom",
+        text: "“section idiom” is vague — define it or cut it." },
+    ],
+    diff: null,
+    stage: {
+      node: "node-rules-voice",
+      new: "Respect the target prompt's voice: match its tense, its person, and the way its sections are already phrased — change style only when a note asks for style.",
+      say: "Staged: swapped “section idiom” for what it actually means, on node-rules-voice.",
+    },
+  },
+  {
+    alias: "R2",
+    scope: "node",
+    node: "node-purpose-identity",
+    status: "replied",
+    note: "the identity line should say who decides, not who owns",
+    quote: null,
+    thread: [
+      { who: "you", t: "3:34 PM",
+        text: "The identity line says the human owns the prompt but never says the human decides what lands. That's the whole point of staging." },
+      { who: "agent", t: "3:35 PM",
+        text: "Changed node-purpose-identity: the line now names the decision instead of the ownership, and keeps {{targetAgent}} declared. Staged for review." },
+    ],
+    diff: { node: "node-purpose-identity",
+      new: "You are the prompt editor for {{targetAgent}} — you propose changes to that agent's system prompt, and the human who owns it decides what lands." },
+  },
+  {
+    alias: "R3",
+    scope: "document",
+    node: null,
+    status: "open",
+    note: "Overall: the tone drifts formal in the back half — even it out.",
+    quote: null,
+    thread: [
+      { who: "you", t: "3:40 PM",
+        text: "Overall: the tone drifts formal in the back half — even it out." },
+    ],
+    diff: null,
+    stage: {
+      node: "node-rules-terse",
+      new: "Write tersely: notes, replies, and resolutions are plain language — a sentence or two, never a restatement of a diff the human can already see.",
+      say: "Read the back half. The drift starts in the rules, so I picked node-rules-terse and staged a plainer line there.",
+    },
+  },
+];
+
+const HISTORY = [
+  { hash: "pk1-7f1bc2eb", when: "3:42 PM", cur: true },
+  { hash: "pk1-3c91d0aa", when: "2h ago", cur: false },
+  { hash: "pk1-9e42b7f1", when: "yesterday", cur: false },
+  { hash: "pk1-5b17c44e", when: "3d ago", cur: false },
+];
+
+/* =====================================================================
+   State
+   ===================================================================== */
+const state = {
+  view: "system",
+  fixture: "empty-run",
+  sections: [],
+  active: null,
+  selected: null,
+  historyOpen: false,
+  composer: null,   /* { scope: "node"|"document", id, quote } */
+  thread: "R2",     /* the one unfolded request, by alias */
+  nextAlias: 4,
+  revisions: 0,
+  hint: false,      /* the whisper is saying "⌘K — annotate selection" */
+  session: false,   /* the dock is gone; the session panel has the slot */
+};
+
+const $ = (s) => document.querySelector(s);
+const stageEl = $("#stage");
+const docEl = $("#doc");
+const sectionsEl = $("#sections");
+const chipsEl = $("#docchips");
+const sessEl = $("#session");
+const queueEl = $("#sessQueue");
+
+/* =====================================================================
+   Small helpers
+   ===================================================================== */
+function esc(t) {
+  return String(t)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function clock() {
+  const d = new Date();
+  let h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, "0");
+  const ap = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return h + ":" + m + " " + ap;
+}
+
+function newHash() {
+  let s = "";
+  for (let i = 0; i < 8; i++) s += "0123456789abcdef"[Math.floor(Math.random() * 16)];
+  return "pk1-" + s;
+}
+
+function tidy(t) { return String(t).replace(/\s+/g, " ").trim(); }
+
+function trunc(t, n) {
+  const s = tidy(t);
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function shortId(id) { return String(id).replace(/^node-/, ""); }
+
+function reqBy(alias) { return REQUESTS.find((r) => r.alias === alias) || null; }
+function reqFor(id) {
+  return REQUESTS.filter((r) => r.scope === "node" && r.node === id && r.status !== "resolved");
+}
+function stagedFor(id) {
+  return REQUESTS.find((r) => r.diff && r.diff.node === id && r.status !== "resolved") || null;
+}
+function docRequests() {
+  return REQUESTS.filter((r) => r.scope === "document" && r.status !== "resolved");
+}
+function stagedRequests() {
+  return REQUESTS.filter((r) => r.diff && r.status !== "resolved");
+}
+function openRequests() {
+  return REQUESTS.filter((r) => r.status !== "resolved");
+}
+
+/* =====================================================================
+   Document rendering
+   ===================================================================== */
+const TOOL_RE = /\b(read_prompt|propose_transaction|resolve_request|reply_request|add_note)\b/g;
+
+function highlight(t) {
+  let h = esc(t);
+  h = h.replace(/&lt;(\/?[a-z_][\w_]*)&gt;/g, '<span class="itag">&lt;$1&gt;</span>');
+  h = h.replace(/\{\{([a-zA-Z]+)\}\}/g, '<span class="var">{{$1}}</span>');
+  h = h.replace(TOOL_RE, '<span class="tool">$1</span>');
+  return h;
+}
+
+function innerHtml(r, text, chips) {
+  if (r.type === "kv") {
+    return '<span class="kk">' + esc(r.k) + ':</span>' + chips +
+      '<span class="tx">' + highlight(r.v) + "</span>";
+  }
+  if (r.type === "bullet" || r.type === "sub") {
+    return '<span class="mk">-</span>' + chips + '<span class="tx">' + highlight(text) + "</span>";
+  }
+  if (r.type === "step") {
+    return '<span class="mk">' + r.n + '.</span>' + chips +
+      '<span class="tx">' + highlight(text) + "</span>";
+  }
+  return chips + '<span class="tx">' + highlight(text) + "</span>";
+}
+
+function shellHtml(r, cls, gut, inner) {
+  return '<div class="row ' + r.type + cls + '" data-id="' + r.id +
+    '" data-kind="' + esc(r.kind) + '" data-diag="' + esc(r.diag || "") + '">' +
+    gut + '<div class="body">' + inner + "</div></div>";
+}
+
+function rowHtml(r, live) {
+  if (r.spacer) return '<div class="row spacer"></div>';
+
+  const staged = live ? stagedFor(r.id) : null;
+  if (staged) {
+    const oldRow = shellHtml(r, " dold", '<span class="gut mark"></span>', innerHtml(r, r.text, ""));
+    const chip = '<span class="rchip staged">' + staged.alias + "</span>";
+    const newRow = shellHtml(r, " dnew", '<span class="gut mark add"></span>',
+      innerHtml(r, staged.diff.new, chip));
+    return oldRow + newRow;
+  }
+
+  const pinned = live ? reqFor(r.id) : [];
+  const gut = live
+    ? '<button class="gut' + (pinned.length ? " pinned" : "") + '" data-gut="' + r.id +
+      '" title="' + (pinned.length ? "request pinned here" : "file a request on this node") + '">' +
+      (pinned.length ? "&#9679;" : "+") + "</button>"
+    : '<span class="gut"></span>';
+
+  const chips = pinned.map((p) => '<span class="rchip">' + p.alias + "</span>").join("");
+  const sel = state.selected === r.id ? " sel" : "";
+  return shellHtml(r, sel, gut, innerHtml(r, r.text, chips));
+}
+
+function renderChips() {
+  if (state.view !== "system") { chipsEl.innerHTML = ""; return; }
+  chipsEl.innerHTML = docRequests().map((r) =>
+    '<button class="dchip" data-doc="' + r.alias + '" title="document-level request">' +
+      '<span class="dk">&#8984;</span>' + r.alias + "</button>"
+  ).join("");
+}
+
+function renderDoc(keepScroll) {
+  const live = state.view === "system";
+  const top = keepScroll ? stageEl.scrollTop : 0;
+
+  state.sections = state.view === "system" ? SYSTEM
+    : state.view === "context" ? CONTEXT
+    : buildState(state.fixture);
+
+  docEl.classList.toggle("live", live);
+  $("#note").textContent = NOTE[state.view] || "";
+
+  sectionsEl.innerHTML = state.sections.map((s) =>
+    '<section class="sec" data-tag="' + s.tag + '">' +
+      '<div class="tagline">&lt;' + s.tag + "&gt;</div>" +
+      s.rows.map((r) => rowHtml(r, live)).join("") +
+      '<div class="tagline">&lt;/' + s.tag + "&gt;</div>" +
+    "</section>"
+  ).join("");
+
+  renderChips();
+  stageEl.scrollTop = top;
+  state.active = null;
+  spy();
+}
+
+/* =====================================================================
+   Dock — or, in session mode, the panel that replaces it wholesale
+   ===================================================================== */
+function show(id, on) {
+  document.getElementById(id).classList.toggle("gone", !on);
+}
+
+function renderDock() {
+  $("#dock").classList.toggle("gone", state.session);
+  sessEl.classList.toggle("gone", !state.session);
+  if (state.session) { renderSession(); return; }
+
+  const view = state.view;
+  show("zAgent", true);
+  show("zView", true);
+  show("zFixture", view === "state");
+  show("zOutline", true);
+  show("zDetails", view === "system" && !!state.selected);
+  show("zRequests", view === "system" && REQUESTS.length > 0);
+  show("zHistory", view === "system");
+
+  renderViews();
+  renderOutline();
+  renderFixtures();
+  renderDetails();
+  renderRequests();
+  trimRule();
+}
+
+/* the last visible zone drops its hairline, whatever it happens to be */
+function trimRule() {
+  const zones = [...document.querySelectorAll("#dock .zone")];
+  let last = null;
+  zones.forEach((z) => {
+    z.classList.remove("tail");
+    if (!z.classList.contains("gone")) last = z;
+  });
+  if (last) last.classList.add("tail");
+}
+
+function renderViews() {
+  $("#viewBody").innerHTML = VIEWS.map((v) =>
+    '<button class="vitem' + (v.id === state.view ? " active" : "") +
+    '" data-view="' + v.id + '"><span class="vn">' + v.id + "</span>" +
+    '<span class="zsp"></span><span class="vt">' + v.tok() + "</span></button>"
+  ).join("");
+}
+
+function renderOutline() {
+  $("#outlineBody").innerHTML = state.sections.map((s) =>
+    '<button class="oitem' + (s.tag === state.active ? " active" : "") +
+    '" data-sec="' + s.tag + '">' + s.tag + "</button>"
+  ).join("");
+}
+
+function renderFixtures() {
+  $("#fixtureBody").innerHTML = FIXTURES.map((f) =>
+    '<button class="fitem' + (f.name === state.fixture ? " active" : "") +
+    '" data-fix="' + f.name + '"><span>' + f.name + '</span>' +
+    '<span class="zsp"></span><span class="fn">' + f.note + "</span></button>"
+  ).join("");
+}
+
+function findRow(id) {
+  for (const s of state.sections) {
+    for (const r of s.rows) if (r.id === id) return { sec: s, row: r };
+  }
+  return null;
+}
+
+function renderDetails() {
+  if (!state.selected) { $("#detailsBody").innerHTML = ""; return; }
+  const found = findRow(state.selected);
+  if (!found) { $("#detailsBody").innerHTML = ""; return; }
+  const r = found.row;
+  $("#detailsBody").innerHTML =
+    '<div class="drow"><span class="dk">id</span><span class="dv id">' + esc(r.id) + "</span></div>" +
+    '<div class="drow"><span class="dk">kind</span><span class="dv">' + esc(r.kind) +
+      " · &lt;" + found.sec.tag + "&gt;</span></div>" +
+    '<div class="drow"><span class="dk">note</span><span class="dv">' + esc(r.diag || "—") + "</span></div>";
+}
+
+/* ---------- the thread: a request, unfolded, is the chat ---------- */
+function threadHtml(r) {
+  const msgs = r.thread.map((m) =>
+    '<div class="tmsg ' + m.who + '">' +
+      '<div class="tmeta"><span class="who ' + m.who + '">' + m.who + "</span>" +
+      '<span class="tsp"></span><span>' + esc(m.t) + "</span></div>" +
+      (m.quote ? '<div class="tq">"' + esc(trunc(m.quote, 60)) + '"</div>' : "") +
+      '<div class="tbody">' + esc(m.text) + "</div>" +
+    "</div>"
+  ).join("");
+
+  let tail = "";
+  if (r.status === "resolved") {
+    tail = '<div class="tdone">accepted &middot; ' + esc(r.hash || "") + "</div>";
+  } else if (r.diff) {
+    tail =
+      '<div class="tacts">' +
+        '<span class="tstaged"><span class="tsq">&#9612;</span> staged on ' +
+          esc(shortId(r.diff.node)) + "</span>" +
+        '<button class="tact acc" data-acc="' + r.alias + '">Accept</button>' +
+        '<span class="tdot">&middot;</span> ' +
+        '<button class="tact dis" data-dis="' + r.alias + '">Discard</button>' +
+      "</div>" +
+      '<input class="tin" type="text" placeholder="Reply — Enter to send" data-reply="' + r.alias + '" />';
+  } else if (r.waiting) {
+    tail = '<div class="twait">agent is working…</div>' +
+      '<input class="tin" type="text" placeholder="Reply — Enter to send" data-reply="' + r.alias + '" />';
+  } else {
+    tail = '<input class="tin" type="text" placeholder="Reply — Enter to send" data-reply="' + r.alias + '" />';
+  }
+
+  return '<div class="thread" data-thread="' + r.alias + '">' + msgs + tail + "</div>";
+}
+
+function targetLabel(r) {
+  if (r.scope === "document") return "document";
+  return shortId(r.node) + (r.quote ? " · range" : "");
+}
+
+/* one row per request; the active one carries its thread inline */
+function queueRowHtml(r, dot) {
+  const on = state.thread === r.alias;
+  const res = r.status === "resolved";
+  const label = res ? "resolved &#10003;" : esc(tidy(r.note));
+  const head =
+    '<button class="rrow' + (on ? " on" : "") + (res ? " res" : "") + '" data-req="' + r.alias + '">' +
+      '<span class="rline">' +
+        '<span class="rdot ' + dot + '"></span>' +
+        '<span class="ra">' + r.alias + "</span>" +
+        '<span class="rt' + (res ? " res" : "") + '">' + label + "</span>" +
+      "</span>" +
+      '<span class="rtgt"><span class="rtk">target</span> ' + esc(targetLabel(r)) + "</span>" +
+    "</button>";
+  return head + (on ? threadHtml(r) : "");
+}
+
+function renderRequests() {
+  if (state.session) { renderSession(); return; }
+  const openN = openRequests().length;
+  $("#reqCount").textContent = openN + " open";
+  $("#requestsBody").innerHTML = REQUESTS.map((r) => queueRowHtml(r, r.status)).join("");
+}
+
+function renderHistory() {
+  $("#historyBody").innerHTML = HISTORY.map((h) =>
+    '<div class="hrow' + (h.cur ? "" : " past") + '">' +
+      '<span class="hh">' + h.hash + "</span>" +
+      (h.n > 1 ? '<span class="hn">&times;' + h.n + "</span>" : "") +
+      '<span class="hsp"></span>' +
+      (h.cur ? '<span class="hcur">CURRENT</span>' : '<span class="ht">' + h.when + "</span>") +
+    "</div>"
+  ).join("");
+  $("#histCount").textContent = state.revisions
+    ? state.revisions + " new" : "";
+}
+
+/* the whisper carries the save — and, while you have a selection, the door */
+function renderStatus() {
+  const el = $("#status");
+  if (state.hint && state.view === "system") {
+    el.textContent = "⌘K — annotate selection";
+    el.classList.add("hint");
+    return;
+  }
+  el.classList.remove("hint");
+  if (state.session) {
+    const n = REQUESTS.length;
+    el.textContent = "session · " + n + " request" + (n === 1 ? "" : "s");
+    return;
+  }
+  el.textContent = state.view === "system" ? "saved 3:42 PM" : "";
+}
+
+/* =====================================================================
+   Scroll spy
+   ===================================================================== */
+function spy() {
+  const secs = [...sectionsEl.querySelectorAll(".sec")];
+  if (!secs.length) return;
+  const base = stageEl.getBoundingClientRect().top;
+  let cur = secs[0].dataset.tag;
+  for (const s of secs) {
+    if (s.getBoundingClientRect().top - base <= 110) cur = s.dataset.tag;
+  }
+  if (cur === state.active) return;
+  state.active = cur;
+  document.querySelectorAll(".oitem").forEach((o) =>
+    o.classList.toggle("active", o.dataset.sec === cur));
+}
+
+stageEl.addEventListener("scroll", spy);
+
+function scrollToEl(el, offset) {
+  const top = el.getBoundingClientRect().top - stageEl.getBoundingClientRect().top +
+    stageEl.scrollTop - offset;
+  stageEl.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+}
+
+function scrollToNode(id, offset) {
+  const row = sectionsEl.querySelector('.row[data-id="' + id + '"]');
+  if (row) scrollToEl(row, offset === undefined ? 160 : offset);
+}
+
+/* =====================================================================
+   View switching — from the dock. In session mode the switcher is gone
+   and the view is pinned to System.
+   ===================================================================== */
+function setView(view) {
+  if (state.view === view) return;
+  if (state.session && view !== "system") return;
+  state.view = view;
+  state.selected = null;
+  closeComposer();
+  renderDoc(false);
+  renderDock();
+  renderStatus();
+}
+
+$("#viewBody").addEventListener("click", (e) => {
+  const item = e.target.closest(".vitem");
+  if (!item) return;
+  setView(item.dataset.view);
+});
+
+/* =====================================================================
+   Selection · details
+   ===================================================================== */
+sectionsEl.addEventListener("click", (e) => {
+  if (e.target.closest(".gut") || e.target.closest(".composer")) return;
+  if (state.view !== "system") return;
+  if (selectionInRow()) return;           /* a drag that ended in a click stays a selection */
+  const row = e.target.closest(".row");
+  if (!row || !row.dataset.id) return;
+  closeComposer();
+  state.selected = state.selected === row.dataset.id ? null : row.dataset.id;
+  renderDoc(true);
+  renderDock();
+});
+
+/* =====================================================================
+   The composer — three doors into it, one shape out of it
+   ===================================================================== */
+
+/* what the user has selected, if it lives inside a System row */
+function selectionInRow() {
+  if (state.view !== "system") return null;
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  const quote = tidy(sel.toString());
+  if (!quote) return null;
+  const anchor = sel.anchorNode;
+  const el = anchor && anchor.nodeType === 1 ? anchor : (anchor ? anchor.parentElement : null);
+  const row = el && el.closest ? el.closest(".row") : null;
+  if (!row || !sectionsEl.contains(row) || !row.dataset.id) return null;
+  return { id: row.dataset.id, quote: quote };
+}
+
+function closeComposer() {
+  const c = docEl.querySelector(".composer");
+  if (c) c.remove();
+  state.composer = null;
+}
+
+function composerHtml(c) {
+  const quote = c.quote ? '<div class="cq">"' + esc(trunc(c.quote, 60)) + '"</div>' : "";
+  const target = c.scope === "document"
+    ? '<div class="ctgt">whole prompt</div>' : "";
+  const ph = c.scope === "document"
+    ? "what should change about this prompt?"
+    : (c.quote ? "what should change about this?" : "what should change here?");
+  return quote + target +
+    '<input class="cin" type="text" placeholder="' + ph + '" />' +
+    '<div class="chint">Enter to file &middot; Esc to cancel</div>';
+}
+
+function openComposer(c) {
+  if (state.view !== "system") return;
+  closeComposer();
+
+  const box = document.createElement("div");
+  box.className = "composer";
+  box.innerHTML = composerHtml(c);
+
+  if (c.scope === "document") {
+    docEl.insertBefore(box, docEl.firstChild);
+  } else {
+    const row = sectionsEl.querySelector('.row[data-id="' + c.id + '"]');
+    if (!row) return;
+    row.parentNode.insertBefore(box, row);
+  }
+  state.composer = c;
+
+  /* the quote is captured; the native highlight has done its job */
+  const sel = window.getSelection();
+  if (sel && sel.removeAllRanges) sel.removeAllRanges();
+  if (state.hint) { state.hint = false; renderStatus(); }
+
+  const input = box.querySelector(".cin");
+  input.focus();
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { e.preventDefault(); closeComposer(); return; }
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const note = input.value.trim();
+    if (!note) { closeComposer(); return; }
+    fileRequest(c, note);
+  });
+}
+
+function fileRequest(c, note) {
+  const alias = "R" + state.nextAlias++;
+  const r = {
+    alias: alias,
+    scope: c.scope,
+    node: c.scope === "node" ? c.id : null,
+    status: "open",
+    note: note,
+    quote: c.quote || null,
+    thread: [{ who: "you", t: clock(), text: note, quote: c.quote || null }],
+    diff: null,
+  };
+  REQUESTS.push(r);
+  closeComposer();
+  state.thread = alias;          /* whatever you just filed is the active thing */
+  renderDoc(true);
+  renderDock();
+  renderStatus();
+  if (r.node) flash(r.node); else flashChip(alias);
+}
+
+function flash(id) {
+  const row = sectionsEl.querySelector('.row[data-id="' + id + '"]');
+  if (!row) return;
+  row.classList.add("flash");
+  setTimeout(() => row.classList.remove("flash"), 1100);
+}
+
+function flashChip(alias) {
+  const chip = chipsEl.querySelector('.dchip[data-doc="' + alias + '"]');
+  if (!chip) return;
+  chip.classList.add("flash");
+  setTimeout(() => chip.classList.remove("flash"), 1100);
+}
+
+/* door 3: the gutter + */
+sectionsEl.addEventListener("click", (e) => {
+  const gut = e.target.closest(".gut");
+  if (!gut || !gut.dataset.gut) return;
+  e.stopPropagation();
+  if (state.composer && state.composer.id === gut.dataset.gut) { closeComposer(); return; }
+  openComposer({ scope: "node", id: gut.dataset.gut, quote: null });
+});
+
+/* doors 1 and 2: ⌘K, with or without a selection */
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+    e.preventDefault();
+    if (state.view !== "system") return;
+    const sel = selectionInRow();
+    if (sel) openComposer({ scope: "node", id: sel.id, quote: sel.quote });
+    else openComposer({ scope: "document", id: null, quote: null });
+    return;
+  }
+  if (e.key === "Escape" && state.composer) closeComposer();
+});
+
+/* the whisper is the only discoverability surface — no floating tooltip */
+document.addEventListener("selectionchange", () => {
+  const on = !state.composer && !!selectionInRow();
+  if (on === state.hint) return;
+  state.hint = on;
+  renderStatus();
+});
+
+/* =====================================================================
+   Threads: expand, reply, accept, discard
+   ===================================================================== */
+function threadHost() { return state.session ? queueEl : $("#requestsBody"); }
+
+function focusThreadInput() {
+  const el = threadHost().querySelector(".tin");
+  if (el) el.focus({ preventScroll: true });
+}
+
+function focusOf(r) {
+  if (r.diff) return r.diff.node;
+  if (r.node) return r.node;
+  return null;
+}
+
+/* in session mode there is always exactly one active entry */
+function advanceActive() {
+  if (!state.session) { state.thread = null; return; }
+  const next = openRequests()[0];
+  state.thread = next ? next.alias : null;
+}
+
+function toggleThread(alias) {
+  if (state.thread === alias) {
+    if (state.session) return;      /* the active thing does not collapse in a session */
+    state.thread = null;
+    renderRequests();
+    return;
+  }
+  state.thread = alias;
+  const r = reqBy(alias);
+  if (state.view !== "system") setView("system");
+  const node = r ? focusOf(r) : null;
+  if (node) {
+    state.selected = node;
+    renderDoc(true);
+    renderDock();
+    scrollToNode(node);
+    flash(node);
+  } else {
+    renderDock();
+    stageEl.scrollTo({ top: 0, behavior: "smooth" });
+    if (r) flashChip(r.alias);
+  }
+  requestAnimationFrame(focusThreadInput);
+}
+
+/* when a request has no scripted proposal, the agent folds the note in */
+function pickDocNode() {
+  const rules = SYSTEM.find((s) => s.tag === "editing_rules");
+  const rows = rules.rows.filter((r) => !r.spacer && !stagedFor(r.id));
+  if (!rows.length) return null;
+  return rows.reduce((a, b) => (b.text.length > a.text.length ? b : a)).id;
+}
+
+function synthStage(r) {
+  const node = r.scope === "document" ? pickDocNode() : r.node;
+  if (!node) return null;
+  const found = findRow(node);
+  if (!found) return null;
+  const base = found.row.text.replace(/\.\s*$/, "");
+  const note = tidy(r.note).replace(/\.\s*$/, "");
+  return {
+    node: node,
+    new: base + " — " + note.charAt(0).toLowerCase() + note.slice(1) + ".",
+    say: r.scope === "document"
+      ? "Read the whole document; " + shortId(node) + " is where that reads worst. Staged a change there."
+      : "Staged: folded your note into " + shortId(node) + ".",
+  };
+}
+
+function sendReply(alias, text) {
+  const r = reqBy(alias);
+  if (!r || r.status === "resolved") return;
+  r.thread.push({ who: "you", t: clock(), text: text });
+  r.status = "open";
+  r.waiting = true;
+  renderRequests();
+  focusThreadInput();
+
+  setTimeout(() => {
+    r.waiting = false;
+    const stage = r.stage || (r.diff ? null : synthStage(r));
+    if (stage) {
+      r.thread.push({ who: "agent", t: clock(), text: stage.say });
+      r.diff = { node: stage.node, new: stage.new };
+      r.stage = null;
+    } else {
+      r.thread.push({ who: "agent", t: clock(),
+        text: "Noted — the proposal on " + shortId(r.diff ? r.diff.node : r.node) +
+          " still stands, waiting on you." });
+    }
+    r.status = "replied";
+    renderDoc(true);
+    renderDock();
+    if (r.diff) flash(r.diff.node);
+    focusThreadInput();
+  }, 600);
+}
+
+/* land one request's diff on the document; no rendering, no revision */
+function landDiff(r) {
+  const node = r.diff.node;
+  const found = findRow(node);
+  if (found) found.row.text = r.diff.new;
+  r.diff = null;
+  r.status = "resolved";
+  return node;
+}
+
+function pushRevision(hash, n) {
+  state.revisions += 1;
+  HISTORY.forEach((h) => { if (h.cur) { h.cur = false; h.when = "moments ago"; } });
+  HISTORY.unshift({ hash: hash, when: "just now", cur: true, n: n || 1 });
+  state.historyOpen = true;
+  $("#zHistory").classList.remove("closed");
+}
+
+function acceptRequest(alias) {
+  const r = reqBy(alias);
+  if (!r || !r.diff) return;
+  const node = landDiff(r);
+  r.hash = newHash();
+  r.thread.push({ who: "agent", t: clock(), text: "Resolved: accepted and saved as " + r.hash + "." });
+
+  pushRevision(r.hash, 1);
+
+  if (state.thread === alias) advanceActive();
+  renderDoc(true);
+  renderDock();
+  renderHistory();
+  renderStatus();
+  flash(node);
+}
+
+function discardRequest(alias) {
+  const r = reqBy(alias);
+  if (!r || !r.diff) return;
+  const node = r.diff.node;
+  r.diff = null;
+  r.thread.push({ who: "you", t: clock(), text: "Discarded that proposal." });
+  r.status = "open";
+  renderDoc(true);
+  renderDock();
+  flash(node);
+}
+
+/* =====================================================================
+   SESSION MODE
+   ===================================================================== */
+function sessionStatus() {
+  if (REQUESTS.some((r) => r.waiting)) return { text: "agent working…", work: true };
+  const st = stagedRequests().length;
+  if (st) return { text: st + (st === 1 ? " change staged" : " changes staged"), work: true };
+  const open = openRequests().length;
+  if (!open) return { text: "queue clear · nothing staged", work: false };
+  return { text: open + (open === 1 ? " request open" : " requests open") + " · nothing staged", work: false };
+}
+
+function dotClass(r) {
+  if (r.status === "resolved") return "res";
+  if (r.diff) return "staged";
+  return "open";
+}
+
+function renderSession() {
+  const st = sessionStatus();
+  const statEl = $("#sessStat");
+  statEl.textContent = st.text;
+  statEl.classList.toggle("work", st.work);
+
+  const top = queueEl.scrollTop;
+  queueEl.innerHTML = REQUESTS.map((r) => queueRowHtml(r, dotClass(r))).join("");
+  queueEl.scrollTop = top;
+
+  const staged = stagedRequests().length;
+  const sum = $("#sessSum");
+  sum.classList.toggle("gone", staged === 0);
+  if (staged) {
+    sum.innerHTML =
+      '<span class="sq">&#9612;</span>' + staged + " staged" +
+      '<span class="sdot">&middot;</span>' +
+      '<button class="sact acc" id="sessAcceptAll">accept all</button>' +
+      '<span class="sdot">&middot;</span>' +
+      '<button class="sact dis" id="sessDiscardAll">discard all</button>';
+  }
+}
+
+function enterSession() {
+  if (state.view !== "system") setView("system");   /* the view is pinned to System */
+  state.session = true;
+  const cur = reqBy(state.thread);
+  if (!cur || cur.status === "resolved") advanceActive();
+  renderDock();
+  renderStatus();
+  requestAnimationFrame(() => {
+    const el = $("#sessMsg");
+    if (el) el.focus({ preventScroll: true });
+  });
+}
+
+function exitSession() {
+  state.session = false;
+  if (state.revisions) {
+    state.historyOpen = true;
+    $("#zHistory").classList.remove("closed");
+  }
+  renderDock();
+  renderHistory();
+  renderStatus();
+}
+
+/* the bottom composer: a message about the whole prompt, as a request */
+function sendGlobal(text) {
+  const alias = "R" + state.nextAlias++;
+  const r = {
+    alias: alias,
+    scope: "document",
+    node: null,
+    status: "open",
+    note: text,
+    quote: null,
+    thread: [{ who: "you", t: clock(), text: text }],
+    diff: null,
+    waiting: true,
+  };
+  REQUESTS.push(r);
+  state.thread = alias;
+  renderDoc(true);
+  renderDock();
+  renderStatus();
+  flashChip(alias);
+
+  setTimeout(() => {
+    r.waiting = false;
+    const stage = synthStage(r);
+    if (stage) {
+      r.thread.push({ who: "agent", t: clock(), text: stage.say });
+      r.diff = { node: stage.node, new: stage.new };
+    } else {
+      r.thread.push({ who: "agent", t: clock(),
+        text: "Read the document — everything that note touches is already staged." });
+    }
+    r.status = "replied";
+    renderDoc(true);
+    renderDock();
+    renderStatus();
+    if (r.diff) flash(r.diff.node);
+  }, 600);
+}
+
+/* accept all — one combined revision, every staged request resolved */
+function acceptAll() {
+  const staged = stagedRequests();
+  if (!staged.length) return;
+  const hash = newHash();
+  const n = staged.length;
+  const nodes = [];
+  staged.forEach((r) => {
+    nodes.push(landDiff(r));
+    r.hash = hash;
+    r.thread.push({ who: "agent", t: clock(),
+      text: n > 1
+        ? "Resolved: accepted with " + (n - 1) + (n === 2 ? " other" : " others") +
+          " in one revision " + hash + "."
+        : "Resolved: accepted and saved as " + hash + "." });
+  });
+
+  pushRevision(hash, n);
+  advanceActive();
+  renderDoc(true);
+  renderDock();
+  renderHistory();
+  renderStatus();
+  nodes.forEach((id) => flash(id));
+}
+
+function discardAll() {
+  const staged = stagedRequests();
+  if (!staged.length) return;
+  const nodes = [];
+  staged.forEach((r) => {
+    nodes.push(r.diff.node);
+    r.diff = null;
+    r.status = "open";
+    r.thread.push({ who: "you", t: clock(), text: "Discarded that proposal." });
+  });
+  renderDoc(true);
+  renderDock();
+  renderStatus();
+  nodes.forEach((id) => flash(id));
+}
+
+/* =====================================================================
+   Wiring — the queue behaves the same in either home
+   ===================================================================== */
+function queueClick(e) {
+  const acc = e.target.closest(".tact.acc");
+  if (acc) { e.stopPropagation(); acceptRequest(acc.dataset.acc); return; }
+
+  const dis = e.target.closest(".tact.dis");
+  if (dis) { e.stopPropagation(); discardRequest(dis.dataset.dis); return; }
+
+  if (e.target.closest(".tin")) return;
+
+  const rr = e.target.closest(".rrow");
+  if (!rr) return;
+  toggleThread(rr.dataset.req);
+}
+
+function queueKey(e) {
+  const input = e.target.closest(".tin");
+  if (!input) return;
+  if (e.key === "Escape") { e.preventDefault(); input.blur(); return; }
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  sendReply(input.dataset.reply, text);
+}
+
+$("#requestsBody").addEventListener("click", queueClick);
+$("#requestsBody").addEventListener("keydown", queueKey);
+queueEl.addEventListener("click", queueClick);
+queueEl.addEventListener("keydown", queueKey);
+
+$("#reqAgent").addEventListener("click", (e) => { e.stopPropagation(); enterSession(); });
+$("#sessEnd").addEventListener("click", exitSession);
+
+$("#sessSum").addEventListener("click", (e) => {
+  if (e.target.closest("#sessAcceptAll")) { acceptAll(); return; }
+  if (e.target.closest("#sessDiscardAll")) { discardAll(); return; }
+});
+
+$("#sessMsg").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" || e.shiftKey) return;
+  e.preventDefault();
+  const text = e.target.value.trim();
+  if (!text) return;
+  e.target.value = "";
+  sendGlobal(text);
+});
+
+/* the ⌘ chip at the top of the file is the document request's handle */
+chipsEl.addEventListener("click", (e) => {
+  const chip = e.target.closest(".dchip");
+  if (!chip) return;
+  toggleThread(chip.dataset.doc);
+});
+
+/* =====================================================================
+   Dock interactions
+   ===================================================================== */
+$("#outlineBody").addEventListener("click", (e) => {
+  const item = e.target.closest(".oitem");
+  if (!item) return;
+  const sec = sectionsEl.querySelector('.sec[data-tag="' + item.dataset.sec + '"]');
+  if (sec) scrollToEl(sec, 24);
+});
+
+$("#fixtureBody").addEventListener("click", (e) => {
+  const fi = e.target.closest(".fitem");
+  if (!fi) return;
+  state.fixture = fi.dataset.fix;
+  renderDoc(false);
+  renderDock();          /* also re-reads the state token count in the switcher */
+  renderStatus();
+});
+
+$("#histHead").addEventListener("click", () => {
+  state.historyOpen = !state.historyOpen;
+  $("#zHistory").classList.toggle("closed", !state.historyOpen);
+});
+
+/* =====================================================================
+   Boot — normal mode, H's three seeded requests
+   ===================================================================== */
+renderDoc(false);
+renderDock();
+renderHistory();
+renderStatus();
+</script>
+</body>
+</html>

@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt lab layout — N, floating centre panel</title>
+<style>
+  /* -----------------------------------------------------------------
+     Variant N — "Option B: the floating centre panel".
+
+     Same ambient mode shift as K (violet at the left edge, a breathing
+     chip, nothing dims and nothing reflows), but the annotations panel
+     stops being furniture in the margin. It lifts off the right edge
+     and floats right-of-centre over the document: ~520px wide, 80% of
+     the viewport tall, vertically centred, rounded, shadowed, and
+     translucent enough that the prompt keeps reading through it.
+
+     What the float buys:
+
+       THE DOCUMENT IS STILL WHOLE. The column runs full width behind
+       the panel. Text is visible left of it and right of it, and the
+       panel's blur is a frosting, not a curtain. Nothing is dimmed —
+       the only thing that changes about the document is the violet
+       ring on the pinned target row.
+
+       THE PANEL IS FURNITURE YOU CAN MOVE. Its header is a drag
+       handle. If it sits on the line you want to read, you shove it.
+       A docked panel can never do that, which is the whole argument.
+
+       ONE COLUMN OF WORK. ACTIVE (what is running now), QUEUE (what
+       Apply will run), RECORDS (what already happened, collapsed to a
+       tally), and a composer pinned to the bottom edge. Same
+       vocabulary as K — aliases, `queued · next`, `target changed
+       since filed` — read top to bottom instead of margin to margin.
+
+     Leaving is `done` or `esc`: the panel fades out where it stands,
+     the edge and chip fade with it, and the plain 280px dock returns
+     to the margin it never actually left.
+     ----------------------------------------------------------------- */
+  :root {
+    --bg: #161719;
+    --surface: #1c1e21;
+    --line: #26282c;
+    --line-soft: #202226;
+    --fg: #c9ccd1;
+    --bright: #e2e5ea;
+    --muted: #868c95;
+    --faint: #5b616a;
+    --tag: #8f7bb5;
+    --tag-dim: #6f6189;
+    --var: #d0a45c;
+    --accent: #8fa2bd;
+    --open: #b8894a;
+    --done: #4c5158;
+    --add: #6f9a6a;
+    --add-lit: #8bb886;
+    --del: #a8635f;
+
+    /* the mode's hue — a desaturated violet, one step off the tag purple */
+    --am: #8a7ab0;
+    --am-lit: #ad9dd0;
+    --am-dim: #7a6d98;
+    --am-line: rgba(138, 122, 176, 0.26);
+    --am-wash: rgba(138, 122, 176, 0.075);
+    --am-fill: rgba(138, 122, 176, 0.055);
+
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+    --col: 100ch;      /* the document column — wide enough to run under the float */
+    --dock: 280px;     /* the plain dock, for when the mode is off */
+    --dock-gap: 20px;
+    --top: 30px;
+    --shift: 250ms;
+    --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+    --panel-w: 520px;
+    --panel-h: 80vh;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea {
+    font-family: inherit;
+    font-size: 12px;
+    background: transparent;
+    color: inherit;
+    border: 0;
+    padding: 0;
+    line-height: inherit;
+  }
+  button { cursor: pointer; }
+  ::selection { background: rgba(143, 162, 189, 0.22); }
+  body.mode-annotate ::selection { background: rgba(138, 122, 176, 0.3); }
+
+  /* =================================================================
+     AMBIENT SIGNAL (a) — the edge of the viewport
+     ================================================================= */
+  #edge {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--am);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 8;
+    transition: opacity var(--shift) var(--ease);
+  }
+  body.mode-annotate #edge { opacity: 0.82; }
+
+  /* =================================================================
+     AMBIENT SIGNAL (b) — the chip, top left, beside the edge
+     ================================================================= */
+  #chip {
+    position: fixed;
+    left: 16px;
+    top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 2px 12px 3px;
+    border: 1px solid var(--am-line);
+    border-radius: 999px;
+    background: rgba(28, 30, 33, 0.86);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    color: var(--am-lit);
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    user-select: none;
+    z-index: 9;
+    transform: translateY(-3px);
+    transition: opacity var(--shift) var(--ease), transform var(--shift) var(--ease),
+                visibility 0s linear var(--shift);
+  }
+  body.mode-annotate #chip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity var(--shift) var(--ease), transform var(--shift) var(--ease), visibility 0s;
+  }
+  #chipDot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--am);
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.3; transform: scale(0.82); }
+    50%      { opacity: 1;   transform: scale(1); }
+  }
+
+  /* ---------- the document surface — full width, never reflowed ---------- */
+  #stage {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0;
+    transition: padding-right var(--shift) var(--ease);
+  }
+  body:not(.mode-annotate) #stage { padding-right: calc(var(--dock) + 28px); }
+  #doc {
+    max-width: var(--col);
+    margin: 0 auto;
+    padding: 52px 0 40vh;
+  }
+  #title {
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    padding-left: 2ch;
+    margin-bottom: 24px;
+  }
+  #title b { color: var(--muted); font-weight: normal; }
+
+  .sec { margin-bottom: 30px; }
+  .sec:last-child { margin-bottom: 0; }
+
+  /* AMBIENT SIGNAL (c) — the section tag names warm toward the hue */
+  .tagline {
+    color: var(--tag);
+    white-space: pre;
+    padding-left: 2ch;
+    transition: color var(--shift) var(--ease);
+  }
+  body.mode-annotate .tagline { color: var(--am-lit); }
+  .itag { color: var(--tag-dim); transition: color var(--shift) var(--ease); }
+  body.mode-annotate .itag { color: var(--am-dim); }
+
+  .row { display: flex; align-items: baseline; }
+  .row .gut {
+    flex: 0 0 2ch;
+    align-self: flex-start;
+    color: var(--faint);
+    font-size: 9px;
+    opacity: 0;
+    transition: opacity 110ms ease, color 110ms ease;
+  }
+  .row.para .gut { margin-top: 8px; }
+  body.mode-annotate .row:hover .gut { opacity: 1; }
+  body.mode-annotate .row .gut.pinned { opacity: 1; color: var(--am); }
+  .row .body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    padding: 1px 10px 1px 6px;
+    border-radius: 2px;
+    transition: background-color 160ms var(--ease), box-shadow 160ms var(--ease);
+  }
+  .row.sub .body { padding-left: calc(3ch + 6px); }
+  .row.para .body { margin-top: 8px; margin-bottom: 8px; }
+  .row .mk { color: var(--muted); flex: 0 0 auto; }
+  .row .kk { color: var(--muted); flex: 0 0 19ch; }
+  .row .tx { color: var(--fg); min-width: 0; }
+  .row.spacer { height: 10px; }
+  .var { color: var(--var); }
+  .tool { color: #a1a7b1; }
+
+  body.mode-annotate .row:hover .body { background-color: var(--am-wash); }
+
+  /* the pinned target — a ring, not a highlight: the row keeps reading */
+  .row.tgt .body {
+    box-shadow: inset 0 0 0 1px rgba(138, 122, 176, 0.55);
+    background-color: rgba(138, 122, 176, 0.06);
+  }
+  /* the panel pointing back at the document */
+  .row.lit .body {
+    background-color: rgba(138, 122, 176, 0.13);
+    box-shadow: inset 0 0 0 1px rgba(138, 122, 176, 0.38);
+  }
+  @keyframes rowFlash {
+    0%   { background-color: rgba(138, 122, 176, 0.30); }
+    100% { background-color: rgba(138, 122, 176, 0.13); }
+  }
+  .row.flash .body { animation: rowFlash 620ms var(--ease); }
+
+  /* the whole-document target has no row of its own — it lights the tags */
+  #doc.lit-doc .tagline { color: #c4b6e2; }
+  #doc.lit-doc { transition: none; }
+
+  /* the working shimmer, on the row the active request is editing */
+  @keyframes shimmer {
+    from { background-position: -130% 0; }
+    to   { background-position: 230% 0; }
+  }
+  .row.work .body {
+    background-image: linear-gradient(100deg,
+      rgba(138, 122, 176, 0) 22%,
+      rgba(138, 122, 176, 0.19) 46%,
+      rgba(138, 122, 176, 0.05) 58%,
+      rgba(138, 122, 176, 0) 76%);
+    background-size: 230% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  /* =================================================================
+     THE DOCK — plain furniture, the mode's absence
+     ================================================================= */
+  #dock {
+    position: fixed;
+    right: var(--dock-gap);
+    top: var(--top);
+    bottom: 0;
+    width: var(--dock);
+    overflow: hidden;
+    opacity: 1;
+    transition: opacity 200ms ease 60ms;
+  }
+  body.mode-annotate #dock {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 130ms ease;
+  }
+  .zone { border-bottom: 1px solid var(--line-soft); }
+  .zone.tail { border-bottom: 0; }
+  .zhead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 0 7px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+  }
+  .zsp { flex: 1; }
+  .zbody { padding-bottom: 12px; }
+  .zact {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+  }
+  .zact:hover { color: var(--am-lit); }
+  .aname { color: var(--fg); }
+  .amodel { color: var(--muted); font-size: 11px; }
+  .adesc { color: var(--faint); font-size: 11px; line-height: 1.6; margin-top: 4px; }
+  .vitem {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 4px 0 4px 12px;
+    border-left: 1px solid transparent;
+  }
+  .vitem:hover { color: var(--fg); }
+  .vitem.active { color: var(--bright); border-left-color: var(--accent); }
+  .vitem .vsp { flex: 1; }
+  .vitem .vt { color: var(--faint); font-size: 10px; letter-spacing: 0.04em; }
+  .oitem {
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 1px 0 1px 12px;
+    border-left: 1px solid transparent;
+  }
+  .oitem:hover { color: var(--fg); }
+  .oitem.active { color: var(--fg); border-left-color: var(--accent); }
+  .rrow {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 3px 0;
+    color: var(--muted);
+  }
+  .rrow .ra { flex: 0 0 auto; color: var(--fg); font-size: 11px; }
+  .rrow .rt {
+    flex: 1; min-width: 0; font-size: 11px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .rrow .rs { flex: 0 0 auto; color: var(--faint); font-size: 10px; letter-spacing: 0.06em; }
+
+  /* =================================================================
+     THE FLOATING PANEL — off the edge, over the document
+     ================================================================= */
+  #panel {
+    position: fixed;
+    top: 50%;
+    right: 4vw;
+    transform: translateY(-50%) scale(0.985);
+    width: var(--panel-w);
+    height: var(--panel-h);
+    min-height: 420px;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(138, 122, 176, 0.24);
+    border-radius: 10px;
+    /* translucent, not opaque: the prompt keeps reading through the glass */
+    background: rgba(26, 28, 31, 0.72);
+    -webkit-backdrop-filter: blur(13px) saturate(1.25);
+    backdrop-filter: blur(13px) saturate(1.25);
+    box-shadow:
+      0 28px 70px -18px rgba(0, 0, 0, 0.72),
+      0 6px 20px -8px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 170ms ease, transform 220ms var(--ease), visibility 0s linear 220ms;
+  }
+  body.mode-annotate #panel {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(-50%) scale(1);
+    transition: opacity 200ms ease 40ms, transform 260ms var(--ease), visibility 0s;
+  }
+  /* once dragged, the panel owns its own coordinates */
+  #panel.moved, body.mode-annotate #panel.moved { transform: none; }
+
+  /* a hairline of the hue along the top, so the float reads as the mode */
+  #panel::before {
+    content: "";
+    position: absolute;
+    left: 14px; right: 14px; top: -1px;
+    height: 1px;
+    background: linear-gradient(90deg,
+      rgba(138, 122, 176, 0) 0%,
+      rgba(138, 122, 176, 0.55) 22%,
+      rgba(138, 122, 176, 0.55) 78%,
+      rgba(138, 122, 176, 0) 100%);
+    pointer-events: none;
+  }
+
+  /* ---------- header: also the drag handle ---------- */
+  .phead {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 12px 16px 11px;
+    border-bottom: 1px solid var(--am-line);
+    font-size: 10px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    color: var(--am-lit);
+    cursor: grab;
+    user-select: none;
+  }
+  .phead:active { cursor: grabbing; }
+  .phead .hdot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--am);
+    animation: breathe 2.6s ease-in-out infinite;
+  }
+  .phead .hsp { flex: 1; }
+  .phead .grip {
+    display: flex;
+    gap: 3px;
+    opacity: 0.28;
+    transition: opacity 140ms ease;
+  }
+  .phead:hover .grip { opacity: 0.6; }
+  .phead .grip i {
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--am-lit);
+  }
+  .pdone {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    padding: 1px 9px 2px;
+    cursor: pointer;
+  }
+  .pdone:hover { color: var(--bright); background: rgba(255, 255, 255, 0.05); }
+  .pdone .xk { margin-right: 4px; color: var(--faint); }
+
+  #plist {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 8px 12px;
+  }
+
+  /* ---------- section headers inside the panel ---------- */
+  .lhead {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 8px 7px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--am-dim);
+  }
+  .lhead .lsp { flex: 1; }
+  .qapply {
+    flex: 0 0 auto;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    color: var(--am-lit);
+    border: 1px solid var(--am-line);
+    border-radius: 3px;
+    padding: 1px 11px 2px;
+    background: rgba(138, 122, 176, 0.09);
+    transition: color 120ms ease, background 120ms ease;
+  }
+  .qapply:hover { color: var(--bright); background: rgba(138, 122, 176, 0.2); }
+
+  /* ---------- the annotation cards ---------- */
+  .card {
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    padding: 9px 10px 10px 12px;
+    border-radius: 5px;
+    border-left: 1px solid transparent;
+    transition: background 140ms ease, border-color 140ms ease;
+  }
+  .card + .card { margin-top: 2px; }
+  .card:hover { background: rgba(255, 255, 255, 0.028); border-left-color: var(--am-dim); }
+  .card.on {
+    border-left-color: var(--am);
+    background: rgba(138, 122, 176, 0.07);
+  }
+  .cline { display: flex; align-items: baseline; gap: 8px; }
+  .card .ca { flex: 0 0 auto; color: var(--bright); font-size: 12px; letter-spacing: 0.04em; }
+  .card .carr { color: var(--faint); font-size: 11px; }
+  .card .cnode {
+    color: var(--am-lit);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card .csp { flex: 1; }
+  .card .cst {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .card .cst.act { color: var(--am-lit); }
+  .cnote {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--fg);
+    padding: 3px 0 0 1px;
+  }
+  .card.on .cnote { color: var(--bright); }
+  .cmeta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 6px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--faint);
+  }
+  .tchip {
+    border: 1px solid var(--am-line);
+    border-radius: 3px;
+    padding: 0 6px 1px;
+    color: var(--am-lit);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+  }
+  .wchip {
+    border: 1px solid rgba(184, 137, 74, 0.42);
+    border-radius: 3px;
+    padding: 0 6px 1px;
+    color: var(--open);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    background: rgba(184, 137, 74, 0.07);
+  }
+
+  /* the shimmer bar — the active card's progress, no spinner anywhere */
+  .bar {
+    position: relative;
+    height: 2px;
+    margin: 9px 0 7px;
+    border-radius: 2px;
+    background: rgba(138, 122, 176, 0.14);
+    overflow: hidden;
+  }
+  .bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+      rgba(138, 122, 176, 0) 0%,
+      rgba(173, 157, 208, 0.9) 45%,
+      rgba(138, 122, 176, 0) 100%);
+    background-size: 42% 100%;
+    background-repeat: no-repeat;
+    animation: barSlide 1.55s cubic-bezier(0.4, 0, 0.35, 1) infinite;
+  }
+  @keyframes barSlide {
+    from { background-position: -45% 0; }
+    to   { background-position: 145% 0; }
+  }
+
+  /* the inline reply, inside the active card */
+  .creply {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 4px;
+    padding: 3px 0 4px;
+    border-bottom: 1px solid var(--am-line);
+  }
+  .creply .cq { flex: 0 0 auto; color: var(--am-dim); font-size: 11px; }
+  .creply input {
+    flex: 1;
+    min-width: 0;
+    color: var(--bright);
+    font-size: 12px;
+    outline: none;
+  }
+  .creply input::placeholder { color: var(--faint); }
+  .creply:focus-within { border-bottom-color: var(--am); }
+  .creply .ck { flex: 0 0 auto; color: var(--faint); font-size: 10px; letter-spacing: 0.05em; }
+
+  /* the working ellipsis */
+  .ell { letter-spacing: 0.06em; }
+  .ell i { font-style: normal; opacity: 0.18; animation: ellip 1.25s linear infinite; }
+  .ell i:nth-child(2) { animation-delay: 0.2s; }
+  .ell i:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes ellip {
+    0%, 62%, 100% { opacity: 0.18; }
+    28%           { opacity: 1; }
+  }
+
+  /* ---------- RECORDS — one line until asked ---------- */
+  #recHead {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    text-align: left;
+    padding: 13px 8px 8px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--am-dim);
+    border-top: 1px solid rgba(138, 122, 176, 0.14);
+    margin-top: 10px;
+    cursor: pointer;
+    transition: color 140ms ease;
+  }
+  #recHead:hover { color: var(--am-lit); }
+  #recHead .tally { letter-spacing: 0.04em; text-transform: none; color: var(--muted); }
+  #recHead .tally .ok { color: var(--add); }
+  #recHead .tally .no { color: var(--faint); }
+  #recHead .lsp { flex: 1; }
+  #recHead .rc { font-size: 9px; transition: transform 150ms var(--ease); }
+  #recHead.open .rc { transform: rotate(90deg); }
+  #recBody { display: none; padding-bottom: 4px; }
+  #recBody.open { display: block; animation: fadeIn 220ms var(--ease) both; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .rec {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 4px 10px 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: var(--muted);
+  }
+  .rec:hover { background: rgba(255, 255, 255, 0.026); }
+  .rec .rmk { flex: 0 0 auto; color: var(--add); font-size: 11px; }
+  .rec.no .rmk { color: var(--faint); }
+  .rec .rca { flex: 0 0 auto; color: var(--fg); }
+  .rec .rsep { color: var(--faint); }
+  .rec .rnode { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rec .rsp { flex: 1; }
+  .rec .rst { flex: 0 0 auto; color: var(--faint); font-size: 11px; }
+
+  /* ---------- the composer, pinned to the panel's bottom edge ---------- */
+  .pfoot {
+    flex: 0 0 auto;
+    padding: 9px 16px 11px;
+    border-top: 1px solid var(--am-line);
+    background: rgba(20, 22, 25, 0.42);
+    border-radius: 0 0 9px 9px;
+  }
+  .pfoot .frow { display: flex; align-items: flex-end; gap: 10px; }
+  #compose {
+    flex: 1;
+    min-width: 0;
+    min-height: 22px;
+    max-height: 96px;
+    resize: none;
+    color: var(--bright);
+    font-size: 13px;
+    line-height: 1.55;
+    padding: 2px 0 3px;
+    outline: none;
+    overflow-y: auto;
+  }
+  #compose::placeholder { color: var(--faint); }
+  .queuebtn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--am-lit);
+    border: 1px solid var(--am-line);
+    border-radius: 3px;
+    padding: 2px 10px 3px;
+    background: rgba(138, 122, 176, 0.09);
+    transition: color 120ms ease, background 120ms ease;
+  }
+  .queuebtn:hover { color: var(--bright); background: rgba(138, 122, 176, 0.2); }
+  .queuebtn .qk { font-size: 10px; color: var(--am-dim); }
+  .fhint {
+    padding-top: 6px;
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- corners ---------- */
+  #status {
+    position: fixed;
+    right: var(--dock-gap);
+    bottom: 9px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    pointer-events: none;
+    user-select: none;
+    z-index: 8;
+  }
+  #stamp {
+    position: fixed;
+    left: 14px;
+    bottom: 9px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    pointer-events: none;
+    user-select: none;
+    z-index: 8;
+  }
+
+  /* ---------- narrow: the float has nowhere to float ---------- */
+  @media (max-width: 1100px) {
+    #panel {
+      right: 16px;
+      left: 16px;
+      width: auto;
+      height: 86vh;
+    }
+    body:not(.mode-annotate) #stage { padding-right: 0; }
+    #dock { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #24262a; border-radius: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body class="mode-annotate">
+
+<div id="edge"></div>
+<div id="chip"><span id="chipDot"></span><span>annotating &mdash; esc to finish</span></div>
+
+<main id="stage">
+  <div id="doc">
+    <div id="title">whiteboard-editor &middot; <b>system</b> &middot; 1,144 tokens</div>
+
+    <section class="sec" data-sec="purpose">
+      <div class="tagline">&lt;<span class="itag">purpose</span>&gt;</div>
+
+      <div class="row para" data-node="node-purpose-identity">
+        <span class="gut">+</span>
+        <span class="body"><span class="tx">You edit the operator-scoped part of a shared whiteboard &mdash; the region <span class="var">{{operator}}</span> owns &mdash; on behalf of the person driving that region.</span></span>
+      </div>
+
+      <div class="row spacer"></div>
+
+      <div class="row" data-node="node-purpose-frame-live">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">&ndash;</span><span class="tx">The board is live: other operators write to their own regions while you work, and you never see a still picture of it.</span></span>
+      </div>
+      <div class="row" data-node="node-purpose-frame-scope">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">&ndash;</span><span class="tx">Your scope is one region. Cards outside it are readable context and are never editable, no matter what a request asks for.</span></span>
+      </div>
+      <div class="row" data-node="node-purpose-frame-staged">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">&ndash;</span><span class="tx">Your edits are staged proposals for the operator to review, and nothing lands on the board until they accept it.</span></span>
+      </div>
+    </section>
+
+    <section class="sec" data-sec="state_structure">
+      <div class="tagline">&lt;<span class="itag">state_structure</span>&gt;</div>
+
+      <div class="row para" data-node="node-state-intro">
+        <span class="gut">+</span>
+        <span class="body"><span class="tx">Every turn carries a snapshot of the board under <span class="tool">&lt;board_state&gt;</span>. The keys that matter:</span></span>
+      </div>
+
+      <div class="row spacer"></div>
+
+      <div class="row" data-node="node-state-board">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">&ndash;</span><span class="kk">board_id</span><span class="tx">the board this turn is about, stable for the life of the session.</span></span>
+      </div>
+      <div class="row" data-node="node-state-region">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">&ndash;</span><span class="kk">region</span><span class="tx">the operator&rsquo;s slice: its bounds, its cards, and the revision the slice is at.</span></span>
+      </div>
+
+      <!-- the pinned target: R1 is running against this row -->
+      <div class="row tgt work" data-node="node-state-text-renders">
+        <span class="gut pinned">R1</span>
+        <span class="body"><span class="mk">&ndash;</span><span class="kk">cards[].text</span><span class="tx">the literal characters an operator typed, which the board keeps separate from <span class="kk" style="flex:none">cards[].render</span> &mdash; the laid-out shape the canvas draws for that text &mdash; because a render can be stale while its text is current and a request that says &ldquo;the card&rdquo; may mean either one.</span></span>
+      </div>
+
+      <div class="row" data-node="node-state-cursors">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">&ndash;</span><span class="kk">cursors</span><span class="tx">who else is in the board right now and where they are pointing.</span></span>
+      </div>
+      <div class="row" data-node="node-state-pending">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">&ndash;</span><span class="kk">pending_ops</span><span class="tx">operations accepted by the server but not yet reflected in this snapshot.</span></span>
+      </div>
+
+      <div class="row spacer"></div>
+
+      <div class="row para" data-node="node-state-fresh">
+        <span class="gut">+</span>
+        <span class="body"><span class="tx">The snapshot is your starting picture, never your last word: <span class="tool">read_board</span> returns the region as it stands now, revision included, whenever the picture might have moved under you.</span></span>
+      </div>
+    </section>
+
+    <section class="sec" data-sec="workflow">
+      <div class="tagline">&lt;<span class="itag">workflow</span>&gt;</div>
+
+      <!-- R2's target -->
+      <div class="row para" data-node="node-workflow-intro">
+        <span class="gut">+</span>
+        <span class="body"><span class="tx">The following steps describe, in order, the way that you should generally go about handling the set of requests that have been given to you in a turn.</span></span>
+      </div>
+
+      <div class="row spacer"></div>
+
+      <div class="row" data-node="node-workflow-read">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">1.</span><span class="tx">Read the whole queue before touching a card, because requests overlap and two of them can name the same card by different words.</span></span>
+      </div>
+      <div class="row sub" data-node="node-workflow-read-collide">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">&middot;</span><span class="tx">When requests collide, work them in alias order and name the interaction in each resolution.</span></span>
+      </div>
+      <div class="row" data-node="node-workflow-plan">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">2.</span><span class="tx">Plan each request against the region as it stands, confirming with <span class="tool">read_board</span> when the snapshot leaves doubt.</span></span>
+      </div>
+      <div class="row" data-node="node-workflow-propose">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">3.</span><span class="tx">Propose exactly one operation set per request with <span class="tool">propose_ops</span>, tagged to that request&rsquo;s alias.</span></span>
+      </div>
+      <div class="row sub" data-node="node-workflow-propose-nochange">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">&middot;</span><span class="tx">A request needing no change gets no operation set &mdash; it gets a resolution.</span></span>
+      </div>
+      <div class="row" data-node="node-workflow-resolve">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">4.</span><span class="tx">Resolve every request individually with <span class="tool">resolve_request</span>: done with a short note of what changed, or declined with the reason.</span></span>
+      </div>
+      <div class="row" data-node="node-workflow-ask">
+        <span class="gut">+</span>
+        <span class="body"><span class="mk">5.</span><span class="tx">When a request is ambiguous, open the question on its thread with <span class="tool">reply_request</span> and keep working the others &mdash; the run never stalls waiting for an answer.</span></span>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- the plain dock: what the margin holds when the mode is off -->
+<aside id="dock">
+  <div class="zone">
+    <div class="zhead"><span>Agent</span></div>
+    <div class="zbody">
+      <div class="aname">whiteboard-editor</div>
+      <div class="amodel">claude-fable-5</div>
+      <div class="adesc">Edits the operator-scoped region of a shared whiteboard.</div>
+    </div>
+  </div>
+  <div class="zone">
+    <div class="zhead"><span>View</span></div>
+    <div class="zbody">
+      <button class="vitem active"><span>system</span><span class="vsp"></span><span class="vt">1,144</span></button>
+      <button class="vitem"><span>context</span><span class="vsp"></span><span class="vt">3,410</span></button>
+      <button class="vitem"><span>state</span><span class="vsp"></span><span class="vt">487</span></button>
+    </div>
+  </div>
+  <div class="zone">
+    <div class="zhead"><span>Outline</span></div>
+    <div class="zbody">
+      <button class="oitem active">purpose</button>
+      <button class="oitem">state_structure</button>
+      <button class="oitem">workflow</button>
+    </div>
+  </div>
+  <div class="zone tail">
+    <div class="zhead">
+      <span>Requests</span><span class="zsp"></span>
+      <button class="zact" id="goAnnot">annotate</button>
+    </div>
+    <div class="zbody">
+      <button class="rrow"><span class="ra">R2</span><span class="rt">tighten this line</span><span class="rs">queued</span></button>
+      <button class="rrow"><span class="ra">R3</span><span class="rt">operator vs user &mdash; pick one</span><span class="rs">queued</span></button>
+    </div>
+  </div>
+</aside>
+
+<!-- =====================================================================
+     THE FLOAT
+     ===================================================================== -->
+<aside id="panel">
+  <div class="phead" id="phead">
+    <span class="hdot"></span><span>Annotations</span>
+    <span class="grip"><i></i><i></i><i></i></span>
+    <span class="hsp"></span>
+    <button class="pdone" id="done"><span class="xk">&#10005;</span>done</button>
+  </div>
+
+  <div id="plist">
+
+    <div class="lhead"><span>Active</span><span class="lsp"></span><span style="letter-spacing:.04em;text-transform:none;color:var(--faint)">run now</span></div>
+
+    <div class="card on" data-target="node-state-text-renders">
+      <div class="cline">
+        <span class="ca">R1</span>
+        <span class="carr">&rarr;</span>
+        <span class="cnode">state_structure &middot; cards[].text</span>
+        <span class="csp"></span>
+        <span class="cst act">running<span class="ell"><i>.</i><i>.</i><i>.</i></span></span>
+      </div>
+      <div class="cnote">split the sentence about text vs renders</div>
+      <div class="bar"></div>
+      <div class="cmeta">
+        <span class="tchip">run now</span>
+        <span>reply to steer &mdash; it re-runs and re-stages</span>
+      </div>
+      <label class="creply">
+        <span class="cq">&rsaquo;</span>
+        <input type="text" spellcheck="false" placeholder="keep the render clause, cut the aside" />
+        <span class="ck">&crarr;</span>
+      </label>
+    </div>
+
+    <div class="lhead">
+      <span>Queue &middot; 2</span><span class="lsp"></span>
+      <button class="qapply" id="apply">Apply</button>
+    </div>
+
+    <div class="card" data-target="node-workflow-intro">
+      <div class="cline">
+        <span class="ca">R2</span>
+        <span class="carr">&rarr;</span>
+        <span class="cnode">workflow &middot; workflow-intro</span>
+        <span class="csp"></span>
+        <span class="cst">queued &middot; next</span>
+      </div>
+      <div class="cnote">tighten this line &mdash; it takes 30 words to say &ldquo;work the queue in order&rdquo;</div>
+      <div class="cmeta">
+        <span class="wchip">target changed since filed</span>
+        <span>filed 3:31 PM</span>
+      </div>
+    </div>
+
+    <div class="card" data-target="document">
+      <div class="cline">
+        <span class="ca">R3</span>
+        <span class="carr">&rarr;</span>
+        <span class="cnode">whole document</span>
+        <span class="csp"></span>
+        <span class="cst">queued</span>
+      </div>
+      <div class="cnote">&ldquo;operator&rdquo; and &ldquo;user&rdquo; both appear &mdash; pick one term and hold it everywhere</div>
+      <div class="cmeta">
+        <span class="tchip">document</span>
+        <span>filed 3:38 PM</span>
+      </div>
+    </div>
+
+    <button id="recHead">
+      <span>Records</span>
+      <span class="tally"><span class="ok">&#10003;1</span> <span class="no">&#10005;1</span></span>
+      <span class="lsp"></span>
+      <span class="rc">&#9656;</span>
+    </button>
+    <div id="recBody">
+      <button class="rec" data-target="node-purpose-frame-scope">
+        <span class="rmk">&#10003;</span>
+        <span class="rca">R0</span><span class="rsep">&middot;</span>
+        <span class="rnode">purpose-frame-scope</span>
+        <span class="rsp"></span>
+        <span class="rst">3:22 PM</span>
+      </button>
+      <button class="rec no" data-target="node-state-pending">
+        <span class="rmk">&#10005;</span>
+        <span class="rca">R-1</span><span class="rsep">&middot;</span>
+        <span class="rnode">pending_ops &mdash; declined, already says it</span>
+        <span class="rsp"></span>
+        <span class="rst">3:14 PM</span>
+      </button>
+    </div>
+
+  </div>
+
+  <div class="pfoot">
+    <div class="frow">
+      <textarea id="compose" rows="1" spellcheck="false"
+        placeholder="Note the whole document&hellip;"></textarea>
+      <button class="queuebtn" id="queue">Queue<span class="qk">&crarr;</span></button>
+    </div>
+    <div class="fhint">Enter queues a document note &middot; Esc to finish</div>
+  </div>
+</aside>
+
+<div id="status">saved &middot; 2s ago</div>
+<div id="stamp">N &mdash; floating centre panel</div>
+
+<script>
+"use strict";
+
+const body    = document.body;
+const doc     = document.getElementById("doc");
+const panel   = document.getElementById("panel");
+const phead   = document.getElementById("phead");
+const plist   = document.getElementById("plist");
+const recHead = document.getElementById("recHead");
+const recBody = document.getElementById("recBody");
+const stage   = document.getElementById("stage");
+const compose = document.getElementById("compose");
+
+/* ---------------------------------------------------------------------
+   The panel points back at the document. Hovering a card lights its
+   target row behind the glass; clicking scrolls it clear of the panel
+   and flashes it once.
+   --------------------------------------------------------------------- */
+function rowFor(id) {
+  return id && id !== "document"
+    ? doc.querySelector('[data-node="' + id + '"]')
+    : null;
+}
+
+function light(id, on) {
+  if (id === "document") {
+    doc.classList.toggle("lit-doc", on);
+    return;
+  }
+  const row = rowFor(id);
+  if (row) row.classList.toggle("lit", on);
+}
+
+function clearLights() {
+  doc.classList.remove("lit-doc");
+  doc.querySelectorAll(".row.lit").forEach((r) => r.classList.remove("lit"));
+}
+
+function reveal(id) {
+  if (id === "document") {
+    doc.classList.add("lit-doc");
+    setTimeout(() => doc.classList.remove("lit-doc"), 700);
+    return;
+  }
+  const row = rowFor(id);
+  if (!row) return;
+
+  /* keep the revealed row in the readable band left of the float */
+  const r  = row.getBoundingClientRect();
+  const vh = window.innerHeight;
+  if (r.top < 90 || r.bottom > vh - 90) {
+    stage.scrollBy({ top: r.top - vh * 0.34, behavior: "smooth" });
+  }
+  row.classList.add("lit", "flash");
+  setTimeout(() => row.classList.remove("flash"), 640);
+}
+
+plist.querySelectorAll("[data-target]").forEach((el) => {
+  const id = el.getAttribute("data-target");
+  el.addEventListener("mouseenter", () => light(id, true));
+  el.addEventListener("mouseleave", () => {
+    /* the pinned active target keeps its ring; the transient light goes */
+    if (!el.classList.contains("on")) light(id, false);
+  });
+  el.addEventListener("click", (e) => {
+    if (e.target.closest("input, textarea, button.qapply")) return;
+    clearLights();
+    reveal(id);
+  });
+});
+
+/* ---------------------------------------------------------------------
+   RECORDS: one line until asked
+   --------------------------------------------------------------------- */
+recHead.addEventListener("click", () => {
+  const open = recBody.classList.toggle("open");
+  recHead.classList.toggle("open", open);
+});
+
+/* ---------------------------------------------------------------------
+   The header is a drag handle. The float is furniture you can shove.
+   --------------------------------------------------------------------- */
+let drag = null;
+
+phead.addEventListener("pointerdown", (e) => {
+  if (e.target.closest("button")) return;
+  const r = panel.getBoundingClientRect();
+  if (!panel.classList.contains("moved")) {
+    panel.classList.add("moved");
+    panel.style.left = r.left + "px";
+    panel.style.top  = r.top + "px";
+    panel.style.right = "auto";
+  }
+  drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+  phead.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+
+phead.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  const pad = 8;
+  const w = panel.offsetWidth, h = panel.offsetHeight;
+  const x = Math.min(Math.max(e.clientX - drag.dx, pad), window.innerWidth  - w - pad);
+  const y = Math.min(Math.max(e.clientY - drag.dy, pad), window.innerHeight - h - pad);
+  panel.style.left = x + "px";
+  panel.style.top  = y + "px";
+});
+
+["pointerup", "pointercancel"].forEach((ev) =>
+  phead.addEventListener(ev, () => { drag = null; })
+);
+
+/* double-click the handle to put it back where it belongs */
+phead.addEventListener("dblclick", (e) => {
+  if (e.target.closest("button")) return;
+  panel.classList.remove("moved");
+  panel.style.left = panel.style.top = "";
+  panel.style.right = "";
+});
+
+/* ---------------------------------------------------------------------
+   Leaving and re-entering the mode
+   --------------------------------------------------------------------- */
+function leave() {
+  if (!body.classList.contains("mode-annotate")) return;
+  clearLights();
+  body.classList.remove("mode-annotate");
+  document.getElementById("status").textContent = "saved · just now";
+}
+
+function enter() {
+  body.classList.add("mode-annotate");
+  document.getElementById("status").textContent = "saved · 2s ago";
+}
+
+document.getElementById("done").addEventListener("click", leave);
+document.getElementById("goAnnot").addEventListener("click", enter);
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { leave(); return; }
+  if (e.key.toLowerCase() === "a" && !e.metaKey && !e.ctrlKey &&
+      !body.classList.contains("mode-annotate") &&
+      !/input|textarea/i.test(document.activeElement.tagName)) {
+    enter();
+  }
+});
+
+/* ---------------------------------------------------------------------
+   The composer: grows to its text, Enter queues (mock — the card is
+   drawn, nothing runs, which is the point of a queued note).
+   --------------------------------------------------------------------- */
+function autoGrow() {
+  compose.style.height = "auto";
+  compose.style.height = Math.min(compose.scrollHeight, 96) + "px";
+}
+compose.addEventListener("input", autoGrow);
+
+let alias = 4;
+function queueNote() {
+  const text = compose.value.trim();
+  if (!text) return;
+  const card = document.createElement("div");
+  card.className = "card";
+  card.setAttribute("data-target", "document");
+  card.innerHTML =
+    '<div class="cline"><span class="ca">R' + alias + '</span>' +
+    '<span class="carr">&rarr;</span>' +
+    '<span class="cnode">whole document</span>' +
+    '<span class="csp"></span><span class="cst">queued</span></div>' +
+    '<div class="cnote"></div>' +
+    '<div class="cmeta"><span class="tchip">document</span><span>just now</span></div>';
+  card.querySelector(".cnote").textContent = text;
+  alias += 1;
+
+  recHead.parentNode.insertBefore(card, recHead);
+  const head = plist.querySelectorAll(".lhead")[1];
+  head.firstElementChild.textContent =
+    "Queue · " + plist.querySelectorAll('.card:not(.on)').length;
+
+  card.addEventListener("mouseenter", () => light("document", true));
+  card.addEventListener("mouseleave", () => light("document", false));
+
+  compose.value = "";
+  autoGrow();
+}
+
+document.getElementById("queue").addEventListener("click", queueNote);
+compose.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); queueNote(); }
+});
+
+/* Apply is narration only in this mockup: the queue header reports the
+   serial position the way the real run does. */
+document.getElementById("apply").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const cards = [...plist.querySelectorAll(".card:not(.on)")];
+  cards.forEach((c, i) => {
+    const st = c.querySelector(".cst");
+    st.textContent = i === 0 ? "processing" : "queued · #" + (i + 1);
+    st.classList.toggle("act", i === 0);
+  });
+});
+</script>
+</body>
+</html>

@@ -395,10 +395,10 @@ describe("PromptInlineLab inline thread bars", () => {
 describe("PromptInlineLab session rail", () => {
 	function openRail(session: PromptEditSession) {
 		renderLab(session);
-		fireEvent.click(screen.getByRole("button", { name: "Annotate" }));
+		fireEvent.click(screen.getByRole("button", { name: "AI" }));
 	}
 
-	test("annotate mode shows slim session cards instead of the annotation pane", () => {
+	test("the queue holds live notes and closed loops file as compact records", () => {
 		openRail({
 			requests: [
 				request("R1", "applied", { body: "Make it concrete." }),
@@ -409,15 +409,28 @@ describe("PromptInlineLab session rail", () => {
 			onUndo: () => {},
 		});
 
-		expect(screen.getByText("Requests")).toBeTruthy();
+		// The annotate panel owns the sidebar; the session rail mounts inside it.
+		expect(document.querySelector("[data-lab-annotate-panel]")).toBeTruthy();
 		expect(document.querySelector('[data-plannotator="root"]')).toBeNull();
-		const cardR1 = document.querySelector(
-			'[data-prompt-session-card="R1"]',
+
+		// R1's loop is closed — it leaves a record, not a card.
+		expect(document.querySelector('[data-prompt-session-card="R1"]')).toBeNull();
+		const recordR1 = document.querySelector(
+			'[data-prompt-session-record="R1"]',
 		)!;
-		expect(cardR1.textContent).toContain("Make it concrete.");
-		expect(cardR1.textContent).toContain("applied");
-		// Slim cards: no quote, no target label.
-		expect(cardR1.textContent).not.toContain("Node paragraph-1");
+		expect(recordR1.textContent).toContain("R1");
+		expect(recordR1.textContent).toContain("paragraph-1");
+		expect(recordR1.getAttribute("data-prompt-record-state")).toBe("resolved");
+
+		// R2 is still live, so it is a card — with its note as reading matter.
+		const cardR2 = document.querySelector(
+			'[data-prompt-session-card="R2"]',
+		)!;
+		expect(cardR2.textContent).toContain("Reconcile with autosave.");
+		// A staged proposal shows as staged, whatever the request status says.
+		expect(
+			document.querySelector('[data-prompt-card-state="R2"]')!.textContent,
+		).toBe("staged");
 	});
 
 	test("Undo fires with the applied alias and only the most recent applied is enabled", () => {

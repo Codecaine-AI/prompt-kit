@@ -1,0 +1,2135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt lab layout — L, annotate conversation</title>
+<style>
+  /* -----------------------------------------------------------------
+     Variant L — "one conversation".
+
+     F settled the frame: no top chrome, a centred document, a 280px
+     dock of furniture in the right margin. J then asked what the dock's
+     slot becomes when you start working with the agent, and answered
+     with a queue: cards for requests, a thread unfolding under the one
+     you picked.
+
+     L answers the same question differently, and the difference is the
+     whole variant. Annotate mode is not a queue you service. It is a
+     chat with the prompt editor that happens to be standing in front of
+     your document. There is one scroll, in time order: your messages,
+     the agent's replies, and annotations as pinned moments inside that
+     same stream. Nothing is "selected"; you are just further down the
+     conversation than you were a minute ago.
+
+     Three consequences, and they are the point:
+
+       1. An annotation is a message with structure. It lands in the
+          stream where you filed it — alias, target, note, in a bordered
+          card — and the agent answers it below, like anything else you
+          said. Resolved exchanges collapse to a single ✓ line you can
+          open again, so history stays without staying loud.
+
+       2. Processing is a thing you watch happen in the stream. A typing
+          bubble, then a reply arriving word by word, then a staging
+          line of its own — staging change on node-rules-voice… — and
+          only then the diff, rendered right inside the agent's message
+          with Accept · Discard under it. The header keeps a live status
+          word: idle / thinking / staging.
+
+       3. The stream and the document are one surface. Hover any
+          annotation and its row rings in the document. Click it and the
+          document goes there. Accept a diff in the chat and the row
+          changes under you while the exchange folds into one ✓ line.
+
+     The mode is unmistakable while you are in it: the dock is gone
+     entirely, the document dims a step and lights a rail down its edge,
+     every row grows a hover +, and the corner says so. ✕ done or Esc
+     puts the furniture back and leaves the open count behind.
+     ----------------------------------------------------------------- */
+  :root {
+    --bg: #161719;
+    --surface: #1c1e21;
+    --line: #26282c;
+    --line-soft: #202226;
+    --fg: #c9ccd1;
+    --bright: #dde0e5;
+    --muted: #6b7078;
+    --faint: #4c5158;
+    --tag: #8f7bb5;
+    --tag-dim: #6f6189;
+    --var: #d0a45c;
+    --accent: #8fa2bd;
+    --open: #b8894a;
+    --reply: #6f8299;
+    --done: #4c5158;
+    --add: #6f9a6a;
+    --del: #a8635f;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+    --col: 96ch;       /* the document column */
+    --dock: 280px;     /* furniture in the margin */
+    --chat: 340px;     /* the conversation is wider than the furniture */
+    --dock-gap: 20px;
+    --top: 30px;       /* the one vertical rhythm: doc top == dock top */
+    --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --dur: 200ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, textarea {
+    font-family: inherit;
+    font-size: 12px;
+    background: transparent;
+    color: inherit;
+    border: 0;
+    padding: 0;
+    line-height: inherit;
+  }
+  button { cursor: pointer; }
+  ::selection { background: rgba(143, 162, 189, 0.22); }
+
+  /* ---------- document surface — nothing above it ---------- */
+  #main { flex: 1; min-height: 0; display: flex; }
+  #stage {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  #doc {
+    max-width: var(--col);
+    margin: 0 auto;
+    padding: var(--top) 0 46vh;
+    transform: translateX(0);
+    transition: transform var(--dur) var(--ease);
+  }
+  #doc.annot { transform: translateX(-44px); }
+
+  #note {
+    color: var(--faint);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    padding-left: 2ch;
+    margin-bottom: 22px;
+  }
+  #note:empty { display: none; }
+
+  .sec { margin-bottom: 30px; }
+  .sec:last-child { margin-bottom: 0; }
+  .tagline {
+    color: var(--tag);
+    white-space: pre;
+    padding-left: 2ch;
+    transition: opacity var(--dur) var(--ease);
+  }
+
+  .row {
+    display: flex;
+    align-items: baseline;
+    transition: opacity var(--dur) var(--ease);
+  }
+  .row .body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    padding: 1px 10px 1px 6px;
+    transition: background 130ms ease, box-shadow 130ms ease;
+  }
+  .row.sub .body { padding-left: calc(3ch + 6px); }
+  .row.para .body { margin-top: 8px; margin-bottom: 8px; }
+  .row .mk { color: var(--muted); flex: 0 0 auto; }
+  .row .kk { color: var(--muted); flex: 0 0 21ch; }
+  .row .tx { color: var(--fg); min-width: 0; }
+  .row.spacer { height: 10px; }
+
+  #doc.live .row .body { cursor: pointer; }
+  #doc.live .row:hover .body { background: rgba(255, 255, 255, 0.028); }
+  .row.sel .body {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .row.flash .body {
+    background: rgba(184, 137, 74, 0.14);
+    box-shadow: inset 2px 0 0 var(--open);
+  }
+
+  /* =================================================================
+     THE MODE, written on the document itself
+     ================================================================= */
+  #doc.annot .tagline { opacity: 0.42; }
+  #doc.annot .row { opacity: 0.7; }
+  #doc.annot .row.tgt,
+  #doc.annot .row.dold,
+  #doc.annot .row.dnew { opacity: 1; }
+  #doc.annot .row.tgt .body { box-shadow: inset 2px 0 0 rgba(184, 137, 74, 0.45); }
+
+  /* the link-up: hovering a card in the stream rings its row here */
+  .row.ring .body {
+    background: rgba(184, 137, 74, 0.055);
+    box-shadow: inset 0 0 0 1px rgba(184, 137, 74, 0.34);
+  }
+
+  /* the mode's rail: the column edge, lit, for as long as you are in it */
+  #sections { transition: box-shadow var(--dur) var(--ease); }
+  #doc.annot #sections { box-shadow: inset 1px 0 0 rgba(184, 137, 74, 0.28); }
+
+  /* the gutter is a mode affordance here, not permanent furniture */
+  .gut {
+    flex: 0 0 2ch;
+    align-self: flex-start;
+    color: var(--faint);
+    text-align: left;
+    opacity: 0;
+    transition: opacity 110ms ease, color 110ms ease;
+  }
+  .row.para .gut { margin-top: 8px; }
+  #doc.annot .row:hover .gut { opacity: 1; }
+  #doc.annot .gut:hover { color: var(--open); }
+  #doc.annot .gut.pinned { opacity: 1; color: var(--open); font-size: 9px; }
+
+  .gut.mark { opacity: 1; }
+  .gut.mark::before {
+    content: "";
+    display: block;
+    width: 2px;
+    height: 1.55em;
+    margin-left: 3px;
+    background: var(--del);
+    opacity: 0.6;
+  }
+  .gut.mark.add::before { background: var(--add); }
+
+  .rchip {
+    flex: 0 0 auto;
+    color: var(--open);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+  .rchip.staged { color: var(--add); }
+
+  .itag { color: var(--tag-dim); }
+  .var { color: var(--var); }
+  .tool { color: #949aa4; }
+
+  /* ---------- the staged diff, in place on the row ---------- */
+  .row.dold .body { background: rgba(168, 99, 95, 0.075); }
+  .row.dnew .body { background: rgba(111, 154, 106, 0.075); }
+  .row.dold .tx { color: #9a8f8f; text-decoration: line-through; text-decoration-color: rgba(168, 99, 95, 0.55); }
+  .row.dold .mk, .row.dnew .mk { color: var(--faint); }
+  .row.para.dold .body { margin-bottom: 0; }
+  .row.para.dnew .body { margin-top: 0; }
+  .row.dold .gut, .row.dnew .gut { opacity: 1; }
+
+  @keyframes diffIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .row.din { animation: diffIn 240ms var(--ease) both; }
+  .row.din.dnew { animation-delay: 110ms; }
+
+  /* ---------- the inline note composer, in the document ---------- */
+  .composer { padding: 6px 0 8px calc(2ch + 6px); }
+  .cin {
+    display: block;
+    width: min(62ch, 100%);
+    color: var(--bright);
+    border-bottom: 1px solid var(--line);
+    padding: 2px 0 4px;
+    outline: none;
+    font-size: 13px;
+  }
+  .cin::placeholder { color: var(--faint); }
+  .cin:focus { border-bottom-color: #3d4148; }
+  .chint {
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    margin-top: 4px;
+  }
+
+  /* ---------- the dock: furniture in the right margin ---------- */
+  #dock {
+    position: fixed;
+    right: var(--dock-gap);
+    top: var(--top);
+    width: var(--dock);
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 46px;
+    transform: translateX(0);
+    opacity: 1;
+    transition: transform var(--dur) var(--ease), opacity 150ms ease;
+  }
+  #dock.slid {
+    transform: translateX(30px);
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: transform var(--dur) var(--ease), opacity 130ms ease,
+                visibility 0s linear var(--dur);
+  }
+  .zone { border-bottom: 1px solid var(--line-soft); }
+  .zone.gone { display: none; }
+  .zone.tail { border-bottom: 0; }
+  .zhead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 0 7px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    cursor: default;
+  }
+  .zhead.tog { cursor: pointer; }
+  .zhead.tog:hover { color: var(--muted); }
+  .zsp { flex: 1; }
+  .zhead .zn { letter-spacing: 0.06em; }
+  .zhead .zc { font-size: 9px; transition: transform 120ms ease; }
+  .zone.closed .zc { transform: rotate(-90deg); }
+  .zbody { padding-bottom: 12px; }
+  .zone.closed .zbody { display: none; }
+
+  /* the one action that lives in a zone header: the door into the mode */
+  .zsep { color: var(--line); margin: 0 -3px 0 -2px; }
+  .zact {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+    cursor: pointer;
+  }
+  .zact:hover { color: var(--open); }
+
+  /* agent */
+  .aname { color: var(--fg); }
+  .amodel { color: var(--muted); font-size: 11px; }
+  .adesc { color: var(--faint); font-size: 11px; line-height: 1.6; margin-top: 4px; }
+
+  /* ---------- view switcher ---------- */
+  #zView .zbody { padding-bottom: 14px; }
+  .vitem {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    padding: 5px 0 5px 12px;
+    border-left: 1px solid transparent;
+  }
+  .vitem:hover { color: var(--fg); }
+  .vitem.active { color: var(--bright); border-left-color: var(--accent); }
+  .vitem .vn { flex: 0 0 auto; }
+  .vitem .vt {
+    flex: 0 0 auto;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .vitem.active .vt { color: var(--muted); }
+
+  /* outline */
+  .oitem {
+    display: block;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 1px 0 1px 12px;
+    border-left: 1px solid transparent;
+  }
+  .oitem:hover { color: var(--fg); }
+  .oitem.active { color: var(--fg); border-left-color: var(--accent); }
+
+  /* fixture */
+  .fitem {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 2px 0 2px 12px;
+    border-left: 1px solid transparent;
+  }
+  .fitem:hover { color: var(--fg); }
+  .fitem.active { color: var(--fg); border-left-color: var(--accent); }
+  .fitem .fn { color: var(--faint); font-size: 10px; }
+
+  /* details */
+  .drow { display: flex; gap: 8px; font-size: 11px; line-height: 1.7; }
+  .drow .dk { color: var(--faint); flex: 0 0 42px; }
+  .drow .dv { color: var(--muted); min-width: 0; overflow-wrap: break-word; }
+  .drow .dv.id { color: var(--fg); word-break: break-all; }
+
+  /* requests, in the dock — what the conversation left behind */
+  .rrow {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 3px 0;
+    color: var(--muted);
+  }
+  .rrow:hover { color: var(--fg); }
+  .rdot {
+    flex: 0 0 6px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--done);
+    align-self: center;
+  }
+  .rdot.open { background: var(--open); }
+  .rdot.replied { background: var(--reply); }
+  .rdot.staged { background: var(--add); }
+  .rrow .ra { flex: 0 0 auto; color: var(--fg); font-size: 11px; }
+  .rrow .rt {
+    flex: 1;
+    min-width: 0;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* history */
+  .hrow { display: flex; align-items: baseline; gap: 8px; font-size: 11px; color: var(--muted); padding: 2px 0; }
+  .hrow.past .hh { color: var(--muted); }
+  .hrow .hh { color: var(--fg); }
+  .hrow .hsp { flex: 1; }
+  .hrow .ht { color: var(--faint); }
+  .hrow .hcur { color: var(--faint); font-size: 9px; letter-spacing: 0.1em; }
+
+  /* =================================================================
+     THE CONVERSATION — one panel, one scroll, one time order
+     ================================================================= */
+  #chat {
+    position: fixed;
+    right: var(--dock-gap);
+    top: var(--top);
+    width: var(--chat);
+    bottom: 28px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    transform: translateX(0);
+    opacity: 1;
+    transition: transform var(--dur) var(--ease), opacity var(--dur) ease,
+                width var(--dur) var(--ease);
+  }
+  #chat.off {
+    width: var(--dock);          /* it grows on the way in, shrinks on the way out */
+    transform: translateX(36px);
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition: transform var(--dur) var(--ease), opacity 140ms ease,
+                width var(--dur) var(--ease), visibility 0s linear var(--dur);
+  }
+
+  /* the activity bar: a hairline that runs while the agent is working */
+  #bar {
+    flex: 0 0 auto;
+    position: relative;
+    height: 1px;
+    background: var(--line-soft);
+    overflow: hidden;
+  }
+  #bar::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    height: 1px;
+    width: 38%;
+    background: linear-gradient(90deg,
+      rgba(184, 137, 74, 0) 0%, var(--open) 50%, rgba(184, 137, 74, 0) 100%);
+    opacity: 0;
+    transform: translateX(-100%);
+    transition: opacity 180ms ease;
+  }
+  #bar.work::after {
+    opacity: 0.85;
+    animation: barRun 1.05s linear infinite;
+  }
+  @keyframes barRun {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(305%); }
+  }
+
+  .chead {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding: 10px 0 8px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .chead .cwho {
+    color: var(--open);
+    font-size: 10px;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+  }
+  .cword {
+    flex: 0 0 auto;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    transition: color 160ms ease;
+  }
+  .cword.act { color: var(--open); }
+  .cdone {
+    flex: 0 0 auto;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+  }
+  .cdone:hover { color: var(--bright); }
+  .cdone .xk { margin-right: 3px; }
+
+  #stream {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 0 12px;
+  }
+
+  /* ---------- a message ---------- */
+  .ev { margin-bottom: 13px; }
+  .ev:last-child { margin-bottom: 2px; }
+  .emeta {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .emeta .who { color: var(--muted); }
+  .emeta .who.agent { color: var(--tag-dim); }
+  .esp { flex: 1; }
+  .etext {
+    color: var(--fg);
+    font-size: 11.5px;
+    line-height: 1.65;
+    overflow-wrap: break-word;
+  }
+  .ev.agent .etext { color: var(--muted); }
+  .ev.link { cursor: pointer; }
+  .ev.link:hover .etext { color: var(--fg); }
+
+  .await {
+    color: var(--open);
+    font-size: 9px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    opacity: 0.85;
+    margin-top: 2px;
+  }
+
+  @keyframes caret { 50% { opacity: 0; } }
+  .cur { color: var(--tag-dim); animation: caret 900ms steps(1) infinite; }
+
+  /* ---------- the typing bubble ---------- */
+  .bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid var(--line);
+    padding: 5px 9px;
+    line-height: 1;
+    margin-top: 2px;
+  }
+  .bubble i {
+    display: block;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bdot 1.15s infinite ease-in-out;
+  }
+  .bubble i:nth-child(2) { animation-delay: 0.16s; }
+  .bubble i:nth-child(3) { animation-delay: 0.32s; }
+  @keyframes bdot {
+    0%, 70%, 100% { opacity: 0.25; transform: translateY(0); }
+    35%           { opacity: 1;    transform: translateY(-2px); }
+  }
+
+  /* ---------- an annotation, pinned inline in the stream ---------- */
+  .ncard {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--open);
+    background: rgba(184, 137, 74, 0.03);
+    padding: 5px 9px 6px;
+    margin-bottom: 13px;
+    transition: background 130ms ease, border-color 130ms ease;
+  }
+  .ncard:hover {
+    background: rgba(184, 137, 74, 0.075);
+    border-color: #34373c;
+    border-left-color: var(--open);
+  }
+  .ncard.staged { border-left-color: var(--add); }
+  .nhead {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  .nhead .na {
+    color: var(--open);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: none;
+  }
+  .ncard.staged .nhead .na { color: var(--add); }
+  .nsp { flex: 1; }
+  .ntgt {
+    display: block;
+    color: var(--faint);
+    font-size: 9px;
+    letter-spacing: 0.09em;
+    line-height: 1.6;
+  }
+  .ntgt .nk { opacity: 0.7; }
+  .nnote {
+    display: block;
+    color: var(--bright);
+    font-size: 11.5px;
+    line-height: 1.55;
+    margin-top: 1px;
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .ncard.fresh { animation: cardIn 220ms var(--ease) both; }
+
+  /* ---------- a step the agent is taking ---------- */
+  .step {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--faint);
+    margin-bottom: 13px;
+  }
+  .step .sq { flex: 0 0 auto; color: var(--open); font-size: 9px; }
+  .step.done .sq { color: var(--add); }
+  @keyframes shim {
+    from { background-position: 200% 0; }
+    to   { background-position: 0 0; }
+  }
+  .step.run .st {
+    background: linear-gradient(90deg, #43474d 0%, #9aa1ab 50%, #43474d 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shim 1.15s linear infinite;
+  }
+
+  /* ---------- the diff, inside the agent's message ---------- */
+  .dprev {
+    margin-top: 6px;
+    border-left: 1px solid var(--line);
+    padding-left: 9px;
+  }
+  .dl { display: flex; gap: 6px; font-size: 10.5px; line-height: 1.5; }
+  .dl .dm { flex: 0 0 auto; }
+  .dl .dt { min-width: 0; overflow-wrap: break-word; }
+  .dl.del { color: #93898a; }
+  .dl.del .dm { color: var(--del); }
+  .dl.del .dt { text-decoration: line-through; text-decoration-color: rgba(168, 99, 95, 0.45); }
+  .dl.add { color: var(--fg); }
+  .dl.add .dm { color: var(--add); }
+  .dprev.dead { opacity: 0.42; }
+  .dwhere {
+    color: var(--faint);
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+  .dacts {
+    margin-top: 5px;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+  }
+  .dact { font-size: 10px; letter-spacing: 0.06em; color: var(--muted); }
+  .dact.acc { color: var(--add); }
+  .dact.acc:hover { color: #8bb886; }
+  .dact.dis:hover { color: var(--del); }
+  .ddot { color: var(--faint); margin: 0 5px; }
+  .dgone { color: var(--faint); font-size: 10px; letter-spacing: 0.06em; margin-top: 5px; }
+
+  /* ---------- a resolved exchange, folded to one line ---------- */
+  .rline {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    width: 100%;
+    text-align: left;
+    font-size: 10.5px;
+    letter-spacing: 0.03em;
+    color: var(--muted);
+    padding: 2px 0;
+    margin-bottom: 13px;
+  }
+  .rline:hover { color: var(--fg); }
+  .rline .rk { flex: 0 0 auto; color: var(--add); }
+  .rline .rsum {
+    flex: 1;
+    min-width: 0;
+    color: var(--faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rline .rcar { flex: 0 0 auto; color: var(--faint); font-size: 8px; }
+  .rfold {
+    margin: -7px 0 13px 8px;
+    padding-left: 11px;
+    border-left: 1px solid var(--line);
+  }
+  .rfold .ev { margin-bottom: 9px; }
+  .rfold .etext { color: var(--muted); font-size: 11px; }
+
+  /* ---------- the composer, always at the bottom ---------- */
+  .cfoot { flex: 0 0 auto; border-top: 1px solid var(--line-soft); }
+  .cin2 {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    max-height: 30vh;
+    resize: none;
+    color: var(--bright);
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 8px 0 2px;
+    outline: none;
+    overflow-y: auto;
+  }
+  .cin2::placeholder { color: var(--faint); }
+  .chint2 {
+    color: var(--faint);
+    font-size: 9px;
+    letter-spacing: 0.09em;
+    padding-bottom: 4px;
+  }
+
+  /* ---------- corners ---------- */
+  #status {
+    position: fixed;
+    right: var(--dock-gap);
+    bottom: 9px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    pointer-events: none;
+    user-select: none;
+    transition: color 220ms ease;
+  }
+  #status.say { color: var(--muted); }
+  #status.mode { color: var(--open); }
+  #stamp {
+    position: fixed;
+    left: 14px;
+    bottom: 9px;
+    color: var(--faint);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* ---------- fallback: too narrow to keep a panel in a margin ---------- */
+  @media (max-width: 1499px) {
+    #dock {
+      position: static;
+      flex: 0 0 260px;
+      width: 260px;
+      border-left: 1px solid var(--line);
+      background: var(--surface);
+      padding: 0 14px 40px;
+      overflow-y: auto;
+      transform: none;
+    }
+    #dock.slid { display: none; }
+    #chat {
+      position: static;
+      flex: 0 0 320px;
+      width: 320px;
+      border-left: 1px solid var(--line);
+      background: var(--surface);
+      padding: 0 14px 10px;
+      transform: none;
+    }
+    #chat.off { display: none; }
+    #doc { margin: 0; padding-left: max(2ch, 20px); padding-right: 24px; }
+    #doc.annot { transform: none; }
+    #status { right: 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: #24262a; }
+  ::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<div id="main">
+  <main id="stage">
+    <div id="doc">
+      <div id="note"></div>
+      <div id="sections"></div>
+    </div>
+  </main>
+
+  <aside id="dock">
+    <div class="zone" id="zAgent">
+      <div class="zhead"><span>Agent</span></div>
+      <div class="zbody">
+        <div class="aname">prompt-editor</div>
+        <div class="amodel">claude-fable-5</div>
+        <div class="adesc">Edits an agent&rsquo;s system prompt on behalf of the human who owns it.</div>
+      </div>
+    </div>
+
+    <div class="zone" id="zView">
+      <div class="zhead"><span>View</span></div>
+      <div class="zbody" id="viewBody"></div>
+    </div>
+
+    <div class="zone gone" id="zFixture">
+      <div class="zhead"><span>Fixture</span></div>
+      <div class="zbody" id="fixtureBody"></div>
+    </div>
+
+    <div class="zone gone" id="zOutline">
+      <div class="zhead"><span>Outline</span></div>
+      <div class="zbody" id="outlineBody"></div>
+    </div>
+
+    <div class="zone gone" id="zDetails">
+      <div class="zhead"><span>Details</span></div>
+      <div class="zbody" id="detailsBody"></div>
+    </div>
+
+    <div class="zone gone" id="zRequests">
+      <div class="zhead">
+        <span>Requests</span><span class="zsp"></span>
+        <span class="zn" id="reqCount"></span><span class="zsep">&middot;</span>
+        <button class="zact" id="goAnnot">annotate</button>
+      </div>
+      <div class="zbody" id="requestsBody"></div>
+    </div>
+
+    <div class="zone gone closed" id="zHistory">
+      <button class="zhead tog" id="histHead">
+        <span>History</span><span class="zsp"></span><span class="zc">&#9662;</span>
+      </button>
+      <div class="zbody" id="historyBody"></div>
+    </div>
+  </aside>
+
+  <!-- the dock's slot, taken over by one conversation for as long as you annotate -->
+  <aside id="chat" class="off">
+    <div id="bar"></div>
+    <div class="chead">
+      <span class="cwho">prompt-editor</span>
+      <span class="cword" id="chatWord">idle</span>
+      <span class="zsp"></span>
+      <button class="cdone" id="chatDone"><span class="xk">&#10005;</span>done</button>
+    </div>
+    <div id="stream"></div>
+    <div class="cfoot">
+      <textarea class="cin2" id="chatMsg" rows="2" spellcheck="false"
+        placeholder="Message the agent &mdash; Enter to send"></textarea>
+      <div class="chint2">Enter to send &middot; Esc to leave</div>
+    </div>
+  </aside>
+</div>
+
+<div id="status"></div>
+<div id="stamp">L &mdash; conversation</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Documents. Node ids are the real ones from the prompt-editor
+   prompt.json, so DETAILS and every annotation target say something true.
+   ===================================================================== */
+
+const SYSTEM = [
+  { tag: "purpose", rows: [
+    { id: "node-purpose-identity", kind: "paragraph", type: "para",
+      diag: "1 variable · {{targetAgent}} declared · D1 resolved here",
+      text: "You are the prompt editor for {{targetAgent}} — you change that agent's system prompt on behalf of the human who owns it." },
+    { spacer: true },
+    { id: "node-purpose-frame-ast", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-purpose-frame · 1 of 3",
+      text: "The prompt is a structured document — a tree of identified nodes — and its rendered markdown is a projection you never touch." },
+    { id: "node-purpose-frame-requests", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-purpose-frame · 2 of 3",
+      text: "Work arrives as requests: human notes pinned to a node or range of that document, queued in the <requests> block." },
+    { id: "node-purpose-frame-staged", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-purpose-frame · 3 of 3",
+      text: "Your edits are staged proposals for human review, and nothing lands in the live prompt until the human accepts it." },
+  ]},
+  { tag: "inputs", rows: [
+    { id: "node-inputs-intro", kind: "paragraph", type: "para",
+      diag: "leads bulletList node-inputs-blocks",
+      text: "Your standing context carries three blocks:" },
+    { spacer: true },
+    { id: "node-inputs-authoring", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-inputs-blocks · 1 of 3",
+      text: "<prompt_kit_authoring> — the house reference for how prompts here are built: the document model, the editing method, and the anti-patterns to avoid." },
+    { id: "node-inputs-target", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-inputs-blocks · 2 of 3 · 1 child",
+      text: "<target_prompt> — the target agent's current prompt rendered with every node's id stamped in place, under the base hash your transactions build on." },
+    { id: "node-inputs-target-ids", kind: "listItem", type: "sub",
+      diag: "nested under node-inputs-target",
+      text: "Those ids are the only addresses your edits use — quote them exactly." },
+    { id: "node-inputs-requests", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-inputs-blocks · 3 of 3 · 2 children",
+      text: "<requests> — the open queue, one entry per request." },
+    { id: "node-inputs-requests-entry", kind: "listItem", type: "sub",
+      diag: "nested under node-inputs-requests",
+      text: "Each entry carries its alias (R1, R2 …), its target node or range, the human's note, and the thread so far." },
+    { id: "node-inputs-requests-doclevel", kind: "listItem", type: "sub",
+      diag: "nested under node-inputs-requests",
+      text: "An entry whose target is the document itself is a message about the whole prompt, not about one node." },
+    { spacer: true },
+    { id: "node-inputs-fresh", kind: "paragraph", type: "para",
+      diag: "closes <inputs> · references tool read_prompt",
+      text: "The stamped render is your starting picture; read_prompt returns the live document — ids and hash included — whenever you need to confirm the tree or see it after a proposal." },
+  ]},
+  { tag: "editing_rules", rows: [
+    { id: "node-rules-structural", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 1 of 6",
+      text: "Propose structure, never prose: an edit is a transaction of id-relative steps against the document tree, and rewritten markdown is never an edit." },
+    { id: "node-rules-ids", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 2 of 6",
+      text: "Preserve node ids: change nodes in place and leave untouched nodes untouched, because ids are how requests, diffs, and undo stay anchored." },
+    { id: "node-rules-minimal", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 3 of 6",
+      text: "Prefer the minimal transaction: the fewest steps that satisfy the request, touching nothing the request did not name." },
+    { id: "node-rules-valid", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 4 of 6",
+      text: "Keep the document valid: every variable placeholder it references must stay declared, and a proposal that fails validation bounces straight back to you — repair it and propose again." },
+    { id: "node-rules-voice", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 5 of 6 · R1 open",
+      text: "Respect the target prompt's voice: match its tense, person, and section idiom, and change style only when a note asks for style." },
+    { id: "node-rules-terse", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-rules · 6 of 6",
+      text: "Write tersely: notes, replies, and resolutions are plain language, a sentence or two, never a restatement of a diff the human can already see." },
+  ]},
+  { tag: "workflow", rows: [
+    { id: "node-workflow-read", kind: "listItem", type: "step", n: 1,
+      diag: "in orderedList node-workflow-steps · 1 of 6 · 1 child",
+      text: "Read the whole queue before editing anything, because requests can overlap, conflict, or share nodes." },
+    { id: "node-workflow-read-collide", kind: "listItem", type: "sub",
+      diag: "nested under node-workflow-read",
+      text: "When requests collide, work them in alias order and name the interaction in each resolution." },
+    { id: "node-workflow-plan", kind: "listItem", type: "step", n: 2,
+      diag: "in orderedList node-workflow-steps · 2 of 6",
+      text: "Plan each request against the current tree, confirming targets with read_prompt when the stamped render leaves doubt." },
+    { id: "node-workflow-propose", kind: "listItem", type: "step", n: 3,
+      diag: "in orderedList node-workflow-steps · 3 of 6 · 1 child",
+      text: "Propose exactly one transaction per request with propose_transaction, tagged to that request's alias." },
+    { id: "node-workflow-propose-nochange", kind: "listItem", type: "sub",
+      diag: "nested under node-workflow-propose",
+      text: "A request needing no change gets no transaction — it gets a resolution." },
+    { id: "node-workflow-resolve", kind: "listItem", type: "step", n: 4,
+      diag: "in orderedList node-workflow-steps · 4 of 6 · 1 child",
+      text: "Resolve every request individually with resolve_request: done with a short note of what changed, or declined with the reason." },
+    { id: "node-workflow-resolve-nolump", kind: "listItem", type: "sub",
+      diag: "nested under node-workflow-resolve",
+      text: "A batch never resolves as a lump, and the session ends with no request still open that you could have disposed." },
+    { id: "node-workflow-ask", kind: "listItem", type: "step", n: 5,
+      diag: "in orderedList node-workflow-steps · 5 of 6",
+      text: "When a request is ambiguous, open the question with reply_request on that request's thread and keep working the others — the run never stalls waiting for an answer." },
+    { id: "node-workflow-doclevel", kind: "listItem", type: "step", n: 6,
+      diag: "in orderedList node-workflow-steps · 6 of 6",
+      text: "Work a document-level request by pinning placed notes with add_note at the specific nodes it implicates, then propose and resolve as usual." },
+  ]},
+  { tag: "tools", rows: [
+    { id: "node-tools-intro", kind: "paragraph", type: "para",
+      diag: "leads bulletList node-tools-list",
+      text: "Five tools carry the loop; the semantics that matter:" },
+    { spacer: true },
+    { id: "node-tools-read", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 1 of 5",
+      text: "read_prompt — the target document as it stands now, with node ids and the current hash." },
+    { id: "node-tools-propose", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 2 of 5",
+      text: "propose_transaction — one request's edit as ordered id-relative steps, compiled and validated by the service and staged as a diff for the human." },
+    { id: "node-tools-resolve", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 3 of 5",
+      text: "resolve_request — the only way a request leaves the queue: done or declined, always with a note." },
+    { id: "node-tools-reply", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 4 of 5",
+      text: "reply_request — adds to one request's thread, for questions and brief progress notes." },
+    { id: "node-tools-note", kind: "listItem", type: "bullet",
+      diag: "in bulletList node-tools-list · 5 of 5",
+      text: "add_note — pins a new note of yours at a node, opening an inline thread the human sees." },
+  ]},
+];
+
+const CONTEXT = [
+  { tag: "prompt_kit_authoring", rows: [
+    { id: "ctx-authoring-src", kind: "context block", type: "para",
+      text: "source: prompt-kit/docs/authoring.md · 1,412 tokens · pinned for every run" },
+    { id: "ctx-authoring-model", kind: "context bullet", type: "bullet",
+      text: "The document model: sections hold paragraphs, bullet lists, and ordered lists; every node carries a stable id." },
+    { id: "ctx-authoring-method", kind: "context bullet", type: "bullet",
+      text: "The editing method: address a node by id, apply a step, let the service compile and validate the transaction." },
+    { id: "ctx-authoring-anti", kind: "context bullet", type: "bullet",
+      text: "Anti-patterns: rewriting whole sections, inventing ids, and shipping prose where a step was asked for." },
+  ]},
+  { tag: "target_prompt", rows: [
+    { id: "ctx-target-head", kind: "context block", type: "para",
+      text: "agent: layout-editor · base hash pk1-7f1bc2eb · 38 nodes stamped" },
+    { id: "ctx-target-n1", kind: "stamped node", type: "sub",
+      text: "[node-purpose-identity] You are the layout editor for {{surface}} — you shape how the surface reads." },
+    { id: "ctx-target-n2", kind: "stamped node", type: "sub",
+      text: "[node-purpose-frame-ast] Each surface makes intelligence legible through a typed artifact." },
+    { id: "ctx-target-n3", kind: "stamped node", type: "sub",
+      text: "[node-constraints-live] Apply edits to the live document immediately; the registry reloads the prompt on save." },
+    { id: "ctx-target-more", kind: "elision", type: "para",
+      text: "… 35 more stamped nodes elided in this preview" },
+  ]},
+  { tag: "requests", rows: [
+    { id: "ctx-req-d1", kind: "request entry", type: "bullet",
+      text: "D1 · target document · \"the purpose opener buries the lede.\" · resolved 3:26 PM · pk1-3c91d0aa" },
+    { id: "ctx-req-r1", kind: "request entry", type: "bullet",
+      text: "R1 · target node-rules-voice · \"'section idiom' is vague — define it or cut it.\" · thread: 1 reply · question open" },
+  ]},
+];
+
+const FIXTURES = [
+  { name: "empty-run", note: "0 turns", tok: "412",
+    v: { turn: "0", open: "0", resolved: "0", staged: "0", tools: "—", started: "—",
+         last: "session initialized", assembled: "4,634 (2.3%)" } },
+  { name: "mid-session", note: "4 turns", tok: "471",
+    v: { turn: "4", open: "1", resolved: "1", staged: "0",
+         tools: "read_prompt, propose_transaction, reply_request",
+         started: "3:22 PM", last: "R1 · question opened", assembled: "5,207 (2.6%)" } },
+  { name: "long-run", note: "11 turns", tok: "531",
+    v: { turn: "11", open: "1", resolved: "6", staged: "0",
+         tools: "read_prompt, propose_transaction, resolve_request, reply_request, add_note",
+         started: "2:58 PM", last: "R6 · resolved (declined)", assembled: "6,910 (3.5%)" } },
+];
+
+function buildState(fixture) {
+  const f = FIXTURES.find((x) => x.name === fixture) || FIXTURES[0];
+  const v = f.v;
+  return [
+    { tag: "session_state", rows: [
+      { id: "state-fixture", kind: "state key", type: "kv", k: "fixture", v: f.name },
+      { id: "state-agent", kind: "state key", type: "kv", k: "target_agent", v: "layout-editor" },
+      { id: "state-hash", kind: "state key", type: "kv", k: "base_hash", v: "pk1-7f1bc2eb" },
+      { id: "state-turn", kind: "state key", type: "kv", k: "turn", v: v.turn },
+      { id: "state-open", kind: "state key", type: "kv", k: "requests_open", v: v.open },
+      { id: "state-resolved", kind: "state key", type: "kv", k: "requests_resolved", v: v.resolved },
+      { id: "state-staged", kind: "state key", type: "kv", k: "proposals_staged", v: v.staged },
+      { id: "state-tools", kind: "state key", type: "kv", k: "tools_called", v: v.tools },
+      { id: "state-started", kind: "state key", type: "kv", k: "started_at", v: v.started },
+      { id: "state-last", kind: "state key", type: "kv", k: "last_event", v: v.last },
+    ]},
+    { tag: "budget", rows: [
+      { id: "budget-window", kind: "state key", type: "kv", k: "context_window", v: "200,000" },
+      { id: "budget-used", kind: "state key", type: "kv", k: "assembled", v: v.assembled },
+      { id: "budget-cache", kind: "state key", type: "kv", k: "cached_prefix", v: "prompt_kit_authoring" },
+    ]},
+  ];
+}
+
+const NOTE = {
+  system: "",
+  context: "assembled at run time · read-only",
+  state: "fixture snapshot · read-only",
+};
+
+const VIEWS = [
+  { id: "system", tok: () => "1,008" },
+  { id: "context", tok: () => "3,214" },
+  { id: "state", tok: () => (FIXTURES.find((f) => f.name === state.fixture) || FIXTURES[0]).tok },
+];
+
+/* ---------------------------------------------------------------------
+   Annotations. In this variant an annotation is not a queue entry with a
+   thread of its own — it is one moment in the single conversation, and
+   this record is only what the document and the dock need to know.
+   --------------------------------------------------------------------- */
+const ANN = [
+  { alias: "R1", node: "node-rules-voice", status: "open",
+    note: "“section idiom” is vague — define it or cut it.",
+    diff: null,
+    /* what the agent does once you answer the question it asked */
+    stage: {
+      say: "Naming it, then. Rewrote the clause to say what a section idiom is instead of pointing at the phrase — three things an editor can actually check.",
+      new: "Respect the target prompt's voice: match its tense, person, and the shape its sections already use — heading style, list style, sentence length — and change style only when a note asks for style.",
+    },
+  },
+];
+
+const HISTORY = [
+  { hash: "pk1-7f1bc2eb", when: "3:42 PM", cur: true },
+  { hash: "pk1-3c91d0aa", when: "3:26 PM", cur: false },
+  { hash: "pk1-9e42b7f1", when: "yesterday", cur: false },
+  { hash: "pk1-5b17c44e", when: "3d ago", cur: false },
+];
+
+/* ---------------------------------------------------------------------
+   THE STREAM. One list, time order, five kinds of moment:
+
+     msg       you or the agent said something
+     note      an annotation was filed, with its target
+     step      the agent is doing a thing (staging a change)
+     think     the agent is composing a reply
+     resolved  an exchange that is over, folded to one line
+
+   Seeded mid-conversation on purpose: a document-level note already
+   resolved and folded away, the open R1 card, and an agent question
+   sitting at the bottom with nobody having answered it yet.
+   --------------------------------------------------------------------- */
+let evSeq = 0;
+
+const STREAM = [
+  { kind: "msg", who: "you", t: "3:22 PM",
+    text: "Doing a pass on this prompt before it ships. Read it end to end first." },
+  { kind: "msg", who: "agent", t: "3:23 PM",
+    text: "Read it. Two places look loose to me: the voice rule in <editing_rules>, and step 5 of the workflow, which tells you to ask a question and never says what happens if nobody answers." },
+  { kind: "resolved", alias: "D1", hash: "pk1-3c91d0aa",
+    summary: "document note · purpose opener",
+    fold: [
+      { who: "you", t: "3:24 PM",
+        text: "[D1 · document] The purpose section spends three framing bullets before it says what you actually do." },
+      { who: "agent", t: "3:25 PM",
+        text: "Agreed. Pinned a note on node-purpose-identity and moved the identity sentence ahead of the frame bullets — the frame itself is untouched." },
+      { who: "agent", t: "3:26 PM",
+        text: "Resolved: accepted and saved as pk1-3c91d0aa." },
+    ] },
+  { kind: "note", alias: "R1", node: "node-rules-voice", t: "3:36 PM",
+    text: "“section idiom” is vague — define it or cut it." },
+  { kind: "msg", who: "agent", t: "3:37 PM", node: "node-rules-voice", ask: true,
+    text: "Two ways to take that. Name the thing — heading style, list style, sentence length — or cut the clause and let “tense, person” carry the rule. Which do you want?" },
+];
+
+STREAM.forEach((e) => { e.id = ++evSeq; });
+
+/* =====================================================================
+   State
+   ===================================================================== */
+const state = {
+  view: "system",
+  fixture: "empty-run",
+  sections: [],
+  active: null,        /* outline section in view */
+  selected: null,      /* the row DETAILS is reporting on */
+  historyOpen: false,
+  composer: null,      /* the inline note composer, by node id */
+  nextAlias: 2,
+  annot: false,        /* the mode */
+  phase: "idle",       /* idle · thinking · staging — the header's word */
+  fresh: null,         /* the alias whose diff should animate onto its row */
+  freshNote: null,     /* the note card that just landed in the stream */
+  open: {},            /* resolved lines the reader unfolded again */
+  whisper: null,       /* a line that outranks the usual status */
+};
+
+const $ = (s) => document.querySelector(s);
+const stageEl = $("#stage");
+const docEl = $("#doc");
+const sectionsEl = $("#sections");
+const chatEl = $("#chat");
+const listEl = $("#stream");
+const msgEl = $("#chatMsg");
+const barEl = $("#bar");
+const wordEl = $("#chatWord");
+
+/* =====================================================================
+   Small helpers
+   ===================================================================== */
+function esc(t) {
+  return String(t)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function clock() {
+  const d = new Date();
+  let h = d.getHours();
+  const m = String(d.getMinutes()).padStart(2, "0");
+  const ap = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return h + ":" + m + " " + ap;
+}
+
+function tidy(t) { return String(t).replace(/\s+/g, " ").trim(); }
+
+function trunc(t, n) {
+  const s = tidy(t);
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function shortId(id) { return String(id).replace(/^node-/, ""); }
+
+function annBy(alias) { return ANN.find((a) => a.alias === alias) || null; }
+function liveAnn() { return ANN.filter((a) => a.status !== "resolved"); }
+function openAnn() { return ANN.filter((a) => a.status !== "resolved" && !a.diff); }
+function stagedAnn() { return ANN.filter((a) => a.diff && a.status !== "resolved"); }
+
+/* what the document needs to know: what is pinned on a row, in the mode */
+function annFor(id) {
+  return ANN.filter((a) => a.node === id && a.status !== "resolved" && !a.diff);
+}
+function stagedFor(id) {
+  return ANN.find((a) => a.diff && a.diff.node === id && a.status !== "resolved") || null;
+}
+
+/* =====================================================================
+   Document rendering
+   ===================================================================== */
+const TOOL_RE = /\b(read_prompt|propose_transaction|resolve_request|reply_request|add_note)\b/g;
+
+function highlight(t) {
+  let h = esc(t);
+  h = h.replace(/&lt;(\/?[a-z_][\w_]*)&gt;/g, '<span class="itag">&lt;$1&gt;</span>');
+  h = h.replace(/\{\{([a-zA-Z]+)\}\}/g, '<span class="var">{{$1}}</span>');
+  h = h.replace(TOOL_RE, '<span class="tool">$1</span>');
+  return h;
+}
+
+function innerHtml(r, text, chips) {
+  if (r.type === "kv") {
+    return '<span class="kk">' + esc(r.k) + ':</span>' + chips +
+      '<span class="tx">' + highlight(r.v) + "</span>";
+  }
+  if (r.type === "bullet" || r.type === "sub") {
+    return '<span class="mk">-</span>' + chips + '<span class="tx">' + highlight(text) + "</span>";
+  }
+  if (r.type === "step") {
+    return '<span class="mk">' + r.n + '.</span>' + chips +
+      '<span class="tx">' + highlight(text) + "</span>";
+  }
+  return chips + '<span class="tx">' + highlight(text) + "</span>";
+}
+
+function shellHtml(r, cls, gut, inner) {
+  return '<div class="row ' + r.type + cls + '" data-id="' + r.id +
+    '" data-kind="' + esc(r.kind) + '" data-diag="' + esc(r.diag || "") + '">' +
+    gut + '<div class="body">' + inner + "</div></div>";
+}
+
+function rowHtml(r, live) {
+  if (r.spacer) return '<div class="row spacer"></div>';
+
+  /* a staged change is a fact of the conversation — it shows on the row */
+  const staged = state.annot && live ? stagedFor(r.id) : null;
+  if (staged) {
+    const fresh = state.fresh === staged.alias ? " din" : "";
+    const oldRow = shellHtml(r, " dold tgt" + fresh,
+      '<span class="gut mark"></span>', innerHtml(r, r.text, ""));
+    const chip = '<span class="rchip staged">' + staged.alias + "</span>";
+    const newRow = shellHtml(r, " dnew tgt" + fresh,
+      '<span class="gut mark add"></span>', innerHtml(r, staged.diff.new, chip));
+    return oldRow + newRow;
+  }
+
+  const pinned = state.annot && live ? annFor(r.id) : [];
+  const gut = live && state.annot
+    ? '<button class="gut' + (pinned.length ? " pinned" : "") + '" data-gut="' + r.id +
+      '" title="' + (pinned.length ? "annotation pinned here" : "annotate this node") + '">' +
+      (pinned.length ? "&#9679;" : "+") + "</button>"
+    : '<span class="gut"></span>';
+
+  const chips = pinned.map((p) => '<span class="rchip">' + p.alias + "</span>").join("");
+  let cls = state.selected === r.id ? " sel" : "";
+  if (pinned.length) cls += " tgt";
+  return shellHtml(r, cls, gut, innerHtml(r, r.text, chips));
+}
+
+function renderDoc(keepScroll) {
+  const live = state.view === "system";
+  const top = keepScroll ? stageEl.scrollTop : 0;
+
+  state.sections = state.view === "system" ? SYSTEM
+    : state.view === "context" ? CONTEXT
+    : buildState(state.fixture);
+
+  docEl.classList.toggle("live", live);
+  docEl.classList.toggle("annot", state.annot && live);
+  $("#note").textContent = NOTE[state.view] || "";
+
+  sectionsEl.innerHTML = state.sections.map((s) =>
+    '<section class="sec" data-tag="' + s.tag + '">' +
+      '<div class="tagline">&lt;' + s.tag + "&gt;</div>" +
+      s.rows.map((r) => rowHtml(r, live)).join("") +
+      '<div class="tagline">&lt;/' + s.tag + "&gt;</div>" +
+    "</section>"
+  ).join("");
+
+  stageEl.scrollTop = top;
+  state.active = null;
+  spy();
+}
+
+function findRow(id) {
+  for (const s of state.sections) {
+    for (const r of s.rows) if (r.id === id) return { sec: s, row: r };
+  }
+  return null;
+}
+
+function rowText(id) {
+  const f = findRow(id);
+  return f ? f.row.text : "";
+}
+
+/* =====================================================================
+   Dock
+   ===================================================================== */
+function show(id, on) {
+  document.getElementById(id).classList.toggle("gone", !on);
+}
+
+function renderDock() {
+  const view = state.view;
+  show("zAgent", true);
+  show("zView", true);
+  show("zFixture", view === "state");
+  show("zOutline", true);
+  show("zDetails", view === "system" && !!state.selected);
+  show("zRequests", view === "system" && ANN.length > 0);
+  show("zHistory", view === "system");
+
+  renderViews();
+  renderOutline();
+  renderFixtures();
+  renderDetails();
+  renderRequests();
+  trimRule();
+}
+
+/* the last visible zone drops its hairline, whatever it happens to be */
+function trimRule() {
+  const zones = [...document.querySelectorAll("#dock .zone")];
+  let last = null;
+  zones.forEach((z) => {
+    z.classList.remove("tail");
+    if (!z.classList.contains("gone")) last = z;
+  });
+  if (last) last.classList.add("tail");
+}
+
+function renderViews() {
+  $("#viewBody").innerHTML = VIEWS.map((v) =>
+    '<button class="vitem' + (v.id === state.view ? " active" : "") +
+    '" data-view="' + v.id + '"><span class="vn">' + v.id + "</span>" +
+    '<span class="zsp"></span><span class="vt">' + v.tok() + "</span></button>"
+  ).join("");
+}
+
+function renderOutline() {
+  $("#outlineBody").innerHTML = state.sections.map((s) =>
+    '<button class="oitem' + (s.tag === state.active ? " active" : "") +
+    '" data-sec="' + s.tag + '">' + s.tag + "</button>"
+  ).join("");
+}
+
+function renderFixtures() {
+  $("#fixtureBody").innerHTML = FIXTURES.map((f) =>
+    '<button class="fitem' + (f.name === state.fixture ? " active" : "") +
+    '" data-fix="' + f.name + '"><span>' + f.name + '</span>' +
+    '<span class="zsp"></span><span class="fn">' + f.note + "</span></button>"
+  ).join("");
+}
+
+function renderDetails() {
+  if (!state.selected) { $("#detailsBody").innerHTML = ""; return; }
+  const found = findRow(state.selected);
+  if (!found) { $("#detailsBody").innerHTML = ""; return; }
+  const r = found.row;
+  $("#detailsBody").innerHTML =
+    '<div class="drow"><span class="dk">id</span><span class="dv id">' + esc(r.id) + "</span></div>" +
+    '<div class="drow"><span class="dk">kind</span><span class="dv">' + esc(r.kind) +
+      " · &lt;" + found.sec.tag + "&gt;</span></div>" +
+    '<div class="drow"><span class="dk">note</span><span class="dv">' + esc(r.diag || "—") + "</span></div>";
+}
+
+function dotClass(a) {
+  if (a.status === "resolved") return "resolved";
+  if (a.diff) return "staged";
+  if (a.status === "replied") return "replied";
+  return "open";
+}
+
+function renderRequests() {
+  const n = liveAnn().length;
+  $("#reqCount").textContent = n + " open";
+  $("#requestsBody").innerHTML = ANN.map((a) =>
+    '<button class="rrow" data-req="' + a.alias + '">' +
+      '<span class="rdot ' + dotClass(a) + '"></span>' +
+      '<span class="ra">' + a.alias + "</span>" +
+      '<span class="rt">' + esc(tidy(a.note)) + "</span>" +
+    "</button>"
+  ).join("");
+}
+
+function renderHistory() {
+  $("#historyBody").innerHTML = HISTORY.map((h) =>
+    '<div class="hrow' + (h.cur ? "" : " past") + '">' +
+      '<span class="hh">' + h.hash + "</span><span class=\"hsp\"></span>" +
+      (h.cur ? '<span class="hcur">CURRENT</span>' : '<span class="ht">' + h.when + "</span>") +
+    "</div>"
+  ).join("");
+}
+
+/* the whisper: the mode, the save, or whatever the session last said */
+function renderStatus() {
+  const el = $("#status");
+  el.classList.remove("say", "mode");
+  if (state.annot) {
+    el.textContent = "annotate mode · esc to leave";
+    el.classList.add("mode");
+    return;
+  }
+  if (state.whisper) {
+    el.textContent = state.whisper;
+    el.classList.add("say");
+    return;
+  }
+  el.textContent = state.view === "system" ? "saved 3:42 PM" : "";
+}
+
+let whisperTimer = null;
+function whisper(text, ms) {
+  state.whisper = text;
+  renderStatus();
+  clearTimeout(whisperTimer);
+  whisperTimer = setTimeout(() => {
+    state.whisper = null;
+    renderStatus();
+  }, ms || 4600);
+}
+
+/* =====================================================================
+   Scroll spy
+   ===================================================================== */
+function spy() {
+  const secs = [...sectionsEl.querySelectorAll(".sec")];
+  if (!secs.length) return;
+  const base = stageEl.getBoundingClientRect().top;
+  let cur = secs[0].dataset.tag;
+  for (const s of secs) {
+    if (s.getBoundingClientRect().top - base <= 110) cur = s.dataset.tag;
+  }
+  if (cur === state.active) return;
+  state.active = cur;
+  document.querySelectorAll(".oitem").forEach((o) =>
+    o.classList.toggle("active", o.dataset.sec === cur));
+}
+
+stageEl.addEventListener("scroll", spy);
+
+function scrollToEl(el, offset) {
+  const top = el.getBoundingClientRect().top - stageEl.getBoundingClientRect().top +
+    stageEl.scrollTop - offset;
+  stageEl.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+}
+
+function scrollToNode(id, offset) {
+  const row = sectionsEl.querySelector('.row[data-id="' + id + '"]');
+  if (row) scrollToEl(row, offset === undefined ? 170 : offset);
+}
+
+function flash(id) {
+  sectionsEl.querySelectorAll('.row[data-id="' + id + '"]').forEach((row) => {
+    row.classList.add("flash");
+    setTimeout(() => row.classList.remove("flash"), 1100);
+  });
+}
+
+/* the link-up: a card in the stream rings its row in the document */
+function ring(id) {
+  sectionsEl.querySelectorAll(".row.ring").forEach((r) => r.classList.remove("ring"));
+  if (!id) return;
+  sectionsEl.querySelectorAll('.row[data-id="' + id + '"]').forEach((r) => r.classList.add("ring"));
+}
+
+/* =====================================================================
+   View switching — from the dock. The mode pins the view to System.
+   ===================================================================== */
+function setView(view) {
+  if (state.view === view) return;
+  if (state.annot && view !== "system") return;
+  state.view = view;
+  state.selected = null;
+  closeComposer();
+  renderDoc(false);
+  renderDock();
+  renderStatus();
+}
+
+$("#viewBody").addEventListener("click", (e) => {
+  const item = e.target.closest(".vitem");
+  if (!item) return;
+  setView(item.dataset.view);
+});
+
+/* =====================================================================
+   Selection · details — outside the mode. Inside it, clicking an
+   annotated row takes the conversation to where that note lives.
+   ===================================================================== */
+sectionsEl.addEventListener("click", (e) => {
+  if (e.target.closest(".gut") || e.target.closest(".composer")) return;
+  if (state.view !== "system") return;
+  const row = e.target.closest(".row");
+  if (!row || !row.dataset.id) return;
+
+  if (state.annot) {
+    const owner = stagedFor(row.dataset.id) || annFor(row.dataset.id)[0];
+    if (owner) scrollStreamTo(owner.alias);
+    return;
+  }
+
+  state.selected = state.selected === row.dataset.id ? null : row.dataset.id;
+  renderDoc(true);
+  renderDock();
+});
+
+/* =====================================================================
+   The gutter + → an inline note → a new moment in the conversation
+   ===================================================================== */
+function closeComposer() {
+  const c = docEl.querySelector(".composer");
+  if (c) c.remove();
+  state.composer = null;
+}
+
+function openComposer(id) {
+  if (!state.annot) return;
+  const row = sectionsEl.querySelector('.row[data-id="' + id + '"]');
+  if (!row) return;
+  closeComposer();
+  state.composer = id;
+
+  const box = document.createElement("div");
+  box.className = "composer";
+  box.innerHTML =
+    '<input class="cin" type="text" placeholder="what should change here?" />' +
+    '<div class="chint">Enter to file &middot; Esc to cancel</div>';
+  row.parentNode.insertBefore(box, row);
+
+  const input = box.querySelector(".cin");
+  input.focus();
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); closeComposer(); return; }
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const note = input.value.trim();
+    if (!note) { closeComposer(); return; }
+    fileNote(id, note);
+  });
+}
+
+sectionsEl.addEventListener("click", (e) => {
+  const gut = e.target.closest(".gut");
+  if (!gut || !gut.dataset.gut) return;
+  e.stopPropagation();
+  if (state.composer === gut.dataset.gut) { closeComposer(); return; }
+  openComposer(gut.dataset.gut);
+});
+
+function fileNote(id, note) {
+  const alias = "R" + state.nextAlias++;
+  const a = { alias: alias, node: id, status: "open", note: note, diff: null };
+  ANN.push(a);
+  closeComposer();
+
+  const ev = push({ kind: "note", alias: alias, node: id, t: clock(), text: note });
+  state.freshNote = ev.id;
+  setTimeout(() => { state.freshNote = null; }, 600);
+
+  renderDoc(true);
+  renderStream();
+  renderDock();
+  scrollEnd();
+  flash(id);
+
+  agentTurn(a, null);   /* filing is a beginning, not an ending */
+}
+
+/* =====================================================================
+   THE STREAM
+   ===================================================================== */
+function push(ev) {
+  ev.id = ++evSeq;
+  STREAM.push(ev);
+  return ev;
+}
+
+function drop(ev) {
+  const i = STREAM.indexOf(ev);
+  if (i >= 0) STREAM.splice(i, 1);
+}
+
+/* two or three lines, red then green — enough to judge, not to read twice */
+function diffLines(d) {
+  const nw = tidy(d.new);
+  const brk = nw.length > 78 ? nw.slice(0, 78).lastIndexOf(" ") : -1;
+  const first = brk > 40 ? nw.slice(0, brk) : trunc(nw, 78);
+  const rest = brk > 40 ? nw.slice(brk + 1) : "";
+  let out =
+    '<div class="dl del"><span class="dm">-</span><span class="dt">' +
+      esc(trunc(d.old, 78)) + "</span></div>" +
+    '<div class="dl add"><span class="dm">+</span><span class="dt">' +
+      esc(first) + "</span></div>";
+  if (rest) {
+    out += '<div class="dl add"><span class="dm">&nbsp;</span><span class="dt">' +
+      esc(trunc(rest, 74)) + "</span></div>";
+  }
+  return out;
+}
+
+function diffBlock(ev) {
+  if (!ev.diff) return "";
+  const a = annBy(ev.diff);
+  if (!a) return "";
+
+  /* discarded: the proposal stays visible, greyed, so the stream keeps
+     a record of what was tried */
+  if (ev.dead) {
+    return '<div class="dprev dead">' + diffLines(ev.was) + "</div>" +
+      '<div class="dgone">discarded &middot; nothing landed on ' + esc(shortId(ev.node)) + "</div>";
+  }
+  if (!a.diff) return "";
+
+  return '<div class="dprev">' + diffLines(a.diff) + "</div>" +
+    '<div class="dwhere">staged on ' + esc(shortId(a.diff.node)) + " &middot; 1 step</div>" +
+    '<div class="dacts">' +
+      '<button class="dact acc" data-acc="' + a.alias + '">Accept</button>' +
+      '<span class="ddot">&middot;</span>' +
+      '<button class="dact dis" data-dis="' + a.alias + '">Discard</button>' +
+    "</div>";
+}
+
+function msgHtml(ev, plain) {
+  const linkable = !plain && !!ev.node;
+  /* a message that carries nothing but a diff drops the empty text line */
+  const body = ev.text || ev.streaming
+    ? '<div class="etext"><span data-txt="' + ev.id + '">' + esc(ev.text) + "</span>" +
+        (ev.streaming ? '<span class="cur">&#9615;</span>' : "") + "</div>"
+    : "";
+  return '<div class="ev msg ' + ev.who + (linkable ? " link" : "") + '" data-ev="' + ev.id + '"' +
+      (linkable ? ' data-node="' + ev.node + '"' : "") + ">" +
+    '<div class="emeta"><span class="who ' + ev.who + '">' + ev.who + "</span>" +
+      '<span class="esp"></span><span>' + esc(ev.t) + "</span></div>" +
+    body +
+    (ev.ask && !plain ? '<div class="await">awaiting your answer</div>' : "") +
+    (plain ? "" : diffBlock(ev)) +
+  "</div>";
+}
+
+function noteHtml(ev) {
+  const a = annBy(ev.alias);
+  const staged = a && a.diff ? " staged" : "";
+  const fresh = state.freshNote === ev.id ? " fresh" : "";
+  return '<button class="ncard' + staged + fresh + '" data-ev="' + ev.id +
+      '" data-node="' + ev.node + '" data-alias="' + ev.alias + '">' +
+    '<span class="nhead"><span class="na">' + ev.alias + "</span>" +
+      '<span class="nsp"></span><span>annotation</span><span>' + esc(ev.t) + "</span></span>" +
+    '<span class="ntgt"><span class="nk">target</span> ' + esc(shortId(ev.node)) + "</span>" +
+    '<span class="nnote">' + esc(ev.text) + "</span>" +
+  "</button>";
+}
+
+function stepHtml(ev) {
+  return '<div class="step ' + (ev.run ? "run" : "done") + '">' +
+    '<span class="sq">' + (ev.run ? "&#9679;" : "&#10003;") + "</span>" +
+    '<span class="st">' + esc(ev.text) + "</span>" +
+  "</div>";
+}
+
+function thinkHtml(ev) {
+  return '<div class="ev agent" data-ev="' + ev.id + '">' +
+    '<div class="emeta"><span class="who agent">agent</span></div>' +
+    '<div class="bubble"><i></i><i></i><i></i></div>' +
+  "</div>";
+}
+
+function resolvedHtml(ev) {
+  const on = !!state.open[ev.alias];
+  let out = '<button class="rline" data-fold="' + ev.alias + '">' +
+    '<span class="rk">&#10003;</span>' +
+    "<span>" + ev.alias + " resolved</span>" +
+    '<span class="rsum">' + esc(ev.summary) + "</span>" +
+    '<span class="rcar">' + (on ? "&#9662;" : "&#9656;") + "</span>" +
+  "</button>";
+  if (on) {
+    out += '<div class="rfold">' +
+      ev.fold.map((m, i) => msgHtml(
+        { id: "f" + ev.id + "-" + i, who: m.who, t: m.t, text: m.text }, true
+      )).join("") +
+      "</div>";
+  }
+  return out;
+}
+
+function evHtml(ev) {
+  if (ev.kind === "msg") return msgHtml(ev, false);
+  if (ev.kind === "note") return noteHtml(ev);
+  if (ev.kind === "step") return stepHtml(ev);
+  if (ev.kind === "think") return thinkHtml(ev);
+  if (ev.kind === "resolved") return resolvedHtml(ev);
+  return "";
+}
+
+function renderStream() {
+  const top = listEl.scrollTop;
+  listEl.innerHTML = STREAM.map(evHtml).join("");
+  listEl.scrollTop = top;
+}
+
+function scrollEnd() {
+  listEl.scrollTo({ top: listEl.scrollHeight, behavior: "smooth" });
+}
+
+/* the other direction of the link-up: the document sends you here */
+function scrollStreamTo(alias) {
+  const card = listEl.querySelector('.ncard[data-alias="' + alias + '"]');
+  if (!card) return;
+  listEl.scrollTo({ top: Math.max(0, card.offsetTop - 12), behavior: "smooth" });
+  card.classList.add("fresh");
+  setTimeout(() => card.classList.remove("fresh"), 420);
+}
+
+/* the header's word, the hairline, and the mode, in one place */
+function setPhase(p) {
+  state.phase = p;
+  wordEl.textContent = p;
+  wordEl.classList.toggle("act", p !== "idle");
+  barEl.classList.toggle("work", p !== "idle");
+}
+
+/* =====================================================================
+   THE AGENT TURN — processing you can watch, in the stream.
+   typing bubble → the reply arrives → a staging step of its own →
+   the diff, inside the message that promised it.
+   ===================================================================== */
+function streamWords(ev, text, done) {
+  const words = tidy(text).split(" ");
+  let i = 0;
+  ev.text = "";
+  (function step() {
+    const el = listEl.querySelector('[data-txt="' + ev.id + '"]');
+    if (!el) { ev.text = text; done(); return; }
+    i += 1;
+    ev.text = words.slice(0, i).join(" ");
+    el.textContent = ev.text;
+    if (i % 4 === 0) scrollEnd();
+    if (i < words.length) { setTimeout(step, 28); return; }
+    scrollEnd();
+    setTimeout(done, 160);
+  })();
+}
+
+/* a note with no scripted answer gets folded into its own node */
+function synthStage(a, extra) {
+  const base = tidy(rowText(a.node)).replace(/\.$/, "");
+  const src = tidy(extra || a.note).replace(/\.$/, "");
+  return {
+    say: "Read " + shortId(a.node) + " against that. Staging one step on it — nothing else in the section is touched.",
+    new: base + " — " + src.charAt(0).toLowerCase() + src.slice(1) + ".",
+  };
+}
+
+function agentTurn(a, extra) {
+  const spec = (a && a.stage) || synthStage(a, extra);
+  if (a) a.stage = null;
+
+  setPhase("thinking");
+  const think = push({ kind: "think" });
+  renderStream();
+  scrollEnd();
+
+  setTimeout(() => {
+    drop(think);
+    const msg = push({
+      kind: "msg", who: "agent", t: clock(), text: "",
+      streaming: true, node: a ? a.node : null,
+    });
+    renderStream();
+    scrollEnd();
+
+    streamWords(msg, spec.say, () => {
+      msg.streaming = false;
+      msg.text = spec.say;
+      if (a) a.status = "replied";
+      renderStream();
+      renderDock();
+
+      if (!spec.new || !a) { setPhase("idle"); scrollEnd(); return; }
+
+      /* the staging step is its own line, so the wait has a shape */
+      setPhase("staging");
+      const step = push({
+        kind: "step", run: true,
+        text: "staging change on " + shortId(a.node) + "…",
+      });
+      renderStream();
+      scrollEnd();
+
+      setTimeout(() => {
+        step.run = false;
+        step.text = "propose_transaction · 1 step on " + shortId(a.node);
+
+        a.diff = { node: a.node, old: rowText(a.node), new: spec.new };
+        a.status = "staged";
+
+        /* the diff arrives after the step that promised it, in a message
+           of its own — the sequence stays readable top to bottom */
+        push({
+          kind: "msg", who: "agent", t: clock(), text: "",
+          node: a.node, diff: a.alias,
+        });
+
+        state.fresh = a.alias;
+        setPhase("idle");
+        renderStream();
+        renderDoc(true);
+        renderDock();
+        setTimeout(() => { state.fresh = null; }, 700);
+        scrollEnd();
+        /* the change is in two places at once — take the document to it */
+        scrollToNode(a.node, 220);
+      }, 1050);
+    });
+  }, 620);
+}
+
+/* =====================================================================
+   The composer: one message into one conversation.
+   It answers whatever the conversation is currently waiting on.
+   ===================================================================== */
+function sendMessage(text) {
+  const asked = [...STREAM].reverse().find((e) => e.kind === "msg" && e.ask);
+  if (asked) asked.ask = false;
+
+  push({ kind: "msg", who: "you", t: clock(), text: text });
+
+  /* whichever annotation the conversation is on: the one that asked,
+     else the first still open, else the one with a change staged */
+  let a = null;
+  if (asked && asked.node) a = ANN.find((x) => x.node === asked.node && x.status !== "resolved");
+  if (!a) a = openAnn()[0] || stagedAnn()[0] || null;
+
+  renderStream();
+  scrollEnd();
+
+  if (!a) {
+    setPhase("thinking");
+    const think = push({ kind: "think" });
+    renderStream();
+    scrollEnd();
+    setTimeout(() => {
+      drop(think);
+      const msg = push({ kind: "msg", who: "agent", t: clock(), text: "", streaming: true });
+      renderStream();
+      streamWords(msg,
+        "Nothing is pinned right now. Hover any row in the document and hit + — I will pick it up from there.",
+        () => {
+          msg.streaming = false;
+          setPhase("idle");
+          renderStream();
+          scrollEnd();
+        });
+    }, 560);
+    return;
+  }
+
+  /* a message about something already staged asks for another pass at it */
+  if (a.diff) {
+    const prev = a.diff;
+    a.stage = {
+      say: "Fair. Reworked the staged step on " + shortId(prev.node) + " and left the rest of the clause alone.",
+      new: prev.new.replace(/\.\s*$/, "") + ", " + trunc(text, 42).toLowerCase() + ".",
+    };
+    /* the superseded proposal leaves the stream — one live diff at a time */
+    for (let i = STREAM.length - 1; i >= 0; i--) {
+      const e = STREAM[i];
+      if (e.diff !== a.alias) continue;
+      if (e.text) { e.diff = null; e.dead = false; e.was = null; }
+      else STREAM.splice(i, 1);
+    }
+    a.diff = null;
+    renderDoc(true);
+    renderStream();
+  }
+
+  agentTurn(a, text);
+}
+
+/* =====================================================================
+   Accept · discard — from inside the message that proposed it
+   ===================================================================== */
+function acceptDiff(alias) {
+  const a = annBy(alias);
+  if (!a || !a.diff) return;
+
+  const node = a.diff.node;
+  const found = findRow(node);
+  if (found) found.row.text = a.diff.new;
+
+  const hash = "pk1-" + Math.random().toString(16).slice(2, 10);
+  a.diff = null;
+  a.status = "resolved";
+  a.hash = hash;
+
+  /* the exchange folds: the card and its replies become one ✓ line, in place */
+  const fold = [];
+  let at = STREAM.length;
+  for (let i = STREAM.length - 1; i >= 0; i--) {
+    const e = STREAM[i];
+    const mine =
+      (e.kind === "note" && e.alias === alias) ||
+      (e.kind === "msg" && (e.diff === alias || (e.who === "agent" && e.node === node))) ||
+      (e.kind === "step" && e.text.indexOf(shortId(node)) >= 0);
+    if (!mine) continue;
+    at = i;
+    if (e.kind === "note") {
+      fold.unshift({ who: "you", t: e.t, text: "[" + alias + " · " + shortId(node) + "] " + e.text });
+    } else if (e.kind === "msg" && e.text) {
+      fold.unshift({ who: e.who, t: e.t, text: e.text });
+    }
+    STREAM.splice(i, 1);
+  }
+  fold.push({ who: "agent", t: clock(), text: "Resolved: accepted and saved as " + hash + "." });
+
+  const line = {
+    kind: "resolved", alias: alias, hash: hash,
+    summary: shortId(node), fold: fold, id: ++evSeq,
+  };
+  STREAM.splice(Math.min(at, STREAM.length), 0, line);
+
+  HISTORY.forEach((h) => { if (h.cur) { h.cur = false; h.when = "moments ago"; } });
+  HISTORY.unshift({ hash: hash, when: "just now", cur: true });
+  state.historyOpen = true;
+  $("#zHistory").classList.remove("closed");
+
+  renderDoc(true);
+  renderStream();
+  renderDock();
+  renderHistory();
+  flash(node);
+}
+
+function discardDiff(alias) {
+  const a = annBy(alias);
+  if (!a || !a.diff) return;
+  const node = a.diff.node;
+  STREAM.forEach((e) => {
+    if (e.diff === alias) { e.dead = true; e.was = a.diff; }
+  });
+  a.diff = null;
+  a.status = "open";
+  push({ kind: "msg", who: "you", t: clock(), text: "Discarded that one — leave the row as it was." });
+  renderDoc(true);
+  renderStream();
+  renderDock();
+  flash(node);
+  scrollEnd();
+}
+
+/* =====================================================================
+   ENTER · EXIT — the dock leaves, one conversation takes its place
+   ===================================================================== */
+function enterAnnotate() {
+  if (state.annot) return;
+  if (state.view !== "system") setView("system");
+  state.annot = true;
+  state.selected = null;
+  state.whisper = null;
+  clearTimeout(whisperTimer);
+
+  $("#dock").classList.add("slid");
+  chatEl.classList.remove("off");
+  setPhase(state.phase);
+  renderDoc(true);
+  renderStream();
+  renderStatus();
+
+  /* open onto whatever the conversation is actually about */
+  const a = openAnn()[0] || stagedAnn()[0] || null;
+  const node = a ? (a.diff ? a.diff.node : a.node) : null;
+  if (node) {
+    scrollToNode(node, 200);
+    setTimeout(() => flash(node), 220);
+  }
+  requestAnimationFrame(() => {
+    listEl.scrollTop = listEl.scrollHeight;
+    msgEl.focus({ preventScroll: true });
+  });
+}
+
+function exitAnnotate() {
+  if (!state.annot) return;
+  state.annot = false;
+  closeComposer();
+  ring(null);
+
+  chatEl.classList.add("off");
+  $("#dock").classList.remove("slid");
+  renderDoc(true);
+  renderDock();
+  renderStatus();
+
+  const st = stagedAnn().length;
+  const op = openAnn().length;
+  whisper(op + " open · " + st + " staged · left in the conversation");
+}
+
+$("#goAnnot").addEventListener("click", (e) => {
+  e.stopPropagation();
+  enterAnnotate();
+});
+$("#chatDone").addEventListener("click", exitAnnotate);
+
+/* =====================================================================
+   Wiring
+   ===================================================================== */
+listEl.addEventListener("click", (e) => {
+  const acc = e.target.closest(".dact.acc");
+  if (acc) { e.stopPropagation(); acceptDiff(acc.dataset.acc); return; }
+  const dis = e.target.closest(".dact.dis");
+  if (dis) { e.stopPropagation(); discardDiff(dis.dataset.dis); return; }
+
+  const fold = e.target.closest(".rline");
+  if (fold) {
+    const k = fold.dataset.fold;
+    state.open[k] = !state.open[k];
+    renderStream();
+    return;
+  }
+
+  const el = e.target.closest("[data-node]");
+  if (!el) return;
+  scrollToNode(el.dataset.node, 200);
+  flash(el.dataset.node);
+});
+
+listEl.addEventListener("mouseover", (e) => {
+  const el = e.target.closest("[data-node]");
+  ring(el ? el.dataset.node : null);
+});
+listEl.addEventListener("mouseleave", () => ring(null));
+
+msgEl.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    e.preventDefault();
+    if (msgEl.value.trim()) { msgEl.value = ""; return; }
+    exitAnnotate();
+    return;
+  }
+  if (e.key !== "Enter" || e.shiftKey) return;
+  e.preventDefault();
+  const text = msgEl.value.trim();
+  if (!text) return;
+  msgEl.value = "";
+  sendMessage(text);
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (state.composer) { closeComposer(); return; }
+  if (state.annot && document.activeElement !== msgEl) exitAnnotate();
+});
+
+$("#outlineBody").addEventListener("click", (e) => {
+  const item = e.target.closest(".oitem");
+  if (!item) return;
+  const sec = sectionsEl.querySelector('.sec[data-tag="' + item.dataset.sec + '"]');
+  if (sec) scrollToEl(sec, 24);
+});
+
+/* a request in the dock is a door into the conversation, at that moment */
+$("#requestsBody").addEventListener("click", (e) => {
+  const rr = e.target.closest(".rrow");
+  if (!rr) return;
+  const alias = rr.dataset.req;
+  enterAnnotate();
+  const a = annBy(alias);
+  const node = a ? (a.diff ? a.diff.node : a.node) : null;
+  setTimeout(() => {
+    scrollStreamTo(alias);
+    if (node) { scrollToNode(node); flash(node); }
+  }, 60);
+});
+
+$("#fixtureBody").addEventListener("click", (e) => {
+  const fi = e.target.closest(".fitem");
+  if (!fi) return;
+  state.fixture = fi.dataset.fix;
+  renderDoc(false);
+  renderDock();
+  renderStatus();
+});
+
+$("#histHead").addEventListener("click", () => {
+  state.historyOpen = !state.historyOpen;
+  $("#zHistory").classList.toggle("closed", !state.historyOpen);
+});
+
+/* =====================================================================
+   Boot
+   ===================================================================== */
+renderDoc(false);
+renderDock();
+renderHistory();
+renderStream();
+renderStatus();
+setPhase("idle");
+</script>
+</body>
+</html>

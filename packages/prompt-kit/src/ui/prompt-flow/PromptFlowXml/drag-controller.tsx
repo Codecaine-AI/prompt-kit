@@ -18,6 +18,10 @@ import {
 	PROMPT_EDITOR_ROOT_CLASS,
 	editorTypeStyle,
 } from "../../surface/editor-surface";
+
+/** Pointer travel (px) that turns an armed handle press into a live drag —
+ * below it the release stays a click (the block menu's opener). */
+const DRAG_LIFT_THRESHOLD_PX = 4;
 import { highlightXmlLine } from "../../surface/xml-highlight";
 import { samePath } from "../PromptFlowShared";
 import type { XmlLine } from "../xml-line-model";
@@ -115,16 +119,28 @@ export interface XmlDragApi {
 	 * the moved run — the flash covers the whole object that landed.
 	 */
 	flashIds: readonly string[] | null;
-	startDrag: (event: React.PointerEvent<HTMLElement>, nodeId: string) => void;
+	startDrag: (
+		event: React.PointerEvent<HTMLElement>,
+		nodeId: string,
+		options?: DragStartOptions,
+	) => void;
 	startItemDrag: (
 		event: React.PointerEvent<HTMLElement>,
 		item: ItemDragSpec,
+		options?: DragStartOptions,
 	) => void;
 	/** Lifts a structural block run (contiguous siblings) as one object. */
 	startBlockRunDrag: (
 		event: React.PointerEvent<HTMLElement>,
 		run: BlockRunDragSpec,
+		options?: DragStartOptions,
 	) => void;
+}
+
+export interface DragStartOptions {
+	/** The caller already thresholded the gesture (body-move): lift NOW instead
+	 * of arming the controller's own travel threshold. */
+	immediate?: boolean;
 }
 
 export interface BlockRunDragSpec {
@@ -253,6 +269,11 @@ export function useXmlDrag({
 	const [drag, setDrag] = useState<DragState | null>(null);
 	const [dropTarget, setDropTarget] = useState<DropTargetState | null>(null);
 	const [flashIds, setFlashIds] = useState<readonly string[] | null>(null);
+	// A press on a handle ARMS a drag; it only lifts past the travel
+	// threshold. Keeps a motionless click a click (the block menu's opener).
+	// Imperative (not effect-driven): the window listeners must exist the
+	// instant the press lands, or the very first move slips past them.
+	const disarmRef = useRef<(() => void) | null>(null);
 
 	// Live refs so the window-level pointer handlers always read current data
 	// without re-subscribing on every render.
@@ -485,6 +506,11 @@ export function useXmlDrag({
 		[moveNear, moveItems, moveBlocks],
 	);
 
+	// Read-at-call ref for the armed-press lift below: it computes a drop in
+	// the same tick it creates the drag, before any re-render.
+	const computeDropRef = useRef(computeDrop);
+	computeDropRef.current = computeDrop;
+
 	/**
 	 * Shared drag lift-off: snapshot the source's rendered rows into the ghost
 	 * and seat the pointer offset, for a whole block or one item's extent alike.
@@ -507,6 +533,9 @@ export function useXmlDrag({
 			// drag may be grabbed on any of its items; the ghost still tracks the
 			// hand naturally instead of jumping to the group's first row.
 			anchorRow: number = range.start,
+			// True when the CALLER already thresholded the gesture (the body-move
+			// path): lift instantly instead of arming a second threshold.
+			immediate = false,
 		) => {
 			event.preventDefault();
 			const rowsEl = rowsRef.current;
@@ -531,7 +560,36 @@ export function useXmlDrag({
 				ghostLines.push(text.length === 0 ? " " : text);
 			}
 
-			setDrag({
+			// ARM, don't lift (2026-08-04 audit): creating the drag state right
+			// on pointerdown unmounted the very handle being pressed (handleUnit
+			// yields no handle while a drag is live), so the release click
+			// retargeted to an ancestor and the block menu could NEVER open from
+			// a real pointer. The drag now begins only once the pointer travels
+			// past the threshold; a motionless press stays a click.
+			disarmRef.current?.();
+			const startX = event.clientX;
+			const startY = event.clientY;
+			if (immediate) {
+				const lifted: DragState = {
+					...base,
+					rowRange: { start: range.start, end: range.end },
+					ghostLines,
+					lineCount: range.end - range.start + 1,
+					width: rect ? rect.width : 320,
+					lineHeight: Number.isFinite(computedLineHeight)
+						? computedLineHeight
+						: LINE_HEIGHT_PX,
+					x: startX,
+					y: startY,
+					offsetX: rect ? startX - rect.left : 12,
+					offsetY: rect ? startY - rect.top : 8,
+				};
+				setDrag(lifted);
+				dragRef.current = lifted;
+				setDropTarget(computeDropRef.current(startY));
+				return;
+			}
+			const state: DragState = {
 				...base,
 				rowRange: { start: range.start, end: range.end },
 				ghostLines,
@@ -540,28 +598,73 @@ export function useXmlDrag({
 				lineHeight: Number.isFinite(computedLineHeight)
 					? computedLineHeight
 					: LINE_HEIGHT_PX,
-				x: event.clientX,
-				y: event.clientY,
-				offsetX: rect ? event.clientX - rect.left : 12,
-				offsetY: rect ? event.clientY - rect.top : 8,
-			});
-			setDropTarget(null);
+				x: startX,
+				y: startY,
+				offsetX: rect ? startX - rect.left : 12,
+				offsetY: rect ? startY - rect.top : 8,
+			};
+			const disarm = () => {
+				window.removeEventListener("pointermove", onArmedMove);
+				window.removeEventListener("pointerup", onArmedUp);
+				disarmRef.current = null;
+			};
+			const onArmedMove = (moveEvent: PointerEvent) => {
+				const travel = Math.hypot(
+					moveEvent.clientX - startX,
+					moveEvent.clientY - startY,
+				);
+				if (travel < DRAG_LIFT_THRESHOLD_PX) return;
+				disarm();
+				const lifted = {
+					...state,
+					x: moveEvent.clientX,
+					y: moveEvent.clientY,
+				};
+				setDrag(lifted);
+				// Eager ref write: `computeDrop` reads dragRef, which the render
+				// cycle has not refreshed yet in this same tick.
+				dragRef.current = lifted;
+				// The lifting move also SEATS the drop target — a one-move drag
+				// (down, one big move, up) must land where that move pointed.
+				setDropTarget(computeDropRef.current(moveEvent.clientY));
+			};
+			const onArmedUp = () => disarm();
+			window.addEventListener("pointermove", onArmedMove);
+			window.addEventListener("pointerup", onArmedUp);
+			disarmRef.current = disarm;
 		},
 		[rowsRef],
 	);
 
+	// A component unmount mid-press must not leave armed listeners behind.
+	useEffect(() => () => disarmRef.current?.(), []);
+
 	const startDrag = useCallback(
-		(event: React.PointerEvent<HTMLElement>, nodeId: string) => {
+		(
+			event: React.PointerEvent<HTMLElement>,
+			nodeId: string,
+			options?: { immediate?: boolean },
+		) => {
 			if (event.button !== 0) return;
 			const range = rangesRef.current.get(nodeId);
 			if (!range) return;
-			beginDrag(event, range, { kind: "block", nodeId });
+			beginDrag(
+				event,
+				range,
+				{ kind: "block", nodeId },
+				range.start,
+				options?.immediate ?? false,
+			);
 		},
 		[beginDrag],
 	);
 
 	const startBlockRunDrag = useCallback(
-		(event: React.PointerEvent<HTMLElement>, run: BlockRunDragSpec) => {
+		(
+			event: React.PointerEvent<HTMLElement>,
+			run: BlockRunDragSpec,
+			options?: DragStartOptions,
+		) => {
 			if (event.button !== 0) return;
 			// The carried extent: the union of every run block's row range.
 			// Siblings render contiguously, so the union (gaps included) IS the
@@ -590,13 +693,18 @@ export function useXmlDrag({
 					},
 				},
 				grabbed.start,
+				options?.immediate ?? false,
 			);
 		},
 		[beginDrag],
 	);
 
 	const startItemDrag = useCallback(
-		(event: React.PointerEvent<HTMLElement>, item: ItemDragSpec) => {
+		(
+			event: React.PointerEvent<HTMLElement>,
+			item: ItemDragSpec,
+			options?: DragStartOptions,
+		) => {
 			if (event.button !== 0) return;
 			// The carried extent — each item's marker row plus nested child rows,
 			// unioned across the run — so a multi-line item (or a whole selected
@@ -626,6 +734,7 @@ export function useXmlDrag({
 					groupItemIds: [...itemIds],
 				},
 				grabbed.start,
+				options?.immediate ?? false,
 			);
 		},
 		[beginDrag],

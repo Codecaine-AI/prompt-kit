@@ -375,6 +375,8 @@ describe("PromptFlowXml block-run drag (selected run moves as one object)", () =
 		fireEvent.mouseEnter(nodeRow("para-y"));
 		const grip = document.querySelector<HTMLElement>(".prompt-editor-grip")!;
 		fireEvent.pointerDown(grip, { button: 0, clientX: 5, clientY: 45 });
+		// The press only ARMS the drag; the first past-threshold move lifts it.
+		fireEvent.pointerMove(window, { clientX: 5, clientY: 65 });
 
 		// Ghost: run rows 2..4 → 3 carried lines → "+2 more" over the extent.
 		const more = Array.from(document.querySelectorAll("span")).find(

@@ -176,6 +176,9 @@ describe("PromptFlowXml group drag (selected run moves as one object)", () => {
 			clientX: 5,
 			clientY: 5,
 		});
+		// The press only ARMS the drag; the ghost lifts on the first move past
+		// the travel threshold (a motionless click stays the menu opener).
+		fireEvent.pointerMove(window, { clientX: 5, clientY: 25 });
 
 		// Group extents: item-b, item-c, para-c, item-d = 4 rows → "+3 more".
 		const more = Array.from(document.querySelectorAll("span")).find(

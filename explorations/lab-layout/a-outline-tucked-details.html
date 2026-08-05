@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prompt lab layout — A · outline + tucked details</title>
+<style>
+  /* ------------------------------------------------------------------
+     Shared frame for the three lab-layout mockups.
+     Dark, typographic, monospace. No shadows, no gradients, no radii
+     beyond 2px. Everything quiet until you need it.
+     ------------------------------------------------------------------ */
+  :root {
+    --bg:        #161719;
+    --surface:   #1c1e21;
+    --fg:        #c9ccd1;
+    --muted:     #6b7078;
+    --faint:     #4b4f56;
+    --ghost:     #3a3d43;
+    --border:    #26282c;
+    --tag:       #9b8cc4;   /* pseudo-XML tag names — muted purple */
+    --tag-dim:   #6f6690;   /* inline <tag> mentions inside prose */
+    --var:       #d0a24c;   /* {{placeholders}} — amber */
+    --accent:    #8c7fb8;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas,
+            "DejaVu Sans Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.75;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, select, input {
+    font-family: inherit;
+    font-size: 12px;
+    color: inherit;
+  }
+
+  /* ---------- row 1 · identity ---------- */
+  #identity {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  #identity .name {
+    font-size: 14px;
+    letter-spacing: 0.01em;
+    color: var(--fg);
+  }
+  #identity .desc {
+    color: var(--muted);
+    font-size: 12px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    padding: 3px 9px;
+    border-radius: 2px;
+    cursor: pointer;
+    line-height: 1.3;
+  }
+  .chip:hover { border-color: var(--faint); color: var(--fg); }
+  #fixtureChip { position: relative; }
+  #fixtureChip .k { color: var(--faint); }
+  #fixtureChip select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    border: 0;
+  }
+  #annotateBtn[aria-pressed="true"] {
+    color: var(--var);
+    border-color: rgba(208, 162, 76, 0.45);
+  }
+
+  /* ---------- row 2 · document tabs ---------- */
+  #tabs {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    color: var(--muted);
+    padding: 7px 16px 6px;
+    margin-bottom: -1px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    letter-spacing: 0.01em;
+  }
+  .tab:first-child { padding-left: 0; }
+  .tab:hover { color: var(--fg); }
+  .tab .n { color: var(--ghost); font-size: 10.5px; }
+  .tab[aria-selected="true"] {
+    color: var(--fg);
+    border-bottom-color: var(--accent);
+  }
+  .tab[aria-selected="true"] .n { color: var(--faint); }
+  #tabs .sep { flex: 1; }
+  #tabs .meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--faint);
+    font-size: 11px;
+    align-self: center;
+  }
+  #tabs .meta .hist {
+    background: transparent;
+    border: 0;
+    color: var(--faint);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    padding: 2px 4px;
+  }
+  #tabs .meta .hist:hover { color: var(--fg); }
+
+  /* ---------- main ---------- */
+  #main { flex: 1; display: flex; min-height: 0; }
+
+  /* ---------- editor surface ---------- */
+  #editor {
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+    background: var(--bg);
+  }
+  #doc {
+    max-width: 98ch;
+    padding: 22px 30px 72px;
+  }
+  .sec { scroll-margin-top: 16px; }
+  .sec + .sec { margin-top: 22px; }
+  .tagline {
+    color: var(--tag);
+    white-space: pre-wrap;
+    padding: 0 8px;
+    margin-left: -8px;
+    border-left: 2px solid transparent;
+    cursor: default;
+  }
+  .tagline .attr { color: var(--tag-dim); }
+  .tagline .aval { color: var(--muted); }
+  .secbody { padding-left: 4ch; }
+
+  .blk {
+    white-space: pre-wrap;
+    padding: 0 8px;
+    margin-left: -8px;
+    border-left: 2px solid transparent;
+    cursor: default;
+  }
+  .blk.bullet { padding-left: calc(2ch + 8px); text-indent: -2ch; }
+  .blk.num    { padding-left: calc(3ch + 8px); text-indent: -3ch; }
+  .blk.d1 { margin-left: 2ch; }
+  .blk .mk { color: var(--tag-dim); }
+  .blk .k  { color: var(--muted); }
+  .itag { color: var(--tag-dim); }
+  .attr { color: var(--tag-dim); }
+  .aval { color: var(--muted); }
+  .var  { color: var(--var); }
+  .cmt  { color: var(--faint); }
+
+  .blk:hover, .tagline:hover { background: rgba(255, 255, 255, 0.022); }
+  .blk.sel, .tagline.sel {
+    background: rgba(140, 127, 184, 0.07);
+    border-left-color: var(--accent);
+  }
+  #editor.annotate .blk, #editor.annotate .tagline { cursor: crosshair; }
+  #editor.annotate .blk:hover, #editor.annotate .tagline:hover {
+    background: rgba(208, 162, 76, 0.06);
+    border-left-color: rgba(208, 162, 76, 0.5);
+  }
+  .blank { height: 8px; }
+  .readonly-note {
+    color: var(--faint);
+    font-size: 11px;
+    padding: 0 0 14px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- right rail ---------- */
+  #rail {
+    flex: 0 0 200px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+  }
+  .rail-h {
+    flex: 0 0 auto;
+    color: var(--ghost);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    padding: 12px 14px 6px;
+    text-transform: uppercase;
+  }
+  #outline { flex: 1; overflow: auto; padding: 0 8px 14px; }
+  #outline.gone { display: none; }
+  .oitem {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-left: 1px solid transparent;
+    color: var(--muted);
+    padding: 2px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .oitem:hover { color: var(--fg); }
+  .oitem.active {
+    color: var(--fg);
+    border-left-color: var(--accent);
+  }
+
+  /* requests layer (annotate on) */
+  #requests { flex: 1; overflow: auto; padding: 0 14px 14px; display: none; }
+  #requests.on { display: block; }
+  .req { padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .req:last-child { border-bottom: 0; }
+  .req .a { color: var(--var); font-size: 11px; letter-spacing: 0.04em; }
+  .req .t { color: var(--faint); font-size: 10.5px; margin-left: 6px; }
+  .req .n { color: var(--muted); font-size: 11.5px; line-height: 1.55; margin-top: 2px; }
+  .req-hint { color: var(--ghost); font-size: 10.5px; line-height: 1.6; padding-top: 10px; }
+
+  /* pinned details disclosure — deliberately demoted */
+  #details {
+    flex: 0 0 auto;
+    border-top: 1px solid var(--border);
+    padding: 8px 14px 10px;
+  }
+  #details.empty { padding: 6px 14px 8px; }
+  #details .none {
+    color: var(--ghost);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+  }
+  #details .dh {
+    color: var(--ghost);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .drow {
+    display: flex;
+    gap: 6px;
+    font-size: 11px;
+    line-height: 1.5;
+    margin-bottom: 1px;
+  }
+  .drow .dk { flex: 0 0 46px; color: var(--ghost); }
+  .drow .dv {
+    flex: 1;
+    min-width: 0;
+    color: var(--muted);
+    word-break: break-all;
+  }
+  .drow.id .dv { color: var(--fg); }
+  .drow.diag .dv { color: var(--faint); word-break: normal; }
+
+  /* ---------- screenshot label ---------- */
+  #label {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    z-index: 50;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    color: var(--ghost);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 3px 10px 3px 20px;
+  }
+</style>
+</head>
+<body>
+
+<header id="identity">
+  <span class="name">prompt-editor</span>
+  <span class="desc">Edits an agent's system prompt on behalf of the human who owns it.</span>
+  <span class="chip" id="fixtureChip">
+    <span class="k">fixture:</span><span id="fixtureName">empty-run</span><span>&#9662;</span>
+    <select id="fixtureSel" aria-label="fixture">
+      <option value="empty-run">empty-run</option>
+      <option value="mid-run">mid-run</option>
+      <option value="two-requests">two-requests</option>
+    </select>
+  </span>
+  <button class="chip" id="annotateBtn" aria-pressed="false">Annotate</button>
+</header>
+
+<nav id="tabs" role="tablist" aria-label="documents">
+  <button class="tab" role="tab" data-doc="system"  aria-selected="true">System  <span class="n">1,008</span></button>
+  <button class="tab" role="tab" data-doc="context" aria-selected="false">Context <span class="n">3,214</span></button>
+  <button class="tab" role="tab" data-doc="state"   aria-selected="false">State   <span class="n" id="stateTok">412</span></button>
+  <span class="sep"></span>
+  <span class="meta">
+    <span id="savedAt">saved 3:42 PM</span>
+    <button class="hist" title="History">&#10226;</button>
+  </span>
+</nav>
+
+<div id="main">
+  <div id="editor"><div id="doc"></div></div>
+
+  <aside id="rail">
+    <div class="rail-h" id="railHead">Outline</div>
+    <div id="outline"></div>
+    <div id="requests"></div>
+    <div id="details" class="empty"><span class="none">no selection</span></div>
+  </aside>
+</div>
+
+<div id="label">A &mdash; outline + tucked details</div>
+
+<script>
+"use strict";
+
+/* ====================================================================
+   Documents. Each section renders as pseudo-XML; each block is a
+   selectable node carrying the metadata the tucked details panel shows.
+   ==================================================================== */
+
+const NO_DIAG = "no diagnostics";
+
+const SYSTEM_DOC = [
+  { tag: "purpose", id: "node-section-purpose", kind: "section",
+    diag: "ok · 4 nodes, 4 stable ids", blocks: [
+    { id: "node-purpose-identity", kind: "paragraph",
+      diag: "1 variable · {{targetAgent}} declared in prompt.json",
+      text: "You are the prompt editor for {{targetAgent}} — you change that agent's system prompt on behalf of the human who owns it." },
+    { blank: true },
+    { id: "node-purpose-frame-ast", kind: "listItem", mk: "- ",
+      text: "The prompt is a structured document — a tree of identified nodes — and its rendered markdown is a projection you never touch." },
+    { id: "node-purpose-frame-requests", kind: "listItem", mk: "- ",
+      diag: "info · references <requests>, present in context",
+      text: "Work arrives as requests: human notes pinned to a node or range of that document, queued in the <requests> block." },
+    { id: "node-purpose-frame-staged", kind: "listItem", mk: "- ",
+      text: "Your edits are staged proposals for human review, and nothing lands in the live prompt until the human accepts it." },
+  ]},
+
+  { tag: "inputs", id: "node-section-inputs", kind: "section",
+    diag: "ok · 8 nodes, 8 stable ids", blocks: [
+    { id: "node-inputs-intro", kind: "paragraph",
+      text: "Your standing context carries three blocks:" },
+    { blank: true },
+    { id: "node-inputs-authoring", kind: "listItem", mk: "- ",
+      diag: "info · block present in Context (1,847 tok)",
+      text: "<prompt_kit_authoring> — the house reference for how prompts here are built: the document model, the editing method, and the anti-patterns to avoid." },
+    { id: "node-inputs-target", kind: "listItem", mk: "- ",
+      text: "<target_prompt> — the target agent's current prompt rendered with every node's id stamped in place, under the base hash your transactions build on." },
+    { id: "node-inputs-target-ids", kind: "listItem", mk: "- ", d: 1,
+      text: "Those ids are the only addresses your edits use — quote them exactly." },
+    { id: "node-inputs-requests", kind: "listItem", mk: "- ",
+      text: "<requests> — the open queue, one entry per request." },
+    { id: "node-inputs-requests-entry", kind: "listItem", mk: "- ", d: 1,
+      text: "Each entry carries its alias (R1, R2 …), its target node or range, the human's note, and the thread so far." },
+    { id: "node-inputs-requests-doclevel", kind: "listItem", mk: "- ", d: 1,
+      text: "An entry whose target is the document itself is a message about the whole prompt, not about one node." },
+    { blank: true },
+    { id: "node-inputs-fresh", kind: "paragraph",
+      diag: "warn · 178 chars, longest paragraph in document",
+      text: "The stamped render is your starting picture; read_prompt returns the live document — ids and hash included — whenever you need to confirm the tree or see it after a proposal." },
+  ]},
+
+  { tag: "editing_rules", id: "node-section-editing-rules", kind: "section",
+    diag: "ok · 6 items, 6 stable ids", blocks: [
+    { id: "node-rules-structural", kind: "listItem", mk: "- ",
+      text: "Propose structure, never prose: an edit is a transaction of id-relative steps against the document tree, and rewritten markdown is never an edit." },
+    { id: "node-rules-ids", kind: "listItem", mk: "- ",
+      text: "Preserve node ids: change nodes in place and leave untouched nodes untouched, because ids are how requests, diffs, and undo stay anchored." },
+    { id: "node-rules-minimal", kind: "listItem", mk: "- ",
+      text: "Prefer the minimal transaction: the fewest steps that satisfy the request, touching nothing the request did not name." },
+    { id: "node-rules-valid", kind: "listItem", mk: "- ",
+      diag: "info · rule enforced by the validator, not the model",
+      text: "Keep the document valid: every variable placeholder it references must stay declared, and a proposal that fails validation bounces straight back to you — repair it and propose again." },
+    { id: "node-rules-voice", kind: "listItem", mk: "- ",
+      text: "Respect the target prompt's voice: match its tense, person, and section idiom, and change style only when a note asks for style." },
+    { id: "node-rules-terse", kind: "listItem", mk: "- ",
+      diag: "info · targeted by R1 (open)",
+      text: "Write tersely: notes, replies, and resolutions are plain language, a sentence or two, never a restatement of a diff the human can already see." },
+  ]},
+
+  { tag: "workflow", id: "node-section-workflow", kind: "section",
+    diag: "ok · 9 nodes, 9 stable ids", blocks: [
+    { id: "node-workflow-read", kind: "listItem", mk: "1. ",
+      text: "Read the whole queue before editing anything, because requests can overlap, conflict, or share nodes." },
+    { id: "node-workflow-read-collide", kind: "listItem", mk: "- ", d: 1,
+      text: "When requests collide, work them in alias order and name the interaction in each resolution." },
+    { id: "node-workflow-plan", kind: "listItem", mk: "2. ",
+      text: "Plan each request against the current tree, confirming targets with read_prompt when the stamped render leaves doubt." },
+    { id: "node-workflow-propose", kind: "listItem", mk: "3. ",
+      text: "Propose exactly one transaction per request with propose_transaction, tagged to that request's alias." },
+    { id: "node-workflow-propose-nochange", kind: "listItem", mk: "- ", d: 1,
+      text: "A request needing no change gets no transaction — it gets a resolution." },
+    { id: "node-workflow-resolve", kind: "listItem", mk: "4. ",
+      text: "Resolve every request individually with resolve_request: done with a short note of what changed, or declined with the reason." },
+    { id: "node-workflow-resolve-nolump", kind: "listItem", mk: "- ", d: 1,
+      text: "A batch never resolves as a lump, and the session ends with no request still open that you could have disposed." },
+    { id: "node-workflow-ask", kind: "listItem", mk: "5. ",
+      diag: "info · the only step allowed to leave a request open",
+      text: "When a request is ambiguous, open the question with reply_request on that request's thread and keep working the others — the run never stalls waiting for an answer." },
+    { id: "node-workflow-doclevel", kind: "listItem", mk: "6. ",
+      text: "Work a document-level request by pinning placed notes with add_note at the specific nodes it implicates, then propose and resolve as usual." },
+  ]},
+
+  { tag: "tools", id: "node-section-tools", kind: "section",
+    diag: "ok · 6 nodes · 5 tools match the manifest", blocks: [
+    { id: "node-tools-intro", kind: "paragraph",
+      text: "Five tools carry the loop; the semantics that matter:" },
+    { blank: true },
+    { id: "node-tools-read", kind: "listItem", mk: "- ",
+      text: "read_prompt — the target document as it stands now, with node ids and the current hash." },
+    { id: "node-tools-propose", kind: "listItem", mk: "- ",
+      text: "propose_transaction — one request's edit as ordered id-relative steps, compiled and validated by the service and staged as a diff for the human." },
+    { id: "node-tools-resolve", kind: "listItem", mk: "- ",
+      text: "resolve_request — the only way a request leaves the queue: done or declined, always with a note." },
+    { id: "node-tools-reply", kind: "listItem", mk: "- ",
+      text: "reply_request — adds to one request's thread, for questions and brief progress notes." },
+    { id: "node-tools-note", kind: "listItem", mk: "- ",
+      text: "add_note — pins a new note of yours at a node, opening an inline thread the human sees." },
+  ]},
+];
+
+const CONTEXT_DOC = [
+  { tag: "prompt_kit_authoring", id: "ctx-authoring", kind: "contextBlock",
+    attrs: ' source="docs/authoring.md" tokens="1,847"',
+    diag: "cached · unchanged since pk1-3c91d0aa", blocks: [
+    { id: "ctx-authoring-model", kind: "paragraph",
+      text: "A prompt is a tree of identified nodes. Sections carry a tag; every child — paragraph, bulletList, listItem, variable — carries an id that survives edits." },
+    { id: "ctx-authoring-method", kind: "paragraph",
+      text: "Edits are transactions of id-relative steps: replaceContent, insertAfter, removeNode, moveNode. Rendered markdown is a projection and is never an input." },
+    { blank: true },
+    { id: "ctx-authoring-trunc", kind: "comment",
+      diag: "truncated at the context budget",
+      text: "… 1,610 tokens elided (anti-patterns, worked examples) …" },
+  ]},
+
+  { tag: "target_prompt", id: "ctx-target", kind: "contextBlock",
+    attrs: ' agent="release-notes-writer" hash="pk1-7f1bc2eb"',
+    diag: "ok · stamped render, 41 ids", blocks: [
+    { id: "ctx-target-purpose", kind: "renderedSection",
+      text: "<purpose id=\"rn-section-purpose\">\n  [rn-purpose-role] You write the release notes for each shipped version, for readers who did not follow the pull requests.\n</purpose>" },
+    { blank: true },
+    { id: "ctx-target-voice", kind: "renderedSection",
+      diag: "info · targeted by R2 (open)",
+      text: "<voice id=\"rn-section-voice\">\n  [rn-voice-plain]  - Plain language. Short sentences. No marketing verbs.\n  [rn-voice-name]   - Name the artifact that changed; never say \"the content\".\n</voice>" },
+    { blank: true },
+    { id: "ctx-target-trunc", kind: "comment",
+      text: "… 3 more sections (<inputs>, <format>, <constraints>) …" },
+  ]},
+
+  { tag: "requests", id: "ctx-requests", kind: "contextBlock",
+    attrs: ' count="2" fixture="empty-run"',
+    diag: "ok · 2 open, 0 resolved", blocks: [
+    { id: "ctx-req-r1", kind: "request",
+      diag: "open · opened 3:39 PM by ford",
+      text: "<request alias=\"R1\" target=\"node-rules-terse\" status=\"open\">\n  Say what \"terse\" means in words the agent can actually check.\n</request>" },
+    { blank: true },
+    { id: "ctx-req-r2", kind: "request",
+      diag: "open · document target, no node anchor",
+      text: "<request alias=\"R2\" target=\"document\" status=\"open\">\n  <inputs> restates <purpose>. Trim it to the three block names.\n</request>" },
+  ]},
+];
+
+/* State document is built per fixture. */
+const FIXTURES = {
+  "empty-run": {
+    tokens: "412",
+    kv: [
+      ["run_id", "—"],
+      ["base_hash", "pk1-7f1bc2eb"],
+      ["requests_open", "0"],
+      ["requests_resolved", "0"],
+      ["transactions", "0"],
+      ["last_tool", "—"],
+      ["started_at", "—"],
+    ],
+    log: ["(no turns recorded)"],
+    logDiag: "empty · the run has not started",
+  },
+  "mid-run": {
+    tokens: "986",
+    kv: [
+      ["run_id", "run_5b17c44e"],
+      ["base_hash", "pk1-7f1bc2eb"],
+      ["requests_open", "1"],
+      ["requests_resolved", "1"],
+      ["transactions", "1"],
+      ["last_tool", "propose_transaction"],
+      ["started_at", "3:39 PM"],
+    ],
+    log: [
+      "3:39:04  read_prompt           ok    41 ids · pk1-7f1bc2eb",
+      "3:40:11  propose_transaction   ok    R1 · 2 steps · staged",
+      "3:40:12  resolve_request       ok    R1 · done",
+      "3:41:58  reply_request         ok    R2 · question opened",
+    ],
+    logDiag: "4 turns · 0 validation failures",
+  },
+  "two-requests": {
+    tokens: "603",
+    kv: [
+      ["run_id", "—"],
+      ["base_hash", "pk1-7f1bc2eb"],
+      ["requests_open", "2"],
+      ["requests_resolved", "0"],
+      ["transactions", "0"],
+      ["last_tool", "—"],
+      ["started_at", "—"],
+    ],
+    log: ["(no turns recorded)"],
+    logDiag: "queued · R1, R2 waiting on a run",
+  },
+};
+
+function stateDoc(fixture) {
+  const f = FIXTURES[fixture];
+  return [
+    { tag: "session_state", id: "st-session", kind: "stateBlock",
+      attrs: ' fixture="' + fixture + '"',
+      diag: "read-only · projected from the run record", blocks: [
+      { id: "st-session-kv", kind: "keyValues",
+        diag: "7 fields · " + f.kv.filter(function (r) { return r[1] !== "—"; }).length + " populated",
+        kv: f.kv },
+    ]},
+    { tag: "turn_log", id: "st-turns", kind: "stateBlock",
+      attrs: ' entries="' + (f.log[0].charAt(0) === "(" ? 0 : f.log.length) + '"',
+      diag: f.logDiag, blocks: [
+      { id: "st-turns-lines", kind: "log", diag: f.logDiag, text: f.log.join("\n") },
+    ]},
+  ];
+}
+
+/* ====================================================================
+   Rendering
+   ==================================================================== */
+
+const state = {
+  doc: "system",
+  fixture: "empty-run",
+  annotate: false,
+  selected: null,   // node meta object
+  active: null,     // outline section tag
+};
+
+const editorEl  = document.getElementById("editor");
+const docEl     = document.getElementById("doc");
+const outlineEl = document.getElementById("outline");
+const requestsEl= document.getElementById("requests");
+const detailsEl = document.getElementById("details");
+const railHead  = document.getElementById("railHead");
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/* Prose decoration: <tag> mentions muted purple, {{vars}} amber. */
+function decorate(s) {
+  return esc(s)
+    .replace(/&lt;(\/?[a-z_][a-z0-9_]*)&gt;/g, '<span class="itag">&lt;$1&gt;</span>')
+    .replace(/\{\{([a-zA-Z0-9_.]+)\}\}/g, '<span class="var">{{$1}}</span>');
+}
+
+/* Rendered-XML decoration for the Context tab: whole tags purple,
+   attribute values muted, [ids] faint. */
+function decorateXml(s) {
+  return esc(s)
+    .replace(/&lt;(\/?[a-z_][a-z0-9_]*)((?:[^&]|&(?!gt;))*)&gt;/g, function (_, name, rest) {
+      const attrs = rest.replace(/([a-z_]+)=(&quot;|")([^"&]*)(&quot;|")/g,
+        '<span class="attr">$1</span>=<span class="aval">"$3"</span>');
+      return '<span class="tag">&lt;' + name + '</span>' + attrs + '<span class="tag">&gt;</span>';
+    })
+    .replace(/\[([a-z0-9-]+)\]/g, '<span class="cmt">[$1]</span>')
+    .replace(/\{\{([a-zA-Z0-9_.]+)\}\}/g, '<span class="var">{{$1}}</span>');
+}
+
+function currentDoc() {
+  if (state.doc === "system")  return SYSTEM_DOC;
+  if (state.doc === "context") return CONTEXT_DOC;
+  return stateDoc(state.fixture);
+}
+
+function blockHtml(b, sectionTag) {
+  if (b.blank) return '<div class="blank"></div>';
+
+  const cls = ["blk"];
+  if (b.mk) cls.push(b.mk.charAt(0) === "-" ? "bullet" : "num");
+  if (b.d === 1) cls.push("d1");
+
+  let inner;
+  if (b.kind === "keyValues") {
+    inner = b.kv.map(function (r) {
+      const pad = " ".repeat(Math.max(1, 18 - r[0].length));
+      return '<span class="k">' + esc(r[0]) + '</span>' + pad + esc(r[1]);
+    }).join("\n");
+  } else if (b.kind === "log") {
+    inner = '<span class="cmt">' + esc(b.text) + "</span>";
+  } else if (b.kind === "comment") {
+    inner = '<span class="cmt">' + esc(b.text) + "</span>";
+  } else if (state.doc === "context") {
+    inner = decorateXml(b.text);
+  } else {
+    inner = (b.mk ? '<span class="mk">' + b.mk + "</span>" : "") + decorate(b.text);
+  }
+
+  return '<div class="' + cls.join(" ") + '"' +
+    ' data-node="' + b.id + '"' +
+    ' data-kind="' + b.kind + '"' +
+    ' data-sec="' + sectionTag + '"' +
+    ' data-diag="' + esc(b.diag || NO_DIAG).replace(/"/g, "&quot;") + '">' +
+    inner + "</div>";
+}
+
+function renderDoc() {
+  const doc = currentDoc();
+  let html = "";
+
+  if (state.doc === "context") {
+    html += '<div class="readonly-note">assembled context · read-only preview</div>';
+  } else if (state.doc === "state") {
+    html += '<div class="readonly-note">session state · read-only · fixture ' +
+            esc(state.fixture) + "</div>";
+  }
+
+  html += doc.map(function (s) {
+    const attrs = s.attrs
+      ? s.attrs.replace(/([a-z_]+)="([^"]*)"/g,
+          '<span class="attr">$1</span>=<span class="aval">"$2"</span>')
+      : "";
+    const meta = ' data-node="' + s.id + '" data-kind="' + s.kind + '" data-sec="' + s.tag +
+      '" data-diag="' + esc(s.diag || NO_DIAG).replace(/"/g, "&quot;") + '"';
+    return '<section class="sec" id="sec-' + s.tag + '">' +
+      '<div class="tagline"' + meta + ">&lt;" + s.tag + attrs + "&gt;</div>" +
+      '<div class="secbody">' +
+        s.blocks.map(function (b) { return blockHtml(b, s.tag); }).join("") +
+      "</div>" +
+      '<div class="tagline"' + meta + ">&lt;/" + s.tag + "&gt;</div>" +
+      "</section>";
+  }).join("");
+
+  docEl.innerHTML = html;
+  editorEl.scrollTop = 0;
+}
+
+function renderOutline() {
+  const doc = currentDoc();
+  outlineEl.innerHTML = doc.map(function (s) {
+    return '<button class="oitem" data-goto="' + s.tag + '">' + esc(s.tag) + "</button>";
+  }).join("");
+  state.active = doc.length ? doc[0].tag : null;
+  markActive();
+}
+
+function markActive() {
+  const items = outlineEl.querySelectorAll(".oitem");
+  for (let i = 0; i < items.length; i++) {
+    items[i].classList.toggle("active", items[i].dataset.goto === state.active);
+  }
+}
+
+const REQUESTS = [
+  { alias: "R1", target: "node-rules-terse",
+    note: "Say what “terse” means in words the agent can check." },
+  { alias: "R2", target: "document",
+    note: "<inputs> restates <purpose>. Trim it to the three block names." },
+];
+
+function renderRequests() {
+  requestsEl.innerHTML = REQUESTS.map(function (r) {
+    return '<div class="req"><span class="a">' + r.alias + '</span>' +
+      '<span class="t">' + esc(r.target) + "</span>" +
+      '<div class="n">' + decorate(r.note) + "</div></div>";
+  }).join("") +
+  '<div class="req-hint">click any node in the prompt to pin a new request here</div>';
+}
+
+/* ---------- details disclosure (pinned, demoted) ---------- */
+function renderDetails() {
+  const n = state.selected;
+  if (!n) {
+    detailsEl.className = "empty";
+    detailsEl.innerHTML = '<span class="none">no selection</span>';
+    return;
+  }
+  detailsEl.className = "";
+  detailsEl.innerHTML =
+    '<div class="dh">details</div>' +
+    '<div class="drow id"><span class="dk">node</span><span class="dv">' + esc(n.id) + "</span></div>" +
+    '<div class="drow"><span class="dk">kind</span><span class="dv">' + esc(n.kind) + "</span></div>" +
+    '<div class="drow"><span class="dk">lang</span><span class="dv">en</span></div>' +
+    '<div class="drow diag"><span class="dk">diag</span><span class="dv">' + esc(n.diag) + "</span></div>";
+}
+
+function select(el) {
+  const prev = docEl.querySelector(".sel");
+  if (prev) prev.classList.remove("sel");
+  if (!el) { state.selected = null; renderDetails(); return; }
+  el.classList.add("sel");
+  state.selected = {
+    id: el.dataset.node,
+    kind: el.dataset.kind,
+    diag: el.dataset.diag || NO_DIAG,
+  };
+  renderDetails();
+}
+
+/* ====================================================================
+   Wiring
+   ==================================================================== */
+
+/* tabs */
+const tabEls = document.querySelectorAll(".tab");
+for (let i = 0; i < tabEls.length; i++) {
+  tabEls[i].addEventListener("click", function () {
+    for (let j = 0; j < tabEls.length; j++) {
+      tabEls[j].setAttribute("aria-selected", String(tabEls[j] === this));
+    }
+    state.doc = this.dataset.doc;
+    select(null);
+    renderDoc();
+    renderOutline();
+  });
+}
+
+/* fixture picker */
+const fixtureSel = document.getElementById("fixtureSel");
+fixtureSel.addEventListener("change", function () {
+  state.fixture = this.value;
+  document.getElementById("fixtureName").textContent = this.value;
+  document.getElementById("stateTok").textContent = FIXTURES[this.value].tokens;
+  select(null);
+  if (state.doc === "state") { renderDoc(); renderOutline(); }
+});
+
+/* annotate toggle — swaps the rail to the requests layer */
+const annotateBtn = document.getElementById("annotateBtn");
+annotateBtn.addEventListener("click", function () {
+  state.annotate = !state.annotate;
+  this.setAttribute("aria-pressed", String(state.annotate));
+  editorEl.classList.toggle("annotate", state.annotate);
+  outlineEl.classList.toggle("gone", state.annotate);
+  requestsEl.classList.toggle("on", state.annotate);
+  railHead.textContent = state.annotate ? "Requests" : "Outline";
+  select(null);
+});
+
+/* node click -> details; empty click -> collapse */
+editorEl.addEventListener("click", function (e) {
+  const node = e.target.closest("[data-node]");
+  if (!node) { select(null); return; }
+  select(node);
+});
+
+/* outline navigation */
+outlineEl.addEventListener("click", function (e) {
+  const item = e.target.closest("[data-goto]");
+  if (!item) return;
+  const sec = document.getElementById("sec-" + item.dataset.goto);
+  if (sec) sec.scrollIntoView({ block: "start", behavior: "smooth" });
+  state.active = item.dataset.goto;
+  markActive();
+});
+
+/* scroll spy */
+let spyTick = false;
+editorEl.addEventListener("scroll", function () {
+  if (spyTick) return;
+  spyTick = true;
+  window.requestAnimationFrame(function () {
+    spyTick = false;
+    const secs = docEl.querySelectorAll(".sec");
+    const top = editorEl.scrollTop + 24;
+    let cur = null;
+    for (let i = 0; i < secs.length; i++) {
+      if (secs[i].offsetTop <= top) cur = secs[i].id.slice(4);
+    }
+    if (!cur && secs.length) cur = secs[0].id.slice(4);
+    if (cur !== state.active) { state.active = cur; markActive(); }
+  });
+});
+
+/* boot */
+renderDoc();
+renderOutline();
+renderRequests();
+renderDetails();
+</script>
+</body>
+</html>

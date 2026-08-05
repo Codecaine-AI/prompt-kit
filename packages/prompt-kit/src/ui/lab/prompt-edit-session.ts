@@ -31,6 +31,35 @@ export interface PromptEditThreadMessage {
 	body: string;
 }
 
+/**
+ * Where a filed request lives. ONE gesture since 2026-08-05 — everything
+ * queues and runs only when the human presses Apply:
+ *
+ * - `batch` — Enter on a node target. A queue card at its node.
+ * - `global` — Enter on a document-level target. A queue entry with no node:
+ *   `target: null`, shown with a `document` chip.
+ * - `run-now` — RETIRED. Kept in the union so legacy sessions and hosts
+ *   round-trip; the lab renders such requests as ordinary queue cards and
+ *   never files new ones.
+ */
+export type PromptRequestDisposition = "run-now" | "batch" | "global";
+
+/**
+ * What the composer hands the host when a note is filed. `annotationId` is
+ * minted by the LAB, before the host has seen anything, so the follow-up
+ * `onRunRequest` / `onApplyQueue` / `onRerunRequest` calls have a stable
+ * handle from the very first frame; echo it back as
+ * `PromptEditRequest.annotationId` and the lab's inline loop lines up with
+ * the host's request.
+ */
+export interface PromptRequestFiling {
+	annotationId: string;
+	disposition: PromptRequestDisposition;
+	/** The pinned target, fingerprinted at file time. Null for `global`. */
+	target: PromptAnnotationTarget | null;
+	body: string;
+}
+
 /** One R-alias request in the session queue (usually born as an annotation). */
 export interface PromptEditRequest {
 	/** Queue alias — "R1", "R2", agent-authored notes "A1"… Unique per session. */
@@ -44,6 +73,12 @@ export interface PromptEditRequest {
 	/** Anchor in the prompt; null = document-level request. */
 	target: PromptAnnotationTarget | null;
 	thread?: PromptEditThreadMessage[];
+	/**
+	 * How the request was filed. ADDITIVE: a request without one is read as
+	 * `global` when it has no target and `batch` otherwise — i.e. every
+	 * pre-existing request keeps behaving as a queue card.
+	 */
+	disposition?: PromptRequestDisposition;
 }
 
 /**
@@ -98,6 +133,59 @@ export interface PromptEditSession {
 		target: PromptAnnotationTarget | null,
 		body: string,
 	) => void | Promise<void>;
+
+	/* ---------------------------------------------------------------- */
+	/* The three-gesture composer + the two run loops                    */
+	/* ---------------------------------------------------------------- */
+
+	/**
+	 * A composer submit, with its disposition. Preferred over
+	 * `onSendRequest` when both are present (`onSendRequest` stays the
+	 * disposition-blind door for hosts that never adopted the gestures).
+	 * Called for ALL three gestures, always before `onRunRequest`.
+	 */
+	onFileRequest?: (filing: PromptRequestFiling) => void | Promise<void>;
+	/**
+	 * Run now: launch a request-scoped session for this one annotation
+	 * immediately. Fired straight after the `onFileRequest` that created it.
+	 * While the request is in flight the lab renders its thread inline above
+	 * the target row and keeps it OUT of the REQUESTS zone.
+	 */
+	onRunRequest?: (annotationId: string) => void | Promise<void>;
+	/**
+	 * Dismiss a queued note before any run consumed it (the queue card's ✕):
+	 * the annotation resolves as dismissed and leaves the queue. Keyed by the
+	 * run id (annotation id when the request has one, else its alias).
+	 */
+	onDismissRequest?: (annotationId: string) => void | Promise<void>;
+	/**
+	 * Apply: launch one batch session scoped to exactly these queued
+	 * annotations, in the order given (which is the order the queue narrates
+	 * — the lab labels the first request without a staged proposal
+	 * `processing` and the rest `queued · next` / `queued · #2`).
+	 */
+	onApplyQueue?: (annotationIds: string[]) => void | Promise<void>;
+	/**
+	 * A reply typed into a run-now request's INLINE thread: re-run that
+	 * request with the reply as new instruction (the previous proposal is
+	 * expected to be replaced, not stacked). Falls back to
+	 * `onReplyToRequest` when absent.
+	 */
+	onRerunRequest?: (
+		annotationId: string,
+		replyText: string,
+	) => void | Promise<void>;
+}
+
+/**
+ * The handle the run/apply/rerun callbacks speak: the lab-minted annotation
+ * id when the host echoed it back, else the alias (so a host that files
+ * requests its own way still gets a usable key).
+ */
+export function requestRunId(
+	request: Pick<PromptEditRequest, "alias" | "annotationId">,
+): string {
+	return request.annotationId ?? request.alias;
 }
 
 /* ------------------------------------------------------------------ */

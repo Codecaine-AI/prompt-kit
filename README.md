@@ -133,7 +133,8 @@ dependency direction remains one-way:
   map is unchanged.
 - Agent harness: `packages/prompt-kit-agent`
   (`@codecaine-ai/prompt-kit-agent`) owns `catalog/prompt-editor`,
-  `skills/prompt-kit-authoring`, and the kernel on `:4850`. Start it from this
+  prompt structure guidance in `docs/30-prompt-structure/`, and the kernel on
+  `:4850`. Start it from this
   repository root with `bun run dev:agent`.
 - Hosts: canvas `/config` (`make traces` in `../canvas`, then
   http://localhost:4830/config) and Observatory, where the registered

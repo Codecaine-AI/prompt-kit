@@ -1,0 +1,135 @@
+---
+covers: The canonical structure and authoring judgment for prompts that transform bounded input into one defined output.
+concepts: [single-output, instructions, workflow, output-format, constraints]
+depends-on: [30-prompt-structure/00-overview.md]
+---
+
+# Single-Output Prompts
+
+A single-output prompt transforms bounded input into one defined output in one
+model call. Classification, extraction, scoring, rewriting, normalization, and
+bounded summarization all fit this shape. The task is the role: state what to
+produce instead of inventing a persona around the work.
+
+If the model must observe changing state and decide what to do next across
+calls, use an [agent prompt](10-agent-prompt.md). Internal stages such as
+analyze, critique, and revise do not make a prompt an agent. They remain one
+call whose only externally visible result is the requested output.
+
+---
+
+## Canonical Section Order
+
+Single-output prompts use the following order:
+
+```xml
+<purpose>
+<instructions>
+<workflow>       <!-- staged prompts only -->
+<output_format>
+<constraints>    <!-- hard requirements, last -->
+```
+
+Minimal is normal. A prompt should omit optional sections that do not change
+the result. Many effective single-output prompts need only `purpose`,
+`instructions`, `output_format`, and a small set of constraints.
+
+## Purpose
+
+`<purpose>` is an imperative statement of what to produce. One or two concrete
+sentences are usually enough, and the result should be measurable from the
+output itself.
+
+- Weak: "You are a helpful sales analyst."
+- Strong: "Identify the three highest-impact trends in the sales data."
+
+The stronger version makes the task itself the role. Persona language adds
+tokens without clarifying what a successful response contains.
+
+## Instructions
+
+`<instructions>` supplies the input and explains how to handle it. Keep runtime
+input visibly separate from the surrounding directions so that data does not
+read like an instruction. In a `PromptDocument`, a variable or another explicit
+runtime boundary should carry the input rather than prose pasted into the
+standing prompt.
+
+Instructions should resolve judgment calls that affect the transformation. If
+accuracy and completeness can conflict, for example, say which one wins. A
+priority such as "preserve supported facts even when that means omitting an
+uncertain detail" is actionable; "be accurate and complete" leaves the tension
+unresolved.
+
+There is an open design question about whether `<instructions>` and
+`<workflow>` will prove redundant. Keep both available for now: instructions
+describe the input and its treatment, while workflow names necessary internal
+stages. Revisit the distinction after more single-output prompts provide
+evidence.
+
+## Workflow
+
+`<workflow>` appears only when internal staging earns its place. Use it when a
+known failure mode requires the model to move through distinct stages before
+writing the one output, such as extracting evidence before synthesizing it or
+checking a draft against the source before returning it.
+
+Do not add workflow merely because a transformation is complex. Staging costs
+attention and tokens, so begin without it and add stages in response to an
+observed problem such as shallow analysis, unsupported claims, or missed
+requirements. A staged prompt is still a single-output prompt: it carries no
+live process state between calls.
+
+## Output Format
+
+`<output_format>` is a literal skeleton of the expected response. Show the
+shape the model can copy instead of describing it indirectly. The skeleton may
+be a JSON object, XML structure, table, or fixed Markdown field layout:
+
+```xml
+<output_format>
+    ## Summary
+    [Two sentences]
+
+    ## Findings
+    1. [Finding supported by the input]
+    2. [Finding supported by the input]
+</output_format>
+```
+
+The skeleton should expose every required field but should not smuggle in live
+input. Runtime data belongs in instructions; output format defines only the
+response shape.
+
+## Examples Belong in Context
+
+`<examples>` is not part of the single-output prompt. When examples are needed
+to disambiguate a subtle format or edge case, provide them as a self-describing
+context block that explains what it demonstrates and when to consult it. This
+keeps stable behavior in the prompt while allowing reference material to change
+without changing the agent or task definition.
+
+Skip examples when the literal output skeleton already makes the answer
+obvious. When an edge case truly needs demonstration, a good example and a
+contrasting bad example with the reason it fails usually provide enough signal.
+
+## Size and Restraint
+
+Bias toward a small prompt, roughly 500 tokens or fewer when the task permits.
+Single-output prompts pay the cost of every unnecessary token on every call.
+Remove role-play, duplicated directions, staging without an observed benefit,
+and sections included only because a template offers them.
+
+Small does not mean underspecified. Preserve the distinctions that determine
+the result: the requested outcome, input boundary, necessary handling rules,
+literal output shape, and hard requirements.
+
+## Constraints
+
+`<constraints>` contains hard requirements such as length, tone,
+must-include items, and forbidden content. It is the final section so its
+non-negotiable limits remain recent when the model begins producing the
+response.
+
+Keep constraints few, concrete, and testable. Resolve conflicts explicitly and
+remove constraints already guaranteed by the output skeleton or instructions.
+The last section should sharpen the task, not repeat it.

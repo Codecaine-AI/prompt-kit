@@ -15,7 +15,7 @@ import { promptEditSharedTools } from "./prompt-edit";
 export const KERNEL_ID = "prompt-kit-kernel";
 export const DISPLAY_NAME = "Prompt Kit";
 export const DEFAULT_PORT = 4850;
-export const DEFAULT_PROMPT_EDITOR_MODEL = "codex-lb/gpt-5.5";
+export const DEFAULT_PROMPT_EDITOR_MODEL = "codex-lb/gpt-5.6-sol";
 
 /** This file lives at packages/prompt-kit-agent/src/kernel.ts. */
 export const HARNESS_ROOT = resolve(import.meta.dir, "..");

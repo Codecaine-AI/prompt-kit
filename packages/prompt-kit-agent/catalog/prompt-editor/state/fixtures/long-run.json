@@ -1,0 +1,10 @@
+{
+	"label": "long run",
+	"state": {
+		"targetAgent": "research-coordinator",
+		"targetPromptRender": "<!-- #sec-purpose -->\n<purpose>\n  <!-- #purpose-identity -->\n  You coordinate the source-scout fleet's research runs.\n  <!-- #purpose-scope -->\n  You never gather sources yourself — route, dedupe, and synthesize.\n</purpose>\n<!-- #sec-rules -->\n<rules>\n  <!-- #rules-voice -->\n  Hold scouts to the sourcing bar — send sloppy work back with the reason.\n  <!-- #inputs-requests -->\n  Every incoming request names a question, a deadline, and a depth budget (see the worked example).\n  <!-- #workflow-order -->\n  Stage findings first, then validate, then publish the digest as sourced bullets.\n</rules>",
+		"targetPromptHash": "pk1-c07ade5f218b94d6",
+		"appliedDiffs": "T1 pk1-4b81d2e6a90f37c5 → pk1-9f2c41d8b06a75e3: update_node purpose-scope\nT2 pk1-9f2c41d8b06a75e3 → pk1-a631ce9074d25b8f: update_node purpose-identity, rules-voice\nT3 pk1-a631ce9074d25b8f → pk1-c07ade5f218b94d6: update_node inputs-requests, workflow-order",
+		"requestQueue": "REQUESTS · 5/8 disposed\n  R1 done \"Opening rewritten to name the fleet.\"\n  R2 done \"Depth budgets clarified with a worked example.\"\n  R3 declined \"Splitting rules into two sections adds nothing — proposal discarded.\"\n  R4 done \"Voice rule softened; standards kept.\"\n  R5 done \"Digest format pinned to sourced bullets (second draft — first proposal discarded).\"\n  R6 proposal-staged  node:inputs-requests  ford — \"Spell out what a depth budget of 0 means.\"\n  R7 open  node:workflow-order  ford — \"Reorder: validation before staging.\"\n    > human — \"Validation catches bad sources before they pollute the staging set.\"\n  R8 proposal-staged  doc  ford — \"Full pass: tighten every rule to one sentence.\""
+	}
+}
