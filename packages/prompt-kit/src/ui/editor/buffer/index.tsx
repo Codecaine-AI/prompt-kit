@@ -1367,8 +1367,25 @@ export function PromptFlowXml({
 		highlightUnit?.kind === "item"
 			? itemRanges.get(highlightUnit.id)
 			: undefined;
+	// Selection paints in TWO scopes ("flood never, rail for extent"):
+	//
+	//   rail   the full start..end interval keeps a thin LEFT ACCENT RAIL (the
+	//          per-row accent bar XmlRow draws), so the selected node's whole
+	//          extent stays legible;
+	//   fill   the selectionBg wash is UNIT-scoped exactly like the hover wash —
+	//          only rows the selected node itself owns (a section its open/close
+	//          tag rows, a paragraph its rows, an item its itemRanges extent),
+	//          never the body rows its children own.
+	//
+	// `activeId` is normally a node id; the item fallback mirrors flashRange, so
+	// an item-addressed selection (if a host ever produces one) scopes to the
+	// item's extent instead of vanishing.
+	const selectedItemRange =
+		flow.activeId && !nodeRanges.has(flow.activeId)
+			? itemRanges.get(flow.activeId)
+			: undefined;
 	const selectedRange = flow.activeId
-		? nodeRanges.get(flow.activeId)
+		? (nodeRanges.get(flow.activeId) ?? selectedItemRange)
 		: undefined;
 	const paintedSelectionRange = trimPaintedNodeRange(lines, selectedRange);
 	// The dragged / flashed unit dims / flashes across its ENTIRE visual line
@@ -1568,6 +1585,16 @@ export function PromptFlowXml({
 								index >= paintedGroupRange.start &&
 								index <= paintedGroupRange.end;
 							const selected = nodeSelected || groupSelected;
+							// The selection FILL is unit-scoped like the hover wash
+							// (ownership / item extent — see the rail-vs-fill note at
+							// paintedSelectionRange); the rail spans `selected`.
+							const selectionFill =
+								flow.activeId !== undefined &&
+								line.role !== "gap" &&
+								(selectedItemRange !== undefined
+									? index >= selectedItemRange.start &&
+										index <= selectedItemRange.end
+									: line.nodeId === flow.activeId);
 							const inHighlight =
 								highlightUnit !== null &&
 								line.role !== "gap" &&
@@ -1628,6 +1655,7 @@ export function PromptFlowXml({
 									gutterWidth={gutterWidth}
 									entry={entry}
 									selected={selected}
+									selectionFill={selectionFill}
 									inStructuralSelection={groupSelected}
 									inHighlight={inHighlight}
 									isSelectionStart={
@@ -1881,6 +1909,7 @@ export function PromptFlowXml({
 											location.outerListId,
 											location.parentItemIndex,
 											line.itemIndex,
+											line.nodeId,
 										);
 										if (!result.step) return;
 										onPromptChange(result.prompt, location.outerListId, [

@@ -38,7 +38,20 @@ export interface XmlRowProps {
 	lineNumber: number;
 	gutterWidth: string;
 	entry: PromptEditorTreeEntry | undefined;
+	/**
+	 * The row sits inside the selected node's full start..end interval. Drives
+	 * the left accent RAIL (and the machine-readable selection stamp) — never
+	 * the background fill, which is `selectionFill`'s unit-scoped job.
+	 */
 	selected: boolean;
+	/**
+	 * The selected node OWNS this row (a section its open/close tag rows, a
+	 * paragraph its rows, an item its extent) — unit-scoped exactly like
+	 * `inHighlight`. Drives the selectionBg wash and the gutter tint. "Flood
+	 * never, rail for extent": a container's selection must not wash the body
+	 * rows its children own.
+	 */
+	selectionFill: boolean;
 	/**
 	 * The row sits inside the active STRUCTURAL selection (marquee zone /
 	 * Cmd+click unit / shift-click item run). The zone paints as ONE object —
@@ -122,6 +135,7 @@ export function XmlRow({
 	gutterWidth,
 	entry,
 	selected,
+	selectionFill,
 	inStructuralSelection,
 	inHighlight,
 	isSelectionStart,
@@ -260,33 +274,38 @@ export function XmlRow({
 			)}
 
 			{/* Unit wash: hover stays quiet, selection takes the stronger
-			    configured accent wash. The hover wash is UNIT-scoped — the
-			    surface sets inHighlight only on rows the highlighted unit owns:
-			    a section tag hover washes its open/close tag rows, never the
-			    body rows other nodes own, and a LIST ITEM washes exactly its
-			    own extent (marker row + nested child rows), never a sibling
-			    bullet's. Inside the structural selection
-			    both washes are suppressed — the surface's single ring overlay is
-			    the paint, and hovering the one object must not stack a second
-			    wash — while the drop flash still reads (it is transient
-			    feedback, not state). */}
+			    configured accent wash. BOTH are UNIT-scoped — the surface sets
+			    inHighlight / selectionFill only on rows the unit owns: a section
+			    washes its open/close tag rows, never the body rows other nodes
+			    own, and a LIST ITEM washes exactly its own extent (marker row +
+			    nested child rows), never a sibling bullet's. The selected node's
+			    full interval keeps only the accent rail below ("flood never,
+			    rail for extent"). Inside the structural selection both washes
+			    are suppressed — the surface's single ring overlay is the paint,
+			    and hovering the one object must not stack a second wash — while
+			    the drop flash still reads (it is transient feedback, not
+			    state). */}
 			{(flashing ||
-				((inHighlight || selected) && !inStructuralSelection)) && (
+				((inHighlight || selectionFill) && !inStructuralSelection)) && (
 				<div
 					className="pointer-events-none absolute inset-0 z-0 transition-colors"
 					style={{
 						background:
-							flashing || selected
+							flashing || selectionFill
 								? EDITOR_COLORS.selectionBg
 								: EDITOR_COLORS.hoverBg,
 					}}
 				/>
 			)}
-			{/* Selection keeps a full-opacity accent bar; hover uses only its
-			    background wash. The structural zone drops the per-row bar too —
-			    its ring's border carries the accent. */}
+			{/* THE selection rail: a full-opacity accent bar at the row's left
+			    edge, spanning EVERY row of the selected node's start..end
+			    interval — the extent marker the unit-scoped fill above no
+			    longer provides. Hover uses only its background wash. The
+			    structural zone drops the per-row bar too — its ring's border
+			    carries the accent. */}
 			{selected && !inStructuralSelection && (
 				<div
+					data-prompt-selection-rail=""
 					className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-[2px]"
 					style={{
 						background: EDITOR_COLORS.selectionAccent,
@@ -306,8 +325,10 @@ export function XmlRow({
 				className="sticky left-0 z-10 flex shrink-0 select-none items-start justify-end pr-3 text-right"
 				style={{
 					minWidth: gutterWidth,
+					// The gutter tint is a FILL, so it follows the unit scope —
+					// interval rows keep only the rail.
 					background:
-						selected && !inStructuralSelection
+						selectionFill && !inStructuralSelection
 							? EDITOR_COLORS.activeLineBg
 							: "transparent",
 				}}

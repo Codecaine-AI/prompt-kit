@@ -243,12 +243,95 @@ describe("escapeListStep — Enter on an empty list item", () => {
 		expectRoundTrip(before, result.steps, result.prompt);
 	});
 
+	// Sibling-carry outdent semantics (2026-08-05): the nested escape path
+	// mirrors unnestListItemStep — trailing former siblings become the
+	// outdented item's children, preceding ones stay with the parent, and an
+	// item's own subtree rides along instead of blocking the gesture.
+	test("outdent carries trailing former siblings as the item's children", () => {
+		const before = rawDoc(
+			bulletList(
+				"outer",
+				item("parent", [
+					bulletList("inner", item(""), item("tail")),
+				]),
+			),
+		);
+		const result = escapeListStep(before, "inner", 0)!;
+		expect(result).not.toBeNull();
+		const outer = firstList(result.prompt);
+		expect(itemTexts(outer)).toEqual(["parent", ""]);
+		// The parent kept no preceding siblings, so its child list is gone …
+		expect(outer.items[0]!.children).toBeUndefined();
+		// … and `tail` now nests under the outdented (empty) item.
+		const carried = outer.items[1]!.children![0] as BulletListNode;
+		expect(itemTexts(carried)).toEqual(["tail"]);
+		expect(result.focusNodeId).toBe("outer");
+		expect(result.focusItemIndex).toBe(1);
+		expectRoundTrip(before, result.steps, result.prompt);
+	});
+
+	test("a nested empty item WITH children outdents, subtree carried — no more decline", () => {
+		const before = rawDoc(
+			bulletList(
+				"outer",
+				item("parent", [
+					bulletList("inner", item("", [bulletList("deep", item("kid"))])),
+				]),
+			),
+		);
+		const result = escapeListStep(before, "inner", 0)!;
+		expect(result).not.toBeNull();
+		const outer = firstList(result.prompt);
+		expect(itemTexts(outer)).toEqual(["parent", ""]);
+		const carried = outer.items[1]!.children![0] as BulletListNode;
+		expect(carried.id).toBe("deep");
+		expect(itemTexts(carried)).toEqual(["kid"]);
+		expectRoundTrip(before, result.steps, result.prompt);
+	});
+
+	test("outdents from a child list that is NOT the parent's last list child", () => {
+		const before = rawDoc(
+			bulletList(
+				"outer",
+				item("parent", [
+					bulletList("first", item("")),
+					bulletList("second", item("x")),
+				]),
+			),
+		);
+		const result = escapeListStep(before, "first", 0)!;
+		expect(result).not.toBeNull();
+		const outer = firstList(result.prompt);
+		expect(itemTexts(outer)).toEqual(["parent", ""]);
+		// The later sibling list stays with the parent.
+		const remaining = outer.items[0]!.children!;
+		expect(remaining).toHaveLength(1);
+		expect((remaining[0] as BulletListNode).id).toBe("second");
+		expectRoundTrip(before, result.steps, result.prompt);
+	});
+
+	test("the caller's emptiness verdict overrides the document's stale text", () => {
+		const before = rawDoc(
+			bulletList("outer", item("parent", [bulletList("inner", item("stale"))])),
+		);
+		// The document still says "stale" (the textarea emptied a keystroke
+		// ahead of the commit): without the verdict the step declines …
+		expect(escapeListStep(before, "inner", 0)).toBeNull();
+		// … with it, the row outdents instead of falling through to a split.
+		const result = escapeListStep(before, "inner", 0, true)!;
+		expect(result).not.toBeNull();
+		expect(itemTexts(firstList(result.prompt))).toEqual(["parent", "stale"]);
+		expectRoundTrip(before, result.steps, result.prompt);
+	});
+
 	test("declines on an item that still holds text", () => {
 		const before = rawDoc(bulletList("list1", item("a"), item("b")));
 		expect(escapeListStep(before, "list1", 1)).toBeNull();
 	});
 
-	test("declines on an empty item that still holds nested children", () => {
+	test("declines on a TOP-LEVEL empty item that still holds nested children", () => {
+		// Leaving the list would DROP the item — its children with it — so this
+		// path still declines (the nested path outdents instead, see above).
 		const before = rawDoc(
 			bulletList("list1", item("", [bulletList("inner", item("child"))])),
 		);

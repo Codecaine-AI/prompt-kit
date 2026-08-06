@@ -40,7 +40,7 @@ All of the following live in `editor/steps/structure-steps.ts`.
 
 | Function | Gesture | Declines when |
 |----------|---------|---------------|
-| `escapeListStep` | Enter on an empty list item | The item has text or carries nested children |
+| `escapeListStep` | Enter on an empty list item | The item has text (the caller may pass its own emptiness verdict — the keymap passes the textarea's, which can be a keystroke ahead of the document), or a TOP-LEVEL item carries nested children (dropping it would discard them). A NESTED item with children no longer declines: the outdent carries the subtree, and trailing former siblings become the item's children (see `unnestListItemStep`) |
 | `outdentParagraphStep` | Shift+Tab on a paragraph, Enter on a trailing empty one | The paragraph is at the document root or its parent is not a section |
 | `indentParagraphIntoSectionStep` | Tab on a paragraph | The previous sibling is not a section |
 | `demoteSectionStep` | Tab on a section | The previous sibling is not a section |

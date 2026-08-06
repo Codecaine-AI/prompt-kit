@@ -94,28 +94,41 @@ export interface ConvertParagraphOptions {
  * Enter on an EMPTY list item.
  *
  * - Nested item (the list is a child of a list item): outdents one level,
- *   hoisting the item to sit after its former parent item.
+ *   hoisting the item to sit after its former parent item. Nested children
+ *   ride along, and trailing former siblings become the item's children (see
+ *   `unnestListItemStep`) — an outdent moves content, it never discards any,
+ *   so children are NOT a reason to decline on this path.
  * - Top-level item: drops the empty item and opens a new empty paragraph
  *   immediately after the list, at the list's own level (document root, or the
- *   section that holds the list).
+ *   section that holds the list). Here an item still carrying children DOES
+ *   decline — dropping it would discard them — and the caller splits instead.
  * - Only item: the list goes away entirely and the paragraph takes its place.
  *
- * Returns null when the item is not empty or still carries nested children —
- * escaping would silently discard content, so the caller should split instead.
+ * Emptiness: the DOCUMENT's text is the default verdict, but the keymap gates
+ * this gesture on the TEXTAREA — which can be a keystroke ahead of the
+ * committed document (a just-emptied row). `itemIsEmpty` lets the caller pass
+ * its own verdict down so the two never disagree; omitted, the document
+ * decides. Returns null when the item is not empty — escaping would silently
+ * discard text, so the caller should split instead.
  */
 export function escapeListStep(
 	prompt: PromptDocument,
 	listNodeId: string,
 	itemIndex: number,
+	itemIsEmpty?: boolean,
 ): StructureStepResult | null {
 	const list = findListNodeById(prompt, listNodeId);
 	const item = list?.items[itemIndex];
 	if (!list || !item) return null;
-	if (inlineToEditableText(item.content).length > 0) return null;
-	if (item.children && item.children.length > 0) return null;
+	const empty =
+		itemIsEmpty ?? inlineToEditableText(item.content).length === 0;
+	if (!empty) return null;
 
 	const nested = findUnnestLocation(prompt, listNodeId, itemIndex);
 	if (nested) return escapeByOutdent(prompt, listNodeId, itemIndex, nested);
+
+	// Leaving the list would drop the item — children would go with it.
+	if (item.children && item.children.length > 0) return null;
 
 	// Block-addressable list: leave it for a paragraph at the list's level.
 	if (!getPromptBlockNodeById(prompt, listNodeId)) return null;
@@ -168,25 +181,22 @@ function escapeByOutdent(
 	itemIndex: number,
 	nested: { outerListId: string; parentItemIndex: number },
 ): StructureStepResult | null {
-	// `unnestListItemStep` hoists out of the parent item's LAST list child; if
-	// this list is not that one the indices would not line up, so decline.
-	const outer = findListNodeById(prompt, nested.outerListId);
-	const parentItem = outer?.items[nested.parentItemIndex];
-	const target = lastListChild(parentItem?.children ?? []);
-	if (!target || target.id !== listNodeId) return null;
-
+	// The nested list is named EXPLICITLY, so a parent item holding several
+	// child lists outdents from the right one — mid-list outdents included
+	// (unnestListItemStep no longer assumes the last list child).
 	const result = unnestListItemStep(
 		prompt,
 		nested.outerListId,
 		nested.parentItemIndex,
 		itemIndex,
+		listNodeId,
 	);
 	if (!result.step) return null;
 	return {
 		prompt: result.prompt,
 		steps: [result.step],
-		focusNodeId: nested.outerListId,
-		focusItemIndex: nested.parentItemIndex + 1,
+		focusNodeId: result.focusListId ?? nested.outerListId,
+		focusItemIndex: result.focusItemIndex ?? nested.parentItemIndex + 1,
 		caretOffset: 0,
 	};
 }
@@ -547,14 +557,4 @@ function findListNodeById(
 		return undefined;
 	};
 	return walk(prompt.nodes);
-}
-
-function lastListChild(
-	children: readonly PromptBlockNode[],
-): ListNode | undefined {
-	for (let index = children.length - 1; index >= 0; index -= 1) {
-		const child = children[index];
-		if (child && isListNode(child)) return child;
-	}
-	return undefined;
 }

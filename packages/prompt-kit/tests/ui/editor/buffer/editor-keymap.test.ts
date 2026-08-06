@@ -159,6 +159,9 @@ function expectOneTransaction(before: PromptDocument, pressed: Pressed) {
  * --------------------------------------------------------------- */
 
 describe("Enter on an empty list item", () => {
+	// Preceding nested siblings stay with the parent; the outdented row lands
+	// right after them (sibling-carry semantics — trailing siblings are the
+	// next test's job).
 	test("outdents a nested item to sit after its parent", () => {
 		const before = doc({
 			type: "bulletList",
@@ -174,6 +177,61 @@ describe("Enter on an empty list item", () => {
 
 		expectOneTransaction(before, pressed);
 		expect(pressed.text).toBe("- outer\n    - inner\n-");
+		expect(pressed.moved).toEqual({
+			nodeId: id.bullets(1),
+			itemIndex: 1,
+			caret: 0,
+		});
+	});
+
+	test("outdent carries trailing nested siblings as children of the outdented item", () => {
+		const before = doc({
+			type: "bulletList",
+			items: [
+				{
+					type: "listItem",
+					content: ["outer"],
+					children: [bullets("", "tail")],
+				},
+			],
+		});
+		const pressed = press(before, { nodeId: id.bullets(2), itemIndex: 0 }, "Enter");
+
+		expectOneTransaction(before, pressed);
+		// `tail` follows the outdented row down a level instead of staying
+		// stranded under `outer` above it.
+		expect(pressed.text).toBe("- outer\n-\n    - tail");
+		expect(pressed.moved).toEqual({
+			nodeId: id.bullets(1),
+			itemIndex: 1,
+			caret: 0,
+		});
+	});
+
+	test("outdents a just-emptied row even when the document text is stale", () => {
+		// The textarea runs a keystroke ahead of the committed document: the
+		// row was just emptied (value "") while the document still says
+		// "stale". The keymap's emptiness verdict wins — the row outdents
+		// instead of splitting an empty item into another child.
+		const before = doc({
+			type: "bulletList",
+			items: [
+				{
+					type: "listItem",
+					content: ["outer"],
+					children: [bullets("stale")],
+				},
+			],
+		});
+		const pressed = press(
+			before,
+			{ nodeId: id.bullets(2), itemIndex: 0 },
+			"Enter",
+			{ value: "" },
+		);
+
+		expectOneTransaction(before, pressed);
+		expect(pressed.text).toBe("- outer\n- stale");
 		expect(pressed.moved).toEqual({
 			nodeId: id.bullets(1),
 			itemIndex: 1,
@@ -205,6 +263,38 @@ describe("Enter on an empty list item", () => {
 		expect(pressed.moved).toEqual({
 			nodeId: id.bullets(1),
 			itemIndex: 1,
+			caret: 0,
+		});
+	});
+});
+
+describe("Enter splitting an item that has nested children", () => {
+	test("the new item lands as the FIRST child, and the caret follows into that list", () => {
+		const before = doc({
+			type: "bulletList",
+			items: [
+				{
+					type: "listItem",
+					content: ["ab"],
+					children: [bullets("kid")],
+				},
+			],
+		});
+		const pressed = press(
+			before,
+			{ nodeId: id.bullets(1), itemIndex: 0 },
+			"Enter",
+			{ value: "ab", caret: 1 },
+		);
+
+		expectOneTransaction(before, pressed);
+		// The after-caret text sits directly under the caret — above `kid`,
+		// never below the whole subtree.
+		expect(pressed.text).toBe("- a\n    - b\n    - kid");
+		// The caret moved into the CHILD list (focusListId), not the outer one.
+		expect(pressed.moved).toEqual({
+			nodeId: id.bullets(2),
+			itemIndex: 0,
 			caret: 0,
 		});
 	});
@@ -402,6 +492,34 @@ describe("Tab in a list", () => {
 
 		expectOneTransaction(before, pressed);
 		expect(pressed.text).toBe("- one\n- two");
+		expect(pressed.moved).toEqual({
+			nodeId: id.bullets(1),
+			itemIndex: 1,
+			caret: 1,
+		});
+	});
+
+	test("Shift+Tab mid-list carries trailing siblings as children (outliner outdent)", () => {
+		const before = doc({
+			type: "bulletList",
+			items: [
+				{
+					type: "listItem",
+					content: ["one"],
+					children: [bullets("a", "b", "c")],
+				},
+			],
+		});
+		const pressed = press(
+			before,
+			{ nodeId: id.bullets(2), itemIndex: 1 },
+			"Tab",
+			{ value: "b", caret: 1, shiftKey: true },
+		);
+
+		expectOneTransaction(before, pressed);
+		// `a` stays under `one`; `c` follows `b` down as its child.
+		expect(pressed.text).toBe("- one\n    - a\n- b\n    - c");
 		expect(pressed.moved).toEqual({
 			nodeId: id.bullets(1),
 			itemIndex: 1,

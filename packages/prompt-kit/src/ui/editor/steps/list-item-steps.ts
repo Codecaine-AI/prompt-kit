@@ -580,9 +580,20 @@ function findListDeep(
 
 /**
  * Splits the item at `itemIndex` at a caret: the item keeps `beforeText` (and
- * its nested children), and a NEW item carrying `afterText` is inserted
- * directly after it. One invertible update step; the caller focuses the new
- * item at caret 0. Enter-at-end degenerates to a clean "add next item".
+ * its nested children), and a NEW item carrying `afterText` lands where the
+ * next line visually sits:
+ *
+ * - Item WITHOUT a nested child list: the new item is inserted directly after
+ *   it in the same list (Enter-at-end degenerates to a clean "add next item").
+ * - Item WITH a nested child list: splicing at `itemIndex + 1` would drop the
+ *   new item BELOW the whole nested subtree, so instead it becomes the FIRST
+ *   item of the item's first child list — the row immediately under the caret.
+ *   The children stay with the original item; the result carries
+ *   `focusListId` (that child list) + `focusItemIndex: 0` so the caller can
+ *   follow the caret into the list it landed in.
+ *
+ * Either way it is one invertible update step; the caller focuses the new
+ * item at caret 0.
  */
 export function splitListItemStep(
 	prompt: PromptDocument,
@@ -591,21 +602,63 @@ export function splitListItemStep(
 	beforeText: string,
 	afterText: string,
 ): ListItemStepResult {
+	const sourceList = getListById(prompt, listId);
+	const sourceItem = sourceList?.items[itemIndex];
+	const childList = (sourceItem?.children ?? []).find(isListNode);
+
 	const result = updateListByIdWithStep(prompt, listId, (node) => {
 		if (itemIndex < 0 || itemIndex >= node.items.length) return node;
 		const items = [...node.items];
 		const current = items[itemIndex];
 		if (!current) return node;
+		const newItem: ListItemNode = {
+			type: "listItem",
+			content: editableTextToInline(afterText),
+		};
+		if (childList) {
+			// Prepend the new item to the FIRST child list, leaving the child
+			// blocks (and every later sibling) exactly where they are.
+			const children = (current.children ?? []).map((child) =>
+				child === childList ||
+				(childList.id !== undefined &&
+					isListNode(child) &&
+					child.id === childList.id)
+					? withItems(child as ListNode, [newItem, ...(child as ListNode).items])
+					: child,
+			);
+			items[itemIndex] = {
+				...current,
+				content: editableTextToInline(beforeText),
+				children,
+			};
+			return withItems(node, items);
+		}
 		items[itemIndex] = {
 			...current,
 			content: editableTextToInline(beforeText),
 		};
-		items.splice(itemIndex + 1, 0, {
-			type: "listItem",
-			content: editableTextToInline(afterText),
-		});
+		items.splice(itemIndex + 1, 0, newItem);
 		return withItems(node, items);
 	});
+	if (childList && result.step) {
+		// The child list predates the split, so its id is settled — but raw
+		// fixtures may carry none, in which case the ensured document names the
+		// id the surface is about to render (nestListItemStep's exact pattern).
+		const focusListId =
+			childList.id ??
+			(() => {
+				const ensured = ensurePromptNodeIds(result.prompt);
+				const item = getListById(ensured, listId)?.items[itemIndex];
+				return (item?.children ?? []).find(isListNode)?.id;
+			})();
+		return {
+			prompt: result.prompt,
+			step: result.step,
+			...(focusListId ? { focusListId } : {}),
+			focusItemIndex: 0,
+			caretOffset: 0,
+		};
+	}
 	return {
 		prompt: result.prompt,
 		step: result.step,
@@ -694,20 +747,32 @@ function nestWithin(list: ListNode, itemIndex: number): ListNode {
 /**
  * Un-nests the item at `childIndex` of the child list embedded in item
  * `parentItemIndex` of `listId`, hoisting it to sit immediately after that
- * parent item in the outer list. The whole two-level reparent is expressed as
- * a single update to the (top-level) list node, so it is one invertible step.
+ * parent item in the outer list — standard outliner Shift+Tab semantics:
+ *
+ * - The item's OWN nested children ride along with it (items move as whole
+ *   subtrees, exactly like the move steps above).
+ * - TRAILING former siblings (nested items after `childIndex`) become the
+ *   hoisted item's children — appended to its trailing child list of the same
+ *   kind, or into a fresh child list when it has none — so they keep their
+ *   visual position under the row that just left them. Without the carry the
+ *   hoisted item would jump BELOW its former siblings' context.
+ * - PRECEDING siblings stay nested under the parent item, untouched.
+ *
+ * The whole reparent is a single update to the addressable list root, so it
+ * is one invertible step.
  *
  * `listId` addresses the OUTER list; `parentItemIndex` is the outer item whose
  * `children` hold the nested list; `childIndex` is the position within that
- * nested list. This mirrors how the line model surfaces a nested list: the
- * nested list is a distinct block node, but its logical parent is an item of
- * the outer list, and un-nesting must edit both levels at once.
+ * nested list. `nestedListId` names WHICH child list to hoist from — a parent
+ * item can hold several — and defaults to the LAST list child (the historical
+ * behavior) when omitted.
  */
 export function unnestListItemStep(
 	prompt: PromptDocument,
 	listId: string,
 	parentItemIndex: number,
 	childIndex: number,
+	nestedListId?: string,
 ): ListItemStepResult {
 	const result = updateListByIdWithStep(prompt, listId, (node) => {
 		if (parentItemIndex < 0 || parentItemIndex >= node.items.length) return node;
@@ -716,33 +781,65 @@ export function unnestListItemStep(
 		if (!parent) return node;
 
 		const children = parent.children ?? [];
-		// Un-nesting hoists out of the LAST child list (the one the surface shows
-		// directly beneath the parent item).
-		const listChildIndex = findLastListChildIndex(children);
+		const listChildIndex =
+			nestedListId !== undefined
+				? children.findIndex(
+						(child) => isListNode(child) && child.id === nestedListId,
+					)
+				: findLastListChildIndex(children);
 		if (listChildIndex < 0) return node;
 		const childList = children[listChildIndex] as ListNode;
 		if (childIndex < 0 || childIndex >= childList.items.length) return node;
 
-		const nestedItems = [...childList.items];
-		const [moving] = nestedItems.splice(childIndex, 1);
+		const nestedItems = childList.items;
+		const moving = nestedItems[childIndex];
 		if (!moving) return node;
+		const preceding = nestedItems.slice(0, childIndex);
+		const trailing = nestedItems.slice(childIndex + 1);
 
-		// Rebuild the parent's children: shrink (or drop) the child list.
+		// Trailing former siblings become the hoisted item's children, AFTER its
+		// own existing subtree (they sat below it before; they still do).
+		let hoisted = moving;
+		if (trailing.length > 0) {
+			const movingChildren = moving.children ?? [];
+			const lastChild = movingChildren[movingChildren.length - 1];
+			if (
+				lastChild &&
+				isListNode(lastChild) &&
+				lastChild.type === childList.type
+			) {
+				hoisted = {
+					...moving,
+					children: [
+						...movingChildren.slice(0, -1),
+						withItems(lastChild, [...lastChild.items, ...trailing]),
+					],
+				};
+			} else {
+				hoisted = {
+					...moving,
+					children: [
+						...movingChildren,
+						{ type: childList.type, items: trailing } as ListNode,
+					],
+				};
+			}
+		}
+
+		// Rebuild the parent's children: keep the preceding siblings (or drop the
+		// child list entirely when none remain).
 		const nextChildren = [...children];
-		if (nestedItems.length === 0) {
+		if (preceding.length === 0) {
 			nextChildren.splice(listChildIndex, 1);
 		} else {
-			nextChildren[listChildIndex] = {
-				...childList,
-				items: nestedItems,
-			} as ListNode;
+			nextChildren[listChildIndex] = withItems(childList, preceding);
 		}
 		items[parentItemIndex] = {
 			...parent,
 			children: nextChildren.length > 0 ? nextChildren : undefined,
 		};
 		// Hoist the item to just after its former parent in the outer list.
-		items.splice(parentItemIndex + 1, 0, moving);
+		items.splice(parentItemIndex + 1, 0, hoisted);
 		return withItems(node, items);
 	});
 	// The item lands in the OUTER list, one slot past its former parent.

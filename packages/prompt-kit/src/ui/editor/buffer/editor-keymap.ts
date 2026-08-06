@@ -214,8 +214,11 @@ function splitAtCaret(
 		);
 		if (!result.step) return;
 		onPromptChange(result.prompt, line.nodeId, [result.step]);
+		// A split whose item carries a nested list lands the new item in a
+		// DIFFERENT list node (the first child list) — the result names it, and
+		// the caret must follow it there (landOnItem's exact contract).
 		moveEdit({
-			nodeId: line.nodeId,
+			nodeId: result.focusListId ?? line.nodeId,
 			itemIndex: result.focusItemIndex ?? itemIndex + 1,
 			caret: result.caretOffset ?? 0,
 		});
@@ -408,9 +411,13 @@ function applyStructuralEnter(
 	if (value.length > 0) return false;
 
 	if (line.role === "item") {
+		// The TEXTAREA is the emptiness authority here: it can be a keystroke
+		// ahead of the committed document (a just-emptied row), and re-deriving
+		// emptiness from the document would make this decline and fall through
+		// to splitting an "empty" item instead of outdenting.
 		return commitStructure(
 			context,
-			escapeListStep(prompt, line.nodeId, line.itemIndex ?? 0),
+			escapeListStep(prompt, line.nodeId, line.itemIndex ?? 0, true),
 		);
 	}
 
@@ -468,6 +475,7 @@ function applyTab(
 				location.outerListId,
 				location.parentItemIndex,
 				itemIndex,
+				listId,
 			);
 			if (!result.step) return;
 			onPromptChange(result.prompt, location.outerListId, [result.step]);

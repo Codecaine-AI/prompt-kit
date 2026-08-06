@@ -198,7 +198,11 @@ describe("list-item step composition", () => {
 		expect(result.focusItemIndex).toBe(1);
 	});
 
-	test("unnest hoists a nested item back after its parent", () => {
+	// DELIBERATE CONTRACT CHANGE (2026-08-05): the old hoist left trailing
+	// nested siblings behind under the parent, so the outdented item jumped
+	// below its former context. Standard outliner semantics now: trailing
+	// former siblings become CHILDREN of the outdented item.
+	test("unnest hoists a nested item after its parent, carrying trailing siblings as its children", () => {
 		const before = docWith({
 			type: "bulletList",
 			id: "list1",
@@ -215,9 +219,101 @@ describe("list-item step composition", () => {
 		expect(result.step).toBeDefined();
 		const list = firstList(result.prompt);
 		expect(list.items.map((i) => i.content)).toEqual([["parent"], ["nestedA"]]);
-		// The remaining nested item stays under the parent.
-		const nested = list.items[0]!.children?.[0] as BulletListNode;
-		expect(nested.items.map((i) => i.content)).toEqual([["nestedB"]]);
+		// The parent kept NO preceding siblings, so its child list is gone …
+		expect(list.items[0]!.children).toBeUndefined();
+		// … and the trailing sibling now nests under the hoisted item.
+		const carried = list.items[1]!.children?.[0] as BulletListNode;
+		expect(carried.type).toBe("bulletList");
+		expect(carried.items.map((i) => i.content)).toEqual([["nestedB"]]);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("unnest keeps preceding siblings under the parent, carries only trailing ones", () => {
+		const before = docWith({
+			type: "bulletList",
+			id: "list1",
+			items: [
+				item("parent", [
+					{
+						type: "bulletList",
+						items: [item("a"), item("b"), item("c")],
+					} as BulletListNode,
+				]),
+			],
+		});
+		const result = unnestListItemStep(before, "list1", 0, 1);
+		const list = firstList(result.prompt);
+		expect(list.items.map((i) => i.content)).toEqual([["parent"], ["b"]]);
+		// Preceding sibling `a` stays nested under the parent, untouched.
+		const kept = list.items[0]!.children?.[0] as BulletListNode;
+		expect(kept.items.map((i) => i.content)).toEqual([["a"]]);
+		// Trailing sibling `c` becomes the hoisted item's child.
+		const carried = list.items[1]!.children?.[0] as BulletListNode;
+		expect(carried.items.map((i) => i.content)).toEqual([["c"]]);
+		expect(result.focusListId).toBe("list1");
+		expect(result.focusItemIndex).toBe(1);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("unnest appends trailing siblings AFTER the hoisted item's own subtree", () => {
+		const before = docWith({
+			type: "bulletList",
+			id: "list1",
+			items: [
+				item("parent", [
+					{
+						type: "bulletList",
+						items: [
+							item("moving", [
+								{
+									type: "bulletList",
+									items: [item("own")],
+								} as BulletListNode,
+							]),
+							item("tail"),
+						],
+					} as BulletListNode,
+				]),
+			],
+		});
+		const result = unnestListItemStep(before, "list1", 0, 0);
+		const hoisted = firstList(result.prompt).items[1]!;
+		expect(hoisted.content).toEqual(["moving"]);
+		// One child list of the same kind: own subtree first, then the carry.
+		expect(hoisted.children).toHaveLength(1);
+		const merged = hoisted.children![0] as BulletListNode;
+		expect(merged.items.map((i) => i.content)).toEqual([["own"], ["tail"]]);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("unnest hoists from the NAMED child list, not just the last one", () => {
+		const before = docWith({
+			type: "bulletList",
+			id: "list1",
+			items: [
+				item("parent", [
+					{
+						type: "bulletList",
+						id: "nestedA",
+						items: [item("x")],
+					} as BulletListNode,
+					{
+						type: "bulletList",
+						id: "nestedB",
+						items: [item("y")],
+					} as BulletListNode,
+				]),
+			],
+		});
+		const result = unnestListItemStep(before, "list1", 0, 0, "nestedA");
+		expect(result.step).toBeDefined();
+		const list = firstList(result.prompt);
+		expect(list.items.map((i) => i.content)).toEqual([["parent"], ["x"]]);
+		// The later sibling list stays with the parent — it was never `x`'s
+		// trailing sibling (different list), so it does not ride along.
+		const remaining = list.items[0]!.children;
+		expect(remaining).toHaveLength(1);
+		expect((remaining![0] as BulletListNode).id).toBe("nestedB");
 		expectRoundTrip(before, result.step!, result.prompt);
 	});
 
@@ -258,6 +354,7 @@ describe("split / merge — the Enter and Backspace pair", () => {
 			["world"],
 			["next"],
 		]);
+		expect(result.focusListId).toBeUndefined();
 		expectRoundTrip(before, result.step!, result.prompt);
 	});
 
@@ -271,20 +368,89 @@ describe("split / merge — the Enter and Backspace pair", () => {
 		expect(result.focusItemIndex).toBe(1);
 	});
 
-	test("split keeps the original item's nested children on the first half", () => {
+	// DELIBERATE CONTRACT CHANGE (2026-08-05): splicing the new item at
+	// itemIndex + 1 dropped it BELOW the item's whole nested subtree. When the
+	// split item carries a nested list, the after-caret text now becomes the
+	// FIRST item of that child list — the row directly under the caret — and
+	// the children stay with the original item.
+	test("split with a nested list lands the new item as the child list's FIRST item", () => {
 		const before = docWith({
 			type: "bulletList",
 			id: "list1",
 			items: [
 				item("parent", [
-					{ type: "bulletList", items: [item("nested")] } as BulletListNode,
+					{
+						type: "bulletList",
+						id: "nested1",
+						items: [item("nested")],
+					} as BulletListNode,
+				]),
+				item("tail"),
+			],
+		});
+		const result = splitListItemStep(before, "list1", 0, "par", "ent");
+		expect(result.step).toBeDefined();
+		const list = firstList(result.prompt);
+		// No sibling splice: the outer list keeps its shape.
+		expect(list.items.map((i) => i.content)).toEqual([["par"], ["tail"]]);
+		const child = list.items[0]!.children![0] as BulletListNode;
+		expect(child.items.map((i) => i.content)).toEqual([["ent"], ["nested"]]);
+		// The result names the list the caret must follow into.
+		expect(result.focusListId).toBe("nested1");
+		expect(result.focusItemIndex).toBe(0);
+		expect(result.caretOffset).toBe(0);
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("split targets the FIRST child list when several exist", () => {
+		const before = docWith({
+			type: "bulletList",
+			id: "list1",
+			items: [
+				item("parent", [
+					{
+						type: "bulletList",
+						id: "childA",
+						items: [item("a")],
+					} as BulletListNode,
+					{
+						type: "bulletList",
+						id: "childB",
+						items: [item("b")],
+					} as BulletListNode,
+				]),
+			],
+		});
+		const result = splitListItemStep(before, "list1", 0, "par", "ent");
+		const children = firstList(result.prompt).items[0]!.children!;
+		expect((children[0] as BulletListNode).items.map((i) => i.content)).toEqual(
+			[["ent"], ["a"]],
+		);
+		expect((children[1] as BulletListNode).items.map((i) => i.content)).toEqual(
+			[["b"]],
+		);
+		expect(result.focusListId).toBe("childA");
+		expectRoundTrip(before, result.step!, result.prompt);
+	});
+
+	test("split with non-list children only keeps the sibling splice", () => {
+		const before = docWith({
+			type: "bulletList",
+			id: "list1",
+			items: [
+				item("parent", [
+					{ type: "paragraph", content: ["detail"] },
 				]),
 			],
 		});
 		const result = splitListItemStep(before, "list1", 0, "par", "ent");
 		const list = firstList(result.prompt);
+		expect(list.items.map((i) => i.content)).toEqual([["par"], ["ent"]]);
 		expect(list.items[0]!.children).toBeDefined();
 		expect(list.items[1]!.children).toBeUndefined();
+		expect(result.focusListId).toBeUndefined();
+		expect(result.focusItemIndex).toBe(1);
+		expectRoundTrip(before, result.step!, result.prompt);
 	});
 
 	test("merge joins an item into the previous one, caret at the join", () => {

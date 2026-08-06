@@ -31,11 +31,12 @@ shortcuts reach it and native word-motion keeps working in the textarea.
 | Gesture | Context | Behavior |
 |---------|---------|----------|
 | Enter | Section open tag | Moves the caret to the section's first editable row |
-| Enter | Empty list item, nested | Outdents one level, landing after its former parent item |
-| Enter | Empty list item, top level | Drops the item and opens a new paragraph after the list |
+| Enter | Empty list item, nested | Outdents one level, landing after its former parent item. The item's own children ride along, and trailing former siblings become its children (standard outliner outdent). Emptiness is the TEXTAREA's verdict, passed down explicitly, so a just-emptied row outdents even before the document catches up |
+| Enter | Empty list item, top level | Drops the item and opens a new paragraph after the list (declines while the item still carries children — dropping it would discard them) |
 | Enter | Empty list item, only item | Removes the list; the paragraph takes its place |
 | Enter | Empty paragraph that is the last child of a section | Moves the paragraph out to be the section's next sibling |
 | Enter | Paragraph or list item with text | Splits at the caret; text after the caret becomes a new sibling below, caret at its start |
+| Enter | List item with text carrying a nested child list | Splits at the caret; the new item becomes the FIRST item of the first child list — the row directly below the caret — and the children stay with the original item. The caret follows into the child list (`focusListId`) |
 | Enter | Field | Leaves the editor with the row still selected — there is no sibling to split into |
 | Enter | `raw` / `codeBlock` | Literal newline |
 | Shift+Enter | Any row | Not claimed by the keymap; the textarea inserts a literal newline |
@@ -52,7 +53,7 @@ shortcuts reach it and native word-motion keeps working in the textarea.
 | Tab | List item after the first | Nests it under the previous item |
 | Tab | Paragraph directly after a section | Moves it in as that section's last child |
 | Tab | Section after a sibling section | Nests it as that section's last child |
-| Shift+Tab | Nested list item | Hoists it out to sit after its former parent item |
+| Shift+Tab | Nested list item | Hoists it out to sit after its former parent item; its own children ride along and trailing former siblings become its children, so it never jumps below its old context |
 | Shift+Tab | Paragraph inside a section | Moves it out to be the section's next sibling |
 | Shift+Tab | Nested section | Lifts it out to be its parent's next sibling |
 | Tab / Shift+Tab | Nothing applies | Swallowed |
