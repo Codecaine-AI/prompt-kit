@@ -131,6 +131,13 @@ undo/redo stack. See [50-application-shell.md](50-application-shell.md).
 A structural gesture that takes two or three steps is handed over as one array
 and committed as one transaction, so one undo takes back the whole move.
 
+`selectedNodeId` is the commit's selection echo. CARET-FIRST (2026-08-06):
+while an inline edit session is live the buffer forwards it as `undefined` —
+hosts write the echo back into selection state, and a keystroke must not
+re-select the block being typed in (the caret plus the edit wash is the whole
+treatment). Commits made outside a live session — block menu inserts, item
+menu operations, drops — keep their echo and still select deliberately.
+
 ## Caret Continuity
 
 The surface stores one edit target:

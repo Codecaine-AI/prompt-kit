@@ -37,7 +37,7 @@ shortcuts reach it and native word-motion keeps working in the textarea.
 | Enter | Empty paragraph that is the last child of a section | Moves the paragraph out to be the section's next sibling |
 | Enter | Paragraph or list item with text | Splits at the caret; text after the caret becomes a new sibling below, caret at its start |
 | Enter | List item with text carrying a nested child list | Splits at the caret; the new item becomes the FIRST item of the first child list — the row directly below the caret — and the children stay with the original item. The caret follows into the child list (`focusListId`) |
-| Enter | Field | Leaves the editor with the row still selected — there is no sibling to split into |
+| Enter | Field | Leaves the editor — there is no sibling to split into (caret-first: nothing is selected afterwards) |
 | Enter | `raw` / `codeBlock` | Literal newline |
 | Shift+Enter | Any row | Not claimed by the keymap; the textarea inserts a literal newline |
 | Backspace at offset 0 | List item with text, previous caret target in the same list | Merges into the previous item, caret at the join |
@@ -57,10 +57,10 @@ shortcuts reach it and native word-motion keeps working in the textarea.
 | Shift+Tab | Paragraph inside a section | Moves it out to be the section's next sibling |
 | Shift+Tab | Nested section | Lifts it out to be its parent's next sibling |
 | Tab / Shift+Tab | Nothing applies | Swallowed |
-| Escape | Editing | Blurs the editor; the row stays selected |
+| Escape | Editing | Blurs the editor; nothing is selected afterwards (caret-first — placing the caret never selected the block) |
 | Escape | Slash menu open | Closes the menu; the caret keeps blinking |
 | `/` | Empty paragraph, typed as the first character | Opens the slash menu |
-| Printable character | A block is selected but not being edited | Enters the editor with the character appended |
+| Printable character | A block is selected but not being edited | Enters the editor with the character appended, clearing the selection (selection → caret, caret-first) |
 
 Structural gestures land the caret in the block they moved, at the same offset
 where possible, so a level change is never a reason to stop typing.
@@ -80,7 +80,9 @@ paragraphs and their `parentPath` values are equal.
 must never silently destroy a block's text, so the character is appended to the
 current value and the caret lands after it. The handler is a window listener
 that stands down whenever another input, textarea, select, or contenteditable
-holds focus.
+holds focus. The gesture is the selection → caret transition (caret-first,
+2026-08-06): entering the editor clears the block selection rather than
+keeping the block lit behind the caret.
 
 **Tab is a level key, never a focus key.** It calls `preventDefault`
 unconditionally, including where no move applies, so the caret cannot be tabbed

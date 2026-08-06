@@ -18,13 +18,37 @@ Command gestures act on structure.
 | Gesture | Result |
 |---------|--------|
 | Hover | The one drag handle appears at the unit under the pointer |
-| Click | Caret / inline edit (today's editor behavior) |
+| Click | Caret / inline edit ONLY — never a block selection (caret-first) |
 | Shift+click on a bullet | Extend a contiguous item-range selection |
 | Cmd+drag | Draw a marquee; the covered span becomes ONE structural selection |
 | Cmd+click | Select the unit under the cursor as a one-object selection |
 | Plain drag inside the selection ring | Move the selected run |
 | Backspace / Delete (selection active, no editor open) | Remove the run as one transaction |
 | Escape / plain click elsewhere | Clear the selection |
+
+### Caret-First Clicks (2026-08-06)
+
+Clicking or typing in text is a CARET gesture, Notion-style: the caret plus
+the unit-scoped edit wash (hover strength) is the entire treatment — no
+selection fill, no accent rail, no gutter tint. `focusEdit` never selects the
+block it lands in; if a block selection exists when the caret lands (click,
+arrow-key caret hop, typing on a selected block), the selection is CLEARED,
+not retargeted. Commits made while an edit session is live also suppress the
+change callback's selection echo, so hosts cannot re-select the edited block
+on a keystroke.
+
+Explicit selection keeps its reach: non-editable rows (close tags, attributed
+open tags, code fences), the block grip, outline clicks, and queue focus rows
+still select through `onSelectNode`. Selection paint follows "flood never,
+rail for extent" with one container rule — CONTAINERS NEVER STRIPE: a
+selected section fills exactly its own open/close tag rows; a selected LIST
+paints no per-row fill at all (its rendered rows are its items'), keeping
+only the full-extent rail.
+
+Quiet panels follow the caret by DERIVATION: the buffer reports the edit
+session's enclosing node through `onEditTargetChange`, and the lab's DETAILS
+zone shows the explicit selection if one exists, else that entry — without
+writing selection state or painting selection chrome.
 
 In the AI state (the glass panel's `✦` tab) the vocabulary changes owner: the
 shared annotations package drives hover rings, click-to-pin, and Cmd+drag range

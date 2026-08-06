@@ -379,13 +379,15 @@ describe("PromptInlineLab dock outline", () => {
 });
 
 describe("PromptInlineLab dock details", () => {
-  test("DETAILS mounts in the floating dock only while a block is selected", () => {
+  test("DETAILS follows the caret silently: an open editor mounts the zone with no selection chrome", () => {
     render(<PromptInlineLab prompt={nestedPrompt} />);
     // The glass dock is always up; the DETAILS zone inside it is not.
     expect(document.querySelector("[data-lab-dock]")).toBeTruthy();
     expect(document.querySelector('[data-lab-zone="details"]')).toBeNull();
 
-    // Clicking into a block selects it (and opens its inline editor).
+    // CARET-FIRST (2026-08-06): clicking into a block opens its inline
+    // editor WITHOUT selecting it — DETAILS derives its entry from the open
+    // edit session's enclosing block instead.
     fireEvent.click(
       document.querySelector<HTMLElement>(
         '[data-prompt-node-id="sec-1"] [data-prompt-row-text]',
@@ -394,6 +396,10 @@ describe("PromptInlineLab dock details", () => {
     const zone = document.querySelector('[data-lab-zone="details"]');
     expect(zone).toBeTruthy();
     expect(document.querySelector("[data-lab-dock]")!.contains(zone)).toBe(true);
+    // The derivation paints NO selection chrome in the buffer: no accent
+    // rail, no machine-readable selected stamps.
+    expect(document.querySelector("[data-prompt-selection-rail]")).toBeNull();
+    expect(document.querySelector("[data-prompt-row-selected]")).toBeNull();
     // The trimmed PromptFlowInspector content: the section's editable fields
     // (name + attributes), no selection summary and no diagnostics section
     // when the block has no issues.

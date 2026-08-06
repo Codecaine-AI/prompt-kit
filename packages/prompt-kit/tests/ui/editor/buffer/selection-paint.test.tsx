@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render } from "@testing-library/react";
 
 import type { PromptDocument } from "../../../../src/index";
 import {
@@ -13,6 +13,9 @@ afterEach(() => {
 
 /**
  * Selection paint doctrine (2026-08-05): "flood never, rail for extent."
+ * Extended CARET-FIRST (2026-08-06): clicking text places a caret and paints
+ * NO selection chrome at all, and a selected LIST paints rail-only — its item
+ * rows carry the list's node id, so unit fill would stripe every bullet.
  *
  * The selection FILL (selectionBg wash + gutter tint) is UNIT-scoped exactly
  * like the hover wash — only rows the selected node itself owns. Selecting a
@@ -56,14 +59,17 @@ const prompt: PromptDocument = {
 	],
 };
 
-function renderFlow(selectedNodeId: string) {
+function renderFlow(
+	selectedNodeId?: string,
+	onSelectNode: (id: string | undefined) => void = () => {},
+) {
 	const model = createPromptEditorModel(prompt, {});
 	return render(
 		<PromptFlowXml
 			prompt={model.prompt}
 			model={model}
 			selectedNodeId={selectedNodeId}
-			onSelectNode={() => {}}
+			onSelectNode={onSelectNode}
 			onPromptChange={() => {}}
 		/>,
 	);
@@ -169,24 +175,96 @@ describe("PromptFlowXml selection paint — flood never, rail for extent", () =>
 		);
 	});
 
-	it("selecting a list fills its item marker rows, not a nested child's row", () => {
+	it("selecting a list paints rail only — zero filled rows (containers never stripe)", () => {
 		renderFlow("list-1");
 
-		// Item rows carry the LIST's nodeId in the line model (stamped with
-		// their own itemId in the DOM); the nested paragraph belongs to another
-		// node and must stay unfilled.
+		// Item rows carry the LIST's nodeId in the line model, so unit fill
+		// would stripe EVERY bullet's marker row — N selected-looking objects
+		// instead of one list. The list paints no per-row fill at all (the
+		// gutter tint follows the fill flag, so it is off with it) …
+		expect(filledRows()).toEqual([]);
+
+		// … and the full-extent rail alone marks the selection, item marker
+		// rows and the nested child row included.
+		const rail = railIndices();
+		expect(rail.length).toBeGreaterThan(2);
+		const first = rail[0]!;
+		const last = rail[rail.length - 1]!;
+		expect(rail).toEqual(
+			Array.from({ length: last - first + 1 }, (_, i) => first + i),
+		);
+		for (const id of ["item-1", "item-2", "para-nested"]) {
+			const row = rows().find(
+				(candidate) => candidate.getAttribute("data-prompt-node-id") === id,
+			)!;
+			expect(rail).toContain(Number(row.getAttribute("data-row-index")));
+		}
+		expect(stampedIndices()).toEqual(rail);
+	});
+});
+
+describe("PromptFlowXml caret-first clicks — caret and edit wash only, no selection", () => {
+	it("clicking a bullet's text paints no selection fill and no rail", () => {
+		const selections: Array<string | undefined> = [];
+		renderFlow(undefined, (id) => selections.push(id));
+
+		fireEvent.click(
+			document.querySelector<HTMLElement>(
+				'[data-prompt-node-id="item-1"] [data-prompt-row-text]',
+			)!,
+		);
+
+		// The caret landed: the bullet's inline editor is open.
+		expect(
+			document.querySelector("[data-prompt-row-text] textarea"),
+		).toBeTruthy();
+
+		// No selection was made — the host callback never fired (there was no
+		// stale selection to clear), and no selection chrome painted: no rail,
+		// no machine-readable selected stamps.
+		expect(selections).toEqual([]);
+		expect(railIndices()).toEqual([]);
+		expect(stampedIndices()).toEqual([]);
+
+		// The unit-scoped EDIT wash is the one treatment: the edited item's
+		// extent (marker row + nested child row) carries the wash div, and no
+		// sibling row does. With nothing selected this wash can only be the
+		// hover-strength edit wash, never a selection fill.
 		expect(filledRows()).toEqual([
 			{ nodeId: "item-1", role: "item" },
-			{ nodeId: "item-2", role: "item" },
+			{ nodeId: "para-nested", role: "content" },
 		]);
+	});
 
-		// The rail still spans the whole interval, nested child row included.
-		const rail = railIndices();
-		const nestedRow = rows().find(
-			(row) => row.getAttribute("data-prompt-node-id") === "para-nested",
-		)!;
-		expect(rail).toContain(
-			Number(nestedRow.getAttribute("data-row-index")),
+	it("clicking a paragraph's text opens its editor without selecting it", () => {
+		const selections: Array<string | undefined> = [];
+		renderFlow(undefined, (id) => selections.push(id));
+
+		fireEvent.click(
+			document.querySelector<HTMLElement>(
+				'[data-prompt-node-id="para-1"] [data-prompt-row-text]',
+			)!,
 		);
+
+		expect(
+			document.querySelector("[data-prompt-row-text] textarea"),
+		).toBeTruthy();
+		expect(selections).toEqual([]);
+		expect(railIndices()).toEqual([]);
+	});
+
+	it("placing the caret while a block is selected clears the selection instead of retargeting it", () => {
+		const selections: Array<string | undefined> = [];
+		renderFlow("para-1", (id) => selections.push(id));
+
+		fireEvent.click(
+			document.querySelector<HTMLElement>(
+				'[data-prompt-node-id="item-1"] [data-prompt-row-text]',
+			)!,
+		);
+
+		// Caret-first: the stale selection is CLEARED, never moved to the
+		// clicked node.
+		expect(selections).toEqual([undefined]);
 	});
 });

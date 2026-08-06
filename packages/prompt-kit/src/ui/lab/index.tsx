@@ -7,7 +7,8 @@
 // Edit/AI tab bar. The Edit tab holds the working zones — the VIEW
 // switcher (whose system row carries the autosave whisper), FIXTURE
 // (state), OUTLINE (its history icon swaps the body for the host's
-// revisions zone), DETAILS (while a node is selected). The AI tab IS
+// revisions zone), DETAILS (while a node is selected OR the caret sits in
+// one — caret-first, the zone follows the caret silently). The AI tab IS
 // annotate mode: the queue rail (or annotations pane), margin count
 // bubbles, comment ticks, and the hover wash linking rows to their target
 // blocks — none of which render in edit mode. Everything queues (run-now
@@ -372,6 +373,13 @@ export function PromptInlineLab({
   const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(
     undefined,
   );
+  // The buffer's live caret session: the enclosing block's id while an inline
+  // editor is open (CARET-FIRST, 2026-08-06 — clicks place carets, they do
+  // not select). Derivation feed ONLY: the DETAILS zone follows it silently;
+  // it is never written into selectedNodeId and paints no selection chrome.
+  const [caretNodeId, setCaretNodeId] = useState<string | undefined>(
+    undefined,
+  );
   const [autosaveState, setAutosaveState] = useState<AutosaveControllerState>({
     pending: false,
     saving: false,
@@ -570,6 +578,15 @@ export function PromptInlineLab({
   const explicitSelectedEntry = selectedNodeId
     ? model_.tree.find((entry) => entry.id === selectedNodeId)
     : undefined;
+  // DETAILS follows the caret silently: an explicit selection wins; otherwise
+  // the open edit session's enclosing block feeds the inspector (item edits
+  // resolve to their list entry — item edit targets carry the LIST's id).
+  // Pure derivation — no selection state is written, no chrome painted.
+  const detailsEntry =
+    explicitSelectedEntry ??
+    (caretNodeId
+      ? model_.tree.find((entry) => entry.id === caretNodeId)
+      : undefined);
   const appliedStyleSettings = styleSettings ?? persistedStyleSettings;
   const styleVars = useMemo(
     () => promptStyleVars(appliedStyleSettings),
@@ -1752,6 +1769,7 @@ export function PromptInlineLab({
                     selectedEntry={explicitSelectedEntry}
                     selectedNodeId={selectedNodeId}
                     onSelectNode={handleSelectNode}
+                    onEditTargetChange={setCaretNodeId}
                     onPromptChange={handlePromptChange}
                     stagedRegions={stagedRegions}
                     inlineInserts={inlineInserts}
@@ -1934,14 +1952,15 @@ export function PromptInlineLab({
             </PanelZone>
           )}
 
-          {/* DETAILS — mounts only while a block is selected; small and
-              demoted under the outline. */}
-          {inSystem && explicitSelectedEntry && (
+          {/* DETAILS — mounts while a block is selected OR the caret sits in
+              one (caret-first: the inspector follows the caret silently);
+              small and demoted under the outline. */}
+          {inSystem && detailsEntry && (
             <PanelZone id="details" label="Details">
               <PromptFlowInspector
                 prompt={model_.prompt}
                 model={model_}
-                selectedEntry={explicitSelectedEntry}
+                selectedEntry={detailsEntry}
                 onPromptChange={handlePromptChange}
               />
             </PanelZone>

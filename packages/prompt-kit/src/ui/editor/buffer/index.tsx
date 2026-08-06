@@ -24,7 +24,10 @@ import {
 	canHaveChildren,
 	usePromptFlowInteractions,
 } from "../shared";
-import type { PromptFlowViewProps } from "../types";
+import type {
+	PromptFlowChangeHandler,
+	PromptFlowViewProps,
+} from "../types";
 import { buildXmlLineModel, type XmlLine } from "../../../document/render/line-model";
 import { resolveAutoformat } from "./autoformat";
 import { caretAnchor } from "./caret-rect";
@@ -158,7 +161,8 @@ export function PromptFlowXml({
 	model,
 	selectedNodeId,
 	onSelectNode,
-	onPromptChange,
+	onPromptChange: hostPromptChange,
+	onEditTargetChange,
 	showOutline = false,
 	centerContent = false,
 	stagedRegions,
@@ -187,6 +191,15 @@ export function PromptFlowXml({
 	 */
 	leadContent?: React.ReactNode;
 	/**
+	 * Fires when the inline caret session changes enclosing blocks: the node's
+	 * id while an editor is open (an item edit reports its LIST's id — item
+	 * rows carry it), undefined when no editor is. Hosts use it to let quiet
+	 * panels (the lab's DETAILS zone) follow the caret SILENTLY; it is a
+	 * derivation feed, never selection state, and must not paint selection
+	 * chrome.
+	 */
+	onEditTargetChange?: (nodeId: string | undefined) => void;
+	/**
 	 * Staged-proposal regions: each replaces its row range with red del rows +
 	 * green add rows (plus an optional in-flow action bar). Replaced rows are
 	 * not rendered at all, which doubles as the pending-proposal editing
@@ -200,6 +213,36 @@ export function PromptFlowXml({
 	 */
 	inlineInserts?: PromptFlowInlineInsert[];
 }) {
+	// CARET-FIRST (2026-08-06): the caret is the entire treatment for editing —
+	// clicking or typing in text never selects a block. Two guards keep block
+	// selection chrome out of caret flows:
+	//
+	//   1. `focusEdit` no longer selects the node it lands in; it CLEARS an
+	//      existing selection instead (a caret and a block selection never
+	//      coexist — and retargeting the selection would stripe list rows,
+	//      whose lines all carry the LIST's node id).
+	//   2. Commits made while an edit session is live suppress the change
+	//      callback's selection echo (the second argument): hosts write that
+	//      echo back into selection state, which would re-select the edited
+	//      block on every keystroke. Commits OUTSIDE a live session — block
+	//      menu inserts, item menu operations, drops — keep their echo: those
+	//      flows still land a selection deliberately.
+	//
+	// Both guards read refs (synced per render, seated synchronously inside
+	// `focusEdit`) so their callbacks stay identity-stable.
+	const selectedNodeIdRef = useRef(selectedNodeId);
+	selectedNodeIdRef.current = selectedNodeId;
+	const editSessionLiveRef = useRef(false);
+	const onPromptChange = useCallback<PromptFlowChangeHandler>(
+		(nextPrompt, nextSelectedNodeId, steps) =>
+			hostPromptChange(
+				nextPrompt,
+				editSessionLiveRef.current ? undefined : nextSelectedNodeId,
+				steps,
+			),
+		[hostPromptChange],
+	);
+
 	const flow = usePromptFlowInteractions({
 		prompt,
 		model,
@@ -225,6 +268,10 @@ export function PromptFlowXml({
 	// drag-handle.ts). Distinct from hoverNodeId, which drives the hover wash.
 	const [hoverRow, setHoverRow] = useState<number | null>(null);
 	const [editTarget, setEditTarget] = useState<InlineEditTarget | null>(null);
+	// Per-render sync for the selection-echo guard above; `focusEdit` also
+	// seats it synchronously so a commit later in the SAME tick (typing on a
+	// selected block, autoformat) already counts as in-session.
+	editSessionLiveRef.current = editTarget !== null;
 	// The block menu ([⋮⋮] click) opens for one block at a time, anchored to its
 	// first row so every block affordance stays in the one left cluster.
 	const [menuNodeId, setMenuNodeId] = useState<string | null>(null);
@@ -281,12 +328,19 @@ export function PromptFlowXml({
 	} | null>(null);
 
 	/**
-	 * Single entry point for putting the caret somewhere. Selection follows the
-	 * caret so the accent bar always marks the block being typed into.
+	 * Single entry point for putting the caret somewhere. CARET-FIRST: placing
+	 * the caret never selects the block it lands in — the caret plus the
+	 * unit-scoped edit wash is the whole treatment. An existing block
+	 * selection is CLEARED, not retargeted (retargeting would repaint block
+	 * chrome under every caret hop, and stripe list rows, which all carry the
+	 * LIST's node id).
 	 */
 	const focusEdit = useCallback(
 		(target: EditTarget) => {
 			editSeqRef.current += 1;
+			// Seated synchronously so a commit in this same tick already
+			// suppresses the selection echo (see the caret-first guards above).
+			editSessionLiveRef.current = true;
 			setEditTarget({ ...target, seq: editSeqRef.current });
 			setMenuNodeId(null);
 			setItemMenu(null);
@@ -302,10 +356,17 @@ export function PromptFlowXml({
 					index: target.itemIndex,
 				};
 			}
-			onSelectNode(target.nodeId);
+			if (selectedNodeIdRef.current !== undefined) onSelectNode(undefined);
 		},
 		[onSelectNode],
 	);
+
+	// The caret-follow feed for quiet host panels (see the prop doc): reports
+	// the enclosing node of the live edit session, and undefined at rest.
+	const editTargetNodeId = editTarget?.nodeId;
+	useEffect(() => {
+		onEditTargetChange?.(editTargetNodeId);
+	}, [editTargetNodeId, onEditTargetChange]);
 
 	// Only the editor that is still current may end the session: a blur fired by
 	// an editor that a structural key already replaced must not cancel the edit.
@@ -672,7 +733,10 @@ export function PromptFlowXml({
 	// Typing on a selected-but-not-editing block drops straight into the editor
 	// with the keystroke applied, so selection is never a keyboard dead end.
 	// The character is APPENDED rather than replacing the block: a stray key
-	// must never silently destroy a block's text.
+	// must never silently destroy a block's text. CARET-FIRST: the transition
+	// is selection → caret — `focusEdit` (called before the commit, so the
+	// commit already counts as in-session) clears the selection rather than
+	// keeping the block lit behind the caret.
 	useEffect(() => {
 		const activeId = flow.activeId;
 		if (!activeId || editTarget) return;
@@ -697,12 +761,12 @@ export function PromptFlowXml({
 			if (!entry) return;
 			event.preventDefault();
 			const next = editorValueForLine(line.node, line) + event.key;
-			commitEdit(prompt, entry, line, next, onPromptChange);
 			focusEdit({
 				nodeId: line.nodeId,
 				itemIndex: line.itemIndex,
 				caret: next.length,
 			});
+			commitEdit(prompt, entry, line, next, onPromptChange);
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
@@ -1384,6 +1448,21 @@ export function PromptFlowXml({
 		flow.activeId && !nodeRanges.has(flow.activeId)
 			? itemRanges.get(flow.activeId)
 			: undefined;
+	// CONTAINERS NEVER STRIPE (2026-08-06): item rows carry the LIST's nodeId,
+	// so per-row ownership fill on a selected list would stripe every bullet's
+	// marker row — N filled objects instead of one selected list. A selected
+	// list therefore paints NO per-row fill (and no gutter tint, which follows
+	// the fill): the full-extent rail alone marks it. Detected from the lines
+	// (any row the node owns with role "item"), so nested lists — which are
+	// not tree-addressable — gate identically. Sections keep filling exactly
+	// their own open/close tag rows; leaves keep their unit fill; the
+	// item-id fallback above is untouched (annotate mode uses it).
+	const selectedNodeIsList =
+		flow.activeId !== undefined &&
+		lines.some(
+			(candidate) =>
+				candidate.nodeId === flow.activeId && candidate.role === "item",
+		);
 	const selectedRange = flow.activeId
 		? (nodeRanges.get(flow.activeId) ?? selectedItemRange)
 		: undefined;
@@ -1594,7 +1673,8 @@ export function PromptFlowXml({
 								(selectedItemRange !== undefined
 									? index >= selectedItemRange.start &&
 										index <= selectedItemRange.end
-									: line.nodeId === flow.activeId);
+									: !selectedNodeIsList &&
+										line.nodeId === flow.activeId);
 							const inHighlight =
 								highlightUnit !== null &&
 								line.role !== "gap" &&
