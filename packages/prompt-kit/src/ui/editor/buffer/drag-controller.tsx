@@ -5,7 +5,10 @@
 // static snapshot taken at dragstart and cannot be restyled), and it gives no
 // reliable pointer coordinates on all platforms. So the drag layer is built on
 // pointer events: we own the ghost, the insertion line, and the drop flash.
-// The actual reorder still routes through moveNear → movePromptBlockNodeByIdWithStep.
+// Block drops still route through moveNear → movePromptBlockNodeByIdWithStep;
+// ITEM drops target every list in the buffer (cross-list, depth via the
+// ghost's x) through the pure helpers in ./drop-targeting, measured once at
+// lift into a scroll-stable slot cache.
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -26,8 +29,17 @@ import {
 const DRAG_LIFT_THRESHOLD_PX = 4;
 import { highlightXmlLine } from "../../surface/xml-highlight";
 import { samePath } from "../shared";
-import type { XmlLine } from "../../../document/render/line-model";
 import { promptFlowIndentForDepth } from "./node-geometry";
+import {
+	dropCommandForSlot,
+	enumerateItemSlotCandidates,
+	ghostAnchorY,
+	ghostDepth,
+	selectItemDropSlot,
+	type ItemDropCommand,
+	type MeasuredItemSlot,
+} from "./drop-targeting";
+import type { XmlLine } from "../../../document/render/line-model";
 
 interface DragState {
 	/**
@@ -98,11 +110,11 @@ interface DropTargetState {
 	x: number;
 	width: number;
 	/**
-	 * Item drags only: the insertion slot in the list's ORIGINAL indexing
-	 * (`k` = before the item currently at index k; item count = after the
-	 * last). Blocks re-derive their target from `rowIndex` instead.
+	 * Item drags only: what release commits — an insertion slot in a (possibly
+	 * different) list's ORIGINAL indexing, or a nest-under-item drop that
+	 * creates depth. Blocks re-derive their target from `rowIndex` instead.
 	 */
-	itemSlot?: number;
+	itemTarget?: ItemDropCommand;
 	/**
 	 * Block drags: the insertion slot in the SIBLING indexing of the dragged
 	 * block's parent (`k` = before sibling k; sibling count = after the last).
@@ -170,60 +182,39 @@ export interface ItemDragSpec {
 	itemIds?: readonly string[];
 }
 
-/** One legal insertion boundary for an item drag, in the list's own indexing. */
-export interface ItemDropSlot {
-	/** Insertion slot in the list's ORIGINAL indexing (see DropTargetState). */
-	slot: number;
-	/** Row whose rect names the boundary's y position. */
-	rowIndex: number;
-	depth: number;
-	/** Which edge of that row the boundary sits on. */
-	edge: "top" | "bottom";
+/**
+ * Item-drag targeting cache, built ONCE at lift-off (see ./drop-targeting for
+ * the pure enumeration/selection rules). Slot y is stored relative to the
+ * SCROLLER's content — viewport y is re-derived from live scrollTop at use
+ * time — so mid-drag autoscroll never invalidates a measurement, and no rect
+ * is read per pointer move.
+ */
+interface ItemTargetingContext {
+	slots: MeasuredItemSlot[];
+	/** Scroller's viewport top at lift (0 without a scroller). */
+	scrollerTop: number;
+	/** Ghost left edge at lift — the x depth travel is measured from. */
+	liftLeft: number;
+	/** Depth of the grabbed item's marker row at lift. */
+	sourceDepth: number;
+	/** Pixel width of ONE nesting depth's indent, probed at lift. */
+	depthIndentPx: number;
 }
 
 /**
- * The insertion boundaries an item drag of `count` items starting at
- * `fromIndex` may target: before each item of `listId`, plus after the last
- * item's full extent (so a multi-line last item is not split) — MINUS every
- * slot strictly inside the dragged run. A group cannot be dropped into
- * itself, so those boundaries simply do not exist while it is lifted; the
- * run's own edges remain (they are the "put it back" no-op drops, same as a
- * single item's). Pure, so the exclusion rule is testable without pointer
- * geometry.
+ * Pixel width of one depth level's text indent, probed with a throwaway
+ * element so the runtime indent variables (ch-based) resolve exactly as the
+ * rows render them. Returns 0 when the environment cannot measure (tests).
  */
-export function itemDropSlots(
-	lines: readonly XmlLine[],
-	itemRanges: ReadonlyMap<string, { start: number; end: number }>,
-	listId: string,
-	fromIndex: number,
-	count: number,
-): ItemDropSlot[] {
-	const slots: ItemDropSlot[] = [];
-	let lastItemId: string | undefined;
-	lines.forEach((line, rowIndex) => {
-		if (line.role !== "item" || line.nodeId !== listId) return;
-		if (line.itemIndex === undefined) return;
-		slots.push({
-			slot: line.itemIndex,
-			rowIndex,
-			depth: line.depth,
-			edge: "top",
-		});
-		lastItemId = line.itemId;
-	});
-	if (slots.length === 0) return slots;
-	const lastSlot = slots[slots.length - 1]!;
-	const lastExtent = lastItemId ? itemRanges.get(lastItemId) : undefined;
-	slots.push({
-		slot: slots.length,
-		rowIndex: lastExtent ? lastExtent.end : lastSlot.rowIndex,
-		depth: lastSlot.depth,
-		edge: "bottom",
-	});
-	return slots.filter(
-		(candidate) =>
-			candidate.slot <= fromIndex || candidate.slot >= fromIndex + count,
-	);
+function measureDepthIndentPx(rowsEl: HTMLElement): number {
+	const probe = document.createElement("div");
+	probe.style.position = "absolute";
+	probe.style.visibility = "hidden";
+	probe.style.width = promptFlowIndentForDepth(1);
+	rowsEl.appendChild(probe);
+	const width = probe.getBoundingClientRect().width;
+	probe.remove();
+	return Number.isFinite(width) ? width : 0;
 }
 
 export function useXmlDrag({
@@ -246,15 +237,15 @@ export function useXmlDrag({
 	scrollRef: React.RefObject<HTMLDivElement | null>;
 	moveNear: (sourceId: string, targetId: string, side: "before" | "after") => void;
 	/**
-	 * Commits an item-run reorder: `count` contiguous items starting at
-	 * `fromIndex`, `toSlot` in the list's original indexing. Single drags pass
-	 * count 1.
+	 * Commits an item-run drop: `count` contiguous items starting at
+	 * `fromIndex` of `fromListId`, landing at `target` — a slot of any list in
+	 * the buffer, or a nest-under-item drop. Single drags pass count 1.
 	 */
 	moveItems: (
-		listId: string,
+		fromListId: string,
 		fromIndex: number,
 		count: number,
-		toSlot: number,
+		target: ItemDropCommand,
 	) => void;
 	/**
 	 * Commits a block-run reorder: `count` contiguous siblings of `parentId`
@@ -293,14 +284,22 @@ export function useXmlDrag({
 	itemRangesRef.current = itemRanges;
 	entriesRef.current = entriesById;
 
+	// Item-drag slot cache, alive exactly as long as the item drag it was
+	// measured for (built at lift, cleared on drop/cancel).
+	const itemTargetingRef = useRef<ItemTargetingContext | null>(null);
+
 	/**
-	 * Given a pointer y, find the valid insertion boundary: the row gap between
-	 * two sibling blocks of the dragged node's parent. Only siblings are legal
-	 * targets (moveNear enforces same parentPath), so the insertion line only
-	 * appears over reorderable boundaries.
+	 * Given the pointer position, find the insertion boundary the drag points
+	 * at. BLOCK drags keep their original semantics: the row gap between two
+	 * sibling blocks of the dragged node's parent, rects read live. ITEM drags
+	 * resolve against the lift-time slot cache: the GHOST's anchor (not the raw
+	 * pointer) snaps to the nearest boundary of ANY list, stacked boundaries
+	 * split by the ghost's x depth, overshoot clamping to the outermost
+	 * boundary — a live item drag always has a target unless it is parked on
+	 * its own edges (the put-it-back band).
 	 */
 	const computeDrop = useCallback(
-		(clientY: number): DropTargetState | null => {
+		(clientY: number, clientX: number): DropTargetState | null => {
 			const source = dragRef.current;
 			const rowsEl = rowsRef.current;
 			if (!source || !rowsEl) return null;
@@ -312,58 +311,39 @@ export function useXmlDrag({
 				return el ? el.getBoundingClientRect() : null;
 			};
 
-			// ITEM drags target the gaps between items of the SAME list only.
-			// Boundaries: before each item's marker row, plus after the last
-			// item's full extent (so a multi-line last item is not split). The
-			// pointer must stay near the list — outside its vertical band no slot
-			// lights up and release cancels, which is how "dropping onto non-list
-			// territory does nothing" is expressed. Cross-list moves are out of
-			// scope for the pointer layer: an item cannot be dropped into a
-			// different list, the same clamp the block layer applies to parents.
 			if (source.kind === "item") {
-				const listId = source.listId;
-				if (listId === undefined) return null;
-				const slots = itemDropSlots(
-					linesRef.current,
-					itemRangesRef.current,
-					listId,
-					source.itemIndex ?? 0,
-					source.itemCount ?? 1,
+				const targeting = itemTargetingRef.current;
+				if (!targeting || targeting.slots.length === 0) return null;
+				const scroller = scrollRef.current;
+				const scrollTop = scroller ? scroller.scrollTop : 0;
+				// The cache speaks scroller-content y; carry the anchor into that
+				// space instead of re-measuring any rect.
+				const anchorY =
+					ghostAnchorY(clientY, source.offsetY, source.lineHeight) -
+					targeting.scrollerTop +
+					scrollTop;
+				const desiredDepth = ghostDepth(
+					clientX,
+					source.offsetX,
+					targeting.liftLeft,
+					targeting.sourceDepth,
+					targeting.depthIndentPx,
 				);
-				if (slots.length === 0) return null;
-
-				let best: DropTargetState | null = null;
-				let bestDist = Number.POSITIVE_INFINITY;
-				let listTop = Number.POSITIVE_INFINITY;
-				let listBottom = Number.NEGATIVE_INFINITY;
-				for (const candidate of slots) {
-					const rect = rowRect(candidate.rowIndex);
-					if (!rect) continue;
-					const y = candidate.edge === "top" ? rect.top : rect.bottom;
-					listTop = Math.min(listTop, rect.top);
-					listBottom = Math.max(listBottom, rect.bottom);
-					const dist = Math.abs(y - clientY);
-					if (dist < bestDist) {
-						bestDist = dist;
-						best = {
-							rowIndex:
-								candidate.edge === "top"
-									? candidate.rowIndex
-									: candidate.rowIndex + 1,
-							y,
-							depth: candidate.depth,
-							x: rect.left,
-							width: rect.width,
-							itemSlot: candidate.slot,
-						};
-					}
-				}
-				// Off-list vertical band (one line of grace): no valid slot.
-				const grace = 24;
-				if (clientY < listTop - grace || clientY > listBottom + grace) {
-					return null;
-				}
-				return best;
+				const winner = selectItemDropSlot(
+					targeting.slots,
+					anchorY,
+					desiredDepth,
+				);
+				if (!winner) return null;
+				return {
+					rowIndex:
+						winner.edge === "top" ? winner.rowIndex : winner.rowIndex + 1,
+					y: winner.y + targeting.scrollerTop - scrollTop,
+					depth: winner.depth,
+					x: winner.x,
+					width: winner.width,
+					itemTarget: dropCommandForSlot(winner),
+				};
 			}
 
 			const sourceEntry = entriesRef.current.get(source.nodeId);
@@ -449,19 +429,19 @@ export function useXmlDrag({
 			}
 			return best;
 		},
-		[rowsRef],
+		[rowsRef, scrollRef],
 	);
 
 	/** Resolve a drop boundary to a moveNear(target, side) and execute it. */
 	const commitDrop = useCallback(
 		(target: DropTargetState, source: DragState) => {
-			// Item drops carry their slot directly — moveListItemsStep speaks the
-			// same "slot in original indexing" the targeting layer computed.
+			// Item drops carry their command directly — the commit callback speaks
+			// the same slot/nest language the targeting layer computed.
 			if (source.kind === "item") {
 				if (
 					source.listId === undefined ||
 					source.itemIndex === undefined ||
-					target.itemSlot === undefined
+					target.itemTarget === undefined
 				) {
 					return;
 				}
@@ -469,7 +449,7 @@ export function useXmlDrag({
 					source.listId,
 					source.itemIndex,
 					source.itemCount ?? 1,
-					target.itemSlot,
+					target.itemTarget,
 				);
 				return;
 			}
@@ -571,6 +551,56 @@ export function useXmlDrag({
 			disarmRef.current?.();
 			const startX = event.clientX;
 			const startY = event.clientY;
+
+			// Item drags measure their slot cache ONCE, at the moment of lift:
+			// every candidate boundary's rect, stored scroller-content-relative
+			// so autoscroll never invalidates it (see ItemTargetingContext).
+			const buildItemTargeting = (): ItemTargetingContext | null => {
+				if (base.kind !== "item" || base.listId === undefined || !rowsEl) {
+					return null;
+				}
+				const scroller = scrollRef.current;
+				const scrollerTop = scroller
+					? scroller.getBoundingClientRect().top
+					: 0;
+				const scrollTop = scroller ? scroller.scrollTop : 0;
+				const candidates = enumerateItemSlotCandidates(
+					linesRef.current,
+					itemRangesRef.current,
+					{
+						listId: base.listId,
+						fromIndex: base.itemIndex ?? 0,
+						count: base.itemCount ?? 1,
+						rowRange: { start: range.start, end: range.end },
+					},
+				);
+				const slots: MeasuredItemSlot[] = [];
+				for (const candidate of candidates) {
+					const rowEl = rowsEl.querySelector<HTMLElement>(
+						`[data-row-index="${candidate.rowIndex}"]`,
+					);
+					const rowRect = rowEl?.getBoundingClientRect();
+					if (!rowRect) continue;
+					slots.push({
+						...candidate,
+						y:
+							(candidate.edge === "top" ? rowRect.top : rowRect.bottom) -
+							scrollerTop +
+							scrollTop,
+						x: rowRect.left,
+						width: rowRect.width,
+					});
+				}
+				return {
+					slots,
+					scrollerTop,
+					// Ghost left at lift = anchor row's left (offsetX seats it there).
+					liftLeft: rect ? rect.left : startX - 12,
+					sourceDepth: linesRef.current[anchorRow]?.depth ?? 0,
+					depthIndentPx: measureDepthIndentPx(rowsEl),
+				};
+			};
+
 			if (immediate) {
 				const lifted: DragState = {
 					...base,
@@ -586,9 +616,10 @@ export function useXmlDrag({
 					offsetX: rect ? startX - rect.left : 12,
 					offsetY: rect ? startY - rect.top : 8,
 				};
+				itemTargetingRef.current = buildItemTargeting();
 				setDrag(lifted);
 				dragRef.current = lifted;
-				setDropTarget(computeDropRef.current(startY));
+				setDropTarget(computeDropRef.current(startY, startX));
 				return;
 			}
 			const state: DragState = {
@@ -622,20 +653,23 @@ export function useXmlDrag({
 					x: moveEvent.clientX,
 					y: moveEvent.clientY,
 				};
+				itemTargetingRef.current = buildItemTargeting();
 				setDrag(lifted);
 				// Eager ref write: `computeDrop` reads dragRef, which the render
 				// cycle has not refreshed yet in this same tick.
 				dragRef.current = lifted;
 				// The lifting move also SEATS the drop target — a one-move drag
 				// (down, one big move, up) must land where that move pointed.
-				setDropTarget(computeDropRef.current(moveEvent.clientY));
+				setDropTarget(
+					computeDropRef.current(moveEvent.clientY, moveEvent.clientX),
+				);
 			};
 			const onArmedUp = () => disarm();
 			window.addEventListener("pointermove", onArmedMove);
 			window.addEventListener("pointerup", onArmedUp);
 			disarmRef.current = disarm;
 		},
-		[rowsRef],
+		[rowsRef, scrollRef],
 	);
 
 	// A component unmount mid-press must not leave armed listeners behind.
@@ -742,32 +776,93 @@ export function useXmlDrag({
 		[beginDrag],
 	);
 
-	// Window-level pointer tracking while a drag is active. Registered only
-	// while `drag` is set so it never runs at rest.
+	// Read-at-call ref so the once-per-drag pointer handlers below never force
+	// a re-subscription when the commit callbacks change identity.
+	const commitDropRef = useRef(commitDrop);
+	commitDropRef.current = commitDrop;
+
+	// Last pointer position + live rAF autoscroll loop: while the pointer
+	// PARKS in a scroller edge band, the loop keeps scrolling frame-by-frame
+	// and re-resolves the drop against the moving content — the old
+	// per-pointermove nudge only scrolled while the hand kept jittering.
+	const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
+	const autoScrollFrameRef = useRef<number | null>(null);
+
+	const stopAutoScroll = useCallback(() => {
+		if (autoScrollFrameRef.current !== null) {
+			cancelAnimationFrame(autoScrollFrameRef.current);
+			autoScrollFrameRef.current = null;
+		}
+	}, []);
+
+	const dragActive = drag !== null;
+
+	// Window-level pointer tracking while a drag is active — registered ONCE
+	// per drag (all mutable state flows through refs), gone at rest.
 	useEffect(() => {
-		if (!drag) return;
+		if (!dragActive) return;
+
+		const autoScrollStep = () => {
+			const scroller = scrollRef.current;
+			const pointer = lastPointerRef.current;
+			if (!scroller || !pointer || !dragRef.current) {
+				autoScrollFrameRef.current = null;
+				return;
+			}
+			const rect = scroller.getBoundingClientRect();
+			const edge = 28;
+			let delta = 0;
+			if (pointer.y < rect.top + edge) delta = -8;
+			else if (pointer.y > rect.bottom - edge) delta = 8;
+			const before = scroller.scrollTop;
+			if (delta !== 0) scroller.scrollTop = before + delta;
+			if (delta === 0 || scroller.scrollTop === before) {
+				// Out of the band, or pinned at a scroll limit: stop until the
+				// next pointer move re-arms the loop.
+				autoScrollFrameRef.current = null;
+				return;
+			}
+			// The content moved under the parked pointer — re-aim the drop.
+			setDropTarget(
+				computeDropRef.current(pointer.y, pointer.x),
+			);
+			autoScrollFrameRef.current = requestAnimationFrame(autoScrollStep);
+		};
 
 		function onMove(event: PointerEvent) {
 			const current = dragRef.current;
 			if (!current) return;
+			lastPointerRef.current = { x: event.clientX, y: event.clientY };
 			setDrag({ ...current, x: event.clientX, y: event.clientY });
-			setDropTarget(computeDrop(event.clientY));
+			setDropTarget(computeDropRef.current(event.clientY, event.clientX));
 
-			// Auto-scroll when the pointer nears the viewport edges of the list.
+			// Arm the autoscroll loop when the pointer enters an edge band.
 			const scroller = scrollRef.current;
-			if (scroller) {
+			if (scroller && autoScrollFrameRef.current === null) {
 				const rect = scroller.getBoundingClientRect();
 				const edge = 28;
-				if (event.clientY < rect.top + edge) scroller.scrollTop -= 8;
-				else if (event.clientY > rect.bottom - edge) scroller.scrollTop += 8;
+				if (
+					event.clientY < rect.top + edge ||
+					event.clientY > rect.bottom - edge
+				) {
+					autoScrollFrameRef.current = requestAnimationFrame(autoScrollStep);
+				}
 			}
 		}
+
+		const settle = () => {
+			stopAutoScroll();
+			lastPointerRef.current = null;
+			itemTargetingRef.current = null;
+			setDrag(null);
+			setDropTarget(null);
+		};
 
 		function onUp() {
 			const source = dragRef.current;
 			const target = dropRef.current;
 			if (source && target) {
-				commitDrop(target, source);
+				commitDropRef.current(target, source);
 				// ~200ms background flash on the moved unit's new range — every
 				// carried unit for a group/run drag, so the flash covers what landed.
 				setFlashIds(
@@ -776,26 +871,25 @@ export function useXmlDrag({
 				);
 				window.setTimeout(() => setFlashIds(null), 220);
 			}
-			setDrag(null);
-			setDropTarget(null);
+			settle();
 		}
 
 		function onKey(event: KeyboardEvent) {
-			if (event.key === "Escape") {
-				setDrag(null);
-				setDropTarget(null);
-			}
+			// Escape is the ONLY cancel: targeting clamps instead of voiding, so
+			// an overshot release still drops at the nearest boundary.
+			if (event.key === "Escape") settle();
 		}
 
 		window.addEventListener("pointermove", onMove);
 		window.addEventListener("pointerup", onUp);
 		window.addEventListener("keydown", onKey);
 		return () => {
+			stopAutoScroll();
 			window.removeEventListener("pointermove", onMove);
 			window.removeEventListener("pointerup", onUp);
 			window.removeEventListener("keydown", onKey);
 		};
-	}, [drag, computeDrop, commitDrop, scrollRef]);
+	}, [dragActive, stopAutoScroll, scrollRef]);
 
 	return {
 		draggingId: drag?.nodeId ?? null,
@@ -877,6 +971,7 @@ export function DropIndicator({
 	if (!drag.drag || !target) return null;
 	return (
 		<div
+			data-prompt-drop-indicator=""
 			className="pointer-events-none fixed z-40 flex items-center"
 			style={{
 				left: target.x,

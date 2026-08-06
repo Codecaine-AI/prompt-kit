@@ -267,24 +267,142 @@ describe("PromptFlowXml item drag handle (Notion model)", () => {
 		);
 	});
 
-	it("cancels when released over non-list territory: no slot, no commit", () => {
+	// happy-dom rects are all zero, so tests that need real geometry stamp a
+	// strict 22px line grid onto every rendered row. The drag layer measures
+	// these rects ONCE at lift, so the stubs go in before pointer-down.
+	const ROW_PITCH = 22;
+	function stubRowRects(): void {
+		document
+			.querySelectorAll<HTMLElement>("[data-row-index]")
+			.forEach((row) => {
+				const top = Number(row.getAttribute("data-row-index")) * ROW_PITCH;
+				row.getBoundingClientRect = () =>
+					({
+						top,
+						bottom: top + ROW_PITCH,
+						left: 0,
+						right: 400,
+						width: 400,
+						height: ROW_PITCH,
+						x: 0,
+						y: top,
+						toJSON: () => ({}),
+					}) as DOMRect;
+			});
+	}
+	function rowTop(itemId: string): number {
+		return Number(itemRow(itemId).getAttribute("data-row-index")) * ROW_PITCH;
+	}
+
+	it("clamps an overshot release to the nearest boundary: far below the list drops AFTER the last item", () => {
+		let committed: {
+			prompt: PromptDocument;
+			steps: PromptStep[] | undefined;
+		} | null = null;
+		renderFlow((next, _focusId, steps) => {
+			committed = { prompt: next, steps };
+		});
+		stubRowRects();
+
+		// Drag "First" way past the document's bottom edge. The old grace band
+		// silently cancelled here; a live drag now always resolves to a slot.
+		fireEvent.mouseEnter(itemRow("item-1"));
+		fireEvent.pointerDown(gripOf(itemRow("item-1")), {
+			button: 0,
+			clientX: 5,
+			clientY: rowTop("item-1") + ROW_PITCH / 2,
+		});
+		fireEvent.pointerMove(window, { clientX: 5, clientY: 5000 });
+		fireEvent.pointerUp(window);
+
+		expect(committed).not.toBeNull();
+		const { prompt: next, steps } = committed!;
+		const section = next.nodes[0] as Extract<
+			PromptDocument["nodes"][number],
+			{ type: "section" }
+		>;
+		const list = section.children[0] as BulletListNode;
+		expect(list.items.map((item) => item.id)).toEqual([
+			"item-2",
+			"item-3",
+			"item-1",
+		]);
+		// Still one invertible update step — the clamp changes targeting only.
+		expect(steps).toHaveLength(1);
+		expect(canonicalizePrompt(applyStep(next, invertStep(steps![0]!)))).toBe(
+			canonicalizePrompt(prompt),
+		);
+	});
+
+	it("Escape is the ONLY cancel: it drops the drag without committing", () => {
 		let calls = 0;
 		renderFlow(() => {
 			calls += 1;
 		});
+		stubRowRects();
 
 		fireEvent.mouseEnter(itemRow("item-3"));
 		fireEvent.pointerDown(gripOf(itemRow("item-3")), {
 			button: 0,
 			clientX: 5,
-			clientY: 5,
+			clientY: rowTop("item-3") + ROW_PITCH / 2,
 		});
-		// Far below the list's vertical band (rects are all zero): the drop
-		// indicator names no slot, so release changes nothing.
-		fireEvent.pointerMove(window, { clientY: 5000 });
+		// Lift and aim at a real boundary (top of the list)…
+		fireEvent.pointerMove(window, { clientX: 5, clientY: rowTop("item-1") });
+		expect(
+			document.querySelector("[data-prompt-drop-indicator]"),
+		).not.toBeNull();
+		// …then Escape: overlay gone, and the release commits nothing.
+		fireEvent.keyDown(window, { key: "Escape" });
+		expect(document.querySelector("[data-prompt-drop-indicator]")).toBeNull();
+		fireEvent.pointerUp(window);
+		expect(calls).toBe(0);
+	});
+
+	it("the run's own edges never light an indicator; crossing a row flips to a real slot", () => {
+		let committed: {
+			prompt: PromptDocument;
+			steps: PromptStep[] | undefined;
+		} | null = null;
+		renderFlow((next, _focusId, steps) => {
+			committed = { prompt: next, steps };
+		});
+		stubRowRects();
+
+		// Grab "Second" at its marker row's center and jiggle within its own
+		// band: the nearest boundaries are the run's own dead edges, so no
+		// indicator promises a move that release would no-op.
+		const grabY = rowTop("item-2") + ROW_PITCH / 2;
+		fireEvent.mouseEnter(itemRow("item-2"));
+		fireEvent.pointerDown(gripOf(itemRow("item-2")), {
+			button: 0,
+			clientX: 5,
+			clientY: grabY,
+		});
+		fireEvent.pointerMove(window, { clientX: 5, clientY: grabY + 6 });
+		expect(document.querySelector("[data-prompt-drop-indicator]")).toBeNull();
+
+		// Carrying the ghost's anchor onto "First"'s top boundary lights the
+		// slot-0 indicator, and release commits the swap.
+		fireEvent.pointerMove(window, {
+			clientX: 5,
+			clientY: rowTop("item-1") + 2,
+		});
+		expect(
+			document.querySelector("[data-prompt-drop-indicator]"),
+		).not.toBeNull();
 		fireEvent.pointerUp(window);
 
-		expect(calls).toBe(0);
+		const section = committed!.prompt.nodes[0] as Extract<
+			PromptDocument["nodes"][number],
+			{ type: "section" }
+		>;
+		const list = section.children[0] as BulletListNode;
+		expect(list.items.map((item) => item.id)).toEqual([
+			"item-2",
+			"item-1",
+			"item-3",
+		]);
 	});
 
 	it("never starts an edit session from the handle: pointer-down mounts no textarea", () => {

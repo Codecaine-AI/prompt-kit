@@ -10,7 +10,9 @@ import {
 } from "../../../../src/ui/editor/model";
 import {
 	applyStep,
+	applySteps,
 	invertStep,
+	revertSteps,
 	type PromptStep,
 } from "../../../../src/ui/editor/transactions";
 
@@ -19,6 +21,7 @@ import {
 	insertListItemStep,
 	mergeListItemsStep,
 	moveListItemStep,
+	moveListItemsAcrossStep,
 	moveListItemsStep,
 	nestListItemStep,
 	removeListItemStep,
@@ -670,5 +673,232 @@ describe("duplicateListItemStep", () => {
 		const before = bulletDoc("a", "b");
 		expect(duplicateListItemStep(before, "list1", 5).step).toBeUndefined();
 		expect(duplicateListItemStep(before, "list1", -1).step).toBeUndefined();
+	});
+});
+
+describe("moveListItemsAcrossStep (cross-list drag-drop)", () => {
+	/** Two sibling lists under one section — DISTINCT addressable roots. */
+	function twoListDoc(): PromptDocument {
+		return {
+			kind: "prompt",
+			schemaVersion: "prompt-kit/v1",
+			id: "across-doc",
+			nodes: [
+				{
+					type: "orderedList",
+					id: "list-a",
+					items: [
+						{ type: "listItem", id: "a1", content: ["Alpha"] },
+						{
+							type: "listItem",
+							id: "a2",
+							content: ["Bravo"],
+							children: [
+								{ type: "paragraph", id: "a2-p", content: ["Bravo detail"] },
+							],
+						},
+						{ type: "listItem", id: "a3", content: ["Charlie"] },
+					],
+				},
+				{
+					type: "bulletList",
+					id: "list-b",
+					items: [
+						{ type: "listItem", id: "b1", content: ["One"] },
+						{ type: "listItem", id: "b2", content: ["Two"] },
+					],
+				},
+			],
+		};
+	}
+
+	/** Outer list whose second item carries a nested list — ONE shared root. */
+	function nestedDoc(): PromptDocument {
+		return docWith({
+			type: "bulletList",
+			id: "outer",
+			items: [
+				{ type: "listItem", id: "o1", content: ["First"] },
+				{
+					type: "listItem",
+					id: "o2",
+					content: ["Second"],
+					children: [
+						{
+							type: "bulletList",
+							id: "inner",
+							items: [
+								{ type: "listItem", id: "i1", content: ["Lone nested"] },
+							],
+						},
+					],
+				},
+				{ type: "listItem", id: "o3", content: ["Third"] },
+			],
+		} as BulletListNode);
+	}
+
+	function listById(prompt: PromptDocument, id: string): BulletListNode {
+		const found = prompt.nodes.find(
+			(node) => "id" in node && node.id === id,
+		);
+		return found as BulletListNode;
+	}
+
+	test("moves a run between top-level lists: ids ride along, inverse moves it back", () => {
+		const before = twoListDoc();
+		const result = moveListItemsAcrossStep(before, "list-a", 1, 2, "list-b", 1);
+		// Distinct roots: one update step per touched list, one transaction.
+		expect(result.steps).toHaveLength(2);
+		expect(result.steps.every((step) => step.op === "update")).toBe(true);
+		expect(listById(result.prompt, "list-a").items.map((i) => i.id)).toEqual([
+			"a1",
+		]);
+		expect(listById(result.prompt, "list-b").items.map((i) => i.id)).toEqual([
+			"b1",
+			"a2",
+			"a3",
+			"b2",
+		]);
+		// A move, not a re-creation: the multi-line item kept its subtree.
+		expect(listById(result.prompt, "list-b").items[1]!.children).toHaveLength(1);
+		expect(result.focusListId).toBe("list-b");
+		expect(result.focusItemIndex).toBe(1);
+		// The transaction log's inversion (reverse order) restores the original.
+		expect(canonicalizePrompt(revertSteps(result.prompt, result.steps))).toBe(
+			canonicalizePrompt(before),
+		);
+	});
+
+	test("bullet → ordered is legal: the item node type is shared", () => {
+		const before = twoListDoc();
+		// list-b (bullet) → list-a (ordered), front slot.
+		const result = moveListItemsAcrossStep(before, "list-b", 0, 1, "list-a", 0);
+		expect(listById(result.prompt, "list-a").items.map((i) => i.id)).toEqual([
+			"b1",
+			"a1",
+			"a2",
+			"a3",
+		]);
+		expect(canonicalizePrompt(revertSteps(result.prompt, result.steps))).toBe(
+			canonicalizePrompt(before),
+		);
+	});
+
+	test("drops into an EMPTY list, clamping any slot to 0", () => {
+		const before: PromptDocument = {
+			...twoListDoc(),
+			nodes: [
+				...twoListDoc().nodes.slice(0, 2),
+				{ type: "bulletList", id: "list-empty", items: [] },
+			],
+		};
+		const result = moveListItemsAcrossStep(
+			before,
+			"list-a",
+			0,
+			1,
+			"list-empty",
+			99,
+		);
+		expect(listById(result.prompt, "list-empty").items.map((i) => i.id)).toEqual(
+			["a1"],
+		);
+		expect(result.focusItemIndex).toBe(0);
+		expect(canonicalizePrompt(revertSteps(result.prompt, result.steps))).toBe(
+			canonicalizePrompt(before),
+		);
+	});
+
+	test("nested → outer under one root is ONE invertible step (drag-unnest)", () => {
+		const before = nestedDoc();
+		// The lone nested bullet leaves its sub-list for the outer list's tail.
+		const result = moveListItemsAcrossStep(before, "inner", 0, 1, "outer", 3);
+		expect(result.steps).toHaveLength(1);
+		const outer = firstList(result.prompt);
+		expect(outer.items.map((i) => i.id)).toEqual(["o1", "o2", "o3", "i1"]);
+		// The source list stays (emptied) — callers compose removeListWithStep.
+		const o2 = outer.items[1]!;
+		expect((o2.children![0] as BulletListNode).items).toHaveLength(0);
+		expectRoundTrip(before, result.steps[0]!, result.prompt);
+	});
+
+	test("outer → nested under one root is ONE invertible step (drag-indent)", () => {
+		const before = nestedDoc();
+		const result = moveListItemsAcrossStep(before, "outer", 2, 1, "inner", 1);
+		expect(result.steps).toHaveLength(1);
+		const outer = firstList(result.prompt);
+		expect(outer.items.map((i) => i.id)).toEqual(["o1", "o2"]);
+		const inner = outer.items[1]!.children![0] as BulletListNode;
+		expect(inner.items.map((i) => i.id)).toEqual(["i1", "o3"]);
+		expectRoundTrip(before, result.steps[0]!, result.prompt);
+	});
+
+	test("same-list input keeps moveListItemsStep semantics (delegation)", () => {
+		const before = twoListDoc();
+		const across = moveListItemsAcrossStep(before, "list-a", 0, 1, "list-a", 3);
+		const direct = moveListItemsStep(before, "list-a", 0, 1, 3);
+		expect(canonicalizePrompt(across.prompt)).toBe(
+			canonicalizePrompt(direct.prompt),
+		);
+		expect(across.steps).toHaveLength(1);
+		// In-run slot stays a no-op through the delegation.
+		expect(
+			moveListItemsAcrossStep(before, "list-a", 0, 2, "list-a", 1).steps,
+		).toHaveLength(0);
+	});
+
+	test("degenerate input is a no-op with empty steps", () => {
+		const before = twoListDoc();
+		const cases = [
+			moveListItemsAcrossStep(before, "list-a", -1, 1, "list-b", 0),
+			moveListItemsAcrossStep(before, "list-a", 2, 2, "list-b", 0),
+			moveListItemsAcrossStep(before, "list-a", 0, 0, "list-b", 0),
+			moveListItemsAcrossStep(before, "missing", 0, 1, "list-b", 0),
+			moveListItemsAcrossStep(before, "list-a", 0, 1, "missing", 0),
+		];
+		for (const result of cases) {
+			expect(result.steps).toHaveLength(0);
+			expect(result.prompt).toBe(before);
+		}
+	});
+
+	test("destination inside the moved run's own subtree is a no-op", () => {
+		const before = nestedDoc();
+		// o2 carries `inner`; dropping o2 into inner would detach the target.
+		const result = moveListItemsAcrossStep(before, "outer", 1, 1, "inner", 0);
+		expect(result.steps).toHaveLength(0);
+		expect(result.prompt).toBe(before);
+	});
+
+	test("nest-creating drop composes move + nest as ONE transaction's steps", () => {
+		const before = twoListDoc();
+		const steps: PromptStep[] = [];
+		// Land b1 directly after a3 (the parent-to-be, index 2 of list-a)…
+		const moved = moveListItemsAcrossStep(before, "list-b", 0, 1, "list-a", 3);
+		steps.push(...moved.steps);
+		// …then indent it: a3 gains a child list holding b1.
+		const nested = nestListItemStep(
+			moved.prompt,
+			"list-a",
+			moved.focusItemIndex!,
+		);
+		expect(nested.step).toBeDefined();
+		steps.push(nested.step!);
+
+		const after = nested.prompt;
+		const a3 = listById(after, "list-a").items[2]!;
+		expect(a3.id).toBe("a3");
+		const childList = a3.children![0] as BulletListNode;
+		expect(childList.items.map((i) => i.id)).toEqual(["b1"]);
+
+		// The collected steps replay and revert as one unit — a single undo
+		// entry through the transaction log.
+		expect(canonicalizePrompt(applySteps(before, steps))).toBe(
+			canonicalizePrompt(after),
+		);
+		expect(canonicalizePrompt(revertSteps(after, steps))).toBe(
+			canonicalizePrompt(before),
+		);
 	});
 });

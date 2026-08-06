@@ -12,7 +12,10 @@ import {
 	type PromptStep,
 } from "../../../../src/ui/editor/transactions";
 import { PromptFlowXml } from "../../../../src/ui/editor/buffer";
-import { itemDropSlots } from "../../../../src/ui/editor/buffer/drag-controller";
+import {
+	enumerateItemSlotCandidates,
+	type ItemSlotCandidate,
+} from "../../../../src/ui/editor/buffer/drop-targeting";
 import { computeItemRanges } from "../../../../src/ui/editor/buffer/node-geometry";
 import { buildXmlLineModel } from "../../../../src/document/render/line-model";
 
@@ -363,29 +366,105 @@ describe("PromptFlowXml item-run body drag + one-object paint", () => {
 	});
 });
 
-describe("itemDropSlots (group-aware boundaries)", () => {
+describe("enumerateItemSlotCandidates (group-aware boundaries)", () => {
 	const lines = buildXmlLineModel(
 		createPromptEditorModel(prompt, {}).prompt,
 	).lines;
 	const itemRanges = computeItemRanges(lines);
 
-	it("a single-item drag offers every boundary: one per item plus after-last", () => {
-		const slots = itemDropSlots(lines, itemRanges, "list-1", 1, 1);
+	/** Union of the run items' extents — the drag descriptor's rowRange. */
+	function runRange(...itemIds: string[]): { start: number; end: number } {
+		let start = Number.POSITIVE_INFINITY;
+		let end = Number.NEGATIVE_INFINITY;
+		for (const id of itemIds) {
+			const range = itemRanges.get(id)!;
+			start = Math.min(start, range.start);
+			end = Math.max(end, range.end);
+		}
+		return { start, end };
+	}
+
+	function enumerate(
+		fromIndex: number,
+		count: number,
+		...itemIds: string[]
+	): ItemSlotCandidate[] {
+		return enumerateItemSlotCandidates(lines, itemRanges, {
+			listId: "list-1",
+			fromIndex,
+			count,
+			rowRange: runRange(...itemIds),
+		});
+	}
+
+	function sourceSlots(candidates: ItemSlotCandidate[]): ItemSlotCandidate[] {
+		return candidates.filter(
+			(candidate) => candidate.kind === "slot" && candidate.listId === "list-1",
+		);
+	}
+
+	it("a single-item drag offers every boundary; the run's own edges are DEAD (put-it-back, never a drop)", () => {
+		const slots = sourceSlots(enumerate(1, 1, "item-b"));
 		expect(slots.map((slot) => slot.slot)).toEqual([0, 1, 2, 3, 4, 5]);
+		expect(slots.map((slot) => slot.dead)).toEqual([
+			false,
+			true,
+			true,
+			false,
+			false,
+			false,
+		]);
 	});
 
-	it("a group drag excludes the slots strictly inside the run, keeping its edges", () => {
+	it("a group drag erases the slots strictly inside the run; its edges stay as the dead band", () => {
 		// Run = items 1..3 → interior boundaries 2 and 3 vanish; the run's own
-		// edges (1 and 4) remain as the "put it back" no-op drops.
-		const slots = itemDropSlots(lines, itemRanges, "list-1", 1, 3);
+		// edges (1 and 4) remain only as dead candidates.
+		const slots = sourceSlots(enumerate(1, 3, "item-b", "item-c", "item-d"));
 		expect(slots.map((slot) => slot.slot)).toEqual([0, 1, 4, 5]);
+		expect(slots.map((slot) => slot.dead)).toEqual([false, true, true, false]);
 	});
 
 	it("the after-last boundary sits under the last item's full extent", () => {
-		const slots = itemDropSlots(lines, itemRanges, "list-1", 0, 1);
+		const slots = sourceSlots(enumerate(0, 1, "item-a"));
 		const last = slots[slots.length - 1]!;
 		expect(last.edge).toBe("bottom");
 		const lastItemRange = itemRanges.get("item-e")!;
 		expect(last.rowIndex).toBe(lastItemRange.end);
+	});
+
+	it("every OTHER list contributes real slots: a drag can leave its list", () => {
+		const candidates = enumerate(1, 1, "item-b");
+		const crossSlots = candidates.filter(
+			(candidate) => candidate.kind === "slot" && candidate.listId === "list-2",
+		);
+		expect(crossSlots.map((slot) => slot.slot)).toEqual([0, 1, 2]);
+		expect(crossSlots.every((slot) => !slot.dead)).toBe(true);
+	});
+
+	it("items WITHOUT a sub-list offer a nest candidate one depth deeper; run members do not", () => {
+		const candidates = enumerate(1, 1, "item-b");
+		const nests = candidates.filter((candidate) => candidate.kind === "nest");
+		// Every non-carried item lacks a list child here, so each offers a nest
+		// target — including multi-line item-c, whose boundary sits under its
+		// full extent.
+		expect(
+			nests.map((candidate) => [candidate.listId, candidate.parentItemIndex]),
+		).toEqual([
+			["list-1", 0],
+			["list-1", 2],
+			["list-1", 3],
+			["list-1", 4],
+			["list-2", 0],
+			["list-2", 1],
+		]);
+		const itemDepth = lines[itemRanges.get("item-a")!.start]!.depth;
+		expect(nests.every((candidate) => candidate.depth === itemDepth + 1)).toBe(
+			true,
+		);
+		const cNest = nests.find(
+			(candidate) =>
+				candidate.listId === "list-1" && candidate.parentItemIndex === 2,
+		)!;
+		expect(cNest.rowIndex).toBe(itemRanges.get("item-c")!.end);
 	});
 });

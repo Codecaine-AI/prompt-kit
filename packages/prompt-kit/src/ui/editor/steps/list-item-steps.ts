@@ -361,6 +361,137 @@ export function moveListItemsStep(
 }
 
 /**
+ * Result of a cross-list move: potentially TWO update steps (one per
+ * addressable list root) that the caller commits together as one transaction
+ * — the same single-undo-entry mechanism every multi-step keymap gesture
+ * uses. When both lists resolve to the same root the move is one step.
+ */
+export interface ListItemsAcrossResult {
+	prompt: PromptDocument;
+	steps: PromptStep[];
+	/** List that holds the moved run after the edit. */
+	focusListId?: string;
+	/** Post-move index of the run's FIRST item in `focusListId`. */
+	focusItemIndex?: number;
+}
+
+/** Finds a list node by id anywhere in the document (nested lists included). */
+export function getListById(
+	prompt: PromptDocument,
+	listId: string,
+): ListNode | undefined {
+	return findListDeep(prompt.nodes, listId);
+}
+
+/**
+ * Moves the CONTIGUOUS run of `count` items starting at `fromIndex` of
+ * `fromListId` to the insertion slot `toSlot` (clamped) of `toListId` — the
+ * cross-list drag seam. Bullet ↔ ordered is legal (ListItemNode is shared),
+ * and the run moves as WHOLE subtrees carrying their ids: a move, not a
+ * re-creation, so annotations addressed at the items survive.
+ *
+ * Addressing follows `updateListByIdWithStep`: each touched list resolves to
+ * its nearest tree-addressable root. Sharing a root (nesting/un-nesting under
+ * the same outer list — the common depth-change drag) yields ONE invertible
+ * update step; distinct roots yield one step per root, applied in order
+ * (remove, then insert) and inverted in reverse by the transaction log — the
+ * inverse moves the run back either way.
+ *
+ * Same-list input delegates to `moveListItemsStep`, so its slot semantics
+ * (original indexing, in-run slots no-op) hold unchanged. Degenerate input —
+ * bad range, unknown lists, or a destination carried INSIDE the moved run —
+ * is a no-op with empty `steps`. Like `removeListItemsStep`, a source list
+ * emptied by the move is left in place; callers wanting it gone compose
+ * `removeListWithStep` into the same transaction.
+ */
+export function moveListItemsAcrossStep(
+	prompt: PromptDocument,
+	fromListId: string,
+	fromIndex: number,
+	count: number,
+	toListId: string,
+	toSlot: number,
+): ListItemsAcrossResult {
+	if (fromListId === toListId) {
+		const same = moveListItemsStep(prompt, fromListId, fromIndex, count, toSlot);
+		return {
+			prompt: same.prompt,
+			steps: same.step ? [same.step] : [],
+			focusListId: fromListId,
+			focusItemIndex: same.focusItemIndex,
+		};
+	}
+	const noop: ListItemsAcrossResult = { prompt, steps: [] };
+	if (count <= 0) return noop;
+	const fromList = findListDeep(prompt.nodes, fromListId);
+	const toList = findListDeep(prompt.nodes, toListId);
+	if (!fromList || !toList) return noop;
+	if (fromIndex < 0 || fromIndex + count > fromList.items.length) return noop;
+	const moving = fromList.items.slice(fromIndex, fromIndex + count);
+	// The destination cannot live inside the run being moved — such a drop
+	// would detach the target along with the payload.
+	for (const item of moving) {
+		for (const child of item.children ?? []) {
+			if (!isListNode(child)) continue;
+			if (child.id === toListId || listContainsNested(child, toListId)) {
+				return noop;
+			}
+		}
+	}
+	const insert = Math.max(0, Math.min(toSlot, toList.items.length));
+	const fromRootId = resolveListRootId(prompt, fromListId);
+	const toRootId = resolveListRootId(prompt, toListId);
+	if (!fromRootId || !toRootId) return noop;
+
+	const removeRun = (list: ListNode): ListNode =>
+		withItems(
+			list,
+			list.items.filter(
+				(_, index) => index < fromIndex || index >= fromIndex + count,
+			),
+		);
+	const insertRun = (list: ListNode): ListNode => {
+		const items = [...list.items];
+		items.splice(insert, 0, ...moving);
+		return withItems(list, items);
+	};
+
+	if (fromRootId === toRootId) {
+		const result = updatePromptBlockNodeByIdWithStep(prompt, fromRootId, (node) =>
+			replaceListDeep(
+				replaceListDeep(node, fromListId, removeRun),
+				toListId,
+				insertRun,
+			),
+		);
+		return {
+			prompt: result.prompt,
+			steps: result.step ? [result.step] : [],
+			focusListId: toListId,
+			focusItemIndex: insert,
+		};
+	}
+
+	const removal = updatePromptBlockNodeByIdWithStep(prompt, fromRootId, (node) =>
+		replaceListDeep(node, fromListId, removeRun),
+	);
+	const insertion = updatePromptBlockNodeByIdWithStep(
+		removal.prompt,
+		toRootId,
+		(node) => replaceListDeep(node, toListId, insertRun),
+	);
+	const steps: PromptStep[] = [];
+	if (removal.step) steps.push(removal.step);
+	if (insertion.step) steps.push(insertion.step);
+	return {
+		prompt: insertion.prompt,
+		steps,
+		focusListId: toListId,
+		focusItemIndex: insert,
+	};
+}
+
+/**
  * Nests the item at `itemIndex` under the previous sibling item, moving it into
  * a child list of the *same list type*. If the previous item already has a
  * trailing child list of that type, the item is appended to it; otherwise a new

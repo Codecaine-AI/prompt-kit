@@ -29,6 +29,8 @@ import { buildXmlLineModel, type XmlLine } from "../../../document/render/line-m
 import { resolveAutoformat } from "./autoformat";
 import { caretAnchor } from "./caret-rect";
 import { DragGhost, DropIndicator, useXmlDrag } from "./drag-controller";
+import type { ItemDropCommand } from "./drop-targeting";
+import type { PromptStep } from "../transactions";
 import {
 	blockHandleUnit,
 	itemHandleUnit,
@@ -42,7 +44,8 @@ import {
 import { moveBlocksStep, removeBlocksStep } from "../steps/block-run-steps";
 import {
 	duplicateListItemStep,
-	moveListItemsStep,
+	getListById,
+	moveListItemsAcrossStep,
 	nestListItemStep,
 	removeListItemStep,
 	removeListItemsStep,
@@ -796,20 +799,57 @@ export function PromptFlowXml({
 		[rowMetrics],
 	);
 
-	// Item reorder commit: one invertible update step on the addressable list
-	// root (the same seam every other list-item op uses), so a drag-drop —
-	// single item OR a whole selected run — is a single undoable action in the
-	// shared transaction log.
+	// Item drop commit: same-list, cross-list, and nest-creating drops all
+	// collect their steps and commit through ONE onPromptChange call — one
+	// transaction, so any drag-drop is a single undoable action (the same
+	// composition mechanism the keymap's structural gestures use).
 	const moveItems = useCallback(
-		(listId: string, fromIndex: number, count: number, toSlot: number) => {
-			const result = moveListItemsStep(
+		(
+			fromListId: string,
+			fromIndex: number,
+			count: number,
+			target: ItemDropCommand,
+		) => {
+			const steps: PromptStep[] = [];
+			// A nest drop first LANDS the run directly after its parent-to-be,
+			// then indents it — the indent slot in the target list's original
+			// indexing is right below the parent item.
+			const toSlot =
+				target.type === "slot" ? target.slot : target.parentItemIndex + 1;
+			const moved = moveListItemsAcrossStep(
 				prompt,
-				listId,
+				fromListId,
 				fromIndex,
 				count,
+				target.listId,
 				toSlot,
 			);
-			if (result.step) onPromptChange(result.prompt, listId, [result.step]);
+			let doc = moved.prompt;
+			steps.push(...moved.steps);
+			if (target.type === "nest") {
+				// Indent the landed run one item at a time: the first nest creates
+				// the parent's child list, the rest append to it — the run's next
+				// item keeps shifting into the same index, so the address is fixed.
+				const runStart = moved.focusItemIndex ?? toSlot;
+				for (let offset = 0; offset < count; offset += 1) {
+					const nested = nestListItemStep(doc, target.listId, runStart);
+					if (!nested.step) break;
+					doc = nested.prompt;
+					steps.push(nested.step);
+				}
+			}
+			// A source list drained by a cross-list move does not linger as an
+			// empty shell — the same empty-list rule the keymap applies.
+			if (steps.length > 0 && fromListId !== target.listId) {
+				if (getListById(doc, fromListId)?.items.length === 0) {
+					const removal = removeListWithStep(doc, fromListId);
+					if (removal.step) {
+						doc = removal.prompt;
+						steps.push(removal.step);
+					}
+				}
+			}
+			if (steps.length > 0) onPromptChange(doc, target.listId, steps);
 		},
 		[prompt, onPromptChange],
 	);
