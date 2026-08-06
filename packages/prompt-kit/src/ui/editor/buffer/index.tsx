@@ -134,14 +134,17 @@ export type { PromptFlowInlineInsert, PromptFlowStagedRegion } from "./StagedRow
 // module so this flow and the Raw view render on one grid with one palette.
 const ROW_TEXT = "font-mono";
 
-// Pointer travel (px) that turns a press into a marquee drag — or a press on
-// the active structural selection into a body-move drag. Below it the gesture
-// stays a plain click — caret placement / click-to-edit as today.
-const MARQUEE_THRESHOLD_PX = 4;
+// Pointer travel (px) past which a press stops being a click: a Cmd press
+// that travels selects nothing (drags fall through to native text
+// selection), and a press on the active structural selection becomes a
+// body-move drag. Below it the gesture stays a plain click — caret
+// placement / click-to-edit as today.
+const CLICK_DRAG_THRESHOLD_PX = 4;
 
-// Presses on interactive chrome never start a surface gesture (marquee OR
-// selection body-move): an OPEN inline editor's textarea keeps native text
-// selection, handles and menus keep their own drags and clicks.
+// Presses on interactive chrome never start a surface gesture (Cmd
+// unit-select OR selection body-move): an OPEN inline editor's textarea
+// keeps native text selection, handles and menus keep their own drags and
+// clicks.
 const SURFACE_GESTURE_EXCLUDE =
 	'textarea, input, select, button, [contenteditable="true"], [data-prompt-affordance], [role="menu"], [role="listbox"], [data-prompt-inline-insert], [data-prompt-staged-region]';
 
@@ -292,9 +295,9 @@ export function PromptFlowXml({
 	const editSeqRef = useRef(0);
 	/**
 	 * Structural selection: ONE contiguous sibling run — items of one list
-	 * (shift-click on item rows, or a marquee inside a list) or blocks under
-	 * one parent (marquee across block boundaries; null parent = the top-level
-	 * run). See structural-selection.ts for the canonical resolution model.
+	 * (shift-click on item rows) or blocks under one parent (Cmd+click on a
+	 * unit; null parent = the top-level run). See structural-selection.ts for
+	 * the canonical resolution model.
 	 * Grabbing the drag handle on any unit of the run then carries the whole
 	 * run as one object, and Backspace/Delete removes it as one transaction.
 	 */
@@ -919,8 +922,8 @@ export function PromptFlowXml({
 	);
 
 	// Block-run reorder commit: the run seam mirrors moveItems — one
-	// transaction moving the contiguous siblings, so a marquee-selected span
-	// of blocks drag-drops as a single undoable action.
+	// transaction moving the contiguous siblings, so a structurally selected
+	// span of blocks drag-drops as a single undoable action.
 	const moveBlocks = useCallback(
 		(
 			parentId: string | null,
@@ -948,31 +951,20 @@ export function PromptFlowXml({
 	});
 
 	/**
-	 * Marquee (bounding-zone) selection — EDIT mode only. Mouse-down on the
-	 * surface (not on a handle / menu / editor textarea / affordance, no
-	 * modifiers) and dragging past a small threshold draws a rectangle; the
-	 * rows its VERTICAL band covers resolve LIVE — on every pointer move — to
-	 * a structural selection (see resolveMarqueeSelection: the covered span
-	 * becomes ONE contiguous sibling run). A sub-threshold release stays a
-	 * plain click, so caret placement and click-to-edit are untouched.
+	 * Structural UNIT selection — EDIT mode only. Cmd+CLICK on the surface
+	 * (not on a handle / menu / editor textarea / affordance) selects the
+	 * unit under the cursor as ONE structural selection. The old Cmd+drag
+	 * marquee rectangle is retired: a Cmd press that travels past the click
+	 * threshold selects NOTHING, and a PLAIN drag falls through to native
+	 * browser text selection (read-only for now). resolveMarqueeSelection
+	 * stays on as the pure row-band → run resolver this click (and the
+	 * shift-click ranges) reuse.
 	 */
-	const [marqueeRect, setMarqueeRect] = useState<{
-		left: number;
-		top: number;
-		width: number;
-		height: number;
-	} | null>(null);
-	// Gesture bookkeeping outside React state: the pointer origin (viewport
-	// coords) and whether the threshold was crossed.
-	const marqueeGestureRef = useRef<{
-		startX: number;
-		startY: number;
-		active: boolean;
-	} | null>(null);
-	const [marqueePending, setMarqueePending] = useState(false);
-	// A marquee release must not read as a click (the surface click would
-	// clear the very selection the drag just made): swallowed exactly once by
-	// the section's onClickCapture below.
+	const unitPressRef = useRef<{ startX: number; startY: number } | null>(null);
+	const [unitPressPending, setUnitPressPending] = useState(false);
+	// A unit-select release must not read as a click (the surface click would
+	// clear the very selection the press just made): swallowed exactly once
+	// by the section's onClickCapture below.
 	const suppressClickRef = useRef(false);
 
 	/**
@@ -980,7 +972,7 @@ export function PromptFlowXml({
 	 * structural selection's row extent arms a move; crossing the threshold
 	 * lifts the run through the exact group path a handle grab uses. Kept
 	 * outside React state except the pending flag (which installs the
-	 * window listeners, same pattern as the marquee).
+	 * window listeners, same pattern as the unit press).
 	 */
 	const moveGestureRef = useRef<{
 		startX: number;
@@ -989,7 +981,7 @@ export function PromptFlowXml({
 	} | null>(null);
 	const [movePending, setMovePending] = useState(false);
 
-	const handleMarqueePointerDown = useCallback(
+	const handleSurfacePointerDown = useCallback(
 		(event: React.PointerEvent<HTMLDivElement>) => {
 			// A fresh press disarms a stale release-click swallow.
 			suppressClickRef.current = false;
@@ -999,19 +991,20 @@ export function PromptFlowXml({
 			if (event.shiftKey || event.altKey) return;
 			const target = event.target instanceof HTMLElement ? event.target : null;
 			if (!target) return;
-			// Annotate mode owns its own drag gestures — the marquee and the
-			// selection body-move are edit-mode only.
+			// Annotate mode owns its own drag gestures — the unit select and
+			// the selection body-move are edit-mode only.
 			if (target.closest('[data-annotation-targeting="true"]')) return;
 			// Presses on interactive chrome stay theirs (see the selector).
 			if (target.closest(SURFACE_GESTURE_EXCLUDE)) return;
-			// Command is THE structural modifier (matching annotate mode's
-			// Cmd+drag swath): Cmd+drag draws the zone, Cmd+click selects the
-			// unit under the cursor. A PLAIN press stays with its own gestures
-			// (caret placement, click-to-edit) — EXCEPT on the active
-			// structural selection's own rows, where it arms the body-move:
-			// the highlighted zone is one object, so grabbing it anywhere
-			// moves it. Nothing is prevented here — a sub-threshold release
-			// falls through to today's click behavior untouched.
+			// Command is THE structural modifier: Cmd+click selects the unit
+			// under the cursor. A PLAIN press stays with its own gestures
+			// (caret placement, click-to-edit, native text selection) —
+			// EXCEPT on the active structural selection's own rows, where it
+			// arms the body-move: the highlighted zone is one object, so
+			// grabbing it anywhere moves it. Nothing is prevented here — a
+			// sub-threshold release falls through to today's click behavior
+			// untouched, and a plain drag over text keeps the browser's own
+			// selection.
 			if (!(event.metaKey || event.ctrlKey)) {
 				if (!groupRowRange) return;
 				const rowEl = target.closest<HTMLElement>("[data-row-index]");
@@ -1026,130 +1019,73 @@ export function PromptFlowXml({
 				setMovePending(true);
 				return;
 			}
-			marqueeGestureRef.current = {
+			unitPressRef.current = {
 				startX: event.clientX,
 				startY: event.clientY,
-				active: false,
 			};
-			setMarqueePending(true);
+			setUnitPressPending(true);
 		},
 		[groupRowRange],
 	);
 
-	// Window-level tracking while a marquee press is live — registered only
-	// then, so it never runs at rest (same pattern as the drag controller).
+	// Window-level release tracking while a Cmd press is live — registered
+	// only then, so it never runs at rest (same pattern as the drag
+	// controller).
 	useEffect(() => {
-		if (!marqueePending) return;
+		if (!unitPressPending) return;
 
-		const onMove = (event: PointerEvent) => {
-			const gesture = marqueeGestureRef.current;
-			const rowsEl = rowsRef.current;
-			if (!gesture || !rowsEl) return;
-			if (!gesture.active) {
-				const dx = event.clientX - gesture.startX;
-				const dy = event.clientY - gesture.startY;
-				if (Math.hypot(dx, dy) < MARQUEE_THRESHOLD_PX) return;
-				gesture.active = true;
-				// Crossing the threshold makes this a selection gesture: it
-				// retires the caret, menus, and the single-node selection.
-				setEditTarget(null);
-				setMenuNodeId(null);
-				setItemMenu(null);
-				setSlash(null);
-				onSelectNode(undefined);
-			}
-			const rect = rowsEl.getBoundingClientRect();
-			const left = Math.min(gesture.startX, event.clientX) - rect.left;
-			const right = Math.max(gesture.startX, event.clientX) - rect.left;
-			const top = Math.min(gesture.startY, event.clientY) - rect.top;
-			const bottom = Math.max(gesture.startY, event.clientY) - rect.top;
-			setMarqueeRect({
-				left,
-				top,
-				width: right - left,
-				height: bottom - top,
-			});
-			// The marquee replaces native text selection while it is live.
-			window.getSelection?.()?.removeAllRanges();
-			// Covered rows: every row whose vertical extent intersects the
-			// band — only the rectangle's VERTICAL extent selects.
-			let startRow = -1;
-			let endRow = -1;
-			rowsEl
+		const onUp = (event: PointerEvent) => {
+			const press = unitPressRef.current;
+			unitPressRef.current = null;
+			setUnitPressPending(false);
+			if (!press || !rowsRef.current) return;
+			// Past-threshold travel is a drag, not a click. The retired
+			// marquee rectangle does NOT come back: a Cmd+drag selects
+			// nothing (any native text selection it made stands).
+			const dx = event.clientX - press.startX;
+			const dy = event.clientY - press.startY;
+			if (Math.hypot(dx, dy) >= CLICK_DRAG_THRESHOLD_PX) return;
+			// Cmd+CLICK: select the unit under the press as a one-object
+			// structural selection (movable via its handle or body,
+			// deletable with Backspace) instead of placing a caret.
+			const rect = rowsRef.current.getBoundingClientRect();
+			const y = press.startY - rect.top;
+			let hitRow = -1;
+			rowsRef.current
 				.querySelectorAll<HTMLElement>("[data-row-index]")
 				.forEach((row) => {
 					const index = Number(row.dataset.rowIndex);
 					if (Number.isNaN(index)) return;
-					const rowTop = row.offsetTop;
-					const rowBottom = rowTop + row.offsetHeight;
-					if (rowTop > bottom || rowBottom < top) return;
-					if (startRow === -1 || index < startRow) startRow = index;
-					if (index > endRow) endRow = index;
-				});
-			setStructuralSelection(
-				startRow >= 0
-					? resolveMarqueeSelection(prompt, lines, startRow, endRow)
-					: null,
-			);
-		};
-
-		const onUp = () => {
-			const gesture = marqueeGestureRef.current;
-			marqueeGestureRef.current = null;
-			setMarqueePending(false);
-			setMarqueeRect(null);
-			if (gesture?.active) {
-				// An actual zone drag swallows its release click.
-				suppressClickRef.current = true;
-				return;
-			}
-			// Sub-threshold release = Cmd+CLICK: select the unit under the
-			// press as a one-object structural selection (movable via its
-			// handle, deletable with Backspace) instead of placing a caret.
-			if (gesture && rowsRef.current) {
-				const rect = rowsRef.current.getBoundingClientRect();
-				const y = gesture.startY - rect.top;
-				let hitRow = -1;
-				rowsRef.current
-					.querySelectorAll<HTMLElement>("[data-row-index]")
-					.forEach((row) => {
-						const index = Number(row.dataset.rowIndex);
-						if (Number.isNaN(index)) return;
-						if (y >= row.offsetTop && y < row.offsetTop + row.offsetHeight) {
-							hitRow = index;
-						}
-					});
-				if (hitRow >= 0) {
-					const selection = resolveMarqueeSelection(prompt, lines, hitRow, hitRow);
-					if (selection) {
-						setStructuralSelection(selection);
-						setEditTarget(null);
-						setMenuNodeId(null);
-						setItemMenu(null);
-						onSelectNode(undefined);
-						suppressClickRef.current = true;
+					if (y >= row.offsetTop && y < row.offsetTop + row.offsetHeight) {
+						hitRow = index;
 					}
+				});
+			if (hitRow >= 0) {
+				const selection = resolveMarqueeSelection(prompt, lines, hitRow, hitRow);
+				if (selection) {
+					setStructuralSelection(selection);
+					setEditTarget(null);
+					setMenuNodeId(null);
+					setItemMenu(null);
+					onSelectNode(undefined);
+					suppressClickRef.current = true;
 				}
 			}
 		};
 
 		const onKey = (event: KeyboardEvent) => {
 			if (event.key !== "Escape") return;
-			marqueeGestureRef.current = null;
-			setMarqueePending(false);
-			setMarqueeRect(null);
-			setStructuralSelection(null);
+			unitPressRef.current = null;
+			setUnitPressPending(false);
 		};
 
-		window.addEventListener("pointermove", onMove);
 		window.addEventListener("pointerup", onUp);
 		window.addEventListener("keydown", onKey);
 		return () => {
-			window.removeEventListener("pointermove", onMove);
 			window.removeEventListener("pointerup", onUp);
 			window.removeEventListener("keydown", onKey);
 		};
-	}, [marqueePending, prompt, lines, onSelectNode]);
+	}, [unitPressPending, prompt, lines, onSelectNode]);
 
 	// Window-level tracking while a body-move press is armed. Crossing the
 	// threshold lifts the selected run through the SAME entry points a handle
@@ -1164,11 +1100,11 @@ export function PromptFlowXml({
 			if (!gesture) return;
 			const dx = event.clientX - gesture.startX;
 			const dy = event.clientY - gesture.startY;
-			if (Math.hypot(dx, dy) < MARQUEE_THRESHOLD_PX) return;
+			if (Math.hypot(dx, dy) < CLICK_DRAG_THRESHOLD_PX) return;
 			moveGestureRef.current = null;
 			setMovePending(false);
 			// The release click after a body drag must not clear the selection
-			// or land a caret — swallowed once, same as a marquee release.
+			// or land a caret — swallowed once, same as a unit-select release.
 			suppressClickRef.current = true;
 			// Lift-off goes through the drag controller's React entry points;
 			// only the fields they read (button, coords, preventDefault) are
@@ -1493,9 +1429,10 @@ export function PromptFlowXml({
 				"flex h-full min-h-0 flex-1 flex-col",
 			)}
 			style={{ background: EDITOR_COLORS.bg, color: EDITOR_COLORS.fg }}
-			// The release click of a marquee drag is swallowed here — capture
-			// phase, so neither the row handlers nor the surface-clearing click
-			// below can undo the selection the drag just made.
+			// The release click of a unit-select press or a body-move drag is
+			// swallowed here — capture phase, so neither the row handlers nor
+			// the surface-clearing click below can undo the selection the
+			// gesture just made.
 			onClickCapture={(event) => {
 				if (!suppressClickRef.current) return;
 				suppressClickRef.current = false;
@@ -1605,11 +1542,8 @@ export function PromptFlowXml({
 							// row-metric offsets measure relative to this container's
 							// border box, so absolute overlays stay aligned.
 							paddingBlock: EDITOR_METRICS.lineHeight,
-							// While the marquee is live the surface is a selection
-							// canvas, not text — native selection stays off.
-							...(marqueeRect ? { userSelect: "none" } : null),
 						}}
-						onPointerDown={handleMarqueePointerDown}
+						onPointerDown={handleSurfacePointerDown}
 						onMouseLeave={() => {
 							setHoverNodeId(null);
 							setHoverItemId(null);
@@ -2069,24 +2003,6 @@ export function PromptFlowXml({
 							);
 						})}
 
-						{/* The marquee rectangle: a simple accent-trimmed wash over
-						    the dragged bounding zone. Feedback only — the actual
-						    selection is the structural run its vertical band
-						    resolves to, painted through the row stamps. */}
-						{marqueeRect && (
-							<div
-								data-prompt-marquee=""
-								className="pointer-events-none absolute z-20"
-								style={{
-									left: marqueeRect.left,
-									top: marqueeRect.top,
-									width: marqueeRect.width,
-									height: marqueeRect.height,
-									border: `1px solid ${EDITOR_COLORS.selectionAccent}`,
-									background: EDITOR_COLORS.selectionBg,
-								}}
-							/>
-						)}
 					</div>
 				)}
 				</div>

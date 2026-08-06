@@ -18,7 +18,7 @@ export {
 	type XmlLineModel,
 	type XmlLineRole,
 } from "../../document/render/line-model";
-// The canonical structural-selection model (marquee → one sibling run) and
+// The canonical structural-selection model (row band → one sibling run) and
 // the run-level mutation seams — exported so mirroring surfaces (docs-system)
 // share one resolution rule and one transaction shape.
 export {

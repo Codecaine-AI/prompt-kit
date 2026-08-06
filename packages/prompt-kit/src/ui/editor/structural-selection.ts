@@ -1,6 +1,9 @@
-// Slice: THE canonical structural-selection model — how a marquee's covered
-// rows resolve to ONE structural object (a contiguous sibling run), and the
+// Slice: THE canonical structural-selection model — how a covered row band
+// resolves to ONE structural object (a contiguous sibling run), and the
 // pure queries the surface needs to validate, paint, move, and delete it.
+// (Named for the marquee gesture that introduced it; the rectangle is
+// retired, but Cmd+click and the shift-click ranges resolve through the
+// same band → run rule.)
 
 import type {
 	BulletListNode,
@@ -134,9 +137,9 @@ function chainFromRoot(
 /**
  * THE CANONICAL STRUCTURAL-SELECTION RESOLUTION (docs-system will mirror it).
  *
- * Resolves the rows a marquee's VERTICAL band covers to the SHALLOWEST
- * contiguous sibling run that exactly covers them — the "bounding zone
- * becomes one object" rule:
+ * Resolves the rows a VERTICAL band covers (Cmd+click's single row, a
+ * shift-click range's extent) to the SHALLOWEST contiguous sibling run that
+ * exactly covers them — the "bounding zone becomes one object" rule:
  *
  * - Rows all within ONE list resolve to that run of list items
  *   (kind "items"), the same unit the shift-click item selection names.

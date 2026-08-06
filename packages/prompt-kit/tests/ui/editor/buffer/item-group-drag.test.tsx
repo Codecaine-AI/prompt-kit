@@ -299,7 +299,7 @@ describe("PromptFlowXml item-run body drag + one-object paint", () => {
 
 		selectRange("item-b", "item-d");
 		// ONE contiguous overlay for the whole run — shift-click item runs are
-		// the same structural-selection state the marquee produces.
+		// the same structural-selection state a Cmd+click unit select produces.
 		const rings = document.querySelectorAll<HTMLElement>(
 			"[data-prompt-selection-ring]",
 		);

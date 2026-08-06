@@ -1,5 +1,5 @@
 // Slice: contiguous BLOCK-RUN mutations — the sibling-level counterpart of
-// list-item-steps' run helpers. A structural (marquee / shift-click) selection
+// list-item-steps' run helpers. A structural (Cmd+click / shift-click) selection
 // of kind "blocks" moves and deletes through these, so a multi-block object
 // commits as ONE transaction and undoes in one action.
 

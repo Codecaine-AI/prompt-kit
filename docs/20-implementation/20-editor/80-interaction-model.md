@@ -1,6 +1,6 @@
 ---
-covers: The pointer interaction model of the editing surface — the one-handle drag model, marquee structural selection, the Command gesture language, annotate mode, and read-mode inline rendering.
-concepts: [drag, structural-selection, marquee, gestures, annotate, inline-rendering]
+covers: The pointer interaction model of the editing surface — the one-handle drag model, structural selection, the Command gesture language, native text selection, annotate mode, and read-mode inline rendering.
+concepts: [drag, structural-selection, gestures, native-selection, annotate, inline-rendering]
 design_refs: [10-system-design/20-authoring-model.md, 10-system-design/30-rendering-model.md]
 ---
 
@@ -20,8 +20,8 @@ Command gestures act on structure.
 | Hover | The one drag handle appears at the unit under the pointer |
 | Click | Caret / inline edit ONLY — never a block selection (caret-first) |
 | Shift+click on a bullet | Extend a contiguous item-range selection |
-| Cmd+drag | Draw a marquee; the covered span becomes ONE structural selection |
 | Cmd+click | Select the unit under the cursor as a one-object selection |
+| Plain drag over text | NATIVE browser text selection — read-only for now (not yet actionable) |
 | Plain drag inside the selection ring | Move the selected run |
 | Backspace / Delete (selection active, no editor open) | Remove the run as one transaction |
 | Escape / plain click elsewhere | Clear the selection |
@@ -85,13 +85,17 @@ runs through `block-run-steps.ts` — always one undoable transaction.
 ## Structural Selection
 
 `structural-selection.ts` (`resolveMarqueeSelection`) is the canonical
-resolution — the docs-system editor mirrors it:
+resolution — the docs-system editor mirrors it. (The Cmd+drag marquee
+RECTANGLE that named the resolver is retired — 2026-08-06; no drag draws a
+selection rectangle anymore. A Cmd press that travels past the 4px click
+threshold selects nothing, and a plain drag over text is the browser's own
+selection. The resolver stays as the pure row-band → run rule.)
 
-- A Cmd+drag past 4px draws a live marquee. The rectangle's vertical band
+- A covered row band (Cmd+click's single row, a shift-click range's extent)
   resolves to the SHALLOWEST contiguous sibling run that exactly covers the
-  swept rows: bullets within one list select an item run; crossing a list
+  rows: bullets within one list select an item run; crossing a list
   boundary promotes to the block run at the common parent (a partial list
-  promotes to the whole list); sweeping across sections selects the top-level
+  promotes to the whole list); a band across sections selects the top-level
   run. The result is one object in the AST.
 - The selection paints as ONE ring overlay (`data-prompt-selection-ring`),
   not per-row washes; hover washes, accent bars, and gutter tints are
@@ -124,7 +128,7 @@ Prose and bullet rows render the decoded document, not the serialized XML:
 |--------|------|
 | `buffer/drag-handle.ts` | Canonical one-handle resolution + rail geometry |
 | `buffer/drag-controller.tsx` | Drag physics, ghost, slots, group commits |
-| `structural-selection.ts` | Canonical marquee resolution + run materialization |
+| `structural-selection.ts` | Canonical row-band → run resolution + run materialization |
 | `block-run-steps.ts` | Block-run move/remove transactions |
 | `list-item-steps.ts` | Item and item-run move/remove steps |
 | `lab/annotate/annotation-targeting.ts` | Annotate-mode DOM↔model bridging |

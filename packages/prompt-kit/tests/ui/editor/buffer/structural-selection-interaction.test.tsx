@@ -1,11 +1,15 @@
+// Structural-selection interaction on the buffer surface. The marquee
+// RECTANGLE gesture is retired: Cmd+CLICK selects the unit under the cursor,
+// shift-click extends item ranges (see item-group-drag.test.tsx for the
+// range + multi-unit coverage), and any DRAG on the surface selects nothing
+// structurally — a plain drag falls through to native browser text
+// selection (read-only for now).
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render } from "@testing-library/react";
 
 import type { PromptDocument, SectionNode } from "../../../../src/index";
 import { canonicalizePrompt } from "../../../../src/index";
-import {
-	createPromptEditorModel,
-} from "../../../../src/ui/editor/model";
+import { createPromptEditorModel } from "../../../../src/ui/editor/model";
 import {
 	applySteps,
 	revertSteps,
@@ -21,7 +25,7 @@ afterEach(() => {
 const flatPrompt: PromptDocument = {
 	kind: "prompt",
 	schemaVersion: "prompt-kit/v1",
-	id: "marquee-flat-doc",
+	id: "structsel-flat-doc",
 	nodes: [
 		{ type: "paragraph", id: "para-x", content: ["Xray"] },
 		{ type: "paragraph", id: "para-y", content: ["Yankee"] },
@@ -34,7 +38,7 @@ const flatPrompt: PromptDocument = {
 const listPrompt: PromptDocument = {
 	kind: "prompt",
 	schemaVersion: "prompt-kit/v1",
-	id: "marquee-list-doc",
+	id: "structsel-list-doc",
 	nodes: [
 		{
 			type: "section",
@@ -97,52 +101,102 @@ function nodeRow(id: string): HTMLElement {
 }
 
 /**
- * Drags a marquee from `from` to `to` (viewport coords — happy-dom rects are
- * all zero, so container coords equal viewport coords). Release optional so
- * live-drag states can be asserted.
+ * Gives every row a real vertical geometry (happy-dom's defaults are all
+ * zero): row i occupies [i * 20, i * 20 + 20). Flat-doc rows: para-x=0,
+ * gap=1, para-y=2, gap=3, para-z=4, gap=5, para-w=6.
  */
-function dragMarquee(
-	from: { x: number; y: number },
-	to: { x: number; y: number },
-	{ release = true }: { release?: boolean } = {},
-) {
-	// Command is the structural modifier: the zone only arms with it held.
-	fireEvent.pointerDown(rowsEl(), {
-		button: 0,
-		metaKey: true,
-		clientX: from.x,
-		clientY: from.y,
+function layoutRows(pitch = 20) {
+	document.querySelectorAll<HTMLElement>("[data-row-index]").forEach((row) => {
+		const index = Number(row.dataset.rowIndex);
+		Object.defineProperty(row, "offsetTop", {
+			value: index * pitch,
+			configurable: true,
+		});
+		Object.defineProperty(row, "offsetHeight", {
+			value: pitch,
+			configurable: true,
+		});
 	});
-	fireEvent.pointerMove(window, { clientX: to.x, clientY: to.y });
-	if (release) fireEvent.pointerUp(window);
 }
 
 /**
- * Gives every row a real vertical geometry (happy-dom's defaults are all
- * zero): row i occupies [i * 20, i * 20 + 20).
+ * Cmd+CLICK on the surface at container y (viewport coords — happy-dom rects
+ * are all zero, so container coords equal viewport coords). Release happens
+ * at the press point: sub-threshold, so the press reads as a click.
  */
-function layoutRows(pitch = 20) {
-	document
-		.querySelectorAll<HTMLElement>("[data-row-index]")
-		.forEach((row) => {
-			const index = Number(row.dataset.rowIndex);
-			Object.defineProperty(row, "offsetTop", {
-				value: index * pitch,
-				configurable: true,
-			});
-			Object.defineProperty(row, "offsetHeight", {
-				value: pitch,
-				configurable: true,
-			});
-		});
+function cmdClickAt(y: number, x = 2) {
+	fireEvent.pointerDown(rowsEl(), {
+		button: 0,
+		metaKey: true,
+		clientX: x,
+		clientY: y,
+	});
+	fireEvent.pointerUp(window, { clientX: x, clientY: y });
 }
 
-describe("PromptFlowXml marquee gesture", () => {
-	it("a sub-threshold release stays a plain click: no selection, click-to-edit intact", () => {
+describe("PromptFlowXml structural unit selection (Cmd+click)", () => {
+	it("Cmd+CLICK selects the unit under the cursor as one object", () => {
 		renderFlow(flatPrompt);
+		layoutRows();
+		cmdClickAt(5);
+		expect(selectedIds()).toEqual(["para-x"]);
+		// No caret/editor: Cmd+click is selection, not editing.
+		expect(document.querySelector("textarea")).toBeNull();
+	});
+
+	it("Cmd+DRAG past the threshold selects NOTHING (the marquee rectangle is retired)", () => {
+		renderFlow(flatPrompt);
+		layoutRows();
+		fireEvent.pointerDown(rowsEl(), {
+			button: 0,
+			metaKey: true,
+			clientX: 0,
+			clientY: 0,
+		});
+		fireEvent.pointerMove(window, { clientX: 24, clientY: 24 });
+		// No rectangle overlay exists at any point of the drag…
+		expect(document.querySelector("[data-prompt-marquee]")).toBeNull();
+		fireEvent.pointerUp(window, { clientX: 24, clientY: 24 });
+		// …and the release resolves no structural selection.
+		expect(document.querySelector("[data-prompt-marquee]")).toBeNull();
+		expect(selectedIds()).toEqual([]);
+	});
+
+	it("a PLAIN drag creates no structural selection and draws no rectangle", () => {
+		renderFlow(flatPrompt);
+		layoutRows();
+		fireEvent.pointerDown(rowsEl(), { button: 0, clientX: 0, clientY: 0 });
+		fireEvent.pointerMove(window, { clientX: 30, clientY: 30 });
+		expect(document.querySelector("[data-prompt-marquee]")).toBeNull();
+		fireEvent.pointerUp(window, { clientX: 30, clientY: 30 });
+		expect(document.querySelector("[data-prompt-marquee]")).toBeNull();
+		expect(selectedIds()).toEqual([]);
+		expect(
+			document.querySelector("[data-prompt-selection-ring]"),
+		).toBeNull();
+	});
+
+	it("the rows container does not suppress native text selection", () => {
+		renderFlow(flatPrompt);
+		layoutRows();
+		// At rest: no user-select suppression on the container…
+		expect(rowsEl().style.userSelect).toBe("");
+		expect(rowsEl().className).not.toContain("select-none");
+		// …and none appears while a plain drag travels over the text (the
+		// drag is the browser's own selection gesture now).
+		fireEvent.pointerDown(rowsEl(), { button: 0, clientX: 0, clientY: 0 });
+		fireEvent.pointerMove(window, { clientX: 30, clientY: 30 });
+		expect(rowsEl().style.userSelect).toBe("");
+		expect(rowsEl().className).not.toContain("select-none");
+		fireEvent.pointerUp(window, { clientX: 30, clientY: 30 });
+	});
+
+	it("a sub-threshold plain release stays a plain click: no selection, click-to-edit intact", () => {
+		renderFlow(flatPrompt);
+		layoutRows();
 		fireEvent.pointerDown(rowsEl(), { button: 0, clientX: 0, clientY: 0 });
 		fireEvent.pointerMove(window, { clientX: 1, clientY: 1 });
-		fireEvent.pointerUp(window);
+		fireEvent.pointerUp(window, { clientX: 1, clientY: 1 });
 
 		expect(document.querySelector("[data-prompt-marquee]")).toBeNull();
 		expect(selectedIds()).toEqual([]);
@@ -155,62 +209,16 @@ describe("PromptFlowXml marquee gesture", () => {
 		expect(document.querySelector("textarea")).not.toBeNull();
 	});
 
-	it("dragging past the threshold draws the rectangle and paints the resolved run LIVE", () => {
-		renderFlow(flatPrompt);
-		dragMarquee({ x: 0, y: 0 }, { x: 24, y: 24 }, { release: false });
-
-		// The visible marquee rect is up while the pointer is down…
-		expect(document.querySelector("[data-prompt-marquee]")).not.toBeNull();
-		// …and the covered band (all rows — zero-rect geometry) has already
-		// resolved to the top-level run, painted through the selection stamps.
-		for (const id of ["para-x", "para-y", "para-z", "para-w"]) {
-			expect(nodeRow(id).hasAttribute("data-prompt-row-selected")).toBe(true);
-		}
-		// No editor opened; the gesture is selection, not caret placement.
-		expect(document.querySelector("textarea")).toBeNull();
-
-		fireEvent.pointerUp(window);
-		// Release keeps the selection and retires the rectangle.
-		expect(document.querySelector("[data-prompt-marquee]")).toBeNull();
-		expect(selectedIds().length).toBeGreaterThan(0);
-	});
-
-	it("the zone requires Command: a PLAIN drag never starts a marquee", () => {
-		renderFlow(flatPrompt);
-		fireEvent.pointerDown(rowsEl(), { button: 0, clientX: 0, clientY: 0 });
-		fireEvent.pointerMove(window, { clientX: 30, clientY: 30 });
-		fireEvent.pointerUp(window);
-		expect(document.querySelector("[data-prompt-marquee]")).toBeNull();
-		expect(selectedIds()).toEqual([]);
-	});
-
-	it("Cmd+CLICK (sub-threshold) selects the unit under the cursor as one object", () => {
-		renderFlow(flatPrompt);
-		layoutRows();
-		// Press with Cmd on row 0's band and release without crossing the
-		// threshold: the unit under the press becomes the selection.
-		fireEvent.pointerDown(rowsEl(), {
-			button: 0,
-			metaKey: true,
-			clientX: 2,
-			clientY: 5,
-		});
-		fireEvent.pointerMove(window, { clientX: 3, clientY: 6 });
-		fireEvent.pointerUp(window);
-		expect(selectedIds().length).toBeGreaterThan(0);
-		// No caret/editor: Cmd+click is selection, not editing.
-		expect(document.querySelector("textarea")).toBeNull();
-	});
-
 	it("the release click is swallowed once; the NEXT plain click clears", () => {
 		renderFlow(flatPrompt);
-		dragMarquee({ x: 0, y: 0 }, { x: 24, y: 24 });
-		expect(selectedIds().length).toBeGreaterThan(0);
+		layoutRows();
+		cmdClickAt(45);
+		expect(selectedIds()).toEqual(["para-y"]);
 
 		const section = document.querySelector("section")!;
 		// The click the release itself produced must not clear the selection…
 		fireEvent.click(section);
-		expect(selectedIds().length).toBeGreaterThan(0);
+		expect(selectedIds()).toEqual(["para-y"]);
 		// …but a genuine follow-up click does.
 		fireEvent.click(section);
 		expect(selectedIds()).toEqual([]);
@@ -218,25 +226,18 @@ describe("PromptFlowXml marquee gesture", () => {
 
 	it("Escape clears the structural selection", () => {
 		renderFlow(flatPrompt);
-		dragMarquee({ x: 0, y: 0 }, { x: 24, y: 24 });
-		expect(selectedIds().length).toBeGreaterThan(0);
+		layoutRows();
+		cmdClickAt(45);
+		expect(selectedIds()).toEqual(["para-y"]);
 		fireEvent.keyDown(window, { key: "Escape" });
 		expect(selectedIds()).toEqual([]);
 	});
 
-	it("a partial band selects exactly the covered blocks (real row geometry)", () => {
-		renderFlow(flatPrompt);
-		layoutRows();
-		// Rows: para-x=0, gap=1, para-y=2, gap=3, para-z=4, gap=5, para-w=6.
-		// Band [45, 85] covers rows 2..4 → the para-y..para-z run.
-		dragMarquee({ x: 0, y: 45 }, { x: 10, y: 85 });
-		expect(selectedIds()).toEqual(["para-y", "para-z"]);
-	});
-
 	it("selection SURVIVES a host re-render with same content, clears on genuine invalidation", () => {
 		const { view } = renderFlow(flatPrompt);
-		dragMarquee({ x: 0, y: 0 }, { x: 24, y: 24 });
-		expect(selectedIds().length).toBeGreaterThan(0);
+		layoutRows();
+		cmdClickAt(125);
+		expect(selectedIds()).toEqual(["para-w"]);
 
 		// Hosts rebuild the prompt's IDENTITY every render — same content.
 		const clone = createPromptEditorModel(
@@ -251,7 +252,7 @@ describe("PromptFlowXml marquee gesture", () => {
 				onPromptChange={() => {}}
 			/>,
 		);
-		expect(selectedIds().length).toBeGreaterThan(0);
+		expect(selectedIds()).toEqual(["para-w"]);
 
 		// A document that can no longer hold the run retires it.
 		const shrunk = createPromptEditorModel(
@@ -271,14 +272,20 @@ describe("PromptFlowXml marquee gesture", () => {
 });
 
 describe("PromptFlowXml structural delete (Backspace / Delete as one object)", () => {
-	it("Backspace removes the selected BLOCK run as one transaction; undo restores", () => {
+	it("Backspace removes the Cmd+click-selected BLOCK as one transaction; undo restores", () => {
 		const { commits, prompt } = renderFlow(flatPrompt);
-		dragMarquee({ x: 0, y: 0 }, { x: 24, y: 24 });
+		layoutRows();
+		cmdClickAt(5);
+		expect(selectedIds()).toEqual(["para-x"]);
 		fireEvent.keyDown(window, { key: "Backspace" });
 
 		expect(commits).toHaveLength(1);
 		const { prompt: next, steps } = commits[0]!;
-		expect(next.nodes).toHaveLength(0);
+		expect(next.nodes.map((node) => node.id)).toEqual([
+			"para-y",
+			"para-z",
+			"para-w",
+		]);
 		expect(steps!.every((step) => step.op === "remove")).toBe(true);
 		// One transaction: replay reproduces, revert restores everything.
 		expect(canonicalizePrompt(applySteps(prompt, steps!))).toBe(
@@ -291,16 +298,20 @@ describe("PromptFlowXml structural delete (Backspace / Delete as one object)", (
 		expect(selectedIds()).toEqual([]);
 	});
 
-	it("Delete removes a PARTIAL block run selected by geometry", () => {
+	it("Delete removes the Cmd+click-selected block", () => {
 		const { commits, prompt } = renderFlow(flatPrompt);
 		layoutRows();
-		dragMarquee({ x: 0, y: 45 }, { x: 10, y: 85 });
-		expect(selectedIds()).toEqual(["para-y", "para-z"]);
+		cmdClickAt(45);
+		expect(selectedIds()).toEqual(["para-y"]);
 		fireEvent.keyDown(window, { key: "Delete" });
 
 		expect(commits).toHaveLength(1);
 		const { prompt: next, steps } = commits[0]!;
-		expect(next.nodes.map((node) => node.id)).toEqual(["para-x", "para-w"]);
+		expect(next.nodes.map((node) => node.id)).toEqual([
+			"para-x",
+			"para-z",
+			"para-w",
+		]);
 		expect(canonicalizePrompt(revertSteps(next, steps!))).toBe(
 			canonicalizePrompt(prompt),
 		);
@@ -365,39 +376,32 @@ describe("PromptFlowXml structural delete (Backspace / Delete as one object)", (
 	});
 });
 
-describe("PromptFlowXml block-run drag (selected run moves as one object)", () => {
-	it("grabbing any handle inside the run lifts the whole run and commits ONE transaction", () => {
+describe("PromptFlowXml selected-unit drag (body-move + handle interplay)", () => {
+	it("a PLAIN drag on the selected unit's body lifts it and commits ONE transaction", () => {
 		const { commits, prompt } = renderFlow(flatPrompt);
 		layoutRows();
-		// Select the para-y..para-z run (rows 2..4).
-		dragMarquee({ x: 0, y: 45 }, { x: 10, y: 85 });
-		expect(selectedIds()).toEqual(["para-y", "para-z"]);
+		cmdClickAt(45);
+		expect(selectedIds()).toEqual(["para-y"]);
 
-		// Hover a run member so its block handle mounts, then grab it.
-		fireEvent.mouseEnter(nodeRow("para-y"));
-		const grip = document.querySelector<HTMLElement>(".prompt-editor-grip")!;
-		fireEvent.pointerDown(grip, { button: 0, clientX: 5, clientY: 45 });
-		// The press only ARMS the drag; the first past-threshold move lifts it.
-		fireEvent.pointerMove(window, { clientX: 5, clientY: 65 });
-
-		// Ghost: run rows 2..4 → 3 carried lines → "+2 more" over the extent.
-		const more = Array.from(document.querySelectorAll("span")).find(
-			(el) => el.textContent === "+2 more",
+		// Plain press (no modifier) on the selection's own body…
+		fireEvent.pointerDown(nodeRow("para-y"), {
+			button: 0,
+			clientX: 5,
+			clientY: 50,
+		});
+		// …sub-threshold travel keeps everything at rest…
+		fireEvent.pointerMove(window, { clientX: 6, clientY: 51 });
+		expect(nodeRow("para-y").style.opacity).toBe("");
+		// …and crossing the threshold starts the SAME drag a handle grab
+		// inside the zone starts: the lifted row dims, others do not.
+		fireEvent.pointerMove(window, { clientX: 5, clientY: 80 });
+		expect(nodeRow("para-y").style.opacity).toContain(
+			"var(--prompt-editor-drag-opacity",
 		);
-		expect(more).toBeTruthy();
-		expect(more!.closest("div")!.textContent).toContain("Yankee");
-
-		// Every run row dims as lifted out; rows outside the run do not.
-		for (const id of ["para-y", "para-z"]) {
-			expect(nodeRow(id).style.opacity).toContain(
-				"var(--prompt-editor-drag-opacity",
-			);
-		}
 		expect(nodeRow("para-x").style.opacity).toBe("");
 		expect(nodeRow("para-w").style.opacity).toBe("");
 
-		// Zero rects: the nearest legal boundary is the first offered slot —
-		// slot 0, before para-x (interior run slots are never offered).
+		// Zero rects: the nearest legal boundary is slot 0 (before para-x).
 		fireEvent.pointerMove(window, { clientY: 0 });
 		fireEvent.pointerUp(window);
 
@@ -405,8 +409,8 @@ describe("PromptFlowXml block-run drag (selected run moves as one object)", () =
 		const { prompt: next, steps } = commits[0]!;
 		expect(next.nodes.map((node) => node.id)).toEqual([
 			"para-y",
-			"para-z",
 			"para-x",
+			"para-z",
 			"para-w",
 		]);
 		// One replayable, invertible transaction; undo restores the original.
@@ -418,64 +422,18 @@ describe("PromptFlowXml block-run drag (selected run moves as one object)", () =
 		);
 	});
 
-	it("a PLAIN drag on a selected row lifts the run — same ghost/dimming — and commits ONE transaction", () => {
-		const { commits, prompt } = renderFlow(flatPrompt);
-		layoutRows();
-		dragMarquee({ x: 0, y: 45 }, { x: 10, y: 85 });
-		expect(selectedIds()).toEqual(["para-y", "para-z"]);
-
-		// Plain press (no modifier) on the selection's own body…
-		fireEvent.pointerDown(nodeRow("para-y"), {
-			button: 0,
-			clientX: 5,
-			clientY: 50,
-		});
-		// …sub-threshold travel keeps everything at rest…
-		fireEvent.pointerMove(window, { clientX: 6, clientY: 51 });
-		expect(nodeRow("para-y").style.opacity).toBe("");
-		// …and crossing the threshold starts the SAME group drag a handle grab
-		// inside the zone starts: compact ghost with "+N more", run dims.
-		fireEvent.pointerMove(window, { clientX: 5, clientY: 80 });
-		const more = Array.from(document.querySelectorAll("span")).find(
-			(el) => el.textContent === "+2 more",
-		);
-		expect(more).toBeTruthy();
-		expect(more!.closest("div")!.textContent).toContain("Yankee");
-		for (const id of ["para-y", "para-z"]) {
-			expect(nodeRow(id).style.opacity).toContain(
-				"var(--prompt-editor-drag-opacity",
-			);
-		}
-
-		// Zero rects: the nearest legal boundary is slot 0 (before para-x).
-		fireEvent.pointerMove(window, { clientY: 0 });
-		fireEvent.pointerUp(window);
-
-		expect(commits).toHaveLength(1);
-		const { prompt: next, steps } = commits[0]!;
-		expect(next.nodes.map((node) => node.id)).toEqual([
-			"para-y",
-			"para-z",
-			"para-x",
-			"para-w",
-		]);
-		expect(canonicalizePrompt(revertSteps(next, steps!))).toBe(
-			canonicalizePrompt(prompt),
-		);
-	});
-
 	it("a sub-threshold press on the selection stays a plain click: click-to-edit clears the zone", () => {
 		renderFlow(flatPrompt);
 		layoutRows();
-		dragMarquee({ x: 0, y: 45 }, { x: 10, y: 85 });
-		expect(selectedIds()).toEqual(["para-y", "para-z"]);
+		cmdClickAt(45);
+		expect(selectedIds()).toEqual(["para-y"]);
 
 		const text = nodeRow("para-y").querySelector<HTMLElement>(
 			"[data-prompt-row-text] span",
 		)!;
 		fireEvent.pointerDown(text, { button: 0, clientX: 5, clientY: 50 });
 		fireEvent.pointerMove(window, { clientX: 6, clientY: 51 });
-		fireEvent.pointerUp(window);
+		fireEvent.pointerUp(window, { clientX: 6, clientY: 51 });
 		// The release stayed a click: it opens the editor and retires the
 		// selection, exactly as before the body-move gesture existed.
 		fireEvent.click(text);
@@ -486,7 +444,8 @@ describe("PromptFlowXml block-run drag (selected run moves as one object)", () =
 	it("a plain drag OUTSIDE the selection stays a no-op and keeps the zone", () => {
 		const { commits } = renderFlow(flatPrompt);
 		layoutRows();
-		dragMarquee({ x: 0, y: 45 }, { x: 10, y: 85 });
+		cmdClickAt(45);
+		expect(selectedIds()).toEqual(["para-y"]);
 
 		fireEvent.pointerDown(nodeRow("para-w"), {
 			button: 0,
@@ -494,24 +453,23 @@ describe("PromptFlowXml block-run drag (selected run moves as one object)", () =
 			clientY: 125,
 		});
 		fireEvent.pointerMove(window, { clientX: 5, clientY: 200 });
-		// No marquee, no lift: nothing dims and no ghost badge appears.
-		expect(document.querySelector("[data-prompt-marquee]")).toBeNull();
+		// No lift: nothing dims and no ghost badge appears.
 		expect(nodeRow("para-y").style.opacity).toBe("");
 		expect(
 			Array.from(document.querySelectorAll("span")).find((el) =>
 				el.textContent?.startsWith("+"),
 			),
 		).toBeUndefined();
-		fireEvent.pointerUp(window);
+		fireEvent.pointerUp(window, { clientX: 5, clientY: 200 });
 		expect(commits).toHaveLength(0);
-		expect(selectedIds()).toEqual(["para-y", "para-z"]);
+		expect(selectedIds()).toEqual(["para-y"]);
 	});
 
 	it("grabbing a handle OUTSIDE the run retires the selection and drags just that block", () => {
 		const { commits } = renderFlow(flatPrompt);
 		layoutRows();
-		dragMarquee({ x: 0, y: 45 }, { x: 10, y: 85 });
-		expect(selectedIds()).toEqual(["para-y", "para-z"]);
+		cmdClickAt(45);
+		expect(selectedIds()).toEqual(["para-y"]);
 
 		fireEvent.mouseEnter(nodeRow("para-w"));
 		const grip = document.querySelector<HTMLElement>(".prompt-editor-grip")!;
@@ -531,29 +489,26 @@ describe("PromptFlowXml block-run drag (selected run moves as one object)", () =
 });
 
 describe("PromptFlowXml structural selection paints as ONE object", () => {
-	it("a single ring overlay spans the run; per-row washes, bars, and gutter tints are gone", () => {
+	it("a single ring overlay spans the selected unit; per-row washes and bars are gone", () => {
 		renderFlow(flatPrompt);
 		layoutRows();
-		dragMarquee({ x: 0, y: 45 }, { x: 10, y: 85 });
-		expect(selectedIds()).toEqual(["para-y", "para-z"]);
+		cmdClickAt(45);
+		expect(selectedIds()).toEqual(["para-y"]);
 
-		// Exactly ONE overlay, stamped with the run's trimmed row extent
-		// (rows 2..4: para-y, gap, para-z).
+		// Exactly ONE overlay, stamped with the unit's row extent (row 2).
 		const rings = document.querySelectorAll<HTMLElement>(
 			"[data-prompt-selection-ring]",
 		);
 		expect(rings.length).toBe(1);
-		expect(rings[0]!.getAttribute("data-prompt-selection-ring")).toBe("2-4");
+		expect(rings[0]!.getAttribute("data-prompt-selection-ring")).toBe("2-2");
 
-		// Member rows keep the machine stamp but paint NO per-row wash and no
-		// accent bar — the ring is the paint — and they invite dragging.
-		for (const id of ["para-y", "para-z"]) {
-			const row = nodeRow(id);
-			expect(row.hasAttribute("data-prompt-row-selected")).toBe(true);
-			expect(row.querySelector(".absolute.inset-0")).toBeNull();
-			expect(row.querySelector('[class*="w-[2px]"]')).toBeNull();
-			expect(row.className).toContain("cursor-grab");
-		}
+		// The member row keeps the machine stamp but paints NO per-row wash
+		// and no accent bar — the ring is the paint — and invites dragging.
+		const row = nodeRow("para-y");
+		expect(row.hasAttribute("data-prompt-row-selected")).toBe(true);
+		expect(row.querySelector(".absolute.inset-0")).toBeNull();
+		expect(row.querySelector('[class*="w-[2px]"]')).toBeNull();
+		expect(row.className).toContain("cursor-grab");
 		// Rows outside the zone carry no grab affordance.
 		expect(nodeRow("para-w").className).not.toContain("cursor-grab");
 
@@ -569,7 +524,8 @@ describe("PromptFlowXml structural selection paints as ONE object", () => {
 
 	it("the ring retires with the selection", () => {
 		renderFlow(flatPrompt);
-		dragMarquee({ x: 0, y: 0 }, { x: 24, y: 24 });
+		layoutRows();
+		cmdClickAt(45);
 		expect(
 			document.querySelector("[data-prompt-selection-ring]"),
 		).not.toBeNull();

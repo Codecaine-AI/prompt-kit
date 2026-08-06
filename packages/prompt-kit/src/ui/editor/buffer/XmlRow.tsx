@@ -53,7 +53,7 @@ export interface XmlRowProps {
 	 */
 	selectionFill: boolean;
 	/**
-	 * The row sits inside the active STRUCTURAL selection (marquee zone /
+	 * The row sits inside the active STRUCTURAL selection (Cmd+click unit /
 	 * Cmd+click unit / shift-click item run). The zone paints as ONE object —
 	 * a single ring overlay drawn by the surface — so this row suppresses its
 	 * own per-row washes (selection wash, accent bar, hover wash, gutter tint)

@@ -74,6 +74,14 @@ export function RowText({
 			style={{ lineHeight: EDITOR_METRICS.lineHeight }}
 			onClick={(event) => {
 				event.stopPropagation();
+				// A drag-release that produced a NATIVE text selection is not a
+				// caret click: entering edit mode would remount the row and
+				// destroy the highlight the drag just made. (A plain click is
+				// unaffected — mousedown collapses any old selection before the
+				// click event fires, so this guard only sees real drags.)
+				// Native selection is read-only for now.
+				const nativeSelection = window.getSelection?.();
+				if (nativeSelection && !nativeSelection.isCollapsed) return;
 				if (!editable) {
 					onSelect?.();
 					return;
