@@ -67,6 +67,10 @@ export function RowText({
 
 	return (
 		<div
+			// The renderable text region a within-unit drag maps back to the
+			// node's editable value: the surface's drag-release walks text nodes
+			// inside this container only (see textOffsetOfSelectionPoint).
+			data-prompt-row-content=""
 			className={cn(
 				"whitespace-pre-wrap break-words",
 				editable ? "cursor-text" : "cursor-pointer",
@@ -75,11 +79,16 @@ export function RowText({
 			onClick={(event) => {
 				event.stopPropagation();
 				// A drag-release that produced a NATIVE text selection is not a
-				// caret click: entering edit mode would remount the row and
-				// destroy the highlight the drag just made. (A plain click is
-				// unaffected — mousedown collapses any old selection before the
-				// click event fires, so this guard only sees real drags.)
-				// Native selection is read-only for now.
+				// caret click. The DELIBERATE path for that gesture lives in the
+				// surface's pointerup (a highlight confined to one editable row
+				// opens the inline editor with the range pre-selected, and its
+				// release click is swallowed before reaching here) — so any
+				// non-collapsed selection this handler still sees is one the
+				// surface could NOT map (multi-row code highlights, element
+				// boundaries). Entering edit mode would remount the row and
+				// destroy that highlight; leave it alive instead. (A plain click
+				// is unaffected — mousedown collapses any old selection before
+				// the click event fires, so this guard only sees real drags.)
 				const nativeSelection = window.getSelection?.();
 				if (nativeSelection && !nativeSelection.isCollapsed) return;
 				if (!editable) {

@@ -1,5 +1,5 @@
 ---
-covers: The pointer interaction model of the editing surface — the one-handle drag model, structural selection, the Command gesture language, native text selection, annotate mode, and read-mode inline rendering.
+covers: The pointer interaction model of the editing surface — the one-handle drag model, plain-drag object selection, native text selection, annotate mode, and read-mode inline rendering.
 concepts: [drag, structural-selection, gestures, native-selection, annotate, inline-rendering]
 design_refs: [10-system-design/20-authoring-model.md, 10-system-design/30-rendering-model.md]
 ---
@@ -8,8 +8,10 @@ design_refs: [10-system-design/20-authoring-model.md, 10-system-design/30-render
 
 The surface renders a structured document, and every pointer gesture acts on
 structure. The address system is node ids, rings, and runs — not lines or
-characters — and one modifier splits the vocabulary: plain gestures edit,
-Command gestures act on structure.
+characters — and ONE BOUNDARY splits the vocabulary, Notion-style (2026-08-07,
+no modifier): plain gestures within a unit edit text, and the same gestures
+crossing unit boundaries act on structure. Command is annotate mode's
+modifier only — in edit mode Cmd+click is a plain click.
 
 ---
 
@@ -20,11 +22,20 @@ Command gestures act on structure.
 | Hover | The one drag handle appears at the unit under the pointer |
 | Click | Caret / inline edit ONLY — never a block selection (caret-first) |
 | Shift+click on a bullet | Extend a contiguous item-range selection |
-| Cmd+click | Select the unit under the cursor as a one-object selection |
-| Plain drag over text | NATIVE browser text selection — read-only for now (not yet actionable) |
+| Plain drag WITHIN one unit's text | NATIVE browser text selection; a release confined to one editable row opens the inline editor with the dragged range pre-selected (type to replace) |
+| Plain drag CROSSING unit boundaries | OBJECT selection: the anchor→pointer row band live-resolves to a structural run (ring) on every move, kept on release |
 | Plain drag inside the selection ring | Move the selected run |
 | Backspace / Delete (selection active, no editor open) | Remove the run as one transaction |
-| Escape / plain click elsewhere | Clear the selection |
+| Escape / plain click elsewhere | Clear the selection (Escape mid-drag abandons the band) |
+
+A unit is the list item under the pointer (`itemId`) or, failing that, the
+owning block node (`nodeId`). The drag stays completely inert — native
+selection and click-to-edit untouched — until the pointer leaves the pressed
+unit; only then does the surface clear the native selection and suppress
+`user-select`, and only for the remainder of that gesture. A drag that
+crosses out and ends back on its anchor unit rings just the anchor unit (the
+drag route to a single-block selection; the grip remains the explicit
+single-block handle).
 
 ### Caret-First Clicks (2026-08-06)
 
@@ -86,17 +97,18 @@ runs through `block-run-steps.ts` — always one undoable transaction.
 
 `structural-selection.ts` (`resolveMarqueeSelection`) is the canonical
 resolution — the docs-system editor mirrors it. (The Cmd+drag marquee
-RECTANGLE that named the resolver is retired — 2026-08-06; no drag draws a
-selection rectangle anymore. A Cmd press that travels past the 4px click
-threshold selects nothing, and a plain drag over text is the browser's own
-selection. The resolver stays as the pure row-band → run rule.)
+RECTANGLE that named the resolver is retired — 2026-08-06 — and so is the
+Cmd+click unit selection — 2026-08-07. No drag draws a selection rectangle;
+the selection gesture is the modifier-free plain drag across unit
+boundaries, and the resolver is the pure row-band → run rule it live-resolves
+through on every pointer move.)
 
-- A covered row band (Cmd+click's single row, a shift-click range's extent)
-  resolves to the SHALLOWEST contiguous sibling run that exactly covers the
-  rows: bullets within one list select an item run; crossing a list
-  boundary promotes to the block run at the common parent (a partial list
-  promotes to the whole list); a band across sections selects the top-level
-  run. The result is one object in the AST.
+- A covered row band (a plain drag's anchor→pointer rows, a shift-click
+  range's extent) resolves to the SHALLOWEST contiguous sibling run that
+  exactly covers the rows: bullets within one list select an item run;
+  crossing a list boundary promotes to the block run at the common parent (a
+  partial list promotes to the whole list); a band across sections selects
+  the top-level run. The result is one object in the AST.
 - The selection paints as ONE ring overlay (`data-prompt-selection-ring`),
   not per-row washes; hover washes, accent bars, and gutter tints are
   suppressed inside it. One ring = one object.

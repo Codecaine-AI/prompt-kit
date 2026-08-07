@@ -56,6 +56,36 @@ export function caretOffsetFromPoint(
 }
 
 /**
+ * Plain-text offset of a selection boundary (`node`, `offset`) within
+ * `container` — the mapping a drag-release uses to turn a native highlight
+ * into textarea offsets. TEXT-node boundaries only: element boundaries
+ * (triple-click artifacts, cross-element endpoints) return undefined and the
+ * caller leaves the native selection alone.
+ */
+export function textOffsetOfSelectionPoint(
+	container: HTMLElement,
+	node: Node,
+	offset: number,
+): number | undefined {
+	if (node.nodeType !== Node.TEXT_NODE) return undefined;
+	if (!container.contains(node)) return undefined;
+	const walker = container.ownerDocument.createTreeWalker(
+		container,
+		NodeFilter.SHOW_TEXT,
+	);
+	let total = 0;
+	for (
+		let current = walker.nextNode();
+		current;
+		current = walker.nextNode()
+	) {
+		if (current === node) return total + offset;
+		total += current.textContent?.length ?? 0;
+	}
+	return undefined;
+}
+
+/**
  * Leading characters of `line.text` that the renderer emits as indentation.
  * This is the default display prefix for a row that renders its whole line.
  */

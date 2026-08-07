@@ -31,6 +31,11 @@ import type {
 import { buildXmlLineModel, type XmlLine } from "../../../document/render/line-model";
 import { resolveAutoformat } from "./autoformat";
 import { caretAnchor } from "./caret-rect";
+import {
+	caretForLineClick,
+	lineIndentLength,
+	textOffsetOfSelectionPoint,
+} from "./click-caret";
 import { DragGhost, DropIndicator, useXmlDrag } from "./drag-controller";
 import type { ItemDropCommand } from "./drop-targeting";
 import type { PromptStep } from "../transactions";
@@ -134,11 +139,11 @@ export type { PromptFlowInlineInsert, PromptFlowStagedRegion } from "./StagedRow
 // module so this flow and the Raw view render on one grid with one palette.
 const ROW_TEXT = "font-mono";
 
-// Pointer travel (px) past which a press stops being a click: a Cmd press
-// that travels selects nothing (drags fall through to native text
-// selection), and a press on the active structural selection becomes a
-// body-move drag. Below it the gesture stays a plain click — caret
-// placement / click-to-edit as today.
+// Pointer travel (px) past which a press on the ACTIVE structural
+// selection stops being a click and becomes a body-move drag. Below it the
+// gesture stays a plain click — caret placement / click-to-edit as today.
+// (The plain-drag OBJECT selection needs no travel threshold: crossing a
+// unit boundary IS its threshold.)
 const CLICK_DRAG_THRESHOLD_PX = 4;
 
 // Presses on interactive chrome never start a surface gesture (Cmd
@@ -295,9 +300,10 @@ export function PromptFlowXml({
 	const editSeqRef = useRef(0);
 	/**
 	 * Structural selection: ONE contiguous sibling run — items of one list
-	 * (shift-click on item rows) or blocks under one parent (Cmd+click on a
-	 * unit; null parent = the top-level run). See structural-selection.ts for
-	 * the canonical resolution model.
+	 * (shift-click on item rows, or a plain drag within one list) or blocks
+	 * under one parent (a plain drag crossing unit boundaries; null parent =
+	 * the top-level run). See structural-selection.ts for the canonical
+	 * resolution model.
 	 * Grabbing the drag handle on any unit of the run then carries the whole
 	 * run as one object, and Backspace/Delete removes it as one transaction.
 	 */
@@ -951,20 +957,35 @@ export function PromptFlowXml({
 	});
 
 	/**
-	 * Structural UNIT selection — EDIT mode only. Cmd+CLICK on the surface
-	 * (not on a handle / menu / editor textarea / affordance) selects the
-	 * unit under the cursor as ONE structural selection. The old Cmd+drag
-	 * marquee rectangle is retired: a Cmd press that travels past the click
-	 * threshold selects NOTHING, and a PLAIN drag falls through to native
-	 * browser text selection (read-only for now). resolveMarqueeSelection
-	 * stays on as the pure row-band → run resolver this click (and the
-	 * shift-click ranges) reuse.
+	 * Plain-drag OBJECT selection — EDIT mode only, Notion model (2026-08-07,
+	 * no modifier; the Cmd+click special case is retired — Cmd+click is a
+	 * plain click). A press on a row records an anchor {row, unitKey}
+	 * (unitKey = the list item via itemId, else the block via nodeId) and
+	 * stays COMPLETELY inert while the pointer remains within that unit:
+	 * the browser's own text selection is the live gesture. The moment the
+	 * pointer crosses into a DIFFERENT unit the drag becomes a structural
+	 * selection: the anchor→pointer row band live-resolves through
+	 * resolveMarqueeSelection on every move, native selection is cleared and
+	 * user-select suppressed for the gesture's remainder (the retired
+	 * marquee's mechanics, resurrected — but only after the crossing, never
+	 * for within-unit drags), and the run stays selected on release. A
+	 * gesture that crosses out and ends back on the anchor unit rings just
+	 * the anchor unit.
 	 */
-	const unitPressRef = useRef<{ startX: number; startY: number } | null>(null);
-	const [unitPressPending, setUnitPressPending] = useState(false);
-	// A unit-select release must not read as a click (the surface click would
-	// clear the very selection the press just made): swallowed exactly once
-	// by the section's onClickCapture below.
+	const dragSelectRef = useRef<{
+		anchorRow: number;
+		anchorUnitKey: string | undefined;
+		/** True once the pointer crossed a unit boundary (structural mode). */
+		active: boolean;
+	} | null>(null);
+	const [dragSelectPending, setDragSelectPending] = useState(false);
+	// Mirrors gesture.active in React state: while the STRUCTURAL phase is
+	// live the surface is a selection canvas, not text — the rows container
+	// suppresses user-select (style below) exactly then.
+	const [dragSelectActive, setDragSelectActive] = useState(false);
+	// A structural-drag release must not read as a click (the surface click
+	// would clear the very selection the drag just made): swallowed exactly
+	// once by the section's onClickCapture below.
 	const suppressClickRef = useRef(false);
 
 	/**
@@ -981,6 +1002,71 @@ export function PromptFlowXml({
 	} | null>(null);
 	const [movePending, setMovePending] = useState(false);
 
+	/**
+	 * WITHIN-UNIT drag release: a native highlight confined to ONE editable
+	 * row becomes an inline-edit session with that exact range pre-selected —
+	 * highlight a word, type to replace it. Returns false (leaving the native
+	 * highlight alive, guarded by RowText's click bail) when the selection
+	 * cannot be mapped: endpoints in different rows (wrapped raw/code lines
+	 * select natively across their unit's rows), element-boundary endpoints,
+	 * or a row that is not editable.
+	 */
+	const openEditorForNativeSelection = useCallback((): boolean => {
+		const selection = window.getSelection?.();
+		if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+			return false;
+		}
+		const range = selection.getRangeAt(0);
+		const rowsEl = rowsRef.current;
+		if (!rowsEl) return false;
+		const contentOf = (node: Node): HTMLElement | null => {
+			const el =
+				node instanceof HTMLElement ? node : (node.parentElement ?? null);
+			return el?.closest<HTMLElement>("[data-prompt-row-content]") ?? null;
+		};
+		const content = contentOf(range.startContainer);
+		if (!content || content !== contentOf(range.endContainer)) return false;
+		if (!rowsEl.contains(content)) return false;
+		const rowEl = content.closest<HTMLElement>("[data-row-index]");
+		const rowIndex = Number(rowEl?.dataset.rowIndex);
+		if (Number.isNaN(rowIndex)) return false;
+		const line = lines[rowIndex];
+		if (!line?.editable) return false;
+		const startText = textOffsetOfSelectionPoint(
+			content,
+			range.startContainer,
+			range.startOffset,
+		);
+		const endText = textOffsetOfSelectionPoint(
+			content,
+			range.endContainer,
+			range.endOffset,
+		);
+		if (startText === undefined || endText === undefined) return false;
+		// Item rows render content-only text (the marker is separate trim);
+		// every other row renders its full line, whose leading indent is not
+		// part of the editable value — the exact prefix rule RowText's
+		// click-to-caret path applies.
+		const prefix = line.role === "item" ? 0 : lineIndentLength(line);
+		const from = caretForLineClick(
+			line,
+			Math.min(startText, endText),
+			prefix,
+		);
+		const to = caretForLineClick(line, Math.max(startText, endText), prefix);
+		if (from === to) return false;
+		// The textarea owns the range now; the dead DOM highlight retires,
+		// and the release click must not re-enter RowText's click path.
+		selection.removeAllRanges();
+		suppressClickRef.current = true;
+		focusEdit({
+			nodeId: line.nodeId,
+			itemIndex: line.itemIndex,
+			caret: [from, to] as const,
+		});
+		return true;
+	}, [lines, focusEdit]);
+
 	const handleSurfacePointerDown = useCallback(
 		(event: React.PointerEvent<HTMLDivElement>) => {
 			// A fresh press disarms a stale release-click swallow.
@@ -991,26 +1077,38 @@ export function PromptFlowXml({
 			if (event.shiftKey || event.altKey) return;
 			const target = event.target instanceof HTMLElement ? event.target : null;
 			if (!target) return;
-			// Annotate mode owns its own drag gestures — the unit select and
-			// the selection body-move are edit-mode only.
+			// Annotate mode owns its own drag gestures — the object selection
+			// and the selection body-move are edit-mode only.
 			if (target.closest('[data-annotation-targeting="true"]')) return;
 			// Presses on interactive chrome stay theirs (see the selector).
 			if (target.closest(SURFACE_GESTURE_EXCLUDE)) return;
-			// Command is THE structural modifier: Cmd+click selects the unit
-			// under the cursor. A PLAIN press stays with its own gestures
-			// (caret placement, click-to-edit, native text selection) —
-			// EXCEPT on the active structural selection's own rows, where it
-			// arms the body-move: the highlighted zone is one object, so
-			// grabbing it anywhere moves it. Nothing is prevented here — a
-			// sub-threshold release falls through to today's click behavior
-			// untouched, and a plain drag over text keeps the browser's own
-			// selection.
-			if (!(event.metaKey || event.ctrlKey)) {
-				if (!groupRowRange) return;
-				const rowEl = target.closest<HTMLElement>("[data-row-index]");
-				const row = Number(rowEl?.dataset.rowIndex);
-				if (Number.isNaN(row)) return;
-				if (row < groupRowRange.start || row > groupRowRange.end) return;
+			// NO modifier split (2026-08-07): Cmd+click is a plain click, and
+			// a plain press arms one of TWO gestures. On the active structural
+			// selection's own rows it arms the body-move — the highlighted
+			// zone is one object, so grabbing it anywhere moves it. Anywhere
+			// else it arms the plain-drag object selection, which stays
+			// completely inert (caret placement, click-to-edit, native text
+			// selection) until the pointer crosses a unit boundary. Nothing
+			// is prevented here — a sub-threshold release falls through to
+			// today's click behavior untouched, and a within-unit drag keeps
+			// the browser's own selection.
+			const rowsEl = rowsRef.current;
+			if (!rowsEl) return;
+			const rowEl = target.closest<HTMLElement>("[data-row-index]");
+			let row = Number(rowEl?.dataset.rowIndex);
+			if (Number.isNaN(row)) {
+				// Presses on the container's own padding still anchor: resolve
+				// the row by vertical position (containment only — a press
+				// above / below every row anchors nothing).
+				const rect = rowsEl.getBoundingClientRect();
+				row = hitTestRow(rowsEl, event.clientY - rect.top, false);
+			}
+			if (row < 0) return;
+			if (
+				groupRowRange &&
+				row >= groupRowRange.start &&
+				row <= groupRowRange.end
+			) {
 				moveGestureRef.current = {
 					startX: event.clientX,
 					startY: event.clientY,
@@ -1019,73 +1117,119 @@ export function PromptFlowXml({
 				setMovePending(true);
 				return;
 			}
-			unitPressRef.current = {
-				startX: event.clientX,
-				startY: event.clientY,
+			const line = lines[row];
+			dragSelectRef.current = {
+				anchorRow: row,
+				// Gap rows anchor no unit: any real unit the pointer reaches
+				// counts as a crossing (drag-from-whitespace selects, the old
+				// marquee's spirit), while a drag that stays in gaps stays inert.
+				anchorUnitKey:
+					line && line.role !== "gap"
+						? (line.itemId ?? line.nodeId)
+						: undefined,
+				active: false,
 			};
-			setUnitPressPending(true);
+			setDragSelectPending(true);
 		},
-		[groupRowRange],
+		[groupRowRange, lines],
 	);
 
-	// Window-level release tracking while a Cmd press is live — registered
-	// only then, so it never runs at rest (same pattern as the drag
-	// controller).
+	// Window-level tracking while a plain press is live — registered only
+	// then, so it never runs at rest (same pattern as the drag controller).
 	useEffect(() => {
-		if (!unitPressPending) return;
+		if (!dragSelectPending) return;
 
-		const onUp = (event: PointerEvent) => {
-			const press = unitPressRef.current;
-			unitPressRef.current = null;
-			setUnitPressPending(false);
-			if (!press || !rowsRef.current) return;
-			// Past-threshold travel is a drag, not a click. The retired
-			// marquee rectangle does NOT come back: a Cmd+drag selects
-			// nothing (any native text selection it made stands).
-			const dx = event.clientX - press.startX;
-			const dy = event.clientY - press.startY;
-			if (Math.hypot(dx, dy) >= CLICK_DRAG_THRESHOLD_PX) return;
-			// Cmd+CLICK: select the unit under the press as a one-object
-			// structural selection (movable via its handle or body,
-			// deletable with Backspace) instead of placing a caret.
-			const rect = rowsRef.current.getBoundingClientRect();
-			const y = press.startY - rect.top;
-			let hitRow = -1;
-			rowsRef.current
-				.querySelectorAll<HTMLElement>("[data-row-index]")
-				.forEach((row) => {
-					const index = Number(row.dataset.rowIndex);
-					if (Number.isNaN(index)) return;
-					if (y >= row.offsetTop && y < row.offsetTop + row.offsetHeight) {
-						hitRow = index;
-					}
-				});
-			if (hitRow >= 0) {
-				const selection = resolveMarqueeSelection(prompt, lines, hitRow, hitRow);
-				if (selection) {
-					setStructuralSelection(selection);
-					setEditTarget(null);
-					setMenuNodeId(null);
-					setItemMenu(null);
-					onSelectNode(undefined);
-					suppressClickRef.current = true;
+		const onMove = (event: PointerEvent) => {
+			const gesture = dragSelectRef.current;
+			const rowsEl = rowsRef.current;
+			if (!gesture || !rowsEl) return;
+			const rect = rowsEl.getBoundingClientRect();
+			// Once structural, travel past the document's ends clamps to the
+			// first / last row so the band can reach the extremes; before
+			// that, only a real row under the pointer can trigger a crossing.
+			const row = hitTestRow(
+				rowsEl,
+				event.clientY - rect.top,
+				gesture.active,
+			);
+			if (row < 0) return;
+			if (!gesture.active) {
+				const line = lines[row];
+				const unitKey =
+					line && line.role !== "gap"
+						? (line.itemId ?? line.nodeId)
+						: undefined;
+				// Same unit (or no unit yet): the browser's own text selection
+				// is the live gesture — the surface stays out of its way.
+				if (unitKey === undefined || unitKey === gesture.anchorUnitKey) {
+					return;
 				}
+				// CROSSING a unit boundary turns the drag into an OBJECT
+				// selection: it retires the caret and menus, and takes
+				// selection ownership from the browser for the rest of the
+				// gesture (cleared below + user-select off via the state
+				// flag) — never for a drag that stayed within its unit.
+				gesture.active = true;
+				setDragSelectActive(true);
+				setEditTarget(null);
+				setMenuNodeId(null);
+				setItemMenu(null);
+				setSlash(null);
+				onSelectNode(undefined);
 			}
+			// The structural band replaces native selection while it is live.
+			window.getSelection?.()?.removeAllRanges();
+			// Live-resolve the anchor→pointer row band to its structural run
+			// on every move (see resolveMarqueeSelection). A band back on the
+			// anchor row resolves to just the anchor unit.
+			setStructuralSelection(
+				resolveMarqueeSelection(prompt, lines, gesture.anchorRow, row),
+			);
+		};
+
+		const onUp = () => {
+			const gesture = dragSelectRef.current;
+			dragSelectRef.current = null;
+			setDragSelectPending(false);
+			setDragSelectActive(false);
+			if (!gesture) return;
+			if (gesture.active) {
+				// The run stays selected; its release click is swallowed once
+				// so the surface click cannot clear what the drag just made.
+				suppressClickRef.current = true;
+				return;
+			}
+			// A within-unit drag release with a live native highlight maps it
+			// into the inline editor (highlight-then-type-replaces). A plain
+			// click (collapsed selection) falls through to today's behavior.
+			openEditorForNativeSelection();
 		};
 
 		const onKey = (event: KeyboardEvent) => {
 			if (event.key !== "Escape") return;
-			unitPressRef.current = null;
-			setUnitPressPending(false);
+			const gesture = dragSelectRef.current;
+			dragSelectRef.current = null;
+			setDragSelectPending(false);
+			setDragSelectActive(false);
+			// Escape mid-gesture abandons the band it painted so far.
+			if (gesture?.active) setStructuralSelection(null);
 		};
 
+		window.addEventListener("pointermove", onMove);
 		window.addEventListener("pointerup", onUp);
 		window.addEventListener("keydown", onKey);
 		return () => {
+			window.removeEventListener("pointermove", onMove);
 			window.removeEventListener("pointerup", onUp);
 			window.removeEventListener("keydown", onKey);
 		};
-	}, [unitPressPending, prompt, lines, onSelectNode]);
+	}, [
+		dragSelectPending,
+		prompt,
+		lines,
+		onSelectNode,
+		openEditorForNativeSelection,
+	]);
 
 	// Window-level tracking while a body-move press is armed. Crossing the
 	// threshold lifts the selected run through the SAME entry points a handle
@@ -1542,6 +1686,11 @@ export function PromptFlowXml({
 							// row-metric offsets measure relative to this container's
 							// border box, so absolute overlays stay aligned.
 							paddingBlock: EDITOR_METRICS.lineHeight,
+							// ONLY while the plain drag's STRUCTURAL phase is live
+							// (boundary crossed) is the surface a selection canvas,
+							// not text — within-unit drags and the resting surface
+							// keep native selection fully available.
+							...(dragSelectActive ? { userSelect: "none" as const } : null),
 						}}
 						onPointerDown={handleSurfacePointerDown}
 						onMouseLeave={() => {
@@ -2034,6 +2183,40 @@ export function PromptFlowXml({
 			<DropIndicator drag={drag} gutterWidth={gutterWidth} />
 		</section>
 	);
+}
+
+/**
+ * The row whose vertical band contains `y` (rows-container coordinates,
+ * offsetTop/offsetHeight — rows are direct children of the positioned rows
+ * container). With `clamp`, a point above every row resolves to the first
+ * row and a point below every row to the last, so a live band can reach the
+ * document's extremes; without it, misses return -1.
+ */
+function hitTestRow(rowsEl: HTMLElement, y: number, clamp: boolean): number {
+	let hit = -1;
+	let firstRow = -1;
+	let firstTop = Number.POSITIVE_INFINITY;
+	let lastRow = -1;
+	let lastBottom = Number.NEGATIVE_INFINITY;
+	rowsEl.querySelectorAll<HTMLElement>("[data-row-index]").forEach((row) => {
+		const index = Number(row.dataset.rowIndex);
+		if (Number.isNaN(index)) return;
+		const top = row.offsetTop;
+		const bottom = top + row.offsetHeight;
+		if (top < firstTop) {
+			firstTop = top;
+			firstRow = index;
+		}
+		if (bottom > lastBottom) {
+			lastBottom = bottom;
+			lastRow = index;
+		}
+		if (y >= top && y < bottom) hit = index;
+	});
+	if (hit >= 0 || !clamp) return hit;
+	if (y < firstTop) return firstRow;
+	if (y >= lastBottom) return lastRow;
+	return hit;
 }
 
 /**

@@ -29,7 +29,7 @@ lives in `packages/prompt-kit/src/ui/`; see
 ├── 50-application-shell.md     Page header, glass panel, queue, autosave, history
 ├── 60-block-vocabulary.md      Creatable blocks versus the full node set
 ├── 70-package-split.md         What lives where today and where it is headed
-└── 80-interaction-model.md     Drag handles, structural selection, the Command gesture language
+└── 80-interaction-model.md     Drag handles, plain-drag object selection, native text selection
 ```
 
 ## Contents
