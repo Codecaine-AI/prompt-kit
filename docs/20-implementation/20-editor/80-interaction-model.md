@@ -6,6 +6,8 @@ design_refs: [10-system-design/20-authoring-model.md, 10-system-design/30-render
 
 # Interaction Model
 
+> Cross-surface standard: [Core Annotate-Agent UX](../../../../docs/annotate-agent-ux.md).
+
 The surface renders a structured document, and every pointer gesture acts on
 structure. The address system is node ids, rings, and runs — not lines or
 characters — and ONE BOUNDARY splits the vocabulary, Notion-style (2026-08-07,

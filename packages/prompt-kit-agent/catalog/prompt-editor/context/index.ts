@@ -15,7 +15,8 @@
  * which seeds it from the SpawnContext and renders it per request. This module
  * never reads `sessionData`.
  */
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type {
 	AgentContextResolver,
 	LoadedMap,
@@ -31,8 +32,11 @@ export interface ContextBlock {
 	readonly files: ReadonlyArray<string>;
 }
 
-const SHARED_BLOCKS_DIR = join(import.meta.dir, "..", "..", "_shared", "blocks");
-const LOCAL_BLOCKS_DIR = join(import.meta.dir, "blocks");
+// import.meta.url, not the bun-only import.meta.dir: pi loads bundles under
+// Node via jiti, where `dir` is undefined.
+const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
+const SHARED_BLOCKS_DIR = join(MODULE_DIR, "..", "..", "_shared", "blocks");
+const LOCAL_BLOCKS_DIR = join(MODULE_DIR, "blocks");
 
 const sharedBlock = (filename: string): string =>
 	join(SHARED_BLOCKS_DIR, filename);
