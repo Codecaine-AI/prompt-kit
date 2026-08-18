@@ -17,9 +17,9 @@ import type { LabFixture } from "../page/StateSurface";
 
 /**
  * The dock's view switcher vocabulary. `state` appears only when the host
- * supplies a `stateZone`.
+ * supplies a `stateZone`; `tools` only with a `toolsZone`.
  */
-export type LabView = "system" | "context" | "state";
+export type LabView = "system" | "context" | "state" | "tools";
 
 /** One switcher row: the view plus its estimated token count. */
 export interface PanelViewEntry {

@@ -139,6 +139,7 @@ import {
   type LabView,
 } from "./glass/zones";
 import { StateSurface, type LabStateZone } from "./page/StateSurface";
+import { ToolsSurface, type LabToolsZone } from "./page/ToolsSurface";
 import {
   createAnnotationStore,
   type PromptAnnotationStore,
@@ -172,6 +173,7 @@ export {
 export type { LabContextPreview } from "./page/ContextSurface";
 export type { LabView } from "./glass/zones";
 export type { LabFixture, LabStateZone } from "./page/StateSurface";
+export type { LabToolsZone } from "./page/ToolsSurface";
 export {
   createPromptLabHistory,
   type PromptLabHistory,
@@ -278,6 +280,11 @@ export interface PromptInlineLabProps {
    */
   stateZone?: LabStateZone;
   /**
+   * The TOOLS view: the agent's runtime tool surface as a rendered document.
+   * When present the dock's view switcher gains a `tools` entry.
+   */
+  toolsZone?: LabToolsZone;
+  /**
    * Store backing annotate mode. When omitted the lab owns an in-memory
    * store, so annotate mode works out of the box (annotations then live only
    * as long as the lab instance).
@@ -348,6 +355,10 @@ const OUTLINE_ANCHORS: Record<
     scroller: '[data-context-scroll="state"]',
     row: (row) => `[data-prompt-row="${row}"]`,
   },
+  tools: {
+    scroller: '[data-context-scroll="tools"]',
+    row: (row) => `[data-prompt-row="${row}"]`,
+  },
 };
 
 export function PromptInlineLab({
@@ -363,6 +374,7 @@ export function PromptInlineLab({
   styleSettings,
   revisionsZone,
   stateZone,
+  toolsZone,
   annotationStore,
   onAnnotationAgentRun,
   onAnnotationUndoPatch,
@@ -575,6 +587,10 @@ export function PromptInlineLab({
     () => estimateTokenCount(stateZone?.renderedState ?? ""),
     [stateZone?.renderedState],
   );
+  const toolsTokenCount = useMemo(
+    () => estimateTokenCount(toolsZone?.renderedTools ?? ""),
+    [toolsZone?.renderedTools],
+  );
   const explicitSelectedEntry = selectedNodeId
     ? model_.tree.find((entry) => entry.id === selectedNodeId)
     : undefined;
@@ -610,7 +626,11 @@ export function PromptInlineLab({
   // A host may retract the state zone while the state view is showing; the
   // lab falls back to the system view rather than rendering a dead surface.
   const activeView: LabView =
-    view === "state" && !stateZone ? "system" : view;
+    view === "state" && !stateZone
+      ? "system"
+      : view === "tools" && !toolsZone
+        ? "system"
+        : view;
   const inSystem = activeView === "system";
   const annotateActive = mode === "annotate" && inSystem;
 
@@ -692,12 +712,18 @@ export function PromptInlineLab({
     () => contextOutlineSections(stateZone?.renderedState ?? ""),
     [stateZone?.renderedState],
   );
+  const toolsOutlineList = useMemo(
+    () => contextOutlineSections(toolsZone?.renderedTools ?? ""),
+    [toolsZone?.renderedTools],
+  );
   const outlineSections =
     activeView === "system"
       ? systemOutlineSections
       : activeView === "context"
         ? contextOutlineList
-        : stateOutlineList;
+        : activeView === "tools"
+          ? toolsOutlineList
+          : stateOutlineList;
 
   // Human-readable target labels for queue rows: the node's own outline
   // label, else its nearest outlined ANCESTOR's (a field inside
@@ -1609,6 +1635,9 @@ export function PromptInlineLab({
     ...(stateZone
       ? [{ id: "state" as const, tokens: stateTokenCount }]
       : []),
+    ...(toolsZone
+      ? [{ id: "tools" as const, tokens: toolsTokenCount }]
+      : []),
   ];
 
   return (
@@ -1727,6 +1756,11 @@ export function PromptInlineLab({
               ) : activeView === "state" && stateZone ? (
                 <StateSurface
                   stateZone={stateZone}
+                  centerContent={dockInMargin}
+                />
+              ) : activeView === "tools" && toolsZone ? (
+                <ToolsSurface
+                  toolsZone={toolsZone}
                   centerContent={dockInMargin}
                 />
               ) : (

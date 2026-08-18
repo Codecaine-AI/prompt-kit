@@ -8,8 +8,9 @@ afterEach(() => {
 	cleanup();
 });
 
-// Two top-level sections plus one depth-1 container, and one `name` attribute
-// so the label rule (name wins over tag) is exercised.
+// Two top-level sections plus one depth-1 container; a `name` attribute and a
+// `path` attribute exercise the label rule (name, then title, then path, then
+// the bare tag).
 const SECTIONED = [
 	"<repo_files>",
 	'    <file path="a.ts">',
@@ -31,8 +32,9 @@ describe("ContextSurface outline", () => {
 		const nav = outline();
 		expect(nav).not.toBeNull();
 		// A map, not a chart: an entry's visible content is exactly its name.
-		expect(nav?.textContent).toBe("repo_filesfilesummary");
+		expect(nav?.textContent).toBe("repo_filesa.tssummary");
 		expect(nav?.textContent).not.toMatch(/\d/);
+		
 	});
 
 	test("every entry has a scroll anchor row in the buffer", () => {
@@ -105,10 +107,10 @@ describe("ContextSurface outline", () => {
 });
 
 describe("contextOutlineSections", () => {
-	test("entries are top-level opens plus depth-1 containers, name attribute first", () => {
+	test("entries are top-level opens plus depth-1 containers, identity attributes first", () => {
 		expect(contextOutlineSections(SECTIONED)).toEqual([
 			{ row: 0, nodeId: "context:0", label: "repo_files", depth: 0 },
-			{ row: 1, nodeId: "context:1", label: "file", depth: 1 },
+			{ row: 1, nodeId: "context:1", label: "a.ts", depth: 1 },
 			{ row: 5, nodeId: "context:5", label: "summary", depth: 0 },
 		]);
 	});

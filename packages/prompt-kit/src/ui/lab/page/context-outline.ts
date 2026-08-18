@@ -13,16 +13,27 @@ import { classifyRenderedLines } from "../../view/rendered-line-model";
 const TAG_NAME = /^\s*<([A-Za-z][\w-]*)/;
 /** A `name="…"` attribute on the same line, quoted either way. */
 const NAME_ATTR = /\sname\s*=\s*(?:"([^"]*)"|'([^']*)')/;
+/** A `title="…"` attribute on the same line, quoted either way. */
+const TITLE_ATTR = /\stitle\s*=\s*(?:"([^"]*)"|'([^']*)')/;
+/** A `path="…"` attribute on the same line, quoted either way. */
+const PATH_ATTR = /\spath\s*=\s*(?:"([^"]*)"|'([^']*)')/;
+
+function attrValue(line: string, pattern: RegExp): string {
+	const matched = line.match(pattern);
+	return (matched?.[1] ?? matched?.[2] ?? "").trim();
+}
 
 /**
  * Wayfinding label for one rendered open-tag line. Mirrors the editor's
- * `outlineSectionLabel`: a `name` attribute wins (five `<phase>` tags all
- * labeled "phase" is no map), otherwise the bare tag name.
+ * `outlineSectionLabel`: an identity attribute wins (five `<doc>` tags all
+ * labeled "doc" is no map) — `name`, then `title`, then `path` — otherwise
+ * the bare tag name.
  */
 export function contextSectionLabel(line: string): string {
-	const named = line.match(NAME_ATTR);
-	const name = (named?.[1] ?? named?.[2] ?? "").trim();
-	if (name.length > 0) return name;
+	for (const pattern of [NAME_ATTR, TITLE_ATTR, PATH_ATTR]) {
+		const value = attrValue(line, pattern);
+		if (value.length > 0) return value;
+	}
 	return line.match(TAG_NAME)?.[1] ?? "";
 }
 
