@@ -1,6 +1,10 @@
 import { join } from "node:path";
 
 import { createKernelCatalogApi } from "@agent-kernel/kernel/catalog-api";
+import {
+	PROMPT_EDITOR_AGENT_NAME,
+	promptEditToolPreviews,
+} from "@agent-kernel/kernel/prompt-edit-session";
 import { createKernelTraceReadApi } from "@agent-kernel/kernel/read-api";
 import { sql } from "drizzle-orm";
 import { Elysia } from "elysia";
@@ -20,7 +24,11 @@ export async function createPromptKitKernelHarness(
 		sessionRoot: join(boot.kernelRoot, "prompt-edit-sessions"),
 	});
 	const catalogApi = createKernelCatalogApi(
-		boot.kernel.catalogApiService({ allowWrites: true }),
+		boot.kernel.catalogApiService({
+			allowWrites: true,
+			toolsPreview: (agentName) =>
+				agentName === PROMPT_EDITOR_AGENT_NAME ? promptEditToolPreviews() : null,
+		}),
 		{
 			prefix: "/kernel",
 			allowWrites: true,
