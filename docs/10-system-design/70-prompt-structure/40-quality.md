@@ -1,7 +1,7 @@
 ---
 covers: How to evaluate prompt quality through six dimensions, rendered-shape judgment, named anti-patterns, and a repeatable QA pass.
 concepts: [prompt-quality, evaluation, anti-patterns, rendered-shape, QA]
-depends-on: [30-prompt-structure/10-agent-prompt.md, 30-prompt-structure/30-single-output.md]
+depends-on: [10-system-design/70-prompt-structure/10-agent-prompt.md, 10-system-design/70-prompt-structure/30-single-output.md]
 ---
 
 # Prompt Quality
@@ -73,12 +73,13 @@ proof of value.
 
 ### PromptKit Integrity
 
-The authored artifact should preserve PromptKit's source-of-truth and boundary
-model:
+The authored artifact should preserve prompt-kit's source-of-truth and boundary
+model. Prompts are structured documents built from the vocabulary of the
+[canonical prompt object](../10-canonical-prompt-object.md), and quality review
+checks that the structure is used honestly:
 
-- Build from a `PromptDocument` and existing structured node types.
-- Use `variable()` for declared dynamic values rather than raw placeholders.
-- Prefer structured builders to `raw()` when a node already expresses the shape.
+- Declare dynamic values as variables rather than raw placeholders.
+- Prefer structured content to raw passthrough when the existing vocabulary already expresses the shape.
 - Keep runtime loader schemas, tool definitions, and tool implementation out of prompt sections.
 - Use valid semantic tags and stable, non-duplicated ids where ids are needed.
 
@@ -89,9 +90,9 @@ prompt.
 
 ## Rendered-Output Judgment
 
-Authors shape rendered XML-tagged Markdown through the `PromptDocument`; the
+Authors shape rendered XML-tagged Markdown through the prompt document; the
 renderer only expresses those choices. Review the final model-facing text
-because a valid AST can still produce a prompt that reads poorly.
+because a valid document can still produce a prompt that reads poorly.
 
 ### Semantic Tags
 
@@ -163,7 +164,7 @@ instructions.
 
 ### List Style
 
-For authored prompt content—list items within `PromptDocument` prompts—prefer
+For authored prompt content—list items within prompt documents—prefer
 nested sub-bullets to inline em-dash or colon explanations. The parent list
 item's lead line contains the term or label alone; move the explanation into a
 child list item.
@@ -235,11 +236,11 @@ surface wording.
 
 Also check for lower-level integrity failures:
 
-- Raw placeholders where `variable()` should declare a value.
+- Raw placeholders where a declared variable should carry the value.
 - Runtime loader schemas or tool implementation duplicated in prompt source.
-- `raw()` used where structured builders already express the content.
+- Raw passthrough content where the existing vocabulary already expresses the shape.
 - Clever but non-semantic custom tags.
-- Duplicate ids or new node types where the existing vocabulary is sufficient.
+- Duplicate ids or invented structure where the existing vocabulary is sufficient.
 
 ## Six-Step QA Pass
 
@@ -251,11 +252,11 @@ not depend on a reviewer's memory:
 2. Confirm every prompt section changes behavior or output and occupies its
    canonical position.
 3. Confirm behavior, self-describing context, live state, and tool definitions
-   remain on their separate faces; use `variable()` for declared dynamic values.
+   remain on their separate faces; declare dynamic values as variables.
 4. For single-output prompts, confirm `<output_format>` is literal enough to
    copy without inference.
 5. Check the complete anti-pattern catalog and resolve every applicable defect.
-6. Validate the `PromptDocument` and inspect its rendered XML-tagged Markdown
+6. Validate the prompt document and inspect its rendered XML-tagged Markdown
    whenever practical.
 
 The final render is the model's actual reading experience. QA is complete only

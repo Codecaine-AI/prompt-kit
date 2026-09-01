@@ -1,15 +1,18 @@
 ---
-covers: The documentation entry point for prompt-kit and its Foundation, System Design, Implementation, and Prompt Structure layers.
+covers: The documentation entry point for the prompt-kit workspace and its Foundation, System Design, and Implementation layers.
 type: overview
 concepts: [documentation, prompt-kit, navigation]
 ---
 
 # Prompt-Kit Documentation
 
-Prompt-kit documentation is organized in four layers: Foundation for intent,
-System Design for package behavior, Implementation for current TypeScript source
-structure, and Prompt Structure for model-facing authoring conventions. Start
-here when reading the package as a standalone repository.
+Prompt-kit documentation is organized in three layers: Foundation for intent,
+System Design for behavior, schemas, and state models, and Implementation for
+the structural decisions that shape the current code. The repository is a bun
+workspace containing `packages/prompt-kit` (the headless prompt AST and React
+UI library) and `packages/prompt-kit-agent` (the kernel/agent host with its
+prompt catalog). Start here when reading the workspace as a standalone
+repository.
 
 ---
 
@@ -19,9 +22,9 @@ here when reading the package as a standalone repository.
 docs/
 ├── 00-overview.md          (this file) Documentation entry point
 ├── 00-foundation/          Purpose, boundaries, and authoring principles
-├── 10-system-design/       AST, rendering, transforms, validation, and kernel boundary
-├── 20-implementation/      Current source tree, editing UI, and development notes
-└── 30-prompt-structure/    Placement, prompt shapes, workflow, quality, and techniques
+├── 10-system-design/       Prompt object, authoring, rendering, transforms,
+│                           validation, editor, prompt structure, kernel boundary
+└── 20-implementation/      Structural decisions about the current packages
 ```
 
 ## Layers
@@ -29,22 +32,26 @@ docs/
 ### [00-foundation/00-overview.md](00-foundation/00-overview.md)
 
 Read this layer to understand why prompt-kit exists, what it owns, what it
-intentionally avoids, and how prompt documents should be authored.
+intentionally avoids, and the principles behind authoring prompts as structured
+documents. Intent and rationale only — no mechanics.
 
 ### [10-system-design/00-overview.md](10-system-design/00-overview.md)
 
-Read this layer to understand the canonical prompt object, authoring model,
-renderer boundary, transform model, validation contract, and kernel integration
-boundary.
+Read this layer to understand how the system behaves: the canonical prompt
+object, the authoring model, the rendering model, composition and transforms,
+the validation contract, the editor design
+([10-system-design/60-editor/](10-system-design/60-editor/)), the model-facing
+prompt-structure conventions
+([10-system-design/70-prompt-structure/](10-system-design/70-prompt-structure/)),
+and the kernel integration boundary
+([10-system-design/80-kernel-boundary.md](10-system-design/80-kernel-boundary.md)).
 
 ### [20-implementation/00-overview.md](20-implementation/00-overview.md)
 
-Read this layer when changing source code. It maps the current package modules,
-public exports, tests, and development commands, and documents the prompt-editing
-UI architecture built on top of them.
-
-### [30-prompt-structure/00-overview.md](30-prompt-structure/00-overview.md)
-
-Read this layer when deciding whether material belongs in the system prompt,
-context, or state, and when shaping agent prompts, workflows, and single-output
-prompts.
+Read this layer when changing source code. It records the structural decisions
+governing how the packages are organized and why — the shape additions must
+conform to — for `packages/prompt-kit`
+([20-implementation/10-prompt-kit/00-overview.md](20-implementation/10-prompt-kit/00-overview.md),
+split into the document layer and the UI layer) and `packages/prompt-kit-agent`
+([20-implementation/20-prompt-kit-agent.md](20-implementation/20-prompt-kit-agent.md)).
+It is not a map of the current source tree.

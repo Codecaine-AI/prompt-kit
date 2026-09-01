@@ -1,12 +1,14 @@
 ---
-covers: Why prompt-kit exists as a standalone prompt AST package and what responsibilities stay outside it.
+covers: Why prompt-kit exists as a standalone prompt document library and what responsibilities stay outside it.
 concepts: [prompt-kit, package-boundary, runtime, AST]
 ---
 
 # Purpose And Boundary
 
-Prompt-kit is a small package for writing prompts as typed, composable prompt
-documents. It is not an agent runtime, a kernel, or a tool registry.
+Prompt-kit is a library for writing prompts as typed, composable prompt
+documents. It is not an agent runtime, a kernel, or a tool registry. The
+library lives in `packages/prompt-kit`; the agent host that consumes it lives
+in `packages/prompt-kit-agent`.
 
 ---
 
@@ -17,58 +19,43 @@ Markdown prompt is easy to read, but hard to validate, transform, substitute, or
 preview consistently. A rigid schema is easy to validate, but can become too
 constraining for real prompt-writing work.
 
-Prompt-kit sits between those poles. Authors write a structured TypeScript
-object with builders such as `workflowPrompt`, `section`, `bulletList`, and
-`variable`. Consumers can render that object into XML-tagged Markdown, inspect
-the tree, replace sections, validate identifiers, and build UI preview models.
+Prompt-kit sits between those poles. Prompts are authored as structured
+documents — in code, as JSON documents, or through the editor UI — and
+consumers can render them to linear text, inspect the tree, replace pieces,
+validate integrity, and drive editing surfaces from the same object. The
+mechanics of that object and its operations live in
+[System Design](../10-system-design/00-overview.md).
 
 ## Package Boundary
 
-Prompt-kit owns generic prompt structure:
-
-- canonical prompt document and node types
-- ergonomic builders for sections, lists, fields, examples, variables, and raw text
-- broad prompt templates such as `singleOutputPrompt` and `workflowPrompt`
-- renderers, starting with XML-tagged Markdown
-- transforms keyed by stable node ids
-- validation diagnostics for prompt tree integrity
-- lightweight UI models for prompt preview and editing surfaces
+Prompt-kit owns generic prompt structure: the canonical prompt document, its
+node vocabulary, rendering to model-facing text, transformation and
+composition, validation, and the UI for viewing and editing prompt documents.
 
 Prompt-kit does not own runtime behavior:
 
-- agent registry discovery
-- model selection or turn limits
-- dynamic context loading
-- conversation history
-- Pi SDK session creation
-- shared or private tool registration
-- trace emission
-- subagent orchestration
+- agent registry discovery, model selection, or turn limits
+- dynamic context loading and conversation history
+- session creation and tool registration
+- trace emission and subagent orchestration
 - application memory layout
 
-Those concerns belong to a kernel or host application. A kernel can import
-prompt-kit, render prompt documents, and wire them into its own runtime packet.
-Prompt-kit remains reusable because it does not know which runtime consumes the
-rendered prompt.
+Those concerns belong to a kernel or host application. A kernel imports
+prompt-kit, renders prompt documents, and wires them into its own runtime
+packet. Prompt-kit remains reusable because it does not know which runtime
+consumes the rendered prompt. The agent host in `packages/prompt-kit-agent` is
+one such consumer, and the seam between the two is specified in
+[80-kernel-boundary.md](../10-system-design/80-kernel-boundary.md).
 
 ## Source Of Truth
 
-The canonical source is the `PromptDocument` object. Rendered Markdown is an
+The canonical source is the structured prompt document. Rendered text is an
 output artifact, not the authored source.
 
-This matters for authoring tools. A prompt viewer can display the rendered text,
-but editing should generally happen through the structured prompt source or a UI
-that edits the structured prompt object. Hand-editing the rendered text creates a
-second source of truth and breaks transforms, validation, and stable ids.
-
-## Direction
-
-An editing UI that follows this rule exists — it presents the rendered XML as an
-editable projection while committing every gesture to the structured document.
-It is being relocated into this package behind React-only entry points, with
-React as an optional peer dependency. See
-[20-implementation/20-editor/00-overview.md](../20-implementation/20-editor/00-overview.md)
-for its architecture and
-[20-implementation/20-editor/70-package-split.md](../20-implementation/20-editor/70-package-split.md)
-for the migration state and what it means for the boundary described above.
-
+This matters for authoring tools. A prompt viewer can display the rendered
+text, but editing must commit to the structured document. Hand-editing the
+rendered text creates a second source of truth and breaks transforms,
+validation, and stable ids. The editor follows this rule by presenting the
+rendered output as an editable projection while committing every gesture to the
+structured document; its design lives in
+[60-editor/](../10-system-design/60-editor/).

@@ -1,7 +1,7 @@
 ---
 covers: How to structure an agent system prompt around purpose, declared state, state-navigated workflow, completion checks, and final rules.
 concepts: [agent-prompts, state-structure, workflow, rules]
-depends-on: [30-prompt-structure/00-overview.md]
+depends-on: [10-system-design/70-prompt-structure/00-overview.md]
 ---
 
 # Agent Prompt Structure
@@ -94,8 +94,8 @@ useful because a phase can continue while it contains unresolved entries;
 
 `workflow` describes the phases the agent follows. Each phase has an objective
 and numbered steps, and the agent chooses or repeats a phase by inspecting the
-declared state fields. The full phase grammar, optional fields, loop form, and
-PromptDocument mapping are defined in [Workflow Structure](20-workflow.md).
+declared state fields. The full phase grammar, optional fields, and loop form
+are defined in [Workflow Structure](20-workflow.md).
 
 State names create the bridge between declaration and procedure. “Loop to step
 2 until `open_queue` has no unresolved entries” remains valid across any number
@@ -148,22 +148,23 @@ Rules should not be copied into each phase. Repetition obscures which
 instructions are global and makes future edits likely to leave contradictory
 versions behind.
 
-## What Changed from the Old Order
+## Rejected Patterns
 
-The previous agent layout mixed behavior, reference, runtime integration, and
-live data. The canonical order separates those concerns:
+Several familiar prompt patterns are deliberately absent because they mix
+behavior, reference, runtime integration, and live data. The canonical order
+separates those concerns:
 
-| Old structure | Canonical structure | Why |
-|---------------|---------------------|-----|
-| A prompt-side `tools` section | Removed | Tool definitions and schemas live in the always-present tool layer; reference semantics can ride in self-describing context. |
-| A `state`, `inputs`, or `context` inventory | Replaced by `state_structure` | The prompt declares only live state fields. It does not inventory context blocks. |
+| Rejected pattern | Canonical form | Why |
+|------------------|----------------|-----|
+| A prompt-side `tools` section | None | Tool definitions and schemas live in the always-present tool layer; reference semantics can ride in self-describing context. |
+| A `state`, `inputs`, or `context` inventory | `state_structure` | The prompt declares only live state fields. It does not inventory context blocks. |
 | `rules` before the procedure | `rules` last | Final placement gives non-negotiables the recency position. |
-| A final `reminders` recap | Removed | A second rule list creates duplication; the final `rules` section now provides recency directly. |
+| A final `reminders` recap | None | A second rule list creates duplication; the final `rules` section provides recency directly. |
 | Steps-only workflows as an alternative | Phases always | Named phases make state-based navigation explicit; see the workflow specification for the fixed shape. |
 
 There is consequently no `<tools>`, context-inventory, or `<reminders>` section
-in an agent prompt. Adding one would reintroduce a boundary the new order is
-designed to remove.
+in an agent prompt. Adding one would reintroduce a boundary the canonical order
+is designed to remove.
 
 ## Anti-Patterns
 

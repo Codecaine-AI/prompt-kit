@@ -1,7 +1,7 @@
 ---
-covers: How workflow sections express state-navigated agent procedures through phases, objectives, steps, and a small unsettled set of optional fields.
-concepts: [workflow, phases, state-navigation, PromptDocument]
-depends-on: [30-prompt-structure/10-agent-prompt.md, 10-system-design/10-canonical-prompt-object.md]
+covers: How workflow sections express state-navigated agent procedures through phases, objectives, steps, and an open question on optional phase fields.
+concepts: [workflow, phases, state-navigation]
+depends-on: [10-system-design/70-prompt-structure/10-agent-prompt.md, 10-system-design/10-canonical-prompt-object.md]
 ---
 
 # Workflow Structure
@@ -97,9 +97,9 @@ Turn counts describe execution history, not process position, and retries or
 partial calls make them drift. Conditions such as "when `open_queue` is empty"
 remain true regardless of how many calls were needed to reach them.
 
-## Optional Fields Are Unsettled
+## Open Question: Optional Phase Fields
 
-Four optional fields are provisionally allowed:
+Four optional fields are allowed:
 
 | Field | Purpose |
 |-------|---------|
@@ -108,10 +108,9 @@ Four optional fields are provisionally allowed:
 | `<constraints>` | Holds rules local to this phase |
 | `<advance_when>` | States the phase exit condition instead of putting it inline in the steps |
 
-This set is unsettled. Mandate none of these fields, and invent no others.
-Revisit the set after testing different prompts reveals which distinctions earn
-their space. Until then, prefer the required objective and steps when they
-already make the procedure unambiguous.
+Which of these distinctions earn their space is an open question. Mandate none
+of these fields, and invent no others. Prefer the required objective and steps
+whenever they already make the procedure unambiguous.
 
 ## Worked Phase
 
@@ -139,15 +138,8 @@ The example does not need optional fields: its reads, writes, and exit
 condition are already clear in the steps. Adding field tags would make the
 prompt longer without changing how the phase is navigated.
 
-## PromptDocument Mapping
+## Relation to the Canonical Prompt Object
 
-The rendered structure uses the existing PromptDocument vocabulary. `workflow`,
-`phase`, and each field tag are nested `section` nodes; the phase name is a
-section attribute. The objective text is a `paragraph` node. Steps are an
-`orderedList` node, and constraints use a `bulletList` or `orderedList` node as
-their content.
-
-Inputs, outputs, and advancement conditions likewise use existing paragraphs
-or list nodes inside their field sections. No workflow-specific node type is
-needed. This mapping preserves the semantic boundaries authors depend on while
-keeping rendering, validation, traversal, and transforms on the canonical AST.
+Workflow structure is expressed entirely through the existing vocabulary of the
+[canonical prompt object](../10-canonical-prompt-object.md); it introduces no
+workflow-specific structure of its own.

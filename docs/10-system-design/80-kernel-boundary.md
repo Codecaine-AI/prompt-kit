@@ -11,22 +11,13 @@ prompt documents as one part of a larger runtime packet.
 
 ---
 
-## Host Agent Shape
+## Host Registry Flow
 
-A kernel or host app can organize an agent bundle like this:
-
-```text
-agent-catalog/<agent-name>/
-  agent.ts              # runtime manifest and registry entry point
-  prompt.ts             # PromptDocument source of truth
-  context.ts            # optional dynamic context resolver
-  tools.ts              # optional private tools
-  fixtures/             # optional rendered-context fixtures and snapshots
-```
-
-In that layout, `prompt.ts` exports a prompt-kit document. The registry imports
-it, validates it with host declarations, renders it, and passes the rendered
-system prompt into the runtime.
+A host keeps a `PromptDocument` as the source of truth for each agent's system
+prompt. The host registry imports that document, validates it with host
+declarations (declared variables, host-specific checks), renders it, and
+passes the rendered system prompt to the runtime. The document — not the
+rendered string — is what the host stores, diffs, and edits.
 
 ## Runtime Packet Split
 
@@ -54,10 +45,13 @@ AST package to one SDK.
 ## Viewer Boundary
 
 Viewer systems can import prompt-kit UI helpers such as
-`createPromptEditorModel`. Those helpers produce simple serializable models.
-(The earlier `createPromptPreviewModel` helper was removed 2026-08-05; it is
-recoverable from git history.)
-They do not define a full UI framework, styling system, or app shell.
+`createPromptEditorModel`, a headless model that returns the prompt with
+stable ids, its flattened tree, rendered output, and validation result. The
+React-facing surfaces — the editing surface, the lab shell, the style
+settings, and the read-only prompt view — sit behind dedicated UI entry
+points; their behavior is specified in
+[60-editor/00-overview.md](60-editor/00-overview.md). None of this defines a
+full UI framework or host app shell.
 
 The kernel viewer can render:
 

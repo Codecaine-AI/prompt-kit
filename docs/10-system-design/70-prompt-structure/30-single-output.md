@@ -1,7 +1,7 @@
 ---
 covers: The canonical structure and authoring judgment for prompts that transform bounded input into one defined output.
 concepts: [single-output, instructions, workflow, output-format, constraints]
-depends-on: [30-prompt-structure/00-overview.md]
+depends-on: [10-system-design/70-prompt-structure/00-overview.md]
 ---
 
 # Single-Output Prompts
@@ -50,9 +50,8 @@ tokens without clarifying what a successful response contains.
 
 `<instructions>` supplies the input and explains how to handle it. Keep runtime
 input visibly separate from the surrounding directions so that data does not
-read like an instruction. In a `PromptDocument`, a variable or another explicit
-runtime boundary should carry the input rather than prose pasted into the
-standing prompt.
+read like an instruction: a declared variable or another explicit runtime
+boundary carries the input rather than prose pasted into the standing prompt.
 
 Instructions should resolve judgment calls that affect the transformation. If
 accuracy and completeness can conflict, for example, say which one wins. A
@@ -60,11 +59,9 @@ priority such as "preserve supported facts even when that means omitting an
 uncertain detail" is actionable; "be accurate and complete" leaves the tension
 unresolved.
 
-There is an open design question about whether `<instructions>` and
-`<workflow>` will prove redundant. Keep both available for now: instructions
-describe the input and its treatment, while workflow names necessary internal
-stages. Revisit the distinction after more single-output prompts provide
-evidence.
+Open question: whether `<instructions>` and `<workflow>` are redundant. Both
+remain available, with distinct jobs: instructions describe the input and its
+treatment, while workflow names necessary internal stages.
 
 ## Workflow
 

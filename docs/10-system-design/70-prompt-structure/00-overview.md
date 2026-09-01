@@ -1,5 +1,5 @@
 ---
-covers: The prompt structure layer for prompt-kit, including placement boundaries, agent prompts, workflows, single-output prompts, quality, and optional techniques.
+covers: The model-facing prompt-structure conventions for prompt-kit, including placement boundaries, agent prompts, workflows, single-output prompts, quality, and optional techniques.
 type: overview
 concepts: [prompt-structure, system-prompts, context, state]
 ---
@@ -8,16 +8,17 @@ concepts: [prompt-structure, system-prompts, context, state]
 
 Prompt structure begins with placement. Behavior, reusable reference material,
 and live session data have different lifecycles, so combining them makes prompts
-harder to change and gives the model a less reliable picture of its work. This
-layer explains where each kind of material belongs and how the system-prompt
-portion should be shaped.
+harder to change and gives the model a less reliable picture of its work. These
+pages define where each kind of material belongs and how the system-prompt
+portion should be shaped. They are the model-facing conventions of the system
+design: what a rendered prompt looks like, not how the system produces it.
 
 ---
 
 ## File Tree
 
 ```text
-30-prompt-structure/
+10-system-design/70-prompt-structure/
 ├── 00-overview.md       (this file) Placement rule and navigation
 ├── 10-agent-prompt.md   Canonical structure for multi-turn agent prompts
 ├── 20-workflow.md       Phase structure and state-based navigation
@@ -28,7 +29,7 @@ portion should be shaped.
 
 ## The Three-Face Placement Rule
 
-An agent reads three distinct faces of model-facing material. A fourth layer,
+An agent reads three distinct faces of model-facing material. A fourth surface,
 its tools, is attached by the runtime rather than written into prompt text.
 
 | Face | Carries | Change cost |
@@ -74,7 +75,7 @@ prompt and explains when each optional section earns its place.
 ### [20-workflow.md](20-workflow.md)
 
 Defines the required phase shape, shallow nesting model, state-based navigation,
-and provisional phase fields.
+and the open question on optional phase fields.
 
 ### [30-single-output.md](30-single-output.md)
 

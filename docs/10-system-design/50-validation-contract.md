@@ -22,7 +22,20 @@ interface PromptValidationResult {
 }
 ```
 
-Diagnostics include severity, code, message, path, and optional node id.
+Diagnostics include severity, code, message, path, and optional node id. The
+result is `ok` when no diagnostic carries `severity: "error"`; warnings do not
+block. The validator runs document-level checks first, then traverses the full
+tree — blocks, list items, and inline nodes — collecting ids and checking each
+node in place, so one pass reports every problem rather than stopping at the
+first.
+
+## Two Validation Layers
+
+Semantic validation assumes it is looking at a `PromptDocument`. For untrusted
+input — a JSON file, a save-endpoint body — the schema module's shape check
+(`validatePromptDocumentShape`, mirroring the published JSON Schema) runs
+first and reports structural mismatches by path. See
+[20-authoring-model.md](20-authoring-model.md) for the JSON authoring form.
 
 ## Current Checks
 

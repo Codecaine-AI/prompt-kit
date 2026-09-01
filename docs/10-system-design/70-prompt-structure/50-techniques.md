@@ -1,7 +1,7 @@
 ---
 covers: How to select and place optional prompting techniques and thinking frameworks in response to specific failure risks.
 concepts: [techniques, thinking-frameworks, risk-selection, restraint]
-depends-on: [30-prompt-structure/20-workflow.md, 30-prompt-structure/30-single-output.md, 30-prompt-structure/40-quality.md]
+depends-on: [10-system-design/70-prompt-structure/20-workflow.md, 10-system-design/70-prompt-structure/30-single-output.md, 10-system-design/70-prompt-structure/40-quality.md]
 ---
 
 # Prompting Techniques
@@ -148,10 +148,9 @@ Show the exact output skeleton when structure matters. A literal skeleton
 removes interpretation from requirements that would be brittle if described
 only in prose.
 
-For a single-output prompt, map the skeleton to `<output_format>` and a
-PromptDocument `codeBlock` node. For an agent, keep operation-specific output
-instructions in the relevant workflow step; put a reusable format reference in
-a self-describing context block.
+For a single-output prompt, map the skeleton to `<output_format>`. For an
+agent, keep operation-specific output instructions in the relevant workflow
+step; put a reusable format reference in a self-describing context block.
 
 ## Thinking Frameworks
 
@@ -198,23 +197,23 @@ chosen framework into the smallest set of concrete workflow steps that produces
 its benefit. An unexplained `<approach>` section is not part of either canonical
 prompt structure.
 
-## PromptDocument Placement
+## Canonical Placement
 
-Techniques use existing nodes and canonical sections:
+Techniques use the canonical sections; no technique introduces a section of
+its own:
 
-| Technique content | PromptDocument placement |
-|-------------------|--------------------------|
-| Agent procedure | Nested workflow `section` nodes with `orderedList` steps |
-| Agent quality bar | `section("success_criteria", ...)` with a list of testable checks |
-| Single-output skeleton | `section("output_format", ...)` containing a `codeBlock` |
-| Global non-negotiables | Final `rules` or `constraints` section with a short list |
-| Supporting explanation | `paragraph`, `bulletList`, or `orderedList` inside the owning section |
+| Technique content | Placement |
+|-------------------|-----------|
+| Agent procedure | Workflow phases with numbered steps |
+| Agent quality bar | `<success_criteria>` with a list of testable checks |
+| Single-output skeleton | A literal skeleton in `<output_format>` |
+| Global non-negotiables | The final `<rules>` or `<constraints>` section with a short list |
+| Supporting explanation | Ordinary prose and lists inside the owning section |
 
 Examples, reusable frameworks, and detailed references belong to context, not
-to a PromptDocument prompt section. Do not map a technique to `<reminders>`;
-that section no longer exists. Do not invent workflow fields named after
-techniques. The canonical AST already represents every prompt-side placement
-needed here.
+to a prompt section. Do not map a technique to `<reminders>`; that section
+does not exist. Do not invent workflow fields named after techniques. The
+canonical structures already provide every prompt-side placement needed here.
 
 ## Efficiency
 

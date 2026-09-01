@@ -16,11 +16,22 @@ insert prompt sections without parsing rendered Markdown.
 A shared prompt can expose intentional replacement points:
 
 ```ts
-const base = workflowPrompt({
+const base = definePrompt({
   id: "researchPrompt",
-  sections: [
-    section("purpose", ["Research the request."], { id: "purpose" }),
-    section("workflow", ["Gather evidence."], { id: "workflow" }),
+  archetype: "workflow",
+  nodes: [
+    {
+      type: "section",
+      tag: "purpose",
+      id: "purpose",
+      children: [{ type: "paragraph", content: ["Research the request."] }],
+    },
+    {
+      type: "section",
+      tag: "workflow",
+      id: "workflow",
+      children: [{ type: "paragraph", content: ["Gather evidence."] }],
+    },
   ],
 });
 ```
@@ -28,11 +39,14 @@ const base = workflowPrompt({
 A consumer can then replace one part:
 
 ```ts
-const specialized = replaceNodeById(
-  base,
-  "workflow",
-  section("workflow", ["Gather local repository evidence."], { id: "workflow" }),
-);
+const specialized = replaceNodeById(base, "workflow", {
+  type: "section",
+  tag: "workflow",
+  id: "workflow",
+  children: [
+    { type: "paragraph", content: ["Gather local repository evidence."] },
+  ],
+});
 ```
 
 The rendered prompt changes, but the source remains a valid prompt document.

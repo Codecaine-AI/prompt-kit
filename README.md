@@ -7,8 +7,7 @@ author edits them through.
 
 It provides:
 
-- a canonical prompt AST
-- TypeScript builders
+- a canonical prompt AST, authored as typed data or JSON
 - XML-tagged Markdown rendering
 - prompt transforms
 - validation diagnostics
@@ -34,9 +33,10 @@ utility classes: the host app supplies the Tailwind layer and the semantic
 token variables they resolve against. See the styling contract at the top of
 `packages/prompt-kit/src/ui/lab/index.tsx`.
 
-The editor UI's architecture is documented in
-`docs/20-implementation/20-editor/`. Working-state notes and active build plans
-live in `docs/.drafts/`.
+The editor's design is documented in `docs/10-system-design/60-editor/`; the
+structural decisions governing its code are in
+`docs/20-implementation/10-prompt-kit/20-ui.md`. Working-state notes and active
+build plans live in `docs/.drafts/`.
 
 ## Quick Start
 
@@ -101,8 +101,8 @@ boundary.
   and what boundaries it keeps.
 - [System Design](docs/10-system-design/00-overview.md) explains the AST,
   authoring model, rendering model, transforms, validation, and kernel boundary.
-- [Implementation](docs/20-implementation/00-overview.md) maps the current source
-  tree and public API surfaces.
+- [Implementation](docs/20-implementation/00-overview.md) records the
+  structural decisions that govern new code in both packages.
 
 ## Package Boundary
 
@@ -112,8 +112,8 @@ SDK integration, or subagent orchestration. Those are kernel responsibilities.
 
 The intended split is:
 
-- `@codecaine-ai/prompt-kit`: structured prompts, builders, renderers,
-  transforms, validation, editor models, and the authoring UI.
+- `@codecaine-ai/prompt-kit`: structured prompts, renderers, transforms,
+  validation, editor models, and the authoring UI.
 - Agent Kernel: agent definitions, runtime context, tool binding, Pi sessions,
   traces, and viewer integration.
 
@@ -125,13 +125,13 @@ dependency direction remains one-way:
 `@codecaine-ai/prompt-kit-agent`; the library never depends on the runtime.
 
 - Library: `packages/prompt-kit` (`@codecaine-ai/prompt-kit`) owns the prompt
-  AST, builders, renderers, transforms, validation, and authoring UI. Its export
-  map is unchanged.
+  AST, renderers, transforms, validation, and authoring UI. Its export map is
+  unchanged.
 - Agent harness: `packages/prompt-kit-agent`
-  (`@codecaine-ai/prompt-kit-agent`) owns `catalog/prompt-editor`,
-  prompt structure guidance in `docs/30-prompt-structure/`, and the kernel on
-  `:4850`. Start it from this
-  repository root with `bun run dev:agent`.
+  (`@codecaine-ai/prompt-kit-agent`) owns `catalog/prompt-editor` and the
+  kernel on `:4850`. Start it from this repository root with
+  `bun run dev:agent`. Prompt structure guidance lives in
+  `docs/10-system-design/70-prompt-structure/`.
 - Hosts: canvas `/config` (`make traces` in `../canvas`, then
   http://localhost:4830/config) and Observatory, where the registered
   "Prompt Kit" project is available after `bun run dev` in `../observatory`.
@@ -151,5 +151,13 @@ bun run test
 
 For a single package, use `bun run --cwd packages/prompt-kit typecheck` or
 `bun run --cwd packages/prompt-kit test`. The agent equivalents use
-`--cwd packages/prompt-kit-agent`; its test script covers both `./test` and
-`./catalog`.
+`--cwd packages/prompt-kit-agent`; its test script runs
+`bun test ./test ./catalog`, so catalog tests are included.
+
+The development loop spans separate processes:
+
+- Standalone kernel on `:4850` — `bun run dev:agent` from this repository
+  root.
+- Canvas viewer on `:4830` at `/config`, with its harness on `:4820` — start
+  from `../canvas`.
+- Observatory — `bun run dev` from `../observatory`.

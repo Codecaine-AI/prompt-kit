@@ -72,7 +72,12 @@ omitting, or inserting a particular section.
 Good ids are stable and semantic:
 
 ```ts
-section("rules", ["Prefer primary sources."], { id: "sourceRules" });
+{
+  type: "section",
+  tag: "rules",
+  id: "sourceRules",
+  children: [{ type: "paragraph", content: ["Prefer primary sources."] }],
+}
 ```
 
 Avoid ids based on position or phrasing. A node id should survive copy edits.
