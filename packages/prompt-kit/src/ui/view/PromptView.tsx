@@ -10,24 +10,20 @@ import {
 import {
 	EDITOR_COLORS,
 	EDITOR_METRICS,
+	PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH,
 	PROMPT_EDITOR_ROOT_CLASS,
 	promptEditorGutterWidth,
 	promptEditorIndentForDepth,
-	promptEditorIndentForSpaces,
 } from "../surface/editor-surface";
 import { highlightXmlLine } from "../surface/xml-highlight";
 import {
 	classifyRenderedLines,
+	collapseRenderedGapRuns,
+	renderedLineBaseSpaces,
 	type RenderedLineInfo,
 } from "./rendered-line-model";
 
 export type PromptViewSize = "sm" | "md" | "lg";
-
-/** Visual width of a line's leading whitespace (0px when none). */
-function lineIndent(line: string): string {
-	const leading = line.match(/^ */)?.[0].length ?? 0;
-	return promptEditorIndentForSpaces(leading);
-}
 
 /** Base padding before the indent area of a content cell. */
 const CONTENT_CELL_PAD = "0.75rem";
@@ -131,7 +127,7 @@ const PROMPT_VIEW_SIZE: Record<
 	PromptViewSize,
 	{ fontSize: string; lineHeight: string }
 > = {
-	sm: { fontSize: "13px", lineHeight: "21px" },
+	sm: { fontSize: "13px", lineHeight: "22px" },
 	md: { fontSize: "14px", lineHeight: "20px" },
 	lg: { fontSize: "16px", lineHeight: "24px" },
 };
@@ -140,7 +136,6 @@ export function PromptView({
 	content,
 	title,
 	bare = false,
-	startLine = 1,
 	size = "sm",
 	inheritStyle = false,
 }: {
@@ -165,10 +160,17 @@ export function PromptView({
 		() => (content ? classifyRenderedLines(content) : []),
 		[content],
 	);
-	const lastLine = startLine + Math.max(0, lines.length - 1);
-	const lineNumberWidth = useMemo(() => Math.max(2, String(lastLine).length), [lastLine]);
-	const fallbackGutterWidth = `${lineNumberWidth + 2}ch`;
-	const gutterWidth = promptEditorGutterWidth(fallbackGutterWidth);
+	const lineBaseSpaces = useMemo(
+		() => renderedLineBaseSpaces(lines, lineInfos),
+		[lines, lineInfos],
+	);
+	const displayLines = useMemo(
+		() => collapseRenderedGapRuns(lineInfos),
+		[lineInfos],
+	);
+	const gutterWidth = promptEditorGutterWidth(
+		PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH,
+	);
 	const typeSize = PROMPT_VIEW_SIZE[size];
 	const persistedStyleVars = useMemo(
 		() => (inheritStyle ? undefined : promptStyleVars(loadPromptStyleSettings())),
@@ -209,28 +211,38 @@ export function PromptView({
 					}}
 				>
 					<tbody>
-						{lines.map((line, index) => {
-							const info = lineInfos[index];
+						{displayLines.map(({ sourceIndex: index, info }) => {
+							const line = lines[index] ?? "";
+							const depth = info?.depth ?? 0;
+							const baseSpaces = lineBaseSpaces[index] ?? 0;
 							const isLandmark =
 								info?.role === "open" && info.depth === 0;
 							return (
 							<tr
 								key={index}
-								className="prompt-editor-row"
 								// Scroll anchor: a host with a wayfinding column (the lab's
 								// CONTEXT surface) addresses a row by its zero-based line index.
 								// Attribute only — nothing styles off it.
 								data-prompt-row={index}
-								style={rowRoleStyle(info) as React.CSSProperties}
+								style={{
+									border: 0,
+									boxShadow: "none",
+									...rowRoleStyle(info),
+								} as React.CSSProperties}
 							>
 								{/* Line numbers retired (2026-08-04 audit): the gutter cell
 								    keeps row geometry and the landmark band only. */}
 								<td
-									className="sticky left-0 select-none px-3 text-right align-top"
+									className="select-none align-top"
 									style={{
 										minWidth: gutterWidth,
 										width: gutterWidth,
 										background: "transparent",
+										border: 0,
+										boxShadow: "none",
+										color: "transparent",
+										paddingInline: 0,
+										paddingBlock: 0,
 										// Landmark band: both cells share the block padding so
 										// the row grows into a tinted band around the open tag.
 										...(isLandmark
@@ -242,16 +254,16 @@ export function PromptView({
 									className="w-full pr-4"
 									style={{
 										backgroundColor: "transparent",
+										border: 0,
+										boxShadow: "none",
 										whiteSpace: "pre-wrap",
 										wordBreak: "break-word",
-										// Hanging indent: continuation lines of a wrapped row
-										// align under the line's content start. paddingLeft
-										// holds the leading whitespace's visual width;
-										// text-indent pulls the first line back to flush. The
-										// leading spaces stay real text in the DOM, so
-										// copy/paste is unchanged.
-										paddingLeft: `calc(${CONTENT_CELL_PAD} + ${lineIndent(line)})`,
-										textIndent: `calc(0px - ${lineIndent(line)})`,
+										paddingBlock: 0,
+										// Classifier depth owns the base indent, matching the
+										// guide geometry. The shared literal baseline is
+										// offset while excess whitespace stays in the text.
+										paddingLeft: `calc(${CONTENT_CELL_PAD} + ${promptEditorIndentForDepth(2 * depth)})`,
+										textIndent: baseSpaces > 0 ? `-${baseSpaces}ch` : undefined,
 										// Landmark rows read a notch larger; line-height stays
 										// the shared px token so the gutter keeps its rhythm.
 										// The band padding matches the gutter cell's, keeping
@@ -262,10 +274,10 @@ export function PromptView({
 													paddingBlock: EDITOR_METRICS.landmarkPad,
 												}
 											: undefined),
-										...guideBackground(info?.depth ?? 0),
+										...guideBackground(depth),
 									}}
 								>
-									{line ? highlightXmlLine(line) : "\u00A0"}
+									{line ? highlightXmlLine(line) : null}
 								</td>
 							</tr>
 							);

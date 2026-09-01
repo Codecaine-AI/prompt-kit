@@ -344,7 +344,82 @@ describe("PromptInlineLab dock view switcher", () => {
   });
 });
 
+describe("PromptInlineLab config zone", () => {
+  test("is hidden when the host supplies no config", () => {
+    render(<PromptInlineLab prompt={prompt} />);
+
+    expect(document.querySelector('[data-lab-zone="config"]')).toBeNull();
+    expect(document.querySelector('[data-lab-view="config"]')).toBeNull();
+  });
+
+  test("renders a read-only model after the VIEW zone", () => {
+    render(<PromptInlineLab prompt={prompt} configZone={{ model: "gpt-5" }} />);
+
+    const viewZone = document.querySelector('[data-lab-zone="view"]')!;
+    const configZone = document.querySelector<HTMLElement>(
+      '[data-lab-zone="config"]',
+    )!;
+    expect(viewZone.nextElementSibling).toBe(configZone);
+    expect(within(configZone).getByText("Config")).toBeTruthy();
+    expect(within(configZone).getByText("Model")).toBeTruthy();
+    expect(within(configZone).getByText("gpt-5")).toBeTruthy();
+    expect(within(configZone).queryByRole("combobox")).toBeNull();
+    expect(document.querySelector('[data-lab-view="config"]')).toBeNull();
+  });
+
+  test("sends select changes to the host", () => {
+    const changes: string[] = [];
+    render(
+      <PromptInlineLab
+        prompt={prompt}
+        configZone={{
+          model: "gpt-5",
+          modelOptions: ["gpt-5", "gpt-5-mini"],
+          onModelChange: (model) => changes.push(model),
+        }}
+      />,
+    );
+
+    const configZone = document.querySelector<HTMLElement>(
+      '[data-lab-zone="config"]',
+    )!;
+    const select = within(configZone).getByRole("combobox", { name: "Model" });
+    expect((select as HTMLSelectElement).value).toBe("gpt-5");
+    fireEvent.change(select, { target: { value: "gpt-5-mini" } });
+    expect(changes).toEqual(["gpt-5-mini"]);
+  });
+
+  test("shows an em dash for a null model", () => {
+    render(<PromptInlineLab prompt={prompt} configZone={{ model: null }} />);
+
+    const configZone = document.querySelector<HTMLElement>(
+      '[data-lab-zone="config"]',
+    )!;
+    expect(within(configZone).getByText("—")).toBeTruthy();
+  });
+});
+
 describe("PromptInlineLab dock outline", () => {
+	test("tools outline labels and anchors follow the expanded display rows", () => {
+		const renderedTools = [
+			"<available_tools>",
+			'    <tool name="kv2_search" label="Search knowledge" use_when="Lookup is needed" />',
+			"</available_tools>",
+		].join("\n");
+		render(
+			<PromptInlineLab prompt={prompt} toolsZone={{ renderedTools }} />,
+		);
+		fireEvent.click(document.querySelector('[data-lab-view="tools"]')!);
+
+		const zone = document.querySelector<HTMLElement>(
+			'[data-lab-zone="outline"]',
+		)!;
+		expect(within(zone).getByRole("button", { name: "kv2_search" })).toBeTruthy();
+		expect(
+			document.querySelector('[data-context-scroll="tools"] [data-prompt-row="1"]'),
+		).toHaveProperty("textContent", "    <tool");
+	});
+
   test("system sections list in the OUTLINE zone and click scrolls the buffer", () => {
     render(<PromptInlineLab prompt={nestedPrompt} />);
 

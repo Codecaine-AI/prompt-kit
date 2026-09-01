@@ -107,6 +107,21 @@ describe("ContextSurface outline", () => {
 });
 
 describe("contextOutlineSections", () => {
+	test("finds a tool name on multiline attribute rows", () => {
+		const displayedTools = [
+			"<available_tools>",
+			"    <tool",
+			'        name="kv2_search"',
+			'        label="Search knowledge"',
+			"    />",
+			"</available_tools>",
+		].join("\n");
+		expect(contextOutlineSections(displayedTools)).toEqual([
+			{ row: 0, nodeId: "context:0", label: "available_tools", depth: 0 },
+			{ row: 1, nodeId: "context:1", label: "kv2_search", depth: 1 },
+		]);
+	});
+
 	test("entries are top-level opens plus depth-1 containers, identity attributes first", () => {
 		expect(contextOutlineSections(SECTIONED)).toEqual([
 			{ row: 0, nodeId: "context:0", label: "repo_files", depth: 0 },

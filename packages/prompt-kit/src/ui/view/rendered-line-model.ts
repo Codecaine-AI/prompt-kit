@@ -33,6 +33,91 @@ export interface RenderedLineInfo {
 	gapBeforeOpenDepth?: number;
 }
 
+export interface RenderedDisplayLine {
+	/** Source-line index retained as the rendered row's stable anchor. */
+	sourceIndex: number;
+	info: RenderedLineInfo;
+}
+
+/**
+ * Collapse structural gap runs for display without changing the source line
+ * model. The first gap owns the rendered row and the strongest section tier
+ * found anywhere in the run.
+ */
+export function collapseRenderedGapRuns(
+	infos: RenderedLineInfo[],
+): RenderedDisplayLine[] {
+	const displayLines: RenderedDisplayLine[] = [];
+
+	for (let index = 0; index < infos.length; index++) {
+		const info = infos[index]!;
+		if (info.role !== "gap") {
+			displayLines.push({ sourceIndex: index, info });
+			continue;
+		}
+
+		let end = index + 1;
+		let gapBeforeOpenDepth = info.gapBeforeOpenDepth;
+		while (end < infos.length && infos[end]?.role === "gap") {
+			const candidate = infos[end]?.gapBeforeOpenDepth;
+			if (candidate === 0 || (candidate === 1 && gapBeforeOpenDepth !== 0)) {
+				gapBeforeOpenDepth = candidate;
+			}
+			end++;
+		}
+
+		const displayInfo = { ...info };
+		if (gapBeforeOpenDepth !== undefined) {
+			displayInfo.gapBeforeOpenDepth = gapBeforeOpenDepth;
+		}
+		displayLines.push({ sourceIndex: index, info: displayInfo });
+		index = end - 1;
+	}
+
+	return displayLines;
+}
+
+/**
+ * Find the literal whitespace baseline inside each classified container.
+ * PromptView offsets this shared baseline while leaving per-line excess
+ * whitespace in the text, preserving shapes such as two-space-indented JSON.
+ */
+export function renderedLineBaseSpaces(
+	lines: string[],
+	infos: RenderedLineInfo[],
+): number[] {
+	const containerByLine: number[] = [];
+	const containerStack = [0];
+	let nextContainer = 1;
+	const minimumByContainer = new Map<number, number>();
+
+	for (const [index, line] of lines.entries()) {
+		const info = infos[index];
+		const leading = line.match(/^ */)?.[0].length ?? 0;
+		if (info?.role === "close" && containerStack.length > 1) {
+			containerStack.pop();
+		}
+		const container = containerStack.at(-1) ?? 0;
+		containerByLine[index] = container;
+		if (info?.role === "open" || info?.role === "close") {
+			minimumByContainer.set(nextContainer++, leading);
+			containerByLine[index] = nextContainer - 1;
+		} else if (line.trim().length > 0) {
+			minimumByContainer.set(
+				container,
+				Math.min(
+					minimumByContainer.get(container) ?? Number.POSITIVE_INFINITY,
+					leading,
+				),
+			);
+		}
+		if (info?.role === "open") containerStack.push(nextContainer++);
+	}
+	return containerByLine.map(
+		(container) => minimumByContainer.get(container) ?? 0,
+	);
+}
+
 /** A line that is exactly one opening tag (attributes allowed), nothing else. */
 const OPEN_TAG_LINE = /^\s*<[A-Za-z][\w-]*(\s[^>]*)?>\s*$/;
 /** A line that is exactly one closing tag, nothing else. */
@@ -42,6 +127,10 @@ const CLOSE_TAG_LINE = /^\s*<\/[A-Za-z][\w-]*>\s*$/;
  * pattern because `<tag />`'s trailing "/" also satisfies `[^>]*`.
  */
 const SELF_CLOSING_TAG_LINE = /^\s*<[A-Za-z][\w-]*(\s[^>]*)?\/\s*>\s*$/;
+/** First line of a self-closing tag whose attributes continue below it. */
+const MULTILINE_SELF_CLOSING_OPEN_LINE = /^\s*<[A-Za-z][\w-]*\s*$/;
+/** Last line of a multiline self-closing tag. */
+const MULTILINE_SELF_CLOSING_CLOSE_LINE = /^\s*\/>\s*$/;
 /** Fenced-code delimiter. Inside a fence nothing is a tag, gap, or item. */
 const FENCE_LINE = /^\s*```/;
 /**
@@ -59,6 +148,7 @@ export function classifyRenderedLines(content: string): RenderedLineInfo[] {
 	const lines = content.split("\n");
 	const stack: string[] = [];
 	let inFence = false;
+	let inMultilineSelfClosingTag = false;
 	const result: RenderedLineInfo[] = [];
 
 	for (const line of lines) {
@@ -75,6 +165,17 @@ export function classifyRenderedLines(content: string): RenderedLineInfo[] {
 			continue;
 		}
 
+		if (inMultilineSelfClosingTag) {
+			if (MULTILINE_SELF_CLOSING_CLOSE_LINE.test(line)) {
+				if (stack.length > 0) stack.pop();
+				inMultilineSelfClosingTag = false;
+				result.push({ role: "close", depth: stack.length });
+			} else {
+				result.push({ role: "content", depth: stack.length });
+			}
+			continue;
+		}
+
 		if (line.trim().length === 0) {
 			result.push({ role: "gap", depth: stack.length });
 			continue;
@@ -83,6 +184,14 @@ export function classifyRenderedLines(content: string): RenderedLineInfo[] {
 		if (SELF_CLOSING_TAG_LINE.test(line)) {
 			// Self-closing tags never change the stack; they read as content.
 			result.push({ role: "content", depth: stack.length });
+			continue;
+		}
+
+		if (MULTILINE_SELF_CLOSING_OPEN_LINE.test(line)) {
+			result.push({ role: "open", depth: stack.length });
+			const name = line.match(/^\s*<([A-Za-z][\w-]*)/)?.[1] ?? "";
+			stack.push(name);
+			inMultilineSelfClosingTag = true;
 			continue;
 		}
 

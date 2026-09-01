@@ -48,7 +48,14 @@ export function contextOutlineSections(content: string): OutlineSection[] {
 	const sections: OutlineSection[] = [];
 	infos.forEach((info, index) => {
 		if (info.role !== "open" || info.depth > 1) return;
-		const label = contextSectionLabel(lines[index] ?? "");
+		let labelSource = lines[index] ?? "";
+		if (!labelSource.includes(">")) {
+			for (let cursor = index + 1; cursor < lines.length; cursor++) {
+				labelSource += `\n${lines[cursor] ?? ""}`;
+				if (infos[cursor]?.role === "close") break;
+			}
+		}
+		const label = contextSectionLabel(labelSource);
 		if (label.length === 0) return;
 		sections.push({
 			row: index,

@@ -60,6 +60,44 @@ export function highlightXmlLine(line: string): React.ReactNode {
 		);
 	}
 
+	const fragmentOpen = body.match(/^<([a-zA-Z_][\w_-]*)$/);
+	if (fragmentOpen) {
+		result.push(
+			<span key={keyIndex} style={{ color: EDITOR_COLORS.syntaxPunctuation }}>
+				{"<"}
+				<span style={{ color: EDITOR_COLORS.syntaxTag, fontWeight: 500 }}>
+					{fragmentOpen[1]}
+				</span>
+			</span>,
+		);
+		return <>{result}</>;
+	}
+	if (body === "/>") {
+		result.push(
+			<span key={keyIndex} style={{ color: EDITOR_COLORS.syntaxPunctuation }}>
+				/&gt;
+			</span>,
+		);
+		return <>{result}</>;
+	}
+	const fragmentAttribute = body.match(
+		/^([a-zA-Z_:][\w:.-]*)(\s*=\s*)(["'][\s\S]*["'])$/,
+	);
+	if (fragmentAttribute) {
+		result.push(
+			<span key={keyIndex++} style={{ color: EDITOR_COLORS.syntaxAttribute }}>
+				{fragmentAttribute[1]}
+			</span>,
+			<span key={keyIndex++} style={{ color: EDITOR_COLORS.syntaxPunctuation }}>
+				{fragmentAttribute[2]}
+			</span>,
+			<span key={keyIndex} style={{ color: EDITOR_COLORS.syntaxValue }}>
+				{fragmentAttribute[3]}
+			</span>,
+		);
+		return <>{result}</>;
+	}
+
 	const tagRegex = new RegExp(TAG_REGEX.source, TAG_REGEX.flags);
 	let lastIndex = 0;
 	let match: RegExpExecArray | null;

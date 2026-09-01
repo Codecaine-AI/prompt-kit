@@ -18,6 +18,65 @@ export interface LabToolsZone {
 	renderedTools: string | null;
 }
 
+const TOOL_LINE = /^(\s*)<tool\b([\s\S]*?)\/>(\s*)$/;
+const ATTRIBUTE_NAME = /[A-Za-z_:]/;
+const ATTRIBUTE_NAME_REST = /[\w:.-]/;
+
+function toolAttributes(source: string): string[] | null {
+	const attributes: string[] = [];
+	let index = 0;
+	while (index < source.length) {
+		const separatorStart = index;
+		while (/\s/.test(source[index] ?? "")) index++;
+		if (index === source.length) return attributes;
+		if (index === separatorStart) return null;
+		const start = index;
+		if (!ATTRIBUTE_NAME.test(source[index] ?? "")) return null;
+		index++;
+		while (ATTRIBUTE_NAME_REST.test(source[index] ?? "")) index++;
+		while (/\s/.test(source[index] ?? "")) index++;
+		if (source[index] !== "=") return null;
+		index++;
+		while (/\s/.test(source[index] ?? "")) index++;
+		const quote = source[index];
+		if (quote !== '"' && quote !== "'") return null;
+		index++;
+		let escaped = false;
+		for (; index < source.length; index++) {
+			const character = source[index];
+			if (character === quote && !escaped) {
+				index++;
+				attributes.push(source.slice(start, index).trim());
+				break;
+			}
+			escaped = character === "\\" && !escaped;
+			if (character !== "\\") escaped = false;
+		}
+		if (attributes.length === 0 || index > source.length) return null;
+		if (source[index - 1] !== quote) return null;
+	}
+	return attributes;
+}
+
+/** Format tool rows for the read-only view without changing the host string. */
+export function formatToolsForDisplay(renderedTools: string): string {
+	return renderedTools
+		.split("\n")
+		.flatMap((line) => {
+			const matched = line.match(TOOL_LINE);
+			if (!matched) return [line];
+			const [, indent = "", body = ""] = matched;
+			const attributes = toolAttributes(body);
+			if (!attributes || attributes.length < 2) return [line];
+			return [
+				`${indent}<tool`,
+				...attributes.map((attribute) => `${indent}    ${attribute}`),
+				`${indent}/>`,
+			];
+		})
+		.join("\n");
+}
+
 export function ToolsSurface({
 	toolsZone,
 	centerContent = false,
@@ -30,7 +89,7 @@ export function ToolsSurface({
 	 */
 	centerContent?: boolean;
 }) {
-	const rendered = toolsZone.renderedTools ?? "";
+	const rendered = formatToolsForDisplay(toolsZone.renderedTools ?? "");
 	const hasContent = rendered.trim().length > 0;
 
 	return (

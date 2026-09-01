@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 import {
 	classifyRenderedLines,
+	collapseRenderedGapRuns,
+	renderedLineBaseSpaces,
 	type RenderedLineInfo,
 } from "../../../src/ui/view/rendered-line-model";
 
@@ -9,7 +11,55 @@ function roles(content: string): string[] {
 	return classifyRenderedLines(content).map((info) => info.role);
 }
 
+describe("collapseRenderedGapRuns", () => {
+	test("keeps the first source index and strongest tier in a gap run", () => {
+		const infos: RenderedLineInfo[] = [
+			{ role: "content", depth: 0 },
+			{ role: "gap", depth: 0 },
+			{ role: "gap", depth: 0, gapBeforeOpenDepth: 1 },
+			{ role: "gap", depth: 0, gapBeforeOpenDepth: 0 },
+			{ role: "open", depth: 0 },
+		];
+
+		expect(collapseRenderedGapRuns(infos)).toEqual([
+			{ sourceIndex: 0, info: infos[0] },
+			{
+				sourceIndex: 1,
+				info: { role: "gap", depth: 0, gapBeforeOpenDepth: 0 },
+			},
+			{ sourceIndex: 4, info: infos[4] },
+		]);
+	});
+
+	test("leaves a single gap and fenced blank content as separate rows", () => {
+		const infos = classifyRenderedLines("before\n\n```\n\n\n```\nafter");
+
+		expect(collapseRenderedGapRuns(infos).map((line) => line.sourceIndex)).toEqual([
+			0, 1, 2, 3, 4, 5, 6,
+		]);
+	});
+});
+
 describe("classifyRenderedLines", () => {
+	test("classifies multiline self-closing tags as a nested structural block", () => {
+		const content = [
+			"<available_tools>",
+			"    <tool",
+			'        name="kv2_search"',
+			'        label="Search knowledge"',
+			"    />",
+			"</available_tools>",
+		].join("\n");
+		expect(classifyRenderedLines(content)).toEqual([
+			{ role: "open", depth: 0 },
+			{ role: "open", depth: 1 },
+			{ role: "content", depth: 2 },
+			{ role: "content", depth: 2 },
+			{ role: "close", depth: 1 },
+			{ role: "close", depth: 0 },
+		]);
+	});
+
 	test("returns one entry per split line, in order", () => {
 		const content = "<a>\nhello\n</a>";
 		const infos = classifyRenderedLines(content);
@@ -233,5 +283,25 @@ describe("classifyRenderedLines", () => {
 			{ role: "close", depth: 1 },
 			{ role: "close", depth: 0 },
 		]);
+	});
+});
+
+describe("renderedLineBaseSpaces", () => {
+	test("uses the minimum non-blank indentation at each structural depth", () => {
+		const lines = ["  <data>", "    {", '      "nested": true', "    }", "  </data>"];
+		const infos = classifyRenderedLines(lines.join("\n"));
+		expect(renderedLineBaseSpaces(lines, infos)).toEqual([2, 4, 4, 4, 2]);
+	});
+
+	test("blank lines inherit the baseline for their classifier depth", () => {
+		const lines = ["<data>", "", "    value", "</data>"];
+		const infos = classifyRenderedLines(lines.join("\n"));
+		expect(renderedLineBaseSpaces(lines, infos)).toEqual([0, 4, 4, 0]);
+	});
+
+	test("sibling containers keep independent content baselines", () => {
+		const lines = ["<a>", "  one", "</a>", "<b>", "    two", "</b>"];
+		const infos = classifyRenderedLines(lines.join("\n"));
+		expect(renderedLineBaseSpaces(lines, infos)).toEqual([0, 2, 0, 0, 4, 0]);
 	});
 });

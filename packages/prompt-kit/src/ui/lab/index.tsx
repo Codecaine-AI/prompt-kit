@@ -139,7 +139,12 @@ import {
   type LabView,
 } from "./glass/zones";
 import { StateSurface, type LabStateZone } from "./page/StateSurface";
-import { ToolsSurface, type LabToolsZone } from "./page/ToolsSurface";
+import {
+  formatToolsForDisplay,
+  ToolsSurface,
+  type LabToolsZone,
+} from "./page/ToolsSurface";
+import { ConfigSurface, type LabConfigZone } from "./page/ConfigSurface";
 import {
   createAnnotationStore,
   type PromptAnnotationStore,
@@ -174,6 +179,7 @@ export type { LabContextPreview } from "./page/ContextSurface";
 export type { LabView } from "./glass/zones";
 export type { LabFixture, LabStateZone } from "./page/StateSurface";
 export type { LabToolsZone } from "./page/ToolsSurface";
+export type { LabConfigZone } from "./page/ConfigSurface";
 export {
   createPromptLabHistory,
   type PromptLabHistory,
@@ -284,6 +290,8 @@ export interface PromptInlineLabProps {
    * When present the dock's view switcher gains a `tools` entry.
    */
   toolsZone?: LabToolsZone;
+  /** Agent configuration shown in the optional CONFIG panel zone. */
+  configZone?: LabConfigZone;
   /**
    * Store backing annotate mode. When omitted the lab owns an in-memory
    * store, so annotate mode works out of the box (annotations then live only
@@ -375,6 +383,7 @@ export function PromptInlineLab({
   revisionsZone,
   stateZone,
   toolsZone,
+  configZone,
   annotationStore,
   onAnnotationAgentRun,
   onAnnotationUndoPatch,
@@ -713,7 +722,7 @@ export function PromptInlineLab({
     [stateZone?.renderedState],
   );
   const toolsOutlineList = useMemo(
-    () => contextOutlineSections(toolsZone?.renderedTools ?? ""),
+    () => contextOutlineSections(formatToolsForDisplay(toolsZone?.renderedTools ?? "")),
     [toolsZone?.renderedTools],
   );
   const outlineSections =
@@ -723,7 +732,9 @@ export function PromptInlineLab({
         ? contextOutlineList
         : activeView === "tools"
           ? toolsOutlineList
-          : stateOutlineList;
+          : activeView === "state"
+            ? stateOutlineList
+            : [];
 
   // Human-readable target labels for queue rows: the node's own outline
   // label, else its nearest outlined ANCESTOR's (a field inside
@@ -1933,6 +1944,12 @@ export function PromptInlineLab({
               }}
             />
           </PanelZone>
+
+          {configZone && (
+            <PanelZone id="config" label="Config">
+              <ConfigSurface configZone={configZone} />
+            </PanelZone>
+          )}
 
           {/* FIXTURE — state view only: pick the snapshot the surface shows. */}
           {activeView === "state" && stateZone && (
