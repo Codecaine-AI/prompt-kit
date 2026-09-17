@@ -389,13 +389,66 @@ describe("PromptInlineLab config zone", () => {
     expect(changes).toEqual(["gpt-5-mini"]);
   });
 
-  test("shows an em dash for a null model", () => {
+  test("shows an unset label for a null model", () => {
     render(<PromptInlineLab prompt={prompt} configZone={{ model: null }} />);
 
     const configZone = document.querySelector<HTMLElement>(
       '[data-lab-zone="config"]',
     )!;
-    expect(within(configZone).getByText("—")).toBeTruthy();
+    expect(within(configZone).getByText("Not configured")).toBeTruthy();
+  });
+});
+
+describe("PromptInlineLab preview and thinking controls", () => {
+  test("context fixtures stay available across views and change context and tools together", () => {
+    const selections: string[] = [];
+    const fixtures = [{ id: "B1", label: "B1 skincare" }, { id: "B2", label: "B2 availability" }];
+    const props = (id: string) => ({
+      prompt,
+      contextFixtures: { fixtures, activeFixtureId: id, onFixtureSelect: (value: string) => selections.push(value) },
+      context: { renderedContext: `<assignment>${id}</assignment>` },
+      toolsZone: { renderedTools: `<tool>${id}_submit</tool>` },
+    });
+    const { rerender } = render(<PromptInlineLab {...props("B1")} />);
+    const selector = () => screen.getByRole("combobox", { name: "Context fixture" });
+    fireEvent.change(selector(), { target: { value: "B2" } });
+    expect(selections).toEqual(["B2"]);
+    rerender(<PromptInlineLab {...props("B2")} />);
+    fireEvent.click(document.querySelector('[data-lab-view="context"]')!);
+    expect(document.querySelector('[data-context-scroll="context"]')?.textContent).toContain("B2");
+    expect(document.querySelector('[data-context-scroll="context"]')?.textContent).not.toContain("B1");
+    expect((selector() as HTMLSelectElement).value).toBe("B2");
+    fireEvent.click(document.querySelector('[data-lab-view="tools"]')!);
+    expect(document.querySelector('[data-context-scroll="tools"]')?.textContent).toContain("B2_submit");
+    expect(selector()).toBeTruthy();
+    rerender(<PromptInlineLab prompt={prompt} />);
+    expect(screen.queryByRole("combobox", { name: "Context fixture" })).toBeNull();
+  });
+
+  test("thinking is controlled by the host with supported options and save feedback", () => {
+    const changes: string[] = [];
+    const config = { model: "test/model", thinking: "medium", thinkingOptions: ["low", "medium", "high"], onThinkingChange: (value: string) => changes.push(value) };
+    const { rerender } = render(<PromptInlineLab prompt={prompt} configZone={config} />);
+    const selector = () => screen.getByRole("combobox", { name: "Default thinking" }) as HTMLSelectElement;
+    expect(Array.from(selector().options, option => option.value)).toEqual(["low", "medium", "high"]);
+    fireEvent.change(selector(), { target: { value: "high" } });
+    expect(changes).toEqual(["high"]);
+    rerender(<PromptInlineLab prompt={prompt} configZone={{ ...config, disabled: true, status: "Saving…" }} />);
+    expect(selector().disabled).toBe(true);
+    expect(selector().value).toBe("medium");
+    expect(screen.getByRole("status").textContent).toBe("Saving…");
+    rerender(<PromptInlineLab prompt={prompt} configZone={{ ...config, error: "Save failed" }} />);
+    expect(selector().value).toBe("medium");
+    expect(screen.getByRole("alert").textContent).toBe("Save failed");
+    rerender(<PromptInlineLab prompt={prompt} configZone={{ ...config, thinking: "high", status: "Saved for future runs." }} />);
+    expect(selector().value).toBe("high");
+  });
+
+  test("thinking without a save callback is read-only", () => {
+    render(<PromptInlineLab prompt={prompt} configZone={{ model: "test/model", thinking: "medium", thinkingOptions: ["medium"] }} />);
+    expect(screen.getByText("Default thinking")).toBeTruthy();
+    expect(screen.getByText("medium")).toBeTruthy();
+    expect(screen.queryByRole("combobox", { name: "Default thinking" })).toBeNull();
   });
 });
 

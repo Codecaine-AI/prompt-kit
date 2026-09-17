@@ -1,14 +1,5 @@
-// Read-only CONTEXT surface: the assembled context preview rendered on the
-// shared editor surface (same gutter, grid, zebra tokens, and opportunistic
-// XML highlighting as the prompt views) via PromptView. Read-only means no
-// hover/insert/drag affordances — native selection/copy only, and the
-// rendered text stays byte-exact. The context token count surfaces in the lab
-// statusbar, not here.
-//
-// It carries the same wayfinding column as the SYSTEM view: the outline is a
-// map of the document, not an editing affordance, so a read-only surface
-// wants it just as much. Entries are recovered from the rendered string (no
-// document model here) and click scrolls the buffer — nothing writes.
+// Read-only context preview. JSON payloads have a formatted reading view;
+// Source retains the original text. Neither view changes the agent context.
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -23,6 +14,8 @@ import {
 	type OutlineSection,
 } from "../../editor/buffer/SectionOutline";
 import { PromptView } from "../../view/PromptView";
+import { ContextReadingView } from "./ContextReadingView";
+import { contextReadingParts } from "./context-reading-model";
 import { contextOutlineSections } from "./context-outline";
 
 export interface LabContextPreview {
@@ -49,6 +42,9 @@ export function ContextSurface({
 }) {
 	const rendered = context?.renderedContext ?? "";
 	const hasContent = rendered.trim().length > 0;
+	const [sourceView, setSourceView] = useState(false);
+	const readingParts = useMemo(() => contextReadingParts(rendered), [rendered]);
+	const hasStructuredContent = readingParts.some(part => part.kind === "json");
 
 	// One entry per top-level open tag plus its depth-1 children, names only —
 	// the same rule (and the same column) the SYSTEM view uses.
@@ -172,7 +168,15 @@ export function ContextSurface({
 								marginTop: "var(--prompt-editor-margin-top, 0px)",
 							}}
 						>
-							<PromptView content={rendered} title="Context" bare inheritStyle />
+							{hasStructuredContent && <div role="group" aria-label="Context display" className="mb-3 flex gap-1 px-6 text-[11px]">
+								{[{ label: "Formatted", source: false }, { label: "Source", source: true }].map(option => <button key={option.label}
+									type="button" aria-pressed={sourceView === option.source} onClick={() => setSourceView(option.source)}
+									className="rounded px-3 py-1.5 focus-visible:outline focus-visible:outline-2"
+									style={{ color: EDITOR_COLORS.fg, background: sourceView === option.source ? EDITOR_COLORS.landmark : "transparent" }}>{option.label}</button>)}
+							</div>}
+							{hasStructuredContent && !sourceView
+								? <ContextReadingView parts={readingParts} />
+								: <PromptView content={rendered} title="Context" bare inheritStyle />}
 						</div>
 					</div>
 					{outlineShown && (

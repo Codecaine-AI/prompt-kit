@@ -138,6 +138,7 @@ export function PromptView({
 	bare = false,
 	size = "sm",
 	inheritStyle = false,
+	rowOffset = 0,
 }: {
 	content: string | null;
 	title: string;
@@ -154,6 +155,8 @@ export function PromptView({
 	 * without a remount.
 	 */
 	inheritStyle?: boolean;
+	/** Source row offset when rendering one part of a larger context. */
+	rowOffset?: number;
 }) {
 	const lines = useMemo(() => (content ? content.split("\n") : []), [content]);
 	const lineInfos = useMemo(
@@ -223,7 +226,7 @@ export function PromptView({
 								// Scroll anchor: a host with a wayfinding column (the lab's
 								// CONTEXT surface) addresses a row by its zero-based line index.
 								// Attribute only — nothing styles off it.
-								data-prompt-row={index}
+								data-prompt-row={index + rowOffset}
 								style={{
 									border: 0,
 									boxShadow: "none",
