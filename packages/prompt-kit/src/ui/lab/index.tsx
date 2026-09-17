@@ -144,6 +144,7 @@ import {
   ToolsSurface,
   type LabToolsZone,
 } from "./page/ToolsSurface";
+import { FixtureSelect, type LabContextFixtures } from "./page/FixtureSelect";
 import { ConfigSurface, type LabConfigZone } from "./page/ConfigSurface";
 import {
   createAnnotationStore,
@@ -179,6 +180,7 @@ export type { LabContextPreview } from "./page/ContextSurface";
 export type { LabView } from "./glass/zones";
 export type { LabFixture, LabStateZone } from "./page/StateSurface";
 export type { LabToolsZone } from "./page/ToolsSurface";
+export type { LabContextFixtures } from "./page/FixtureSelect";
 export type { LabConfigZone } from "./page/ConfigSurface";
 export {
   createPromptLabHistory,
@@ -269,6 +271,8 @@ export interface PromptInlineLabProps {
   }) => Promise<ManifestSaveOutcome>;
   /** Read-only context preview shown when the dock selects CONTEXT. */
   context?: LabContextPreview;
+  /** Named context fixtures controlled by the host. */
+  contextFixtures?: LabContextFixtures;
   /**
    * Viewer-only style settings controlled by the host. When omitted, the lab
    * reads the persisted settings once while mounting.
@@ -379,6 +383,7 @@ export function PromptInlineLab({
   manifest,
   onManifestSave,
   context,
+  contextFixtures,
   styleSettings,
   revisionsZone,
   stateZone,
@@ -1944,6 +1949,12 @@ export function PromptInlineLab({
               }}
             />
           </PanelZone>
+
+          {contextFixtures && contextFixtures.fixtures.length > 0 && (
+            <PanelZone id="context-fixture" label="Preview">
+              <FixtureSelect {...contextFixtures} />
+            </PanelZone>
+          )}
 
           {configZone && (
             <PanelZone id="config" label="Config">

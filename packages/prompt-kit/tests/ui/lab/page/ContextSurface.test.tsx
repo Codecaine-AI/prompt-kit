@@ -149,3 +149,18 @@ describe("contextOutlineSections", () => {
 		]);
 	});
 });
+
+describe("ContextSurface JSON syntax", () => {
+	test("keeps indented JSON and colors keys and values without a field layout", () => {
+		const content = '<evaluation_assignment>\n' + JSON.stringify({ brand: "Example Skincare", count: 3, ready: true, requirements: ["Check every page."] }, null, 2) + '\n</evaluation_assignment>';
+		const { container } = render(<ContextSurface context={{ renderedContext: content }} />);
+		const rows = Array.from(container.querySelectorAll("[data-prompt-row]"), row => row.textContent);
+		expect(rows.join("\n")).toBe(content);
+		expect(container.querySelector('[data-json-token="key"]')?.textContent).toBe('"brand"');
+		expect(container.querySelector('[data-json-token="string"]')?.textContent).toBe('"Example Skincare"');
+		expect(container.querySelector('[data-json-token="number"]')?.textContent).toBe('3');
+		expect(container.querySelector('[data-json-token="literal"]')?.textContent).toBe('true');
+		expect(container.querySelector("dl")).toBeNull();
+		expect(screen.queryByRole("button", { name: "Formatted" })).toBeNull();
+	});
+});
