@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "client": "codex",
+  "installedConnection": "codecaine-prompts",
+  "toolCount": 9,
+  "realProject": "prompt-kit-2a7e4f4c",
+  "realPrompt": "promptEditorPrompt",
+  "checks": [
+    "real catalog read",
+    "guidance loaded",
+    "two-client saved revision visibility",
+    "derived render",
+    "stale revision rejection",
+    "completion check",
+    "guarded undo",
+    "task end"
+  ],
+  "verifiedAt": "2026-09-18T00:16:10.438Z"
+}

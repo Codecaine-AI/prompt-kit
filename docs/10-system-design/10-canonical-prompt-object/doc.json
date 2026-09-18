@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-10-canonical-prompt-object",
+  "title": "Canonical Prompt Object",
+  "root": "b-10-canonical-prompt-object-root-23",
+  "blocks": {
+    "b-10-canonical-prompt-object-root-23": {
+      "id": "b-10-canonical-prompt-object-root-23",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "PromptDocument",
+          "nodes",
+          "schema",
+          "ids"
+        ],
+        "covers": "The canonical prompt object model used by prompt-kit, including PromptDocument, block nodes, inline nodes, metadata, and stable ids.",
+        "depends-on": [
+          "00-foundation/20-authoring-principles.md"
+        ]
+      },
+      "children": [
+        "b-10-canonical-prompt-object-the-canonical-prompt-obj-2",
+        "b-10-canonical-prompt-object-divider-3",
+        "b-10-canonical-prompt-object-document-shape-4",
+        "b-10-canonical-prompt-object-every-prompt-document-ha-5",
+        "b-10-canonical-prompt-object-ts-6",
+        "b-10-canonical-prompt-object-the-document-is-intentio-7",
+        "b-10-canonical-prompt-object-block-nodes-8",
+        "b-10-canonical-prompt-object-prompt-kit-uses-a-compac-9",
+        "b-10-canonical-prompt-object-node-purpose-10",
+        "b-10-canonical-prompt-object-this-set-covers-common-p-11",
+        "b-10-canonical-prompt-object-inline-nodes-12",
+        "b-10-canonical-prompt-object-inline-content-can-be-st-13",
+        "b-10-canonical-prompt-object-ts-14",
+        "b-10-canonical-prompt-object-variables-render-from-a-15",
+        "b-10-canonical-prompt-object-stable-ids-16",
+        "b-10-canonical-prompt-object-every-node-can-carry-an-17",
+        "b-10-canonical-prompt-object-good-ids-are-stable-and-18",
+        "b-10-canonical-prompt-object-ts-19",
+        "b-10-canonical-prompt-object-avoid-ids-based-on-posit-20",
+        "b-10-canonical-prompt-object-metadata-21",
+        "b-10-canonical-prompt-object-documents-and-nodes-can-22"
+      ]
+    },
+    "b-10-canonical-prompt-object-the-canonical-prompt-obj-2": {
+      "id": "b-10-canonical-prompt-object-the-canonical-prompt-obj-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The canonical prompt object is a "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It is the source of truth for\nprompt authoring and the input to renderers, validators, transforms, and preview\nmodels."
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-divider-3": {
+      "id": "b-10-canonical-prompt-object-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-canonical-prompt-object-document-shape-4": {
+      "id": "b-10-canonical-prompt-object-document-shape-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Document Shape"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-every-prompt-document-ha-5": {
+      "id": "b-10-canonical-prompt-object-every-prompt-document-ha-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every prompt document has a schema version and an id:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-ts-6": {
+      "id": "b-10-canonical-prompt-object-ts-6",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "interface PromptDocument {\n  kind: \"prompt\";\n  schemaVersion: \"prompt-kit/v1\";\n  id: string;\n  title?: string;\n  description?: string;\n  archetype?: \"singleOutput\" | \"workflow\" | (string & {});\n  nodes: PromptBlockNode[];\n  metadata?: Record<string, unknown>;\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-the-document-is-intentio-7": {
+      "id": "b-10-canonical-prompt-object-the-document-is-intentio-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The document is intentionally generic. "
+        },
+        {
+          "insert": "archetype",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " helps templates and tooling\nunderstand broad intent, while "
+        },
+        {
+          "insert": "nodes",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " carries the real prompt body."
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-block-nodes-8": {
+      "id": "b-10-canonical-prompt-object-block-nodes-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Block Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-prompt-kit-uses-a-compac-9": {
+      "id": "b-10-canonical-prompt-object-prompt-kit-uses-a-compac-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit uses a compact block vocabulary:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-node-purpose-10": {
+      "id": "b-10-canonical-prompt-object-node-purpose-10",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Node",
+          "Purpose"
+        ],
+        "rows": [
+          [
+            "section",
+            "Semantic XML-rendered grouping such as purpose, rules, or workflow"
+          ],
+          [
+            "paragraph",
+            "Inline text rendered as a paragraph line"
+          ],
+          [
+            "bulletList",
+            "Unordered list with optional child blocks on each item"
+          ],
+          [
+            "orderedList",
+            "Numbered list with optional child blocks on each item"
+          ],
+          [
+            "field",
+            "Label/value pair, optionally with child detail"
+          ],
+          [
+            "codeBlock",
+            "Fenced code or format examples"
+          ],
+          [
+            "example",
+            "Example section with optional title"
+          ],
+          [
+            "raw",
+            "Escape hatch for already-rendered text"
+          ],
+          [
+            "contextUsage",
+            "Prompt-side instruction that names a runtime context packet"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-10-canonical-prompt-object-this-set-covers-common-p-11": {
+      "id": "b-10-canonical-prompt-object-this-set-covers-common-p-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This set covers common prompt structure without forcing a fixed document layout."
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-inline-nodes-12": {
+      "id": "b-10-canonical-prompt-object-inline-nodes-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Inline Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-inline-content-can-be-st-13": {
+      "id": "b-10-canonical-prompt-object-inline-content-can-be-st-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Inline content can be strings, variable references, or generic references:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-ts-14": {
+      "id": "b-10-canonical-prompt-object-ts-14",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "type PromptInline = string | VariableReferenceNode | ReferenceNode;"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-variables-render-from-a-15": {
+      "id": "b-10-canonical-prompt-object-variables-render-from-a-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Variables render from a provided variable map, use a fallback when present, or\nfall back to "
+        },
+        {
+          "insert": "{{variableName}}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " placeholders depending on renderer options.\nReferences render as placeholders such as "
+        },
+        {
+          "insert": "{{tool:search}}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for consumers that\nwant to resolve them later."
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-stable-ids-16": {
+      "id": "b-10-canonical-prompt-object-stable-ids-16",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Stable Ids"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-every-node-can-carry-an-17": {
+      "id": "b-10-canonical-prompt-object-every-node-can-carry-an-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every node can carry an optional "
+        },
+        {
+          "insert": "id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Ids are not required for simple prompts,\nbut they become important when a host wants to compose a prompt by replacing,\nomitting, or inserting a particular section."
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-good-ids-are-stable-and-18": {
+      "id": "b-10-canonical-prompt-object-good-ids-are-stable-and-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Good ids are stable and semantic:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-ts-19": {
+      "id": "b-10-canonical-prompt-object-ts-19",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "{\n  type: \"section\",\n  tag: \"rules\",\n  id: \"sourceRules\",\n  children: [{ type: \"paragraph\", content: [\"Prefer primary sources.\"] }],\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-avoid-ids-based-on-posit-20": {
+      "id": "b-10-canonical-prompt-object-avoid-ids-based-on-posit-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Avoid ids based on position or phrasing. A node id should survive copy edits."
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-metadata-21": {
+      "id": "b-10-canonical-prompt-object-metadata-21",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Metadata"
+        }
+      ],
+      "children": []
+    },
+    "b-10-canonical-prompt-object-documents-and-nodes-can-22": {
+      "id": "b-10-canonical-prompt-object-documents-and-nodes-can-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Documents and nodes can carry arbitrary metadata. Metadata is for tooling,\neditor state, provenance, tags, or package-specific conventions. Core renderers\nignore metadata unless a renderer explicitly chooses to use it."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,598 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-70-prompt-structure-20-workflow",
+  "title": "Workflow Structure",
+  "root": "b-20-workflow-root-34",
+  "blocks": {
+    "b-20-workflow-root-34": {
+      "id": "b-20-workflow-root-34",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "workflow",
+          "phases",
+          "state-navigation"
+        ],
+        "covers": "How workflow sections express state-navigated agent procedures through phases, objectives, steps, and an open question on optional phase fields.",
+        "depends-on": [
+          "10-system-design/70-prompt-structure/10-agent-prompt.md",
+          "10-system-design/10-canonical-prompt-object.md"
+        ]
+      },
+      "children": [
+        "b-20-workflow-an-agent-workflow-descri-2",
+        "b-20-workflow-the-defining-rule-is-the-3",
+        "b-20-workflow-divider-4",
+        "b-20-workflow-canonical-shape-5",
+        "b-20-workflow-every-workflow-conta-6",
+        "b-20-workflow-xml-7",
+        "b-20-workflow-phases-are-always-presen-8",
+        "b-20-workflow-phase-names-are-snake-ca-9",
+        "b-20-workflow-required-fields-10",
+        "b-20-workflow-objective-explains-t-11",
+        "b-20-workflow-steps-is-a-numbered-12",
+        "b-20-workflow-write-loops-as-an-explic-13",
+        "b-20-workflow-text-14",
+        "b-20-workflow-the-condition-must-be-ob-15",
+        "b-20-workflow-fixed-shallow-nesting-16",
+        "b-20-workflow-workflow-nesting-is-fixe-17",
+        "b-20-workflow-text-18",
+        "b-20-workflow-xml-tags-exist-only-to-s-19",
+        "b-20-workflow-the-shallow-hierarchy-al-20",
+        "b-20-workflow-navigation-by-state-21",
+        "b-20-workflow-the-workflow-references-22",
+        "b-20-workflow-never-write-navigation-s-23",
+        "b-20-workflow-open-question-optional-24",
+        "b-20-workflow-four-optional-fields-are-25",
+        "b-20-workflow-field-purpose-26",
+        "b-20-workflow-which-of-these-distincti-27",
+        "b-20-workflow-worked-phase-28",
+        "b-20-workflow-this-phase-navigates-ent-29",
+        "b-20-workflow-xml-30",
+        "b-20-workflow-the-example-does-not-nee-31",
+        "b-20-workflow-relation-to-the-canonica-32",
+        "b-20-workflow-workflow-structure-is-ex-33"
+      ]
+    },
+    "b-20-workflow-an-agent-workflow-descri-2": {
+      "id": "b-20-workflow-an-agent-workflow-descri-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent workflow describes a procedure that may span calls while remaining\nlegible as one linear document. Its structure makes phase boundaries explicit,\nbut leaves the reasoning and instructions inside each boundary as ordinary\nprose and lists."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-the-defining-rule-is-the-3": {
+      "id": "b-20-workflow-the-defining-rule-is-the-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The defining rule is the same as for an\n"
+        },
+        {
+          "insert": "agent prompt",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure/10-agent-prompt"
+            }
+          }
+        },
+        {
+          "insert": ": the agent navigates by state, never by turn\ncount. The workflow names state fields declared in "
+        },
+        {
+          "insert": "<state_structure>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " so the\nagent can determine its current phase again on every request."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-divider-4": {
+      "id": "b-20-workflow-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-workflow-canonical-shape-5": {
+      "id": "b-20-workflow-canonical-shape-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Canonical Shape"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-every-workflow-conta-6": {
+      "id": "b-20-workflow-every-workflow-conta-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every "
+        },
+        {
+          "insert": "<workflow>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " contains one or more named "
+        },
+        {
+          "insert": "<phase>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " blocks. Each phase\ncontains an "
+        },
+        {
+          "insert": "<objective>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "<steps>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ":"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-xml-7": {
+      "id": "b-20-workflow-xml-7",
+      "type": "code",
+      "props": {
+        "language": "xml"
+      },
+      "text": [
+        {
+          "insert": "<workflow>\n    <phase name=\"snake_case_verb_phrase\">\n        <objective>\n            State what this phase accomplishes and why it exists.\n        </objective>\n        <steps>\n            1. Perform the first action.\n            2. Perform the next action.\n        </steps>\n    </phase>\n</workflow>"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-phases-are-always-presen-8": {
+      "id": "b-20-workflow-phases-are-always-presen-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Phases are always present. A steps-only workflow hides the positions an agent\nmust recognize across calls and gives state navigation nothing stable to name.\nUse as few phases as the process honestly has; there is no phase-count cap."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-phase-names-are-snake-ca-9": {
+      "id": "b-20-workflow-phase-names-are-snake-ca-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Phase names are snake-case verb phrases such as "
+        },
+        {
+          "insert": "collect_evidence",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or\n"
+        },
+        {
+          "insert": "resolve_open_requests",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The verb keeps the name operational, while the stable\nname gives authors, traces, and state-aware agents a shared label for that part\nof the process."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-required-fields-10": {
+      "id": "b-20-workflow-required-fields-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Required Fields"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-objective-explains-t-11": {
+      "id": "b-20-workflow-objective-explains-t-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "<objective>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " explains the purpose of the phase in one or two sentences. It is\nnot a restatement of every step. A useful objective identifies the result the\nphase creates, making the phase boundary understandable before the procedure is\nread."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-steps-is-a-numbered-12": {
+      "id": "b-20-workflow-steps-is-a-numbered-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "<steps>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a numbered imperative list. Each item tells the agent what to do,\nnot what it might consider doing. Branch details may use sentences or nested\nlist items, but they do not introduce more XML tags."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-write-loops-as-an-explic-13": {
+      "id": "b-20-workflow-write-loops-as-an-explic-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Write loops as an explicit return to a numbered step:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-text-14": {
+      "id": "b-20-workflow-text-14",
+      "type": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "Loop to step N until [condition on a state field]."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-the-condition-must-be-ob-15": {
+      "id": "b-20-workflow-the-condition-must-be-ob-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The condition must be observable in state. \"Loop until the work seems done\" is\nnot navigable; \"Loop to step 2 until "
+        },
+        {
+          "insert": "open_queue",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is empty\" is."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-fixed-shallow-nesting-16": {
+      "id": "b-20-workflow-fixed-shallow-nesting-16",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Fixed, Shallow Nesting"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-workflow-nesting-is-fixe-17": {
+      "id": "b-20-workflow-workflow-nesting-is-fixe-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Workflow nesting is fixed:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-text-18": {
+      "id": "b-20-workflow-text-18",
+      "type": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "workflow > phase > field > list"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-xml-tags-exist-only-to-s-19": {
+      "id": "b-20-workflow-xml-tags-exist-only-to-s-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "XML tags exist only to show where these structural regions start and stop.\nInside a field, use bullets, numbers, or sentences. Do not add tags for tasks,\nbranches, conditions, checks, or loop bodies. This keeps the rendered prompt in\nlinear reading order and prevents markup from becoming a second programming\nlanguage."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-the-shallow-hierarchy-al-20": {
+      "id": "b-20-workflow-the-shallow-hierarchy-al-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The shallow hierarchy also makes structural edits predictable. A phase can be\nreplaced without parsing its prose, while a human can still read the whole\nworkflow from top to bottom without chasing nested control structures."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-navigation-by-state-21": {
+      "id": "b-20-workflow-navigation-by-state-21",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Navigation By State"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-the-workflow-references-22": {
+      "id": "b-20-workflow-the-workflow-references-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The workflow references the state fields declared by the agent prompt's\n"
+        },
+        {
+          "insert": "<state_structure>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Those fields describe the live picture: for example, the\ncurrent document, the open queue, or the changes recorded so far. On each call,\nthe agent reads that picture and selects the phase whose objective and steps\napply."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-never-write-navigation-s-23": {
+      "id": "b-20-workflow-never-write-navigation-s-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Never write navigation such as \"on the second turn\" or \"after three calls.\"\nTurn counts describe execution history, not process position, and retries or\npartial calls make them drift. Conditions such as \"when "
+        },
+        {
+          "insert": "open_queue",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is empty\"\nremain true regardless of how many calls were needed to reach them."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-open-question-optional-24": {
+      "id": "b-20-workflow-open-question-optional-24",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Open Question: Optional Phase Fields"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-four-optional-fields-are-25": {
+      "id": "b-20-workflow-four-optional-fields-are-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Four optional fields are allowed:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-field-purpose-26": {
+      "id": "b-20-workflow-field-purpose-26",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Field",
+          "Purpose"
+        ],
+        "rows": [
+          [
+            "<inputs>",
+            "Names the state fields the phase reads"
+          ],
+          [
+            "<outputs>",
+            "Names the state fields the phase writes"
+          ],
+          [
+            "<constraints>",
+            "Holds rules local to this phase"
+          ],
+          [
+            "<advance_when>",
+            "States the phase exit condition instead of putting it inline in the steps"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-20-workflow-which-of-these-distincti-27": {
+      "id": "b-20-workflow-which-of-these-distincti-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Which of these distinctions earn their space is an open question. Mandate none\nof these fields, and invent no others. Prefer the required objective and steps\nwhenever they already make the procedure unambiguous."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-worked-phase-28": {
+      "id": "b-20-workflow-worked-phase-28",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Worked Phase"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-this-phase-navigates-ent-29": {
+      "id": "b-20-workflow-this-phase-navigates-ent-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This phase navigates entirely from the declared "
+        },
+        {
+          "insert": "open_queue",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ",\n"
+        },
+        {
+          "insert": "current_document",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "changes_so_far",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " state fields:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-xml-30": {
+      "id": "b-20-workflow-xml-30",
+      "type": "code",
+      "props": {
+        "language": "xml"
+      },
+      "text": [
+        {
+          "insert": "<workflow>\n    <phase name=\"resolve_open_requests\">\n        <objective>\n            Resolve every actionable request while preserving an inspectable\n            record of how the current document changed.\n        </objective>\n        <steps>\n            1. Read the next actionable entry in `open_queue` against `current_document`.\n            2. Apply the smallest change that resolves that entry.\n            3. Record the result in `changes_so_far` and update `open_queue`.\n            4. Loop to step 1 until `open_queue` is empty.\n        </steps>\n    </phase>\n</workflow>"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-the-example-does-not-nee-31": {
+      "id": "b-20-workflow-the-example-does-not-nee-31",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The example does not need optional fields: its reads, writes, and exit\ncondition are already clear in the steps. Adding field tags would make the\nprompt longer without changing how the phase is navigated."
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-relation-to-the-canonica-32": {
+      "id": "b-20-workflow-relation-to-the-canonica-32",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Relation to the Canonical Prompt Object"
+        }
+      ],
+      "children": []
+    },
+    "b-20-workflow-workflow-structure-is-ex-33": {
+      "id": "b-20-workflow-workflow-structure-is-ex-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Workflow structure is expressed entirely through the existing vocabulary of the\n"
+        },
+        {
+          "insert": "canonical prompt object",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-canonical-prompt-object"
+            }
+          }
+        },
+        {
+          "insert": "; it introduces no\nworkflow-specific structure of its own."
+        }
+      ],
+      "children": []
+    }
+  }
+}

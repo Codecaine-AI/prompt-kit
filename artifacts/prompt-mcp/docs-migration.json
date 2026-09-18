@@ -1,0 +1,293 @@
+{
+  "generatedAt": "2026-09-18T00:31:26.091Z",
+  "docsDir": "docs",
+  "draftsPolicy": "exempt",
+  "totals": {
+    "filesFound": 35,
+    "filesMigrated": 29,
+    "filesSkipped": 6,
+    "filesFailed": 0,
+    "blocksCreated": 883,
+    "warnings": 3
+  },
+  "migrated": [
+    {
+      "sourcePath": "docs/00-foundation/00-overview.md",
+      "bundleDir": "docs/00-foundation/00-overview",
+      "docJsonPath": "docs/00-foundation/00-overview/doc.json",
+      "blockCount": 11,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/00-foundation/10-purpose-and-boundary.md",
+      "bundleDir": "docs/00-foundation/10-purpose-and-boundary",
+      "docJsonPath": "docs/00-foundation/10-purpose-and-boundary/doc.json",
+      "blockCount": 19,
+      "warnings": [
+        "Unclassifiable internal-looking link target: \"../10-system-design/60-editor/\""
+      ],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/00-foundation/20-authoring-principles.md",
+      "bundleDir": "docs/00-foundation/20-authoring-principles",
+      "docJsonPath": "docs/00-foundation/20-authoring-principles/doc.json",
+      "blockCount": 16,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/00-overview.md",
+      "bundleDir": "docs/00-overview",
+      "docJsonPath": "docs/00-overview/doc.json",
+      "blockCount": 13,
+      "warnings": [
+        "Unclassifiable internal-looking link target: \"10-system-design/60-editor/\"",
+        "Unclassifiable internal-looking link target: \"10-system-design/70-prompt-structure/\""
+      ],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/00-overview.md",
+      "bundleDir": "docs/10-system-design/00-overview",
+      "docJsonPath": "docs/10-system-design/00-overview/doc.json",
+      "blockCount": 23,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/10-canonical-prompt-object.md",
+      "bundleDir": "docs/10-system-design/10-canonical-prompt-object",
+      "docJsonPath": "docs/10-system-design/10-canonical-prompt-object/doc.json",
+      "blockCount": 23,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/20-authoring-model.md",
+      "bundleDir": "docs/10-system-design/20-authoring-model",
+      "docJsonPath": "docs/10-system-design/20-authoring-model/doc.json",
+      "blockCount": 48,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/30-rendering-model.md",
+      "bundleDir": "docs/10-system-design/30-rendering-model",
+      "docJsonPath": "docs/10-system-design/30-rendering-model/doc.json",
+      "blockCount": 28,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/40-composition-and-transforms.md",
+      "bundleDir": "docs/10-system-design/40-composition-and-transforms",
+      "docJsonPath": "docs/10-system-design/40-composition-and-transforms/doc.json",
+      "blockCount": 16,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/50-validation-contract.md",
+      "bundleDir": "docs/10-system-design/50-validation-contract",
+      "docJsonPath": "docs/10-system-design/50-validation-contract/doc.json",
+      "blockCount": 26,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/60-editor/00-overview.md",
+      "bundleDir": "docs/10-system-design/60-editor/00-overview",
+      "docJsonPath": "docs/10-system-design/60-editor/00-overview/doc.json",
+      "blockCount": 27,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/60-editor/10-editing-model.md",
+      "bundleDir": "docs/10-system-design/60-editor/10-editing-model",
+      "docJsonPath": "docs/10-system-design/60-editor/10-editing-model/doc.json",
+      "blockCount": 32,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/60-editor/20-keyboard-model.md",
+      "bundleDir": "docs/10-system-design/60-editor/20-keyboard-model",
+      "docJsonPath": "docs/10-system-design/60-editor/20-keyboard-model/doc.json",
+      "blockCount": 29,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/60-editor/30-presentation.md",
+      "bundleDir": "docs/10-system-design/60-editor/30-presentation",
+      "docJsonPath": "docs/10-system-design/60-editor/30-presentation/doc.json",
+      "blockCount": 23,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/60-editor/40-block-vocabulary.md",
+      "bundleDir": "docs/10-system-design/60-editor/40-block-vocabulary",
+      "docJsonPath": "docs/10-system-design/60-editor/40-block-vocabulary/doc.json",
+      "blockCount": 19,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/60-editor/50-interaction-model.md",
+      "bundleDir": "docs/10-system-design/60-editor/50-interaction-model",
+      "docJsonPath": "docs/10-system-design/60-editor/50-interaction-model/doc.json",
+      "blockCount": 43,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/60-editor/60-application-shell.md",
+      "bundleDir": "docs/10-system-design/60-editor/60-application-shell",
+      "docJsonPath": "docs/10-system-design/60-editor/60-application-shell/doc.json",
+      "blockCount": 35,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/70-prompt-structure/00-overview.md",
+      "bundleDir": "docs/10-system-design/70-prompt-structure/00-overview",
+      "docJsonPath": "docs/10-system-design/70-prompt-structure/00-overview/doc.json",
+      "blockCount": 25,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/70-prompt-structure/10-agent-prompt.md",
+      "bundleDir": "docs/10-system-design/70-prompt-structure/10-agent-prompt",
+      "docJsonPath": "docs/10-system-design/70-prompt-structure/10-agent-prompt/doc.json",
+      "blockCount": 54,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/70-prompt-structure/20-workflow.md",
+      "bundleDir": "docs/10-system-design/70-prompt-structure/20-workflow",
+      "docJsonPath": "docs/10-system-design/70-prompt-structure/20-workflow/doc.json",
+      "blockCount": 34,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/70-prompt-structure/30-single-output.md",
+      "bundleDir": "docs/10-system-design/70-prompt-structure/30-single-output",
+      "docJsonPath": "docs/10-system-design/70-prompt-structure/30-single-output/doc.json",
+      "blockCount": 34,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/70-prompt-structure/40-quality.md",
+      "bundleDir": "docs/10-system-design/70-prompt-structure/40-quality",
+      "docJsonPath": "docs/10-system-design/70-prompt-structure/40-quality/doc.json",
+      "blockCount": 86,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/70-prompt-structure/50-techniques.md",
+      "bundleDir": "docs/10-system-design/70-prompt-structure/50-techniques",
+      "docJsonPath": "docs/10-system-design/70-prompt-structure/50-techniques/doc.json",
+      "blockCount": 66,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/10-system-design/80-kernel-boundary.md",
+      "bundleDir": "docs/10-system-design/80-kernel-boundary",
+      "docJsonPath": "docs/10-system-design/80-kernel-boundary/doc.json",
+      "blockCount": 27,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/20-implementation/00-overview.md",
+      "bundleDir": "docs/20-implementation/00-overview",
+      "docJsonPath": "docs/20-implementation/00-overview/doc.json",
+      "blockCount": 10,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/20-implementation/10-prompt-kit/00-overview.md",
+      "bundleDir": "docs/20-implementation/10-prompt-kit/00-overview",
+      "docJsonPath": "docs/20-implementation/10-prompt-kit/00-overview/doc.json",
+      "blockCount": 35,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/20-implementation/10-prompt-kit/10-document.md",
+      "bundleDir": "docs/20-implementation/10-prompt-kit/10-document",
+      "docJsonPath": "docs/20-implementation/10-prompt-kit/10-document/doc.json",
+      "blockCount": 29,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/20-implementation/10-prompt-kit/20-ui.md",
+      "bundleDir": "docs/20-implementation/10-prompt-kit/20-ui",
+      "docJsonPath": "docs/20-implementation/10-prompt-kit/20-ui/doc.json",
+      "blockCount": 22,
+      "warnings": [],
+      "assetsCopied": []
+    },
+    {
+      "sourcePath": "docs/20-implementation/20-prompt-kit-agent.md",
+      "bundleDir": "docs/20-implementation/20-prompt-kit-agent",
+      "docJsonPath": "docs/20-implementation/20-prompt-kit-agent/doc.json",
+      "blockCount": 30,
+      "warnings": [],
+      "assetsCopied": []
+    }
+  ],
+  "skipped": [
+    {
+      "sourcePath": "docs/.drafts/2026-07-31-annotation-agent-ux-session.md",
+      "reason": "docs/.drafts is exempt by default (§8.5)"
+    },
+    {
+      "sourcePath": "docs/.drafts/2026-07-31-prompt-agent-build-blast-radius.md",
+      "reason": "docs/.drafts is exempt by default (§8.5)"
+    },
+    {
+      "sourcePath": "docs/.drafts/2026-08-03-dogfood-session-prompt.md",
+      "reason": "docs/.drafts is exempt by default (§8.5)"
+    },
+    {
+      "sourcePath": "docs/.drafts/2026-08-03-prompt-lab-layout-and-annotation-model.md",
+      "reason": "docs/.drafts is exempt by default (§8.5)"
+    },
+    {
+      "sourcePath": "docs/.drafts/2026-08-03-prompt-structure-design.md",
+      "reason": "docs/.drafts is exempt by default (§8.5)"
+    },
+    {
+      "sourcePath": "docs/.drafts/2026-08-05-annotation-queue-and-glass-panel.md",
+      "reason": "docs/.drafts is exempt by default (§8.5)"
+    }
+  ],
+  "failed": [],
+  "warnings": [
+    {
+      "sourcePath": "docs/00-foundation/10-purpose-and-boundary.md",
+      "message": "Unclassifiable internal-looking link target: \"../10-system-design/60-editor/\""
+    },
+    {
+      "sourcePath": "docs/00-overview.md",
+      "message": "Unclassifiable internal-looking link target: \"10-system-design/60-editor/\""
+    },
+    {
+      "sourcePath": "docs/00-overview.md",
+      "message": "Unclassifiable internal-looking link target: \"10-system-design/70-prompt-structure/\""
+    }
+  ]
+}

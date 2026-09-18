@@ -1,0 +1,646 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-60-editor-50-interaction-model",
+  "title": "Interaction Model",
+  "root": "b-50-interaction-model-root-43",
+  "blocks": {
+    "b-50-interaction-model-root-43": {
+      "id": "b-50-interaction-model-root-43",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "drag",
+          "structural-selection",
+          "gestures",
+          "native-selection",
+          "annotate",
+          "inline-rendering"
+        ],
+        "covers": "The pointer interaction model of the editing surface — the one-handle drag model, plain-drag object selection, native text selection, annotate mode, and read-mode inline rendering.",
+        "depends-on": [
+          "10-system-design/60-editor/10-editing-model.md",
+          "10-system-design/30-rendering-model.md"
+        ]
+      },
+      "children": [
+        "b-50-interaction-model-cross-surface-standard-2",
+        "b-50-interaction-model-the-surface-renders-a-st-3",
+        "b-50-interaction-model-divider-4",
+        "b-50-interaction-model-gesture-language-5",
+        "b-50-interaction-model-gesture-result-6",
+        "b-50-interaction-model-a-unit-is-the-list-item-7",
+        "b-50-interaction-model-caret-first-clicks-8",
+        "b-50-interaction-model-clicking-or-typing-in-te-9",
+        "b-50-interaction-model-explicit-selection-keeps-10",
+        "b-50-interaction-model-quiet-panels-follow-the-11",
+        "b-50-interaction-model-annotate-mode-12",
+        "b-50-interaction-model-in-the-ai-state-the-gla-13",
+        "b-50-interaction-model-the-one-handle-drag-mode-14",
+        "b-50-interaction-model-at-most-one-drag-handle-15",
+        "b-50-interaction-model-draggable-unit-under-the-16",
+        "b-50-interaction-model-item-rows-resolve-to-the-17",
+        "b-50-interaction-model-right-every-other-row-18",
+        "b-50-interaction-model-dragging-a-unit-carries-19",
+        "b-50-interaction-model-the-block-handle-doubles-20",
+        "b-50-interaction-model-drag-only-glyph-sizes-e-21",
+        "b-50-interaction-model-the-ghost-is-a-compact-t-22",
+        "b-50-interaction-model-item-reorders-and-block-23",
+        "b-50-interaction-model-structural-selection-24",
+        "b-50-interaction-model-a-covered-row-band-a-pl-25",
+        "b-50-interaction-model-range-s-extent-resolves-26",
+        "b-50-interaction-model-the-selection-paints-as-27",
+        "b-50-interaction-model-accent-bars-and-gutter-28",
+        "b-50-interaction-model-the-run-moves-by-draggin-29",
+        "b-50-interaction-model-by-grabbing-any-handle-i-30",
+        "b-50-interaction-model-selection-state-survives-31",
+        "b-50-interaction-model-rebuild-the-prompt-objec-32",
+        "b-50-interaction-model-no-drag-draws-a-selectio-33",
+        "b-50-interaction-model-read-mode-inline-renderi-34",
+        "b-50-interaction-model-prose-and-bullet-rows-re-35",
+        "b-50-interaction-model-xml-entities-decode-for-36",
+        "b-50-interaction-model-and-paragraph-field-cont-37",
+        "b-50-interaction-model-inline-xml-ish-tokens-in-38",
+        "b-50-interaction-model-as-inline-code-chips-wit-39",
+        "b-50-interaction-model-edit-mode-shows-raw-sour-40",
+        "b-50-interaction-model-annotation-range-mapping-41",
+        "b-50-interaction-model-offset-walk-is-entity-aw-42"
+      ]
+    },
+    "b-50-interaction-model-cross-surface-standard-2": {
+      "id": "b-50-interaction-model-cross-surface-standard-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The editor uses consistent gestures for selection, dragging, and annotations. The cross-surface convention is "
+        },
+        {
+          "insert": "Core Annotate-Agent UX",
+          "attributes": {
+            "reference": {
+              "kind": "source",
+              "path": "../docs/annotate-agent-ux.md"
+            }
+          }
+        },
+        {
+          "insert": "; this page defines its Prompt Kit behavior."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-the-surface-renders-a-st-3": {
+      "id": "b-50-interaction-model-the-surface-renders-a-st-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The surface renders a structured document, and every pointer gesture acts on\nstructure. The address system is node ids, rings, and runs, not lines or\ncharacters, and ONE BOUNDARY splits the vocabulary, Notion-style, with no\nmodifier: plain gestures within a unit edit text, and the same gestures\ncrossing unit boundaries act on structure. Command is annotate mode's modifier\nonly, in edit mode Cmd+click is a plain click."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-divider-4": {
+      "id": "b-50-interaction-model-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-50-interaction-model-gesture-language-5": {
+      "id": "b-50-interaction-model-gesture-language-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Gesture Language"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-gesture-result-6": {
+      "id": "b-50-interaction-model-gesture-result-6",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Gesture",
+          "Result"
+        ],
+        "rows": [
+          [
+            "Hover",
+            "The one drag handle appears at the unit under the pointer"
+          ],
+          [
+            "Click",
+            "Caret / inline edit ONLY, never a block selection (caret-first)"
+          ],
+          [
+            "Shift+click on a bullet",
+            "Extend a contiguous item-range selection"
+          ],
+          [
+            "Plain drag WITHIN one unit's text",
+            "NATIVE browser text selection; a release confined to one editable row opens the inline editor with the dragged range pre-selected (type to replace)"
+          ],
+          [
+            "Plain drag CROSSING unit boundaries",
+            "OBJECT selection: the anchor-to-pointer row band live-resolves to a structural run (ring) on every move, kept on release"
+          ],
+          [
+            "Plain drag inside the selection ring",
+            "Move the selected run"
+          ],
+          [
+            "Backspace / Delete (selection active, no editor open)",
+            "Remove the run as one transaction"
+          ],
+          [
+            "Escape / plain click elsewhere",
+            "Clear the selection (Escape mid-drag abandons the band)"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-50-interaction-model-a-unit-is-the-list-item-7": {
+      "id": "b-50-interaction-model-a-unit-is-the-list-item-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A unit is the list item under the pointer or, failing that, the owning block\nnode. The drag stays completely inert, native selection and click-to-edit\nuntouched, until the pointer leaves the pressed unit; only then does the\nsurface clear the native selection and suppress text selection, and only for\nthe remainder of that gesture. A drag that crosses out and ends back on its\nanchor unit rings just the anchor unit (the drag route to a single-block\nselection; the grip remains the explicit single-block handle)."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-caret-first-clicks-8": {
+      "id": "b-50-interaction-model-caret-first-clicks-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Caret-First Clicks"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-clicking-or-typing-in-te-9": {
+      "id": "b-50-interaction-model-clicking-or-typing-in-te-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Clicking or typing in text is a CARET gesture, Notion-style: the caret plus\nthe unit-scoped edit wash (hover strength) is the entire treatment, no\nselection fill, no accent rail, no gutter tint. Placing the caret never\nselects the block it lands in; if a block selection exists when the caret\nlands (click, arrow-key caret hop, typing on a selected block), the selection\nis CLEARED, not retargeted. Commits made while an edit session is live also\nsuppress the change callback's selection echo, so hosts cannot re-select the\nedited block on a keystroke."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-explicit-selection-keeps-10": {
+      "id": "b-50-interaction-model-explicit-selection-keeps-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Explicit selection keeps its reach: non-editable rows (close tags, attributed\nopen tags, code fences), the block grip, outline clicks, and queue focus rows\nstill select through the host's selection callback. Selection paint follows\n\"flood never, rail for extent\" with one container rule, CONTAINERS NEVER\nSTRIPE: a selected section fills exactly its own open/close tag rows; a\nselected LIST paints no per-row fill at all (its rendered rows are its\nitems'), keeping only the full-extent rail."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-quiet-panels-follow-the-11": {
+      "id": "b-50-interaction-model-quiet-panels-follow-the-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Quiet panels follow the caret by DERIVATION: the surface reports the edit\nsession's enclosing node, and the shell's details zone shows the explicit\nselection if one exists, else that entry, without writing selection state or\npainting selection chrome."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-annotate-mode-12": {
+      "id": "b-50-interaction-model-annotate-mode-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Annotate Mode"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-in-the-ai-state-the-gla-13": {
+      "id": "b-50-interaction-model-in-the-ai-state-the-gla-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "In the AI state (the glass panel's "
+        },
+        {
+          "insert": "✦",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tab) the vocabulary changes owner: the\nshared annotations package drives hover rings, click-to-pin, and Cmd+drag\nrange annotation, and every editing affordance is hidden. While a composer is\nopen the pin is STICKY, document clicks neither cancel nor re-target it; only\nits × or Escape close it. See the annotations package\n("
+        },
+        {
+          "insert": "@codecaine-ai/annotations",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") for the mode's standard and\n"
+        },
+        {
+          "insert": "Application Shell",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/60-application-shell"
+            }
+          }
+        },
+        {
+          "insert": " for the queue it feeds."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-the-one-handle-drag-mode-14": {
+      "id": "b-50-interaction-model-the-one-handle-drag-mode-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The One-Handle Drag Model"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-at-most-one-drag-handle-15": {
+      "id": "b-50-interaction-model-at-most-one-drag-handle-15",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "At most ONE drag handle exists at any moment: the handle of the deepest"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-draggable-unit-under-the-16": {
+      "id": "b-50-interaction-model-draggable-unit-under-the-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  draggable unit under the pointer, floating at that unit's left content\n  edge, the indentation margin for a nested bullet, the gutter for a\n  top-level block."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-item-rows-resolve-to-the-17": {
+      "id": "b-50-interaction-model-item-rows-resolve-to-the-17",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Item rows resolve to the ITEM (bullets are draggable units in their own"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-right-every-other-row-18": {
+      "id": "b-50-interaction-model-right-every-other-row-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  right); every other row resolves to its owning block. A list never owns a\n  hover handle, because all of its rendered rows are its items'."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-dragging-a-unit-carries-19": {
+      "id": "b-50-interaction-model-dragging-a-unit-carries-19",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Dragging a unit carries its children, so multi-line items move whole."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-the-block-handle-doubles-20": {
+      "id": "b-50-interaction-model-the-block-handle-doubles-20",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The block handle doubles as the block-menu trigger; item handles are"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-drag-only-glyph-sizes-e-21": {
+      "id": "b-50-interaction-model-drag-only-glyph-sizes-e-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  drag-only. Glyph sizes encode the hierarchy (block larger, item smaller)."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-the-ghost-is-a-compact-t-22": {
+      "id": "b-50-interaction-model-the-ghost-is-a-compact-t-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The ghost is a compact token, not a copy of the block: the unit's first\nrendered line, DOM-faithful (entities decoded exactly as displayed), plus a\nmuted \"+N more\" for multi-line drags. The thin drop indicator and the dimmed\nsource rows are the placement feedback."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-item-reorders-and-block-23": {
+      "id": "b-50-interaction-model-item-reorders-and-block-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Item reorders and block-run moves each commit as one undoable transaction."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-structural-selection-24": {
+      "id": "b-50-interaction-model-structural-selection-24",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Structural Selection"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-a-covered-row-band-a-pl-25": {
+      "id": "b-50-interaction-model-a-covered-row-band-a-pl-25",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A covered row band (a plain drag's anchor-to-pointer rows, a shift-click"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-range-s-extent-resolves-26": {
+      "id": "b-50-interaction-model-range-s-extent-resolves-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  range's extent) resolves to the SHALLOWEST contiguous sibling run that\n  exactly covers the rows: bullets within one list select an item run;\n  crossing a list boundary promotes to the block run at the common parent (a\n  partial list promotes to the whole list); a band across sections selects\n  the top-level run. The result is one object in the AST."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-the-selection-paints-as-27": {
+      "id": "b-50-interaction-model-the-selection-paints-as-27",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The selection paints as ONE ring overlay, not per-row washes; hover washes,"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-accent-bars-and-gutter-28": {
+      "id": "b-50-interaction-model-accent-bars-and-gutter-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  accent bars, and gutter tints are suppressed inside it. One ring = one\n  object."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-the-run-moves-by-draggin-29": {
+      "id": "b-50-interaction-model-the-run-moves-by-draggin-29",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The run moves by dragging its body (plain drag anywhere inside the ring) or"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-by-grabbing-any-handle-i-30": {
+      "id": "b-50-interaction-model-by-grabbing-any-handle-i-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  by grabbing any handle inside it, both are the same group drag. Backspace\n  or Delete removes it. Both are single transactions; one undo restores."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-selection-state-survives-31": {
+      "id": "b-50-interaction-model-selection-state-survives-31",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Selection state survives host re-renders by VALIDATION, not identity: hosts"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-rebuild-the-prompt-objec-32": {
+      "id": "b-50-interaction-model-rebuild-the-prompt-objec-32",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  rebuild the prompt object every render, so the state is kept while the\n  document still materializes the run and retired only when it genuinely\n  cannot."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-no-drag-draws-a-selectio-33": {
+      "id": "b-50-interaction-model-no-drag-draws-a-selectio-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "No drag draws a selection rectangle, and there is no modifier-click unit\nselection: the selection gesture is the modifier-free plain drag across unit\nboundaries, live-resolved through the row-band rule on every pointer move."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-read-mode-inline-renderi-34": {
+      "id": "b-50-interaction-model-read-mode-inline-renderi-34",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Read-Mode Inline Rendering"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-prose-and-bullet-rows-re-35": {
+      "id": "b-50-interaction-model-prose-and-bullet-rows-re-35",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prose and bullet rows render the decoded document, not the serialized XML:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-xml-entities-decode-for-36": {
+      "id": "b-50-interaction-model-xml-entities-decode-for-36",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "XML entities decode for display ("
+        },
+        {
+          "insert": "&lt;state&gt;",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " shows as "
+        },
+        {
+          "insert": "<state>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). Item"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-and-paragraph-field-cont-37": {
+      "id": "b-50-interaction-model-and-paragraph-field-cont-37",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  and paragraph/field content rows decode; tag, code, and raw rows stay\n  verbatim."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-inline-xml-ish-tokens-in-38": {
+      "id": "b-50-interaction-model-inline-xml-ish-tokens-in-38",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Inline XML-ish tokens in prose take the tag palette; backtick spans render"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-as-inline-code-chips-wit-39": {
+      "id": "b-50-interaction-model-as-inline-code-chips-wit-39",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  as inline code chips with the ticks visible but dimmed."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-edit-mode-shows-raw-sour-40": {
+      "id": "b-50-interaction-model-edit-mode-shows-raw-sour-40",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Edit mode shows raw source in the editor, standard editor behavior."
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-annotation-range-mapping-41": {
+      "id": "b-50-interaction-model-annotation-range-mapping-41",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Annotation range mapping shares the same policy: the display-to-model"
+        }
+      ],
+      "children": []
+    },
+    "b-50-interaction-model-offset-walk-is-entity-aw-42": {
+      "id": "b-50-interaction-model-offset-walk-is-entity-aw-42",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  offset walk is entity-aware, so Cmd+drag annotations over decoded rows\n  still store exact model offsets and model-slice quotes."
+        }
+      ],
+      "children": []
+    }
+  }
+}

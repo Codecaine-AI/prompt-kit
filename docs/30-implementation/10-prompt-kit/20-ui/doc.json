@@ -1,0 +1,465 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-10-prompt-kit-20-ui",
+  "title": "UI",
+  "root": "b-20-ui-root-22",
+  "blocks": {
+    "b-20-ui-root-22": {
+      "id": "b-20-ui-root-22",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "ui",
+          "editor",
+          "headless",
+          "steps",
+          "transactions"
+        ],
+        "covers": "Structural decisions for the UI area — the headless-vs-React module boundary, pure step producers, and id-preserving moves committed as single transactions.",
+        "design_refs": [
+          "10-system-design/60-editor/00-overview.md",
+          "10-system-design/80-kernel-boundary.md"
+        ]
+      },
+      "children": [
+        "b-20-ui-packages-prompt-kit-src-2",
+        "b-20-ui-divider-3",
+        "b-20-ui-governed-by-4",
+        "b-20-ui-editor-10-system-5",
+        "b-20-ui-presentation-10-6",
+        "b-20-ui-kernel-boundary-7",
+        "b-20-ui-decisions-8",
+        "b-20-ui-headless-vs-react-module-9",
+        "b-20-ui-decision-models-st-10",
+        "b-20-ui-why-the-full-shell-11",
+        "b-20-ui-applies-to-new-edit-12",
+        "b-20-ui-one-known-violation-exis-13",
+        "b-20-ui-structural-edits-are-pur-14",
+        "b-20-ui-decision-a-step-pro-15",
+        "b-20-ui-why-producers-compo-16",
+        "b-20-ui-applies-to-every-ne-17",
+        "b-20-ui-moves-are-remove-plus-in-18",
+        "b-20-ui-decision-reparentin-19",
+        "b-20-ui-why-id-preservation-20",
+        "b-20-ui-applies-to-every-ne-21"
+      ]
+    },
+    "b-20-ui-packages-prompt-kit-src-2": {
+      "id": "b-20-ui-packages-prompt-kit-src-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "packages/prompt-kit/src/ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " implements the authoring surface: the editor\n("
+        },
+        {
+          "insert": "editor/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), the lab shell ("
+        },
+        {
+          "insert": "lab/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), style settings ("
+        },
+        {
+          "insert": "style/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), the shared\nvisual substrate ("
+        },
+        {
+          "insert": "surface/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and the read-only view ("
+        },
+        {
+          "insert": "view/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). The sibling\n"
+        },
+        {
+          "insert": "src/annotations",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " area supplies the headless annotation schema and store the\nlab's annotate surfaces build on."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-divider-3": {
+      "id": "b-20-ui-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-ui-governed-by-4": {
+      "id": "b-20-ui-governed-by-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Governed by"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-editor-10-system-5": {
+      "id": "b-20-ui-editor-10-system-5",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Editor",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-presentation-10-6": {
+      "id": "b-20-ui-presentation-10-6",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Presentation",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/30-presentation"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-kernel-boundary-7": {
+      "id": "b-20-ui-kernel-boundary-7",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Kernel boundary",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/80-kernel-boundary"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-decisions-8": {
+      "id": "b-20-ui-decisions-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-headless-vs-react-module-9": {
+      "id": "b-20-ui-headless-vs-react-module-9",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Headless-vs-React module boundary"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-decision-models-st-10": {
+      "id": "b-20-ui-decision-models-st-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Models, steps, transactions, and session logic are pure modules\nwith no runtime React or DOM dependency, the editor model, transactions, the\nstructure and list-item steps, autoformat, slash commands and the slash\nsession, edit navigation, the autosave controller, lab history, and style\nsettings. React components live in separate "
+        },
+        {
+          "insert": ".tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " modules that consume them."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-why-the-full-shell-11": {
+      "id": "b-20-ui-why-the-full-shell-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The full shell logic is testable without a DOM."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-applies-to-new-edit-12": {
+      "id": "b-20-ui-applies-to-new-edit-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " New editor logic lands headless-first; a React module may wrap\nit, never contain it."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-one-known-violation-exis-13": {
+      "id": "b-20-ui-one-known-violation-exis-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One known violation exists: "
+        },
+        {
+          "insert": "steps/structure-steps.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " imports\n"
+        },
+        {
+          "insert": "findUnnestLocation",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from the client module "
+        },
+        {
+          "insert": "steps/node-mutations.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". New\ncode must not extend this coupling."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-structural-edits-are-pur-14": {
+      "id": "b-20-ui-structural-edits-are-pur-14",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Structural edits are pure step producers"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-decision-a-step-pro-15": {
+      "id": "b-20-ui-decision-a-step-pro-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " A step producer reads the "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", never mutates it,\nand returns steps plus a focus target. Returning "
+        },
+        {
+          "insert": "null",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declines the gesture, decline-by-null means fall through to the next handler, not failure."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-why-producers-compo-16": {
+      "id": "b-20-ui-why-producers-compo-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Producers compose into keymaps and menus without side effects, and\ndeclining cleanly lets gestures layer."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-applies-to-every-ne-17": {
+      "id": "b-20-ui-applies-to-every-ne-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Every new structural gesture is a step producer with this\nsignature."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-moves-are-remove-plus-in-18": {
+      "id": "b-20-ui-moves-are-remove-plus-in-18",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Moves are remove-plus-insert preserving node ids"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-decision-reparentin-19": {
+      "id": "b-20-ui-decision-reparentin-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Reparenting uses the shared remove-then-insert helpers so the\nsame node ids re-attach at the new location. Multi-step gestures commit as one\ntransaction, a single undo entry."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-why-id-preservation-20": {
+      "id": "b-20-ui-why-id-preservation-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Id preservation keeps the canonical content hash stable across\nnesting-only moves and keeps the caret in the moved block; one transaction per\ngesture keeps undo aligned with user intent."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ui-applies-to-every-ne-21": {
+      "id": "b-20-ui-applies-to-every-ne-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Every new move or reparent gesture reuses the shared helpers\nand commits atomically; a move that recreates nodes with fresh ids is a bug."
+        }
+      ],
+      "children": []
+    }
+  }
+}

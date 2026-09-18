@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-c0ab106948506d6a55538d0ce7731f81",
+  "title": "Edit and Recover Prompts",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use the MCP tools to edit an existing registered prompt. The "
+        },
+        {
+          "insert": "MCP Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/10-protocol"
+            }
+          }
+        },
+        {
+          "insert": " defines the task contract; the "
+        },
+        {
+          "insert": "Prompt Edit Transaction Guide",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/20-operations"
+            }
+          }
+        },
+        {
+          "insert": " defines the operation batch."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Complete an external prompt edit",
+            "steps": [
+              {
+                "text": "Discover the workspace and list prompts"
+              },
+              {
+                "text": "Begin a task for the explicit project and writing profile"
+              },
+              {
+                "text": "Read the target document, address map, and production render"
+              },
+              {
+                "text": "Apply an operation batch with task ID and current hash",
+                "steps": [
+                  {
+                    "text": "On conflict, read and reconcile the latest revision before retrying."
+                  },
+                  {
+                    "text": "Inspect the saved render and resolve remaining profile findings."
+                  }
+                ]
+              },
+              {
+                "text": "Check the latest revision and end the task"
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Choose Guidance"
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use prompts_guidance with the task ID to retrieve the pinned reference catalog or one reference. Agent profile applies the agent section order; single-output profile applies the bounded response contract; generic profile avoids forcing either template. All profiles retain structural and variable checks."
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Undo a Saved Change"
+        }
+      ],
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Keep the changeId returned by the save. Call prompts_undo with that ID, the task ID, and the saved current hash. Undo refuses an intervening edit; re-read and decide how to reconcile instead of replacing the expected hash blindly. Check the undo revision before ending."
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Recover an Interrupted Save"
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Preserve the .prompt-kit/changes directory beside each prompt. If a save reports that canonical JSON committed before a later failure, read the current revision and let the next supported mutation recover the derived render under the store lock. Do not patch the journal or derived Markdown as a substitute."
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A changed render layout or unrelated canonical revision requires inspecting the reported storage error. Restore the intended path/layout before retrying. Root-scoped undo does not transfer when the project root moves. The complete contract is "
+        },
+        {
+          "insert": "Persistence and Recovery",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/30-persistence"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Review Scope"
+        }
+      ],
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Deterministic checks do not replace judgment about clarity, contradictions, repetition, and output usefulness. No MCP tool runs a model evaluation. Request staged internal review through the prompt-editor workflow when that is the intended editing channel."
+        }
+      ],
+      "children": []
+    }
+  }
+}

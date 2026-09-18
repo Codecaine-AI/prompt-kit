@@ -4,3 +4,7 @@ dist/
 .DS_Store
 .agent-kernel/
 .pi-agent/
+
+# Local Docs indexes and reversible edit journals
+docs/.index/
+docs/.changesets/

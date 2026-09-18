@@ -1,0 +1,675 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-60-editor-20-keyboard-model",
+  "title": "Keyboard Model",
+  "root": "b-20-keyboard-model-root-29",
+  "blocks": {
+    "b-20-keyboard-model-root-29": {
+      "id": "b-20-keyboard-model-root-29",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "keyboard",
+          "gestures",
+          "caret",
+          "autoformat",
+          "slash-menu"
+        ],
+        "covers": "Every keyboard gesture the prompt editing surface implements, the precedence between key consumers, markdown autoformat, the slash menu, and the deliberate deviations from conventional editor behavior.",
+        "depends-on": [
+          "10-system-design/60-editor/10-editing-model.md",
+          "10-system-design/40-composition-and-transforms.md"
+        ]
+      },
+      "children": [
+        "b-20-keyboard-model-one-handler-serves-every-2",
+        "b-20-keyboard-model-divider-3",
+        "b-20-keyboard-model-precedence-4",
+        "b-20-keyboard-model-a-key-reaches-four-consu-5",
+        "b-20-keyboard-model-order-consumer-cla-6",
+        "b-20-keyboard-model-the-structural-keymap-st-7",
+        "b-20-keyboard-model-gestures-8",
+        "b-20-keyboard-model-gesture-context-be-9",
+        "b-20-keyboard-model-structural-gestures-land-10",
+        "b-20-keyboard-model-deliberate-deviations-11",
+        "b-20-keyboard-model-backspace-at-offset-0-12",
+        "b-20-keyboard-model-merges-never-cross-a-c-13",
+        "b-20-keyboard-model-typing-on-a-selected-b-14",
+        "b-20-keyboard-model-tab-is-a-level-key-ne-15",
+        "b-20-keyboard-model-arrow-keys-step-rows-f-16",
+        "b-20-keyboard-model-enter-prefers-structur-17",
+        "b-20-keyboard-model-markdown-autoformat-18",
+        "b-20-keyboard-model-typing-a-marker-at-the-s-19",
+        "b-20-keyboard-model-typed-becomes-20",
+        "b-20-keyboard-model-autoformat-fires-only-wh-21",
+        "b-20-keyboard-model-there-is-deliberately-no-22",
+        "b-20-keyboard-model-backspace-restores-the-23",
+        "b-20-keyboard-model-slash-menu-24",
+        "b-20-keyboard-model-typing-as-the-first-25",
+        "b-20-keyboard-model-key-effect-26",
+        "b-20-keyboard-model-the-menu-never-takes-foc-27",
+        "b-20-keyboard-model-command-matching-ranks-c-28"
+      ]
+    },
+    "b-20-keyboard-model-one-handler-serves-every-2": {
+      "id": "b-20-keyboard-model-one-handler-serves-every-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One handler serves every editor on the surface, list items, paragraphs,\nfields, raw and code, so a key means the same thing wherever the caret is."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-divider-3": {
+      "id": "b-20-keyboard-model-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-keyboard-model-precedence-4": {
+      "id": "b-20-keyboard-model-precedence-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Precedence"
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-a-key-reaches-four-consu-5": {
+      "id": "b-20-keyboard-model-a-key-reaches-four-consu-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A key reaches four consumers in order; the first to claim it wins."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-order-consumer-cla-6": {
+      "id": "b-20-keyboard-model-order-consumer-cla-6",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Order",
+          "Consumer",
+          "Claims"
+        ],
+        "rows": [
+          [
+            "1",
+            "Slash menu",
+            "Arrow up/down, Enter, Tab, Escape while a slash menu is open on this line"
+          ],
+          [
+            "2",
+            "Marker undo",
+            "Backspace on the caret a markdown conversion just placed"
+          ],
+          [
+            "3",
+            "Structural keymap",
+            "Enter, Backspace, Delete, arrows, Tab"
+          ],
+          [
+            "4",
+            "Editor guard",
+            "Escape (blur), and a bare Enter on a single-line editor"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-20-keyboard-model-the-structural-keymap-st-7": {
+      "id": "b-20-keyboard-model-the-structural-keymap-st-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The structural keymap stands down when a modifier (meta, ctrl, alt) is held.\nModifier chords are left untouched so the shell's undo/redo/save shortcuts\nreach it and native word-motion keeps working in the text editor."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-gestures-8": {
+      "id": "b-20-keyboard-model-gestures-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Gestures"
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-gesture-context-be-9": {
+      "id": "b-20-keyboard-model-gesture-context-be-9",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Gesture",
+          "Context",
+          "Behavior"
+        ],
+        "rows": [
+          [
+            "Enter",
+            "Section open tag",
+            "Moves the caret to the section's first editable row"
+          ],
+          [
+            "Enter",
+            "Empty list item, nested",
+            "Outdents one level, landing after its former parent item. The item's own children ride along, and trailing former siblings become its children (standard outliner outdent). Emptiness is the live editor's verdict, so a just-emptied row outdents even before the document catches up"
+          ],
+          [
+            "Enter",
+            "Empty list item, top level",
+            "Drops the item and opens a new paragraph after the list (declines while the item still carries children, dropping it would discard them)"
+          ],
+          [
+            "Enter",
+            "Empty list item, only item",
+            "Removes the list; the paragraph takes its place"
+          ],
+          [
+            "Enter",
+            "Empty paragraph that is the last child of a section",
+            "Moves the paragraph out to be the section's next sibling"
+          ],
+          [
+            "Enter",
+            "Paragraph or list item with text",
+            "Splits at the caret; text after the caret becomes a new sibling below, caret at its start"
+          ],
+          [
+            "Enter",
+            "List item with text carrying a nested child list",
+            "Splits at the caret; the new item becomes the FIRST item of the first child list, the row directly below the caret, and the children stay with the original item. The caret follows into the child list"
+          ],
+          [
+            "Enter",
+            "Field",
+            "Leaves the editor, there is no sibling to split into (caret-first: nothing is selected afterwards)"
+          ],
+          [
+            "Enter",
+            "raw / codeBlock",
+            "Literal newline"
+          ],
+          [
+            "Shift+Enter",
+            "Any row",
+            "Not claimed by the keymap; the editor inserts a literal newline"
+          ],
+          [
+            "Backspace at offset 0",
+            "List item with text, previous caret target in the same list",
+            "Merges into the previous item, caret at the join"
+          ],
+          [
+            "Backspace at offset 0",
+            "Empty list item",
+            "Removes the item, or the whole list when it was the only one"
+          ],
+          [
+            "Backspace at offset 0",
+            "Paragraph with text, previous caret target is a sibling paragraph",
+            "Merges into it, caret at the join"
+          ],
+          [
+            "Backspace at offset 0",
+            "Empty paragraph",
+            "Removes it"
+          ],
+          [
+            "Backspace at offset 0",
+            "No safe merge (field, raw, code, or a boundary)",
+            "Moves focus to the end of the previous editable row"
+          ],
+          [
+            "Backspace at offset 0",
+            "First editable row of the document, carrying text",
+            "No-op"
+          ],
+          [
+            "Delete at end of value",
+            "List item, next caret target in the same list",
+            "Absorbs the next item"
+          ],
+          [
+            "Delete at end of value",
+            "Paragraph, next caret target is a sibling paragraph",
+            "Absorbs it"
+          ],
+          [
+            "Delete at end of value",
+            "Anything else",
+            "No-op"
+          ],
+          [
+            "ArrowUp / ArrowDown",
+            "Caret at the row's first/last position, or anywhere in a row that renders as one visual line",
+            "Lands on the previous/next editable row, caret at its end (up) or start (down)"
+          ],
+          [
+            "Tab",
+            "List item after the first",
+            "Nests it under the previous item"
+          ],
+          [
+            "Tab",
+            "Paragraph directly after a section",
+            "Moves it in as that section's last child"
+          ],
+          [
+            "Tab",
+            "Section after a sibling section",
+            "Nests it as that section's last child"
+          ],
+          [
+            "Shift+Tab",
+            "Nested list item",
+            "Hoists it out to sit after its former parent item; its own children ride along and trailing former siblings become its children, so it never jumps below its old context"
+          ],
+          [
+            "Shift+Tab",
+            "Paragraph inside a section",
+            "Moves it out to be the section's next sibling"
+          ],
+          [
+            "Shift+Tab",
+            "Nested section",
+            "Lifts it out to be its parent's next sibling"
+          ],
+          [
+            "Tab / Shift+Tab",
+            "Nothing applies",
+            "Swallowed"
+          ],
+          [
+            "Escape",
+            "Editing",
+            "Blurs the editor; nothing is selected afterwards (caret-first, placing the caret never selected the block)"
+          ],
+          [
+            "Escape",
+            "Slash menu open",
+            "Closes the menu; the caret keeps blinking"
+          ],
+          [
+            "/",
+            "Empty paragraph, typed as the first character",
+            "Opens the slash menu"
+          ],
+          [
+            "Printable character",
+            "A block is selected but not being edited",
+            "Enters the editor with the character appended, clearing the selection (selection becomes caret)"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-20-keyboard-model-structural-gestures-land-10": {
+      "id": "b-20-keyboard-model-structural-gestures-land-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Structural gestures land the caret in the block they moved, at the same offset\nwhere possible, so a level change is never a reason to stop typing."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-deliberate-deviations-11": {
+      "id": "b-20-keyboard-model-deliberate-deviations-11",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Deliberate Deviations"
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-backspace-at-offset-0-12": {
+      "id": "b-20-keyboard-model-backspace-at-offset-0-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Backspace at offset 0 is never a dead keystroke.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " When no structural change\nis safe the resolution still moves focus to the previous editable row's end. A\nbrowser's own Backspace at offset 0 is a no-op, so preventing it costs\nnothing."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-merges-never-cross-a-c-13": {
+      "id": "b-20-keyboard-model-merges-never-cross-a-c-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Merges never cross a container boundary.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Items merge only into items of\nthe "
+        },
+        {
+          "insert": "same",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " list; an intervening nested list breaks adjacency because its items\nbecome the previous caret targets. Paragraphs merge only when both rows are\nparagraphs with the same parent."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-typing-on-a-selected-b-14": {
+      "id": "b-20-keyboard-model-typing-on-a-selected-b-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Typing on a selected block appends rather than replaces.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " A stray keystroke\nmust never silently destroy a block's text, so the character is appended to\nthe current value and the caret lands after it. The listener stands down\nwhenever another input, textarea, select, or contenteditable holds focus. The\ngesture is the selection-to-caret transition: entering the editor clears the\nblock selection rather than keeping the block lit behind the caret."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-tab-is-a-level-key-ne-15": {
+      "id": "b-20-keyboard-model-tab-is-a-level-key-ne-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Tab is a level key, never a focus key.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " It is claimed unconditionally,\nincluding where no move applies, so the caret cannot be tabbed out of the\nbuffer mid-sentence."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-arrow-keys-step-rows-f-16": {
+      "id": "b-20-keyboard-model-arrow-keys-step-rows-f-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Arrow keys step rows from anywhere in a single-line row.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " A row occupying\none visual line has no inner vertical motion, so pressing Up from the middle\nof a short item must not first park the caret at offset 0."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-enter-prefers-structur-17": {
+      "id": "b-20-keyboard-model-enter-prefers-structur-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Enter prefers structure over splitting.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " An empty row asking to leave its\ncontainer beats splitting it into two empty rows, so the structural branch\nruns first and Enter falls through to a split only when no structural move\napplies."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-markdown-autoformat-18": {
+      "id": "b-20-keyboard-model-markdown-autoformat-18",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Markdown Autoformat"
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-typing-a-marker-at-the-s-19": {
+      "id": "b-20-keyboard-model-typing-a-marker-at-the-s-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Typing a marker at the start of an empty paragraph converts the block."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-typed-becomes-20": {
+      "id": "b-20-keyboard-model-typed-becomes-20",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Typed",
+          "Becomes"
+        ],
+        "rows": [
+          [
+            "-  or * ",
+            "bulletList"
+          ],
+          [
+            "1.  or 1)  (any digits)",
+            "orderedList"
+          ],
+          [
+            " fence ",
+            "codeBlock, trailing text taken as the fence language"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-20-keyboard-model-autoformat-fires-only-wh-21": {
+      "id": "b-20-keyboard-model-autoformat-fires-only-wh-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Autoformat fires only when the new text names a marker, the previous text did\nnot, the previous text is a prefix of the new text (the edit appended), and\nthe previous text was shorter than the marker. The last clause keeps "
+        },
+        {
+          "insert": "- ",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from\nfiring when the caret is parked at the start of a paragraph that already\ncarries prose."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-there-is-deliberately-no-22": {
+      "id": "b-20-keyboard-model-there-is-deliberately-no-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "There is deliberately no "
+        },
+        {
+          "insert": "# ",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " heading rule: the surface has no headings, and a\nsection is a wrapper the author names rather than a rank."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-backspace-restores-the-23": {
+      "id": "b-20-keyboard-model-backspace-restores-the-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Backspace restores the marker.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " After a conversion the surface remembers\nthe literal text that was swallowed and the caret placement it produced.\nBackspace on that exact caret converts the block back into a paragraph\ncarrying the literal characters, so the keystroke means \"I did not want a\nlist\" instead of \"delete this block\". Any other keystroke retires the offer.\nThe restore is itself a step, so undo can also take the marker back."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-slash-menu-24": {
+      "id": "b-20-keyboard-model-slash-menu-24",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Slash Menu"
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-typing-as-the-first-25": {
+      "id": "b-20-keyboard-model-typing-as-the-first-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Typing "
+        },
+        {
+          "insert": "/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as the first character of an empty "
+        },
+        {
+          "insert": "paragraph",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " opens a\ncaret-anchored command menu. It is paragraph-only in both directions: the\ntrigger checks the row's node type, and the underlying conversion declines\nanything that is not a paragraph, so offering it elsewhere would be a menu of\ncommands that decline."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-key-effect-26": {
+      "id": "b-20-keyboard-model-key-effect-26",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Key",
+          "Effect"
+        ],
+        "rows": [
+          [
+            "Typing",
+            "Extends the query; the menu re-filters and the selection resets to the top"
+          ],
+          [
+            "ArrowUp / ArrowDown",
+            "Moves the selection, wrapping at both ends"
+          ],
+          [
+            "Enter / Tab",
+            "Runs the selected command"
+          ],
+          [
+            "Escape",
+            "Closes the menu, leaving the typed text as literal prose"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-20-keyboard-model-the-menu-never-takes-foc-27": {
+      "id": "b-20-keyboard-model-the-menu-never-takes-foc-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The menu never takes focus, so the caret keeps blinking behind it. It retires\nwhen the "
+        },
+        {
+          "insert": "/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is removed, when the query matches nothing, or when the caret\nmoves to another row. Running a command drops the literal "
+        },
+        {
+          "insert": "/query",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " text, it\nwas the command, not content."
+        }
+      ],
+      "children": []
+    },
+    "b-20-keyboard-model-command-matching-ranks-c-28": {
+      "id": "b-20-keyboard-model-command-matching-ranks-c-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Command matching ranks case-insensitively: label prefix, then alias prefix,\nthen label substring, then alias substring, with ties keeping canonical order.\nAn empty query returns every command."
+        }
+      ],
+      "children": []
+    }
+  }
+}

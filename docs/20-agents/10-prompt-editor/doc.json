@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-a0b0320b686f0144d1bc40346bc2795f",
+  "title": "Prompt Editor",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11",
+        "state-fixtures"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt-editor turns a human annotation queue into structured proposals against a target PromptDocument. A human accepts or rejects each staged change; direct external MCP saves use a separate lifecycle."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Contract"
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The agent manifest is "
+        },
+        {
+          "insert": "packages/prompt-kit-agent/catalog/prompt-editor/agent.json",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit-agent/catalog/prompt-editor/agent.json"
+            }
+          }
+        },
+        {
+          "insert": ". It selects the prompt-editor model alias with low thinking, a 40-turn limit, and extensions disabled. The harness mounts its own catalog, where prompt-editor can edit itself."
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The canonical behavior prompt lives in "
+        },
+        {
+          "insert": "packages/prompt-kit-agent/catalog/prompt-editor/prompt/prompt.json",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit-agent/catalog/prompt-editor/prompt/prompt.json"
+            }
+          }
+        },
+        {
+          "insert": ". Its system.md file is generated output; changes belong in the structured prompt."
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Context and State"
+        }
+      ],
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The context sidecar assembles prompt_kit_authoring from current native Docs standards through the shared guidance renderer. Local tool_guide and state_reference blocks retain internal tool semantics. The context is session-invariant; it does not read the live request queue."
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The state sidecar carries targetAgent, targetPromptRender, targetPromptHash, appliedDiffs, and requestQueue. It renders the current target, applied diffs, and R-alias requests for each session. A missing context source remains an explicit status rather than silently substituting unrelated guidance."
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Context assembly is defined by "
+        },
+        {
+          "insert": "packages/prompt-kit-agent/catalog/prompt-editor/context/index.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit-agent/catalog/prompt-editor/context/index.ts"
+            }
+          }
+        },
+        {
+          "insert": "; live state is defined by "
+        },
+        {
+          "insert": "packages/prompt-kit-agent/catalog/prompt-editor/state/index.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit-agent/catalog/prompt-editor/state/index.ts"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Tools and Output"
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Tool",
+          "Internal effect"
+        ],
+        "rows": [
+          [
+            "read_prompt",
+            "Read the current target with stable IDs."
+          ],
+          [
+            "propose_transaction",
+            "Compile and stage a structural edit for human review."
+          ],
+          [
+            "resolve_request",
+            "Resolve one annotation request."
+          ],
+          [
+            "reply_request",
+            "Reply to a request thread."
+          ],
+          [
+            "add_note",
+            "Attach a note to the session."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The session service binds these tools per spawn. A proposal does not save merely because compilation succeeds. Acceptance uses the shared store; a stale base must be reconciled, and accepted changes retain the internal review and undo behavior."
+        }
+      ],
+      "children": []
+    },
+    "state-fixtures": {
+      "id": "state-fixtures",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "State fixtures under state/fixtures contain data-only envelopes with an optional label and a state sample of PromptEditorState. The lab passes the state sample to render() for section ③; fixtures are not context sessionData and real spawns seed state from the session service instead."
+        }
+      ],
+      "children": []
+    }
+  }
+}

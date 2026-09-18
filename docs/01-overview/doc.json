@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "id": "00-overview",
+  "title": "Prompt-Kit Documentation",
+  "root": "b-00-overview-root-13",
+  "blocks": {
+    "b-00-overview-root-13": {
+      "id": "b-00-overview-root-13",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "documentation",
+          "prompt-kit",
+          "navigation"
+        ],
+        "covers": "The documentation entry point for the prompt-kit workspace and its Foundation, System Design, and Implementation layers.",
+        "type": "overview"
+      },
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11",
+        "authored-12"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt Kit keeps prompts as structured documents that humans and agents can inspect, edit, validate, and render. The workspace includes the reusable library, shared filesystem server, external MCP adapter, and internal agent host."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Reading Order"
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "00-foundation/",
+            "note": "Purpose and authoring principles."
+          },
+          {
+            "path": "10-system-design/",
+            "note": "Prompt model, editor, standards, and external authoring contracts."
+          },
+          {
+            "path": "20-agents/",
+            "note": "Internal prompt-editor definition."
+          },
+          {
+            "path": "30-implementation/",
+            "note": "Design-to-source mapping and implementation choices."
+          },
+          {
+            "path": "40-guides/",
+            "note": "Non-normative setup, editing, and development procedures."
+          }
+        ]
+      },
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Foundation",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "00-foundation/00-overview"
+            }
+          }
+        },
+        {
+          "insert": " explains why prompts remain structured and which runtime responsibilities stay outside the library."
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "System Design",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/00-overview"
+            }
+          }
+        },
+        {
+          "insert": " defines the prompt format, rendering, editor behavior, prompt-writing standards, Kernel boundary, and external authoring."
+        }
+      ],
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agents",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-agents"
+            }
+          }
+        },
+        {
+          "insert": " defines the internal prompt-editor and its staged review workflow."
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Implementation",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "30-implementation"
+            }
+          }
+        },
+        {
+          "insert": " maps those contracts to the four packages and their shared boundaries."
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Guides",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "40-guides"
+            }
+          }
+        },
+        {
+          "insert": " contains setup, editing, recovery, and local development procedures."
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "External Agent Entry"
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use "
+        },
+        {
+          "insert": "Connect Prompt Kit MCP",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "40-guides/10-connect-mcp"
+            }
+          }
+        },
+        {
+          "insert": " for installation. The "
+        },
+        {
+          "insert": "External Prompt Authoring",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring"
+            }
+          }
+        },
+        {
+          "insert": " contract supplies current standards, structured edits, direct saves, revision checks, and guarded undo."
+        }
+      ],
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Documentation Authority"
+        }
+      ],
+      "children": []
+    },
+    "authored-12": {
+      "id": "authored-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Native Docs bundles under /docs are the maintained documentation. Read and update them through Docs tools. Prompt-writing standards feed both the external MCP and internal prompt editor; generated skill references are derived outputs, not a second authored corpus."
+        }
+      ],
+      "children": []
+    }
+  }
+}

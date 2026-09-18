@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-40-composition-and-transforms",
+  "title": "Composition And Transforms",
+  "root": "b-40-composition-and-transforms-root-16",
+  "blocks": {
+    "b-40-composition-and-transforms-root-16": {
+      "id": "b-40-composition-and-transforms-root-16",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "composition",
+          "transforms",
+          "ids",
+          "traversal"
+        ],
+        "covers": "How prompt-kit supports prompt composition through stable ids, traversal, find, insert, replace, and omit transforms.",
+        "depends-on": [
+          "10-system-design/10-canonical-prompt-object.md"
+        ]
+      },
+      "children": [
+        "b-40-composition-and-transforms-prompt-kit-composition-h-2",
+        "b-40-composition-and-transforms-divider-3",
+        "b-40-composition-and-transforms-stable-id-composition-4",
+        "b-40-composition-and-transforms-a-shared-prompt-can-expo-5",
+        "b-40-composition-and-transforms-ts-6",
+        "b-40-composition-and-transforms-a-consumer-can-then-repl-7",
+        "b-40-composition-and-transforms-ts-8",
+        "b-40-composition-and-transforms-the-rendered-prompt-chan-9",
+        "b-40-composition-and-transforms-transform-surface-10",
+        "b-40-composition-and-transforms-prompt-kit-currently-pro-11",
+        "b-40-composition-and-transforms-function-purpose-12",
+        "b-40-composition-and-transforms-transforms-return-new-pr-13",
+        "b-40-composition-and-transforms-why-not-string-replaceme-14",
+        "b-40-composition-and-transforms-rendered-prompts-are-out-15"
+      ]
+    },
+    "b-40-composition-and-transforms-prompt-kit-composition-h-2": {
+      "id": "b-40-composition-and-transforms-prompt-kit-composition-h-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit composition happens on the AST. Stable ids let callers replace or\ninsert prompt sections without parsing rendered Markdown."
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-divider-3": {
+      "id": "b-40-composition-and-transforms-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-composition-and-transforms-stable-id-composition-4": {
+      "id": "b-40-composition-and-transforms-stable-id-composition-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Stable Id Composition"
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-a-shared-prompt-can-expo-5": {
+      "id": "b-40-composition-and-transforms-a-shared-prompt-can-expo-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A shared prompt can expose intentional replacement points:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-ts-6": {
+      "id": "b-40-composition-and-transforms-ts-6",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "const base = definePrompt({\n  id: \"researchPrompt\",\n  archetype: \"workflow\",\n  nodes: [\n    {\n      type: \"section\",\n      tag: \"purpose\",\n      id: \"purpose\",\n      children: [{ type: \"paragraph\", content: [\"Research the request.\"] }],\n    },\n    {\n      type: \"section\",\n      tag: \"workflow\",\n      id: \"workflow\",\n      children: [{ type: \"paragraph\", content: [\"Gather evidence.\"] }],\n    },\n  ],\n});"
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-a-consumer-can-then-repl-7": {
+      "id": "b-40-composition-and-transforms-a-consumer-can-then-repl-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A consumer can then replace one part:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-ts-8": {
+      "id": "b-40-composition-and-transforms-ts-8",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "const specialized = replaceNodeById(base, \"workflow\", {\n  type: \"section\",\n  tag: \"workflow\",\n  id: \"workflow\",\n  children: [\n    { type: \"paragraph\", content: [\"Gather local repository evidence.\"] },\n  ],\n});"
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-the-rendered-prompt-chan-9": {
+      "id": "b-40-composition-and-transforms-the-rendered-prompt-chan-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The rendered prompt changes, but the source remains a valid prompt document."
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-transform-surface-10": {
+      "id": "b-40-composition-and-transforms-transform-surface-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Transform Surface"
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-prompt-kit-currently-pro-11": {
+      "id": "b-40-composition-and-transforms-prompt-kit-currently-pro-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit currently provides:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-function-purpose-12": {
+      "id": "b-40-composition-and-transforms-function-purpose-12",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Function",
+          "Purpose"
+        ],
+        "rows": [
+          [
+            "findNodeById",
+            "Return one matching node and its path"
+          ],
+          [
+            "findNodes",
+            "Collect nodes matching a predicate"
+          ],
+          [
+            "findSectionsByTag",
+            "Collect sections with a tag"
+          ],
+          [
+            "insertBeforeId",
+            "Insert block nodes before a matching block id"
+          ],
+          [
+            "insertAfterId",
+            "Insert block nodes after a matching block id"
+          ],
+          [
+            "replaceNodeById",
+            "Replace a matching block node with one or more nodes"
+          ],
+          [
+            "omitNodeById",
+            "Remove a matching block node"
+          ],
+          [
+            "visitPrompt",
+            "Traverse documents, blocks, list items, and inline nodes"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-composition-and-transforms-transforms-return-new-pr-13": {
+      "id": "b-40-composition-and-transforms-transforms-return-new-pr-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Transforms return new prompt documents and preserve the rest of the tree."
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-why-not-string-replaceme-14": {
+      "id": "b-40-composition-and-transforms-why-not-string-replaceme-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Why Not String Replacement"
+        }
+      ],
+      "children": []
+    },
+    "b-40-composition-and-transforms-rendered-prompts-are-out-15": {
+      "id": "b-40-composition-and-transforms-rendered-prompts-are-out-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rendered prompts are output artifacts. String replacement against rendered text\nis brittle because formatting, indentation, escaping, and phrasing can shift.\nAST transforms target semantic nodes and survive normal prompt edits."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,523 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-70-prompt-structure-30-single-output",
+  "title": "Single-Output Prompts",
+  "root": "b-30-single-output-root-34",
+  "blocks": {
+    "b-30-single-output-root-34": {
+      "id": "b-30-single-output-root-34",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "single-output",
+          "instructions",
+          "workflow",
+          "output-format",
+          "constraints"
+        ],
+        "covers": "The canonical structure and authoring judgment for prompts that transform bounded input into one defined output.",
+        "depends-on": [
+          "10-system-design/70-prompt-structure/00-overview.md"
+        ]
+      },
+      "children": [
+        "b-30-single-output-a-single-output-prompt-t-2",
+        "b-30-single-output-if-the-model-must-observ-3",
+        "b-30-single-output-divider-4",
+        "b-30-single-output-canonical-section-order-5",
+        "b-30-single-output-single-output-prompts-us-6",
+        "b-30-single-output-xml-7",
+        "b-30-single-output-minimal-is-normal-a-pro-8",
+        "b-30-single-output-purpose-9",
+        "b-30-single-output-purpose-is-an-impera-10",
+        "b-30-single-output-weak-you-are-a-helpful-11",
+        "b-30-single-output-strong-identify-the-th-12",
+        "b-30-single-output-the-stronger-version-mak-13",
+        "b-30-single-output-instructions-14",
+        "b-30-single-output-instructions-supplie-15",
+        "b-30-single-output-instructions-should-reso-16",
+        "b-30-single-output-open-question-whether-17",
+        "b-30-single-output-workflow-18",
+        "b-30-single-output-workflow-appears-onl-19",
+        "b-30-single-output-do-not-add-workflow-mere-20",
+        "b-30-single-output-output-format-21",
+        "b-30-single-output-output-format-is-a-l-22",
+        "b-30-single-output-xml-23",
+        "b-30-single-output-the-skeleton-should-expo-24",
+        "b-30-single-output-examples-belong-in-conte-25",
+        "b-30-single-output-examples-is-not-part-26",
+        "b-30-single-output-skip-examples-when-the-l-27",
+        "b-30-single-output-size-and-restraint-28",
+        "b-30-single-output-bias-toward-a-small-prom-29",
+        "b-30-single-output-small-does-not-mean-unde-30",
+        "b-30-single-output-constraints-31",
+        "b-30-single-output-constraints-contains-32",
+        "b-30-single-output-keep-constraints-few-co-33"
+      ]
+    },
+    "b-30-single-output-a-single-output-prompt-t-2": {
+      "id": "b-30-single-output-a-single-output-prompt-t-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A single-output prompt transforms bounded input into one defined output in one\nmodel call. Classification, extraction, scoring, rewriting, normalization, and\nbounded summarization all fit this shape. The task is the role: state what to\nproduce instead of inventing a persona around the work."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-if-the-model-must-observ-3": {
+      "id": "b-30-single-output-if-the-model-must-observ-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "If the model must observe changing state and decide what to do next across\ncalls, use an "
+        },
+        {
+          "insert": "agent prompt",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure/10-agent-prompt"
+            }
+          }
+        },
+        {
+          "insert": ". Internal stages such as\nanalyze, critique, and revise do not make a prompt an agent. They remain one\ncall whose only externally visible result is the requested output."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-divider-4": {
+      "id": "b-30-single-output-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-single-output-canonical-section-order-5": {
+      "id": "b-30-single-output-canonical-section-order-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Canonical Section Order"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-single-output-prompts-us-6": {
+      "id": "b-30-single-output-single-output-prompts-us-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Single-output prompts use the following order:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-xml-7": {
+      "id": "b-30-single-output-xml-7",
+      "type": "code",
+      "props": {
+        "language": "xml"
+      },
+      "text": [
+        {
+          "insert": "<purpose>\n<instructions>\n<workflow>       <!-- staged prompts only -->\n<output_format>\n<constraints>    <!-- hard requirements, last -->"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-minimal-is-normal-a-pro-8": {
+      "id": "b-30-single-output-minimal-is-normal-a-pro-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Minimal is normal. A prompt should omit optional sections that do not change\nthe result. Many effective single-output prompts need only "
+        },
+        {
+          "insert": "purpose",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ",\n"
+        },
+        {
+          "insert": "instructions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "output_format",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and a small set of constraints."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-purpose-9": {
+      "id": "b-30-single-output-purpose-9",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Purpose"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-purpose-is-an-impera-10": {
+      "id": "b-30-single-output-purpose-is-an-impera-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "<purpose>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is an imperative statement of what to produce. One or two concrete\nsentences are usually enough, and the result should be measurable from the\noutput itself."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-weak-you-are-a-helpful-11": {
+      "id": "b-30-single-output-weak-you-are-a-helpful-11",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Weak: \"You are a helpful sales analyst.\""
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-strong-identify-the-th-12": {
+      "id": "b-30-single-output-strong-identify-the-th-12",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Strong: \"Identify the three highest-impact trends in the sales data.\""
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-the-stronger-version-mak-13": {
+      "id": "b-30-single-output-the-stronger-version-mak-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The stronger version makes the task itself the role. Persona language adds\ntokens without clarifying what a successful response contains."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-instructions-14": {
+      "id": "b-30-single-output-instructions-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Instructions"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-instructions-supplie-15": {
+      "id": "b-30-single-output-instructions-supplie-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "<instructions>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " supplies the input and explains how to handle it. Keep runtime\ninput visibly separate from the surrounding directions so that data does not\nread like an instruction: a declared variable or another explicit runtime\nboundary carries the input rather than prose pasted into the standing prompt."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-instructions-should-reso-16": {
+      "id": "b-30-single-output-instructions-should-reso-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Instructions should resolve judgment calls that affect the transformation. If\naccuracy and completeness can conflict, for example, say which one wins. A\npriority such as \"preserve supported facts even when that means omitting an\nuncertain detail\" is actionable; \"be accurate and complete\" leaves the tension\nunresolved."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-open-question-whether-17": {
+      "id": "b-30-single-output-open-question-whether-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Open question: whether "
+        },
+        {
+          "insert": "<instructions>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "<workflow>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are redundant. Both\nremain available, with distinct jobs: instructions describe the input and its\ntreatment, while workflow names necessary internal stages."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-workflow-18": {
+      "id": "b-30-single-output-workflow-18",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Workflow"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-workflow-appears-onl-19": {
+      "id": "b-30-single-output-workflow-appears-onl-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "<workflow>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " appears only when internal staging earns its place. Use it when a\nknown failure mode requires the model to move through distinct stages before\nwriting the one output, such as extracting evidence before synthesizing it or\nchecking a draft against the source before returning it."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-do-not-add-workflow-mere-20": {
+      "id": "b-30-single-output-do-not-add-workflow-mere-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Do not add workflow merely because a transformation is complex. Staging costs\nattention and tokens, so begin without it and add stages in response to an\nobserved problem such as shallow analysis, unsupported claims, or missed\nrequirements. A staged prompt is still a single-output prompt: it carries no\nlive process state between calls."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-output-format-21": {
+      "id": "b-30-single-output-output-format-21",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Output Format"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-output-format-is-a-l-22": {
+      "id": "b-30-single-output-output-format-is-a-l-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "<output_format>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a literal skeleton of the expected response. Show the\nshape the model can copy instead of describing it indirectly. The skeleton may\nbe a JSON object, XML structure, table, or fixed Markdown field layout:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-xml-23": {
+      "id": "b-30-single-output-xml-23",
+      "type": "code",
+      "props": {
+        "language": "xml"
+      },
+      "text": [
+        {
+          "insert": "<output_format>\n    ## Summary\n    [Two sentences]\n\n    ## Findings\n    1. [Finding supported by the input]\n    2. [Finding supported by the input]\n</output_format>"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-the-skeleton-should-expo-24": {
+      "id": "b-30-single-output-the-skeleton-should-expo-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The skeleton should expose every required field but should not smuggle in live\ninput. Runtime data belongs in instructions; output format defines only the\nresponse shape."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-examples-belong-in-conte-25": {
+      "id": "b-30-single-output-examples-belong-in-conte-25",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Examples Belong in Context"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-examples-is-not-part-26": {
+      "id": "b-30-single-output-examples-is-not-part-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "<examples>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is not part of the single-output prompt. When examples are needed\nto disambiguate a subtle format or edge case, provide them as a self-describing\ncontext block that explains what it demonstrates and when to consult it. This\nkeeps stable behavior in the prompt while allowing reference material to change\nwithout changing the agent or task definition."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-skip-examples-when-the-l-27": {
+      "id": "b-30-single-output-skip-examples-when-the-l-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Skip examples when the literal output skeleton already makes the answer\nobvious. When an edge case truly needs demonstration, a good example and a\ncontrasting bad example with the reason it fails usually provide enough signal."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-size-and-restraint-28": {
+      "id": "b-30-single-output-size-and-restraint-28",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Size and Restraint"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-bias-toward-a-small-prom-29": {
+      "id": "b-30-single-output-bias-toward-a-small-prom-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Bias toward a small prompt, roughly 500 tokens or fewer when the task permits.\nSingle-output prompts pay the cost of every unnecessary token on every call.\nRemove role-play, duplicated directions, staging without an observed benefit,\nand sections included only because a template offers them."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-small-does-not-mean-unde-30": {
+      "id": "b-30-single-output-small-does-not-mean-unde-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Small does not mean underspecified. Preserve the distinctions that determine\nthe result: the requested outcome, input boundary, necessary handling rules,\nliteral output shape, and hard requirements."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-constraints-31": {
+      "id": "b-30-single-output-constraints-31",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Constraints"
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-constraints-contains-32": {
+      "id": "b-30-single-output-constraints-contains-32",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "<constraints>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " contains hard requirements such as length, tone,\nmust-include items, and forbidden content. It is the final section so its\nnon-negotiable limits remain recent when the model begins producing the\nresponse."
+        }
+      ],
+      "children": []
+    },
+    "b-30-single-output-keep-constraints-few-co-33": {
+      "id": "b-30-single-output-keep-constraints-few-co-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Keep constraints few, concrete, and testable. Resolve conflicts explicitly and\nremove constraints already guaranteed by the output skeleton or instructions.\nThe last section should sharpen the task, not repeat it."
+        }
+      ],
+      "children": []
+    }
+  }
+}

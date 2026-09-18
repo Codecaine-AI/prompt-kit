@@ -1,5 +1,5 @@
 # Prompt Editor State Reference
-> Distilled from packages/prompt-kit-agent/catalog/prompt-editor/state/index.ts and packages/prompt-kit-agent/catalog/prompt-editor/README.md — keep in sync.
+> Distilled from packages/prompt-kit-agent/catalog/prompt-editor/state/index.ts — keep in sync.
 Use this editor-only reference when reading your own section ③ state.
 
 ## Read Order

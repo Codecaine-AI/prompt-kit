@@ -1,0 +1,984 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-70-prompt-structure-50-techniques",
+  "title": "Prompting Techniques",
+  "root": "b-50-techniques-root-66",
+  "blocks": {
+    "b-50-techniques-root-66": {
+      "id": "b-50-techniques-root-66",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "techniques",
+          "thinking-frameworks",
+          "risk-selection",
+          "restraint"
+        ],
+        "covers": "How to select and place optional prompting techniques and thinking frameworks in response to specific failure risks.",
+        "depends-on": [
+          "10-system-design/70-prompt-structure/20-workflow.md",
+          "10-system-design/70-prompt-structure/30-single-output.md",
+          "10-system-design/70-prompt-structure/40-quality.md"
+        ]
+      },
+      "children": [
+        "b-50-techniques-techniques-are-available-2",
+        "b-50-techniques-select-from-risk-to-tech-3",
+        "b-50-techniques-divider-4",
+        "b-50-techniques-risk-before-technique-5",
+        "b-50-techniques-reasoning-and-quality-ri-6",
+        "b-50-techniques-risk-useful-starting-7",
+        "b-50-techniques-structure-and-originalit-8",
+        "b-50-techniques-risk-useful-starting-9",
+        "b-50-techniques-these-are-starting-point-10",
+        "b-50-techniques-reasoning-techniques-11",
+        "b-50-techniques-atom-of-thought-12",
+        "b-50-techniques-break-a-complex-problem-13",
+        "b-50-techniques-use-this-for-genuinely-s-14",
+        "b-50-techniques-chain-of-verification-15",
+        "b-50-techniques-draft-the-answer-identi-16",
+        "b-50-techniques-map-the-procedure-to-wor-17",
+        "b-50-techniques-socratic-prompting-18",
+        "b-50-techniques-surface-assumptions-and-19",
+        "b-50-techniques-prefer-a-workflow-step-t-20",
+        "b-50-techniques-self-consistency-21",
+        "b-50-techniques-solve-the-consequential-22",
+        "b-50-techniques-map-self-consistency-to-23",
+        "b-50-techniques-quality-techniques-24",
+        "b-50-techniques-inner-critic-loop-25",
+        "b-50-techniques-draft-identify-the-weak-26",
+        "b-50-techniques-the-critique-and-revisio-27",
+        "b-50-techniques-negative-space-definitio-28",
+        "b-50-techniques-state-what-the-result-mu-29",
+        "b-50-techniques-place-hard-prompt-wide-30",
+        "b-50-techniques-decision-support-31",
+        "b-50-techniques-preserve-tradeoffs-best-32",
+        "b-50-techniques-map-the-analysis-to-work-33",
+        "b-50-techniques-structural-techniques-34",
+        "b-50-techniques-semantic-xml-architectur-35",
+        "b-50-techniques-use-tags-whose-names-des-36",
+        "b-50-techniques-self-describing-context-37",
+        "b-50-techniques-contrastive-examples-38",
+        "b-50-techniques-a-good-and-bad-example-c-39",
+        "b-50-techniques-examples-are-reference-m-40",
+        "b-50-techniques-literal-output-format-41",
+        "b-50-techniques-show-the-exact-output-sk-42",
+        "b-50-techniques-for-a-single-output-prom-43",
+        "b-50-techniques-thinking-frameworks-44",
+        "b-50-techniques-thinking-frameworks-chan-45",
+        "b-50-techniques-inversion-46",
+        "b-50-techniques-define-failure-before-pu-47",
+        "b-50-techniques-first-principles-48",
+        "b-50-techniques-decompose-the-problem-in-49",
+        "b-50-techniques-contention-50",
+        "b-50-techniques-develop-opposing-cases-b-51",
+        "b-50-techniques-constraint-first-52",
+        "b-50-techniques-identify-hard-constraint-53",
+        "b-50-techniques-cross-domain-transfer-54",
+        "b-50-techniques-borrow-a-mental-model-fr-55",
+        "b-50-techniques-recursive-depth-56",
+        "b-50-techniques-review-the-first-analysi-57",
+        "b-50-techniques-framework-names-do-not-n-58",
+        "b-50-techniques-canonical-placement-59",
+        "b-50-techniques-techniques-use-the-canon-60",
+        "b-50-techniques-technique-content-pl-61",
+        "b-50-techniques-examples-reusable-frame-62",
+        "b-50-techniques-efficiency-63",
+        "b-50-techniques-technique-restraint-is-a-64",
+        "b-50-techniques-a-technique-has-earned-i-65"
+      ]
+    },
+    "b-50-techniques-techniques-are-available-2": {
+      "id": "b-50-techniques-techniques-are-available-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Techniques are available context, not a required checklist. They help when a\nprompt has a specific, observable failure risk; they add noise when included\nonly because a technique sounds sophisticated."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-select-from-risk-to-tech-3": {
+      "id": "b-50-techniques-select-from-risk-to-tech-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Select from risk to technique. Name what is likely to go wrong, choose the\nsmallest intervention that changes that behavior, and leave everything else\nout. Choosing no framework is a legal answer, and it is the right answer for\nmost straightforward prompts."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-divider-4": {
+      "id": "b-50-techniques-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-50-techniques-risk-before-technique-5": {
+      "id": "b-50-techniques-risk-before-technique-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Risk Before Technique"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-reasoning-and-quality-ri-6": {
+      "id": "b-50-techniques-reasoning-and-quality-ri-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Reasoning and quality risks suggest one set of interventions:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-risk-useful-starting-7": {
+      "id": "b-50-techniques-risk-useful-starting-7",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Risk",
+          "Useful starting point"
+        ],
+        "rows": [
+          [
+            "Multi-factor reasoning becomes path-dependent",
+            "Atom Of Thought"
+          ],
+          [
+            "Factual claims may be invented or left unchecked",
+            "Chain Of Verification"
+          ],
+          [
+            "Missing information is likely to be hidden",
+            "Socratic Prompting"
+          ],
+          [
+            "The first analysis will predictably be shallow",
+            "Inner Critic Loop or Recursive Depth"
+          ],
+          [
+            "A decision is likely to flatten real tradeoffs",
+            "Decision Support or Contention"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-50-techniques-structure-and-originalit-8": {
+      "id": "b-50-techniques-structure-and-originalit-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Structure and originality risks suggest another:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-risk-useful-starting-9": {
+      "id": "b-50-techniques-risk-useful-starting-9",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Risk",
+          "Useful starting point"
+        ],
+        "rows": [
+          [
+            "Multi-factor reasoning becomes path-dependent",
+            "Atom Of Thought"
+          ],
+          [
+            "Factual claims may be invented or left unchecked",
+            "Chain Of Verification"
+          ],
+          [
+            "Missing information is likely to be hidden",
+            "Socratic Prompting"
+          ],
+          [
+            "The first analysis will predictably be shallow",
+            "Inner Critic Loop or Recursive Depth"
+          ],
+          [
+            "A decision is likely to flatten real tradeoffs",
+            "Decision Support or Contention"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-50-techniques-these-are-starting-point-10": {
+      "id": "b-50-techniques-these-are-starting-point-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These are starting points, not bundles. One well-placed technique usually does\nmore than several overlapping instructions. If the risk can be removed by\ncutting ambiguity or shortening the prompt, make that edit before adding a\nreasoning procedure."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-reasoning-techniques-11": {
+      "id": "b-50-techniques-reasoning-techniques-11",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Reasoning Techniques"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-atom-of-thought-12": {
+      "id": "b-50-techniques-atom-of-thought-12",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Atom Of Thought"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-break-a-complex-problem-13": {
+      "id": "b-50-techniques-break-a-complex-problem-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Break a complex problem into independent sub-questions, resolve and verify each\none separately, then synthesize the results. Independence matters because an\nearly conclusion should not silently bias every later part of the analysis."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-use-this-for-genuinely-s-14": {
+      "id": "b-50-techniques-use-this-for-genuinely-s-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use this for genuinely separable, multi-factor work. In an agent prompt, map\ndecomposition, resolution, verification, and synthesis to workflow phases and\ntheir steps. In a staged single-output prompt, those stages may live in\n"
+        },
+        {
+          "insert": "<workflow>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " only when the added procedure earns its space."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-chain-of-verification-15": {
+      "id": "b-50-techniques-chain-of-verification-15",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Chain Of Verification"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-draft-the-answer-identi-16": {
+      "id": "b-50-techniques-draft-the-answer-identi-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Draft the answer, identify its factual claims, verify each claim, correct the\nfailures, and present only the verified version. This technique addresses\nfactual risk rather than general writing quality."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-map-the-procedure-to-wor-17": {
+      "id": "b-50-techniques-map-the-procedure-to-wor-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Map the procedure to workflow steps. When verification defines what \"done\nwell\" means for an agent, add a testable item to "
+        },
+        {
+          "insert": "<success_criteria>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as well;\ndo not repeat the whole verification procedure there."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-socratic-prompting-18": {
+      "id": "b-50-techniques-socratic-prompting-18",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Socratic Prompting"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-surface-assumptions-and-19": {
+      "id": "b-50-techniques-surface-assumptions-and-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Surface assumptions and missing information before committing to an answer.\nThis is useful when ambiguity would otherwise be converted into confident but\nunsupported choices."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-prefer-a-workflow-step-t-20": {
+      "id": "b-50-techniques-prefer-a-workflow-step-t-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prefer a workflow step that inspects the relevant state fields and resolves or\nstates missing assumptions. Promote the behavior to a final "
+        },
+        {
+          "insert": "<rules>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " item only\nwhen it is a process-wide non-negotiable, not a situational instruction."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-self-consistency-21": {
+      "id": "b-50-techniques-self-consistency-21",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Self-Consistency"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-solve-the-consequential-22": {
+      "id": "b-50-techniques-solve-the-consequential-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Solve the consequential part of a problem from more than one angle, compare the\nresults, and reconcile disagreements. The extra work is justified when accuracy\nis worth the reasoning cost, not as a routine flourish."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-map-self-consistency-to-23": {
+      "id": "b-50-techniques-map-self-consistency-to-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Map self-consistency to explicit workflow steps so the comparison has a visible\npurpose and stopping point. Avoid vague instructions such as \"think several\ntimes,\" which add cost without defining what the agent should compare."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-quality-techniques-24": {
+      "id": "b-50-techniques-quality-techniques-24",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Quality Techniques"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-inner-critic-loop-25": {
+      "id": "b-50-techniques-inner-critic-loop-25",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Inner Critic Loop"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-draft-identify-the-weak-26": {
+      "id": "b-50-techniques-draft-identify-the-weak-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Draft, identify the weakest parts, revise them, and return only the revised\nresult. Use this when first-draft quality is predictably insufficient and the\ntask benefits from a focused revision pass."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-the-critique-and-revisio-27": {
+      "id": "b-50-techniques-the-critique-and-revisio-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The critique and revision belong in workflow steps. They do not need their own\ntop-level sections, and the private draft does not belong in the requested\noutput unless the output format explicitly asks for it."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-negative-space-definitio-28": {
+      "id": "b-50-techniques-negative-space-definitio-28",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Negative Space Definition"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-state-what-the-result-mu-29": {
+      "id": "b-50-techniques-state-what-the-result-mu-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "State what the result must not become. Negative space is useful when the likely\nfailure is a recognizable default, such as generic advice, invented evidence,\nor prose where a literal structure is required."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-place-hard-prompt-wide-30": {
+      "id": "b-50-techniques-place-hard-prompt-wide-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Place hard, prompt-wide prohibitions in "
+        },
+        {
+          "insert": "<rules>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for agents or "
+        },
+        {
+          "insert": "<constraints>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\nfor single-output prompts; both sections come last in their respective\ncanonical orders. Keep situational prohibitions with the relevant workflow\nphase instead of inflating the global list."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-decision-support-31": {
+      "id": "b-50-techniques-decision-support-31",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Decision Support"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-preserve-tradeoffs-best-32": {
+      "id": "b-50-techniques-preserve-tradeoffs-best-32",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Preserve tradeoffs, best-case conditions, and failure cases before recommending\na choice. This prevents strategy and judgment tasks from collapsing into one\nunqualified recommendation too early."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-map-the-analysis-to-work-33": {
+      "id": "b-50-techniques-map-the-analysis-to-work-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Map the analysis to workflow steps and make the requested decision shape\nvisible in the output instructions. The prompt should ask for distinctions the\nreader can act on, not merely a longer list of pros and cons."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-structural-techniques-34": {
+      "id": "b-50-techniques-structural-techniques-34",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Structural Techniques"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-semantic-xml-architectur-35": {
+      "id": "b-50-techniques-semantic-xml-architectur-35",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Semantic XML Architecture"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-use-tags-whose-names-des-36": {
+      "id": "b-50-techniques-use-tags-whose-names-des-36",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use tags whose names describe the content's job. In canonical prompts, use the\ndefined section and workflow field names rather than inventing tags for every\nidea. XML provides boundaries; prose and lists carry the substance."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-self-describing-context-37": {
+      "id": "b-50-techniques-self-describing-context-37",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Self-describing context blocks also use semantic names because each block must\nsay what it contains and when to consult it. This does not create a context\ninventory inside the prompt."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-contrastive-examples-38": {
+      "id": "b-50-techniques-contrastive-examples-38",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Contrastive Examples"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-a-good-and-bad-example-c-39": {
+      "id": "b-50-techniques-a-good-and-bad-example-c-39",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A good and bad example can reveal a subtle distinction more efficiently than\nseveral positive examples. Use one contrastive pair when prose alone cannot\nmake the quality boundary concrete."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-examples-are-reference-m-40": {
+      "id": "b-50-techniques-examples-are-reference-m-40",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Examples are reference material, so they ride as a self-describing context\nblock. They are not an "
+        },
+        {
+          "insert": "<examples>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " section in a single-output prompt and do\nnot become an example inventory in an agent prompt."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-literal-output-format-41": {
+      "id": "b-50-techniques-literal-output-format-41",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Literal Output Format"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-show-the-exact-output-sk-42": {
+      "id": "b-50-techniques-show-the-exact-output-sk-42",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Show the exact output skeleton when structure matters. A literal skeleton\nremoves interpretation from requirements that would be brittle if described\nonly in prose."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-for-a-single-output-prom-43": {
+      "id": "b-50-techniques-for-a-single-output-prom-43",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "For a single-output prompt, map the skeleton to "
+        },
+        {
+          "insert": "<output_format>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". For an\nagent, keep operation-specific output instructions in the relevant workflow\nstep; put a reusable format reference in a self-describing context block."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-thinking-frameworks-44": {
+      "id": "b-50-techniques-thinking-frameworks-44",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Thinking Frameworks"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-thinking-frameworks-chan-45": {
+      "id": "b-50-techniques-thinking-frameworks-chan-45",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Thinking frameworks change how the model approaches a problem. Most prompts\nneed zero; use one, or occasionally two, only when a named reasoning failure\njustifies the added structure."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-inversion-46": {
+      "id": "b-50-techniques-inversion-46",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Inversion"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-define-failure-before-pu-47": {
+      "id": "b-50-techniques-define-failure-before-pu-47",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Define failure before pursuing success. Use inversion when the main risk is a\ngeneric or useless result and identifying failure modes will sharpen the target."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-first-principles-48": {
+      "id": "b-50-techniques-first-principles-48",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "First Principles"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-decompose-the-problem-in-49": {
+      "id": "b-50-techniques-decompose-the-problem-in-49",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decompose the problem into fundamentals before solving it. Use first-principles\nreasoning for novel technical or architectural problems where inherited\nassumptions may be wrong."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-contention-50": {
+      "id": "b-50-techniques-contention-50",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Contention"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-develop-opposing-cases-b-51": {
+      "id": "b-50-techniques-develop-opposing-cases-b-51",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Develop opposing cases before synthesizing a position. Use contention for\ndecisions and strategy where disagreement reveals material tradeoffs."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-constraint-first-52": {
+      "id": "b-50-techniques-constraint-first-52",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Constraint-First"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-identify-hard-constraint-53": {
+      "id": "b-50-techniques-identify-hard-constraint-53",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Identify hard constraints, soft constraints, conflicts, and negative space\nbefore generating. Use it for tight briefs and design problems where satisfying\none requirement can quietly violate another."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-cross-domain-transfer-54": {
+      "id": "b-50-techniques-cross-domain-transfer-54",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Cross-Domain Transfer"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-borrow-a-mental-model-fr-55": {
+      "id": "b-50-techniques-borrow-a-mental-model-fr-55",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Borrow a mental model from another domain to force a non-obvious perspective.\nUse it for innovation and strategy, not precision tasks where analogy may\ndistort the facts."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-recursive-depth-56": {
+      "id": "b-50-techniques-recursive-depth-56",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Recursive Depth"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-review-the-first-analysi-57": {
+      "id": "b-50-techniques-review-the-first-analysi-57",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Review the first analysis for shallow claims, expert objections, and omitted\nhard parts, then revise. Use it where depth matters and a polished surface could\notherwise hide incomplete reasoning."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-framework-names-do-not-n-58": {
+      "id": "b-50-techniques-framework-names-do-not-n-58",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Framework names do not need to appear in the rendered prompt. Translate the\nchosen framework into the smallest set of concrete workflow steps that produces\nits benefit. An unexplained "
+        },
+        {
+          "insert": "<approach>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " section is not part of either canonical\nprompt structure."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-canonical-placement-59": {
+      "id": "b-50-techniques-canonical-placement-59",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Canonical Placement"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-techniques-use-the-canon-60": {
+      "id": "b-50-techniques-techniques-use-the-canon-60",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Techniques use the canonical sections; no technique introduces a section of\nits own:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-technique-content-pl-61": {
+      "id": "b-50-techniques-technique-content-pl-61",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Technique content",
+          "Placement"
+        ],
+        "rows": [
+          [
+            "Agent procedure",
+            "Workflow phases with numbered steps"
+          ],
+          [
+            "Agent quality bar",
+            "<success_criteria> with a list of testable checks"
+          ],
+          [
+            "Single-output skeleton",
+            "A literal skeleton in <output_format>"
+          ],
+          [
+            "Global non-negotiables",
+            "The final <rules> or <constraints> section with a short list"
+          ],
+          [
+            "Supporting explanation",
+            "Ordinary prose and lists inside the owning section"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-50-techniques-examples-reusable-frame-62": {
+      "id": "b-50-techniques-examples-reusable-frame-62",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Examples, reusable frameworks, and detailed references belong to context, not\nto a prompt section. Do not map a technique to "
+        },
+        {
+          "insert": "<reminders>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; that section\ndoes not exist. Do not invent workflow fields named after techniques. The\ncanonical structures already provide every prompt-side placement needed here."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-efficiency-63": {
+      "id": "b-50-techniques-efficiency-63",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Efficiency"
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-technique-restraint-is-a-64": {
+      "id": "b-50-techniques-technique-restraint-is-a-64",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Technique restraint is also context restraint. Cut instructions the model\nalready follows, merge overlapping constraints, and use semantic boundaries\nthat clarify content without restating it. Prefer one strong contrastive\nexample over several weak ones, and state token or length priorities only when\nthe output has a real budget."
+        }
+      ],
+      "children": []
+    },
+    "b-50-techniques-a-technique-has-earned-i-65": {
+      "id": "b-50-techniques-a-technique-has-earned-i-65",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A technique has earned its place when removing it recreates the named failure\nrisk. If removal changes nothing, the smaller prompt is the better prompt."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,225 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-c05226f81d1c24bba178e0cd2ed59e09",
+  "title": "Develop Prompt Kit",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11",
+        "authored-12",
+        "authored-13",
+        "authored-14",
+        "authored-15",
+        "authored-16"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Run development commands from the Prompt Kit repository root after installing the Core workspace dependencies. The library can be used without the internal agent host or MCP service."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Check the Workspace"
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "code",
+      "props": {
+        "language": "sh"
+      },
+      "text": [
+        {
+          "insert": "bun install\nbun run test\nbun run typecheck"
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Individual package checks use bun run --cwd packages/<package> test or typecheck. The agent test command includes both test/ and catalog/. Preserve the current consumer Tailwind paths and React deduplication settings when changing the UI package."
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Use the Library"
+        }
+      ],
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "import { definePrompt, renderXmlMarkdown } from \"@codecaine-ai/prompt-kit\";\n\nconst prompt = definePrompt({\n  id: \"rewritePrompt\",\n  nodes: [{ type: \"paragraph\", content: [\"Rewrite the supplied paragraph.\"] }],\n});\nconst rendered = renderXmlMarkdown(prompt);"
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The headless authoring entry is @codecaine-ai/prompt-kit/authoring. React consumers use the UI subpath matching their surface. Hosts supply Tailwind layers and semantic token variables; the library does not impose an application shell."
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Run the Internal Host"
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "code",
+      "props": {
+        "language": "sh"
+      },
+      "text": [
+        {
+          "insert": "bun run dev:agent"
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The host listens on http://127.0.0.1:4850 and keeps trace.db, kernel.json, edit sessions, and transcripts under packages/prompt-kit-agent/.agent-kernel. PROMPT_KIT_KERNEL_PORT overrides the port; PROMPT_KIT_KERNEL_PROMPT_EDITOR_MODEL overrides the model alias; PROMPT_KIT_KERNEL_PI_AGENT_DIR selects model configuration instead of the package .pi-agent directory."
+        }
+      ],
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The internal host mounts only its catalog and intentionally supports editing prompt-editor itself. Health is at /health; catalog, annotations, edit sessions, and trace reads use /kernel."
+        }
+      ],
+      "children": []
+    },
+    "authored-12": {
+      "id": "authored-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Inspect in a Viewer"
+        }
+      ],
+      "children": []
+    },
+    "authored-13": {
+      "id": "authored-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Start Observatory from the Core workspace and select Projects → Prompt Kit → Agents for prompt inspection or Traces for recorded runs. Canvas also hosts the Prompt Lab on its /config surface. Viewers consume the same canonical prompt and render; their unsaved editor state remains local."
+        }
+      ],
+      "children": []
+    },
+    "authored-14": {
+      "id": "authored-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Check an Installed Connection"
+        }
+      ],
+      "children": []
+    },
+    "authored-15": {
+      "id": "authored-15",
+      "type": "code",
+      "props": {
+        "language": "sh"
+      },
+      "text": [
+        {
+          "insert": "bun run mcp:doctor\nbun scripts/verify-installed-mcp.ts\nbun scripts/verify-installed-mcp.ts --claude"
+        }
+      ],
+      "children": []
+    },
+    "authored-16": {
+      "id": "authored-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These checks use disposable mutation fixtures and read the actual catalog. Restart clients after installation; protocol tests do not refresh a currently open client tool list."
+        }
+      ],
+      "children": []
+    }
+  }
+}

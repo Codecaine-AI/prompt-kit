@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "client": "pi",
+  "toolCount": 9,
+  "checks": [
+    "installed extension import",
+    "real MCP handshake",
+    "discovery forwarding",
+    "authoring instructions injection"
+  ]
+}

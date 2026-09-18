@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-00-overview",
+  "title": "Prompt-Kit Implementation",
+  "root": "b-00-overview-root-10",
+  "blocks": {
+    "b-00-overview-root-10": {
+      "id": "b-00-overview-root-10",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "implementation",
+          "packages",
+          "structure",
+          "decisions"
+        ],
+        "covers": "The implementation tier for prompt-kit, orienting readers to the two workspace packages and the structural decisions that govern new code in each.",
+        "type": "overview"
+      },
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Four packages implement Prompt Kit: a reusable document library, a filesystem authoring server, an MCP adapter, and the internal agent host. This layer maps the design to source and records the structural choices new code must preserve."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Library Package",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "30-implementation/10-prompt-kit"
+            }
+          }
+        },
+        {
+          "insert": " owns the PromptDocument model, pure authoring operations, and editing UI."
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agent Host Package",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "30-implementation/20-prompt-kit-agent"
+            }
+          }
+        },
+        {
+          "insert": " wires Kernel services and the internal prompt editor."
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Authoring Store",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "30-implementation/30-prompt-kit-server"
+            }
+          }
+        },
+        {
+          "insert": " owns filesystem writes, recovery, and canonical guidance loading."
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "MCP Adapter",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "30-implementation/40-prompt-kit-mcp"
+            }
+          }
+        },
+        {
+          "insert": " owns transport, discovery, task state, and client integration."
+        }
+      ],
+      "children": []
+    }
+  }
+}

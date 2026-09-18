@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "types": [
+      "bun"
+    ],
+    "paths": {
+      "@sinclair/typebox": [
+        "./node_modules/@sinclair/typebox",
+        "../../node_modules/@sinclair/typebox",
+        "../../../node_modules/@sinclair/typebox"
+      ],
+      "@sinclair/typebox/*": [
+        "./node_modules/@sinclair/typebox/*",
+        "../../node_modules/@sinclair/typebox/*",
+        "../../../node_modules/@sinclair/typebox/*"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

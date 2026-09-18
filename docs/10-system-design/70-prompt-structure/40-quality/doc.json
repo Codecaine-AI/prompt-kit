@@ -1,0 +1,1342 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-70-prompt-structure-40-quality",
+  "title": "Prompt Quality",
+  "root": "b-40-quality-root-86",
+  "blocks": {
+    "b-40-quality-root-86": {
+      "id": "b-40-quality-root-86",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "prompt-quality",
+          "evaluation",
+          "anti-patterns",
+          "rendered-shape",
+          "QA"
+        ],
+        "covers": "How to evaluate prompt quality through six dimensions, rendered-shape judgment, named anti-patterns, and a repeatable QA pass.",
+        "depends-on": [
+          "10-system-design/70-prompt-structure/10-agent-prompt.md",
+          "10-system-design/70-prompt-structure/30-single-output.md"
+        ]
+      },
+      "children": [
+        "b-40-quality-prompt-quality-is-a-judg-2",
+        "b-40-quality-the-dimensions-below-mak-3",
+        "b-40-quality-divider-4",
+        "b-40-quality-evaluation-dimensions-5",
+        "b-40-quality-token-efficiency-6",
+        "b-40-quality-every-section-and-instru-7",
+        "b-40-quality-token-efficiency-is-not-8",
+        "b-40-quality-structural-precision-9",
+        "b-40-quality-the-structure-should-hel-10",
+        "b-40-quality-structural-precision-als-11",
+        "b-40-quality-reasoning-fit-12",
+        "b-40-quality-reasoning-scaffolding-sh-13",
+        "b-40-quality-the-test-is-causal-an-a-14",
+        "b-40-quality-robustness-15",
+        "b-40-quality-the-prompt-should-handle-16",
+        "b-40-quality-robustness-comes-from-ex-17",
+        "b-40-quality-output-value-18",
+        "b-40-quality-the-result-should-be-spe-19",
+        "b-40-quality-evaluate-the-actual-resu-20",
+        "b-40-quality-promptkit-integrity-21",
+        "b-40-quality-the-authored-artifact-sh-22",
+        "b-40-quality-declare-dynamic-values-a-23",
+        "b-40-quality-prefer-structured-conten-24",
+        "b-40-quality-keep-runtime-loader-sche-25",
+        "b-40-quality-use-valid-semantic-tags-26",
+        "b-40-quality-context-blocks-are-suppl-27",
+        "b-40-quality-rendered-output-judgment-28",
+        "b-40-quality-authors-shape-rendered-x-29",
+        "b-40-quality-semantic-tags-30",
+        "b-40-quality-use-tags-whose-names-exp-31",
+        "b-40-quality-tags-delineate-regions-32",
+        "b-40-quality-linear-reading-order-33",
+        "b-40-quality-rendered-prompts-should-34",
+        "b-40-quality-xml-35",
+        "b-40-quality-rules-is-last-so-the-36",
+        "b-40-quality-single-output-prompts-us-37",
+        "b-40-quality-xml-38",
+        "b-40-quality-constraints-is-last-39",
+        "b-40-quality-runtime-data-boundaries-40",
+        "b-40-quality-do-not-interleave-live-d-41",
+        "b-40-quality-this-separation-makes-au-42",
+        "b-40-quality-output-formats-and-lists-43",
+        "b-40-quality-where-a-single-output-pr-44",
+        "b-40-quality-use-numbered-lists-only-45",
+        "b-40-quality-list-style-46",
+        "b-40-quality-for-authored-prompt-cont-47",
+        "b-40-quality-before-48",
+        "b-40-quality-markdown-49",
+        "b-40-quality-after-50",
+        "b-40-quality-markdown-51",
+        "b-40-quality-before-52",
+        "b-40-quality-markdown-53",
+        "b-40-quality-after-54",
+        "b-40-quality-markdown-55",
+        "b-40-quality-this-keeps-lead-lines-sc-56",
+        "b-40-quality-anti-pattern-catalog-57",
+        "b-40-quality-anti-pattern-names-give-58",
+        "b-40-quality-structural-anti-patterns-59",
+        "b-40-quality-anti-pattern-failure-60",
+        "b-40-quality-reasoning-anti-patterns-61",
+        "b-40-quality-anti-pattern-failure-62",
+        "b-40-quality-output-and-boundary-anti-63",
+        "b-40-quality-anti-pattern-failure-64",
+        "b-40-quality-promptkit-specific-defec-65",
+        "b-40-quality-also-check-for-lower-lev-66",
+        "b-40-quality-raw-placeholders-where-a-67",
+        "b-40-quality-runtime-loader-schemas-o-68",
+        "b-40-quality-raw-passthrough-content-69",
+        "b-40-quality-clever-but-non-semantic-70",
+        "b-40-quality-duplicate-ids-or-invente-71",
+        "b-40-quality-six-step-qa-pass-72",
+        "b-40-quality-use-the-same-short-pass-73",
+        "b-40-quality-confirm-the-prompt-type-74",
+        "b-40-quality-bounded-one-call-transfo-75",
+        "b-40-quality-confirm-every-prompt-sec-76",
+        "b-40-quality-canonical-position-77",
+        "b-40-quality-confirm-behavior-self-d-78",
+        "b-40-quality-remain-on-their-separate-79",
+        "b-40-quality-for-single-output-prompt-80",
+        "b-40-quality-copy-without-inference-81",
+        "b-40-quality-check-the-complete-anti-82",
+        "b-40-quality-validate-the-prompt-docu-83",
+        "b-40-quality-whenever-practical-84",
+        "b-40-quality-the-final-render-is-the-85"
+      ]
+    },
+    "b-40-quality-prompt-quality-is-a-judg-2": {
+      "id": "b-40-quality-prompt-quality-is-a-judg-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt quality is a judgment about the model-facing result, not merely whether\nthe source compiles. A good prompt puts material on the correct face, gives\neach section a clear job, reads in execution order, and spends tokens only on\ndistinctions that improve behavior or output."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-the-dimensions-below-mak-3": {
+      "id": "b-40-quality-the-dimensions-below-mak-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The dimensions below make that judgment explicit. Scoring them is optional;\nreviewing all six is not."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-divider-4": {
+      "id": "b-40-quality-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-quality-evaluation-dimensions-5": {
+      "id": "b-40-quality-evaluation-dimensions-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Evaluation Dimensions"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-token-efficiency-6": {
+      "id": "b-40-quality-token-efficiency-6",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Token Efficiency"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-every-section-and-instru-7": {
+      "id": "b-40-quality-every-section-and-instru-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every section and instruction should earn its cost. Remove material that does\nnot change behavior, handling, or output, including repeated rules, ceremonial\nstages, and slots filled only because a template provides them."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-token-efficiency-is-not-8": {
+      "id": "b-40-quality-token-efficiency-is-not-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Token efficiency is not brevity at any cost. A boundary or priority that\nprevents a recurring failure earns its space; a shorter paraphrase of another\nsection does not."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-structural-precision-9": {
+      "id": "b-40-quality-structural-precision-9",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Structural Precision"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-the-structure-should-hel-10": {
+      "id": "b-40-quality-the-structure-should-hel-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The structure should help the model parse the job. Check that tags are\nsemantic, sections follow the canonical order, workflow and rules remain\ndistinct, and any required output shape is literal rather than implied."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-structural-precision-als-11": {
+      "id": "b-40-quality-structural-precision-als-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Structural precision also includes placement. Behavior belongs in the system\nprompt, reusable reference material belongs in self-describing context blocks,\nthe live picture belongs in state, and tool definitions belong to the tool\nlayer. A clean XML tree is still structurally wrong when its contents are on\nthe wrong face."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-reasoning-fit-12": {
+      "id": "b-40-quality-reasoning-fit-12",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Reasoning Fit"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-reasoning-scaffolding-sh-13": {
+      "id": "b-40-quality-reasoning-scaffolding-sh-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Reasoning scaffolding should match the task and its observed failure modes.\nAdd a workflow phase, critique pass, or other technique when it reduces a\nspecific risk. Remove it when it adds ceremony without improving the result."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-the-test-is-causal-an-a-14": {
+      "id": "b-40-quality-the-test-is-causal-an-a-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The test is causal: an author should be able to say what failure the added\nstructure prevents. Complexity alone does not establish that it is useful."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-robustness-15": {
+      "id": "b-40-quality-robustness-15",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Robustness"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-the-prompt-should-handle-16": {
+      "id": "b-40-quality-the-prompt-should-handle-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt should handle the difficult inputs and execution conditions that\nare plausible for its job: missing state, ambiguous requests, incomplete\nreferences, tool limits, conflicting requirements, and important edge cases."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-robustness-comes-from-ex-17": {
+      "id": "b-40-quality-robustness-comes-from-ex-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Robustness comes from explicit priorities and observable conditions, not from\ntrying to enumerate every possible exception. State-navigated agents should\nrecover their position from named state fields; single-output prompts should\nsay how to treat ambiguous or malformed input when that choice affects the\nanswer."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-output-value-18": {
+      "id": "b-40-quality-output-value-18",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Output Value"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-the-result-should-be-spe-19": {
+      "id": "b-40-quality-the-result-should-be-spe-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The result should be specific, useful, and actionable for its consumer. A\nresponse can satisfy its format and still fail this dimension by producing\npolished generalities, unsupported claims, or details with no decision value."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-evaluate-the-actual-resu-20": {
+      "id": "b-40-quality-evaluate-the-actual-resu-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Evaluate the actual result against the prompt's purpose and, where present,\ngoal and success criteria. Formatting compliance is evidence of control, not\nproof of value."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-promptkit-integrity-21": {
+      "id": "b-40-quality-promptkit-integrity-21",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "PromptKit Integrity"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-the-authored-artifact-sh-22": {
+      "id": "b-40-quality-the-authored-artifact-sh-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The authored artifact should preserve prompt-kit's source-of-truth and boundary\nmodel. Prompts are structured documents built from the vocabulary of the\n"
+        },
+        {
+          "insert": "canonical prompt object",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-canonical-prompt-object"
+            }
+          }
+        },
+        {
+          "insert": ", and quality review\nchecks that the structure is used honestly:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-declare-dynamic-values-a-23": {
+      "id": "b-40-quality-declare-dynamic-values-a-23",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Declare dynamic values as variables rather than raw placeholders."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-prefer-structured-conten-24": {
+      "id": "b-40-quality-prefer-structured-conten-24",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Prefer structured content to raw passthrough when the existing vocabulary already expresses the shape."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-keep-runtime-loader-sche-25": {
+      "id": "b-40-quality-keep-runtime-loader-sche-25",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Keep runtime loader schemas, tool definitions, and tool implementation out of prompt sections."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-use-valid-semantic-tags-26": {
+      "id": "b-40-quality-use-valid-semantic-tags-26",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Use valid semantic tags and stable, non-duplicated ids where ids are needed."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-context-blocks-are-suppl-27": {
+      "id": "b-40-quality-context-blocks-are-suppl-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Context blocks are supplied outside the prompt and describe for themselves\nwhat they contain and when to consult them. Do not use a prompt-side context\ninventory to couple otherwise independent reference blocks to the system\nprompt."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-rendered-output-judgment-28": {
+      "id": "b-40-quality-rendered-output-judgment-28",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Rendered-Output Judgment"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-authors-shape-rendered-x-29": {
+      "id": "b-40-quality-authors-shape-rendered-x-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Authors shape rendered XML-tagged Markdown through the prompt document; the\nrenderer only expresses those choices. Review the final model-facing text\nbecause a valid document can still produce a prompt that reads poorly."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-semantic-tags-30": {
+      "id": "b-40-quality-semantic-tags-30",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Semantic Tags"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-use-tags-whose-names-exp-31": {
+      "id": "b-40-quality-use-tags-whose-names-exp-31",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use tags whose names explain the section's role, such as "
+        },
+        {
+          "insert": "<purpose>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ",\n"
+        },
+        {
+          "insert": "<state_structure>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "<workflow>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "<quality_bar>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Avoid generic names such\nas "
+        },
+        {
+          "insert": "<section_1>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "<notes>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "<misc>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". If a reader cannot predict what a\nsection carries from its tag, the boundary is not doing useful semantic work."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-tags-delineate-regions-32": {
+      "id": "b-40-quality-tags-delineate-regions-32",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Tags delineate regions; they do not replace prose. Inside workflow fields,\nuse ordinary sentences and lists instead of inventing tags for every branch,\ncondition, or task."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-linear-reading-order-33": {
+      "id": "b-40-quality-linear-reading-order-33",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Linear Reading Order"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-rendered-prompts-should-34": {
+      "id": "b-40-quality-rendered-prompts-should-34",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rendered prompts should read from top to bottom without forward references.\nAgent prompts use this order, omitting only sections documented as optional:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-xml-35": {
+      "id": "b-40-quality-xml-35",
+      "type": "code",
+      "props": {
+        "language": "xml"
+      },
+      "text": [
+        {
+          "insert": "<purpose>\n<goal>\n<state_structure>\n<workflow>\n<error_handling>\n<success_criteria>\n<rules>"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-rules-is-last-so-the-36": {
+      "id": "b-40-quality-rules-is-last-so-the-36",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "<rules>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is last so the non-negotiables are recent when the model acts. There\nis no "
+        },
+        {
+          "insert": "<tools>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " section, context inventory, or "
+        },
+        {
+          "insert": "<reminders>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " section. Tools are\nattached by the runtime, context blocks describe themselves, and reminders are\nreplaced by a small trailing rules section."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-single-output-prompts-us-37": {
+      "id": "b-40-quality-single-output-prompts-us-37",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Single-output prompts use this order:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-xml-38": {
+      "id": "b-40-quality-xml-38",
+      "type": "code",
+      "props": {
+        "language": "xml"
+      },
+      "text": [
+        {
+          "insert": "<purpose>\n<instructions>\n<workflow>       <!-- staged prompts only -->\n<output_format>\n<constraints>"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-constraints-is-last-39": {
+      "id": "b-40-quality-constraints-is-last-39",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "<constraints>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is last for the same recency reason. Examples are not a prompt\nsection; when they are necessary, they arrive as a self-describing context\nblock."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-runtime-data-boundaries-40": {
+      "id": "b-40-quality-runtime-data-boundaries-40",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Runtime Data Boundaries"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-do-not-interleave-live-d-41": {
+      "id": "b-40-quality-do-not-interleave-live-d-41",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Do not interleave live data with standing instructions. Dynamic state is\nrendered as the separate live picture whose fields are declared in\n"
+        },
+        {
+          "insert": "<state_structure>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Reference packets remain separate context blocks, and\ntool schemas remain in the tool layer."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-this-separation-makes-au-42": {
+      "id": "b-40-quality-this-separation-makes-au-42",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This separation makes authority and freshness visible. A current document,\ntool result, or user-provided payload can contain imperative-looking text; its\nplacement should still make clear that it is data to evaluate rather than a\nstanding instruction to obey."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-output-formats-and-lists-43": {
+      "id": "b-40-quality-output-formats-and-lists-43",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Output Formats and Lists"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-where-a-single-output-pr-44": {
+      "id": "b-40-quality-where-a-single-output-pr-44",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Where a single-output prompt requires a response shape, show its literal\nskeleton in "
+        },
+        {
+          "insert": "<output_format>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". A schema, fenced structure, or fixed field list\nlets the model copy the form instead of inferring it from prose."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-use-numbered-lists-only-45": {
+      "id": "b-40-quality-use-numbered-lists-only-45",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use numbered lists only when sequence matters and bullets for unordered\nrequirements. Keep nesting shallow unless hierarchy itself carries meaning.\nFlat, purposeful lists are easier to scan and less likely to hide conflicting\ninstructions."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-list-style-46": {
+      "id": "b-40-quality-list-style-46",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "List Style"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-for-authored-prompt-cont-47": {
+      "id": "b-40-quality-for-authored-prompt-cont-47",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "For authored prompt content, list items within prompt documents, prefer\nnested sub-bullets to inline em-dash or colon explanations. The parent list\nitem's lead line contains the term or label alone; move the explanation into a\nchild list item."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-before-48": {
+      "id": "b-40-quality-before-48",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Before:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-markdown-49": {
+      "id": "b-40-quality-markdown-49",
+      "type": "code",
+      "props": {
+        "language": "markdown"
+      },
+      "text": [
+        {
+          "insert": "- Propose structure, never prose: an edit is a transaction of id-relative steps against the document tree, and rewritten markdown is never an edit."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-after-50": {
+      "id": "b-40-quality-after-50",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "After:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-markdown-51": {
+      "id": "b-40-quality-markdown-51",
+      "type": "code",
+      "props": {
+        "language": "markdown"
+      },
+      "text": [
+        {
+          "insert": "- Propose structure, never prose\n    - an edit is a transaction of id-relative steps against the document tree, and rewritten markdown is never an edit."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-before-52": {
+      "id": "b-40-quality-before-52",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Before:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-markdown-53": {
+      "id": "b-40-quality-markdown-53",
+      "type": "code",
+      "props": {
+        "language": "markdown"
+      },
+      "text": [
+        {
+          "insert": "- <target_prompt agent=\"…\" hash=\"…\"> — the target agent's current prompt as a node-id-stamped render; stamped ids are the only edit addresses, and hash is the transaction base."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-after-54": {
+      "id": "b-40-quality-after-54",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "After:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-markdown-55": {
+      "id": "b-40-quality-markdown-55",
+      "type": "code",
+      "props": {
+        "language": "markdown"
+      },
+      "text": [
+        {
+          "insert": "- <target_prompt agent=\"…\" hash=\"…\">\n    - the target agent's current prompt as a node-id-stamped render; stamped ids are the only edit addresses, and hash is the transaction base."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-this-keeps-lead-lines-sc-56": {
+      "id": "b-40-quality-this-keeps-lead-lines-sc-56",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This keeps lead lines scannable and prevents explanations from competing with\nlabels."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-anti-pattern-catalog-57": {
+      "id": "b-40-quality-anti-pattern-catalog-57",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Anti-Pattern Catalog"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-anti-pattern-names-give-58": {
+      "id": "b-40-quality-anti-pattern-names-give-58",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Anti-pattern names give reviewers a compact vocabulary for recurring defects.\nName the defect, then fix the structural cause rather than polishing its\nsurface wording."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-structural-anti-patterns-59": {
+      "id": "b-40-quality-structural-anti-patterns-59",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Structural Anti-Patterns"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-anti-pattern-failure-60": {
+      "id": "b-40-quality-anti-pattern-failure-60",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Anti-pattern",
+          "Failure",
+          "Correction"
+        ],
+        "rows": [
+          [
+            "Wall of Text",
+            "One undifferentiated block hides instruction boundaries.",
+            "Split the text into the smallest useful semantic sections."
+          ],
+          [
+            "Polite Suggestion",
+            "Hedges such as \"try to\" make required behavior optional.",
+            "Use direct imperative language for actual requirements."
+          ],
+          [
+            "Instruction Dump",
+            "Too many equally weighted directives obscure priorities.",
+            "Keep non-negotiables in the final rules or constraints section and phase-local limits with the relevant workflow phase."
+          ],
+          [
+            "Echo Chamber",
+            "The same instruction appears in several forms.",
+            "State it once in its proper section; use trailing rules for genuinely non-negotiable behavior."
+          ],
+          [
+            "Franken-Prompt",
+            "Borrowed sections use inconsistent terms or assumptions.",
+            "Normalize vocabulary and remove inherited material that does not serve this prompt."
+          ],
+          [
+            "Contradictions",
+            "Requirements conflict without a declared priority.",
+            "State which requirement wins under tension."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-quality-reasoning-anti-patterns-61": {
+      "id": "b-40-quality-reasoning-anti-patterns-61",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Reasoning Anti-Patterns"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-anti-pattern-failure-62": {
+      "id": "b-40-quality-anti-pattern-failure-62",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Anti-pattern",
+          "Failure",
+          "Correction"
+        ],
+        "rows": [
+          [
+            "Wall of Text",
+            "One undifferentiated block hides instruction boundaries.",
+            "Split the text into the smallest useful semantic sections."
+          ],
+          [
+            "Polite Suggestion",
+            "Hedges such as \"try to\" make required behavior optional.",
+            "Use direct imperative language for actual requirements."
+          ],
+          [
+            "Instruction Dump",
+            "Too many equally weighted directives obscure priorities.",
+            "Keep non-negotiables in the final rules or constraints section and phase-local limits with the relevant workflow phase."
+          ],
+          [
+            "Echo Chamber",
+            "The same instruction appears in several forms.",
+            "State it once in its proper section; use trailing rules for genuinely non-negotiable behavior."
+          ],
+          [
+            "Franken-Prompt",
+            "Borrowed sections use inconsistent terms or assumptions.",
+            "Normalize vocabulary and remove inherited material that does not serve this prompt."
+          ],
+          [
+            "Contradictions",
+            "Requirements conflict without a declared priority.",
+            "State which requirement wins under tension."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-quality-output-and-boundary-anti-63": {
+      "id": "b-40-quality-output-and-boundary-anti-63",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Output and Boundary Anti-Patterns"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-anti-pattern-failure-64": {
+      "id": "b-40-quality-anti-pattern-failure-64",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Anti-pattern",
+          "Failure",
+          "Correction"
+        ],
+        "rows": [
+          [
+            "Wall of Text",
+            "One undifferentiated block hides instruction boundaries.",
+            "Split the text into the smallest useful semantic sections."
+          ],
+          [
+            "Polite Suggestion",
+            "Hedges such as \"try to\" make required behavior optional.",
+            "Use direct imperative language for actual requirements."
+          ],
+          [
+            "Instruction Dump",
+            "Too many equally weighted directives obscure priorities.",
+            "Keep non-negotiables in the final rules or constraints section and phase-local limits with the relevant workflow phase."
+          ],
+          [
+            "Echo Chamber",
+            "The same instruction appears in several forms.",
+            "State it once in its proper section; use trailing rules for genuinely non-negotiable behavior."
+          ],
+          [
+            "Franken-Prompt",
+            "Borrowed sections use inconsistent terms or assumptions.",
+            "Normalize vocabulary and remove inherited material that does not serve this prompt."
+          ],
+          [
+            "Contradictions",
+            "Requirements conflict without a declared priority.",
+            "State which requirement wins under tension."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-quality-promptkit-specific-defec-65": {
+      "id": "b-40-quality-promptkit-specific-defec-65",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "PromptKit-Specific Defects"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-also-check-for-lower-lev-66": {
+      "id": "b-40-quality-also-check-for-lower-lev-66",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Also check for lower-level integrity failures:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-raw-placeholders-where-a-67": {
+      "id": "b-40-quality-raw-placeholders-where-a-67",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Raw placeholders where a declared variable should carry the value."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-runtime-loader-schemas-o-68": {
+      "id": "b-40-quality-runtime-loader-schemas-o-68",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Runtime loader schemas or tool implementation duplicated in prompt source."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-raw-passthrough-content-69": {
+      "id": "b-40-quality-raw-passthrough-content-69",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Raw passthrough content where the existing vocabulary already expresses the shape."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-clever-but-non-semantic-70": {
+      "id": "b-40-quality-clever-but-non-semantic-70",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Clever but non-semantic custom tags."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-duplicate-ids-or-invente-71": {
+      "id": "b-40-quality-duplicate-ids-or-invente-71",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Duplicate ids or invented structure where the existing vocabulary is sufficient."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-six-step-qa-pass-72": {
+      "id": "b-40-quality-six-step-qa-pass-72",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Six-Step QA Pass"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-use-the-same-short-pass-73": {
+      "id": "b-40-quality-use-the-same-short-pass-73",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use the same short pass before delivery so structural and rendered defects do\nnot depend on a reviewer's memory:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-confirm-the-prompt-type-74": {
+      "id": "b-40-quality-confirm-the-prompt-type-74",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Confirm the prompt type fits: state-navigating work is an agent prompt;"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-bounded-one-call-transfo-75": {
+      "id": "b-40-quality-bounded-one-call-transfo-75",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "   bounded one-call transformation is a single-output prompt."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-confirm-every-prompt-sec-76": {
+      "id": "b-40-quality-confirm-every-prompt-sec-76",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Confirm every prompt section changes behavior or output and occupies its"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-canonical-position-77": {
+      "id": "b-40-quality-canonical-position-77",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "   canonical position."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-confirm-behavior-self-d-78": {
+      "id": "b-40-quality-confirm-behavior-self-d-78",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Confirm behavior, self-describing context, live state, and tool definitions"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-remain-on-their-separate-79": {
+      "id": "b-40-quality-remain-on-their-separate-79",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "   remain on their separate faces; declare dynamic values as variables."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-for-single-output-prompt-80": {
+      "id": "b-40-quality-for-single-output-prompt-80",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "For single-output prompts, confirm "
+        },
+        {
+          "insert": "<output_format>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is literal enough to"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-copy-without-inference-81": {
+      "id": "b-40-quality-copy-without-inference-81",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "   copy without inference."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-check-the-complete-anti-82": {
+      "id": "b-40-quality-check-the-complete-anti-82",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Check the complete anti-pattern catalog and resolve every applicable defect."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-validate-the-prompt-docu-83": {
+      "id": "b-40-quality-validate-the-prompt-docu-83",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Validate the prompt document and inspect its rendered XML-tagged Markdown"
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-whenever-practical-84": {
+      "id": "b-40-quality-whenever-practical-84",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "   whenever practical."
+        }
+      ],
+      "children": []
+    },
+    "b-40-quality-the-final-render-is-the-85": {
+      "id": "b-40-quality-the-final-render-is-the-85",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The final render is the model's actual reading experience. QA is complete only\nwhen both the authored structure and that rendered result satisfy the six\nevaluation dimensions."
+        }
+      ],
+      "children": []
+    }
+  }
+}

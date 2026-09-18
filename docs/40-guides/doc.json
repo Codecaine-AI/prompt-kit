@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-3ee138c25a5d15c4fe3b5768f194a3c1",
+  "title": "Prompt Kit Guides",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This guides tier contains procedures for connecting clients, editing prompts, and running the local development host. The Foundation, System Design, Agents, and Implementation layers remain authoritative for contracts."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Connect Prompt Kit MCP",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "40-guides/10-connect-mcp"
+            }
+          }
+        },
+        {
+          "insert": " installs and diagnoses client bindings."
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Edit and Recover Prompts",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "40-guides/20-edit-prompts"
+            }
+          }
+        },
+        {
+          "insert": " covers the external editing loop and recovery decisions."
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Develop Prompt Kit",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "40-guides/30-development"
+            }
+          }
+        },
+        {
+          "insert": " covers library usage, tests, the internal host, and viewer entry points."
+        }
+      ],
+      "children": []
+    }
+  }
+}

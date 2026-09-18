@@ -1,0 +1,280 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-640e8892a5fdbe3e21f0bff43bc06f76",
+  "title": "Connect Prompt Kit MCP",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11",
+        "authored-12",
+        "authored-13",
+        "authored-14",
+        "authored-15",
+        "authored-16"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Install the codecaine-prompts connection from the Prompt Kit repository root. The installer adds client bindings and generated authoring skills while preserving unrelated settings."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Install"
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "code",
+      "props": {
+        "language": "sh"
+      },
+      "text": [
+        {
+          "insert": "bun run mcp:install\nbun run mcp:install --write > /tmp/prompt-kit-install-report.json\nbun run mcp:doctor"
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Review the preview before writing. Store the resulting report in a private durable location: it records the backup paths needed for restoration. The default clients are Codex, Claude Code, and pi; pass --clients codex,claude,pi with the desired subset."
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Client",
+          "Binding",
+          "Activation"
+        ],
+        "rows": [
+          [
+            "Codex",
+            "~/.codex/config.toml and ~/.agents/skills/codecaine-prompts",
+            "Restart Codex."
+          ],
+          [
+            "Claude Code",
+            "~/.claude.json and ~/.claude/skills/codecaine-prompts",
+            "Restart Claude Code."
+          ],
+          [
+            "pi",
+            "~/.pi/agent/extensions/codecaine-prompts.ts and shared skill directory",
+            "Run /reload or start a new session."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "pi uses an extension that forwards MCP tools. Codex and Claude use stdio MCP. The connection discovers the active workspace; it does not hardcode one project. Custom client directories require the supported installer options rather than overwriting unrelated installations."
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Register a Project"
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Add codecaine.prompts.json at the project root. Catalog roots and standalone prompt paths are relative to that root; omitted collections are allowed."
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"name\": \"example\",\n  \"profile\": \"agent\",\n  \"catalogRoots\": [\n    \"catalog\"\n  ],\n  \"standalonePrompts\": [\n    {\n      \"path\": \"prompts/rewrite.json\",\n      \"profile\": \"single-output\",\n      \"variables\": []\n    }\n  ]\n}",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "profile",
+            "type": "agent | single-output | generic",
+            "required": false
+          },
+          {
+            "name": "catalogRoots",
+            "type": "string[]",
+            "required": false,
+            "description": "Project-relative catalog directories."
+          },
+          {
+            "name": "standalonePrompts",
+            "type": "object[]",
+            "required": false,
+            "fields": [
+              {
+                "name": "path",
+                "type": "string",
+                "description": "Project-relative PromptDocument file."
+              },
+              {
+                "name": "profile",
+                "type": "agent | single-output | generic",
+                "required": false
+              },
+              {
+                "name": "variables",
+                "type": "string[]",
+                "description": "Explicitly use [] for no variables; omission blocks mutation and successful checks."
+              }
+            ]
+          }
+        ],
+        "name": "Prompt Discovery Configuration",
+        "source": {
+          "path": "packages/prompt-kit-mcp/src/discovery.ts"
+        }
+      },
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This repository registers packages/prompt-kit-agent/catalog. Use the project and prompt IDs returned by prompts_discover and prompts_list; the prompt document ID can differ from the catalog agent name."
+        }
+      ],
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Verify and Restore"
+        }
+      ],
+      "children": []
+    },
+    "authored-12": {
+      "id": "authored-12",
+      "type": "code",
+      "props": {
+        "language": "sh"
+      },
+      "text": [
+        {
+          "insert": "bun scripts/verify-installed-mcp.ts\nbun scripts/verify-installed-mcp.ts --claude\nbun packages/prompt-kit-mcp/src/cli.ts restore /path/to/install-report.json\nbun packages/prompt-kit-mcp/src/cli.ts restore /path/to/install-report.json --write"
+        }
+      ],
+      "children": []
+    },
+    "authored-13": {
+      "id": "authored-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Doctor checks installed files against current sources. The verification script additionally tests the actual stdio connection and disposable edits. A restored file must still match the installed content before restoration can replace it."
+        }
+      ],
+      "children": []
+    },
+    "authored-14": {
+      "id": "authored-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Service Maintenance"
+        }
+      ],
+      "children": []
+    },
+    "authored-15": {
+      "id": "authored-15",
+      "type": "code",
+      "props": {
+        "language": "sh"
+      },
+      "text": [
+        {
+          "insert": "bun packages/prompt-kit-mcp/src/cli.ts status\nbun packages/prompt-kit-mcp/src/cli.ts stop"
+        }
+      ],
+      "children": []
+    },
+    "authored-16": {
+      "id": "authored-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Stop the service after runtime-source changes and reconnect clients. It starts on the next connection. Runtime state lives under ~/.local/state/codecaine-prompts, or CODECAINE_PROMPTS_STATE_DIR. Keep daemon.json private because it contains the local bearer token. Moving the checkout requires rerunning installation."
+        }
+      ],
+      "children": []
+    }
+  }
+}

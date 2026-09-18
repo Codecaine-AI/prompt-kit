@@ -1,0 +1,417 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-60-editor-00-overview",
+  "title": "Prompt Editor",
+  "root": "b-00-overview-root-27",
+  "blocks": {
+    "b-00-overview-root-27": {
+      "id": "b-00-overview-root-27",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "editor",
+          "editing-model",
+          "keyboard",
+          "presentation",
+          "interaction"
+        ],
+        "covers": "The behavioral design of the prompt editor, covering the editing model, keyboard gestures, presentation contract, block vocabulary, pointer interactions, and the lab shell.",
+        "depends-on": [
+          "10-system-design/10-canonical-prompt-object.md",
+          "10-system-design/30-rendering-model.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-the-prompt-editor-presen-2",
+        "b-00-overview-these-pages-specify-the-3",
+        "b-00-overview-divider-4",
+        "b-00-overview-design-commitments-5",
+        "b-00-overview-one-source-of-truth-6",
+        "b-00-overview-property-it-edits-commi-7",
+        "b-00-overview-steps-not-snapshots-8",
+        "b-00-overview-committed-as-transaction-9",
+        "b-00-overview-caret-first-clickin-10",
+        "b-00-overview-block-selection-explici-11",
+        "b-00-overview-presentation-is-separa-12",
+        "b-00-overview-changes-the-document-or-13",
+        "b-00-overview-contents-14",
+        "b-00-overview-10-editing-model-md-10-15",
+        "b-00-overview-how-the-document-project-16",
+        "b-00-overview-20-keyboard-model-md-2-17",
+        "b-00-overview-every-keyboard-gesture-t-18",
+        "b-00-overview-30-presentation-md-30-19",
+        "b-00-overview-the-css-variable-contrac-20",
+        "b-00-overview-40-block-vocabulary-md-21",
+        "b-00-overview-the-block-types-an-autho-22",
+        "b-00-overview-50-interaction-model-md-23",
+        "b-00-overview-the-pointer-model-the-o-24",
+        "b-00-overview-60-application-shell-md-25",
+        "b-00-overview-the-lab-shell-around-the-26"
+      ]
+    },
+    "b-00-overview-the-prompt-editor-presen-2": {
+      "id": "b-00-overview-the-prompt-editor-presen-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt editor presents a "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as editable XML-tagged Markdown.\nThe document is canonical: the text on screen is a rendered projection, every\ngesture commits as a structural step, and the rendered string is never parsed\nback into nodes."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-these-pages-specify-the-3": {
+      "id": "b-00-overview-these-pages-specify-the-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These pages specify the editor's behavior, what a keystroke, click, or drag\nmeans, independent of any host application."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-4": {
+      "id": "b-00-overview-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-design-commitments-5": {
+      "id": "b-00-overview-design-commitments-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Design Commitments"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-one-source-of-truth-6": {
+      "id": "b-00-overview-one-source-of-truth-6",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "One source of truth.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Every row knows which node it projects and which"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-property-it-edits-commi-7": {
+      "id": "b-00-overview-property-it-edits-commi-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  property it edits; commits write that property back into the document."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-steps-not-snapshots-8": {
+      "id": "b-00-overview-steps-not-snapshots-8",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Steps, not snapshots.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Structural changes are expressed as steps and"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-committed-as-transaction-9": {
+      "id": "b-00-overview-committed-as-transaction-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  committed as transactions, so one gesture is one undo."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-caret-first-clickin-10": {
+      "id": "b-00-overview-caret-first-clickin-10",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Caret-first.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Clicking or typing in text is a caret gesture, never a"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-block-selection-explici-11": {
+      "id": "b-00-overview-block-selection-explici-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  block selection; explicit selection has its own gestures."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-presentation-is-separa-12": {
+      "id": "b-00-overview-presentation-is-separa-12",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Presentation is separate.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Style is a token contract; no style choice"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-changes-the-document-or-13": {
+      "id": "b-00-overview-changes-the-document-or-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  changes the document or its content hash."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-contents-14": {
+      "id": "b-00-overview-contents-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Contents"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-editing-model-md-10-15": {
+      "id": "b-00-overview-10-editing-model-md-10-15",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Editing Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/10-editing-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-the-document-project-16": {
+      "id": "b-00-overview-how-the-document-project-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How the document projects into editable rows, how text and structure commit,\nand how the caret survives structural moves."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-20-keyboard-model-md-2-17": {
+      "id": "b-00-overview-20-keyboard-model-md-2-17",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Keyboard Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/20-keyboard-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-every-keyboard-gesture-t-18": {
+      "id": "b-00-overview-every-keyboard-gesture-t-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every keyboard gesture the surface implements, including the deliberate\ndeviations from conventional editor behavior."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-30-presentation-md-30-19": {
+      "id": "b-00-overview-30-presentation-md-30-19",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Presentation",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/30-presentation"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-css-variable-contrac-20": {
+      "id": "b-00-overview-the-css-variable-contrac-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The CSS variable contract shared by the editable surface and the read-only\nprompt view, and the style settings that project it."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-40-block-vocabulary-md-21": {
+      "id": "b-00-overview-40-block-vocabulary-md-21",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Block Vocabulary",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/40-block-vocabulary"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-block-types-an-autho-22": {
+      "id": "b-00-overview-the-block-types-an-autho-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The block types an author can create, how the rest of the node set behaves in\nthe editor, and why a section's name is its tag."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-50-interaction-model-md-23": {
+      "id": "b-00-overview-50-interaction-model-md-23",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Interaction Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/50-interaction-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-pointer-model-the-o-24": {
+      "id": "b-00-overview-the-pointer-model-the-o-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The pointer model: the one drag handle, plain-drag object selection, native\ntext selection, and annotate mode."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-60-application-shell-md-25": {
+      "id": "b-00-overview-60-application-shell-md-25",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Application Shell",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/60-application-shell"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-lab-shell-around-the-26": {
+      "id": "b-00-overview-the-lab-shell-around-the-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The lab shell around the surface: views, the glass panel, the annotation\nqueue, history, and autosave."
+        }
+      ],
+      "children": []
+    }
+  }
+}

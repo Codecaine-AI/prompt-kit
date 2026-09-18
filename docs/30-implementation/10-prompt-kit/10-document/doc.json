@@ -1,0 +1,605 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-10-prompt-kit-10-document",
+  "title": "Document Model",
+  "root": "b-10-document-root-29",
+  "blocks": {
+    "b-10-document-root-29": {
+      "id": "b-10-document-root-29",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "document",
+          "AST",
+          "nodes",
+          "transforms",
+          "validation"
+        ],
+        "covers": "Structural decisions for the document model — node-vocabulary extension, structure conventions over existing nodes, AST-only transforms, and the host dependency boundary.",
+        "design_refs": [
+          "10-system-design/10-canonical-prompt-object.md",
+          "10-system-design/40-composition-and-transforms.md",
+          "10-system-design/50-validation-contract.md"
+        ]
+      },
+      "children": [
+        "b-10-document-packages-prompt-kit-src-2",
+        "b-10-document-divider-3",
+        "b-10-document-governed-by-4",
+        "b-10-document-canonical-prompt-object-5",
+        "b-10-document-authoring-model-6",
+        "b-10-document-rendering-model-7",
+        "b-10-document-composition-and-transfo-8",
+        "b-10-document-validation-contract-9",
+        "b-10-document-decisions-10",
+        "b-10-document-node-vocabulary-stays-sm-11",
+        "b-10-document-decision-new-node-t-12",
+        "b-10-document-why-a-small-closed-13",
+        "b-10-document-applies-to-a-new-pr-14",
+        "b-10-document-dynamic-values-enter-thr-15",
+        "b-10-document-decision-runtime-va-16",
+        "b-10-document-why-raw-placeholder-17",
+        "b-10-document-applies-to-any-new-18",
+        "b-10-document-transforms-operate-on-as-19",
+        "b-10-document-decision-transforms-20",
+        "b-10-document-why-string-rewritin-21",
+        "b-10-document-applies-to-every-ne-22",
+        "b-10-document-host-declarations-are-pa-23",
+        "b-10-document-decision-the-valida-24",
+        "b-10-document-why-prompt-kit-stay-25",
+        "b-10-document-applies-to-new-vali-26",
+        "b-10-document-modules-27",
+        "b-10-document-module-responsibilit-28"
+      ]
+    },
+    "b-10-document-packages-prompt-kit-src-2": {
+      "id": "b-10-document-packages-prompt-kit-src-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "packages/prompt-kit/src/document",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " implements the canonical prompt object: the\nnode vocabulary, document schema, canonical form and hashing, rendering,\ntransforms, and validation. Everything else in the workspace consumes prompt\ndocuments through this area."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-divider-3": {
+      "id": "b-10-document-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-document-governed-by-4": {
+      "id": "b-10-document-governed-by-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Governed by"
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-canonical-prompt-object-5": {
+      "id": "b-10-document-canonical-prompt-object-5",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Canonical prompt object",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-canonical-prompt-object"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-authoring-model-6": {
+      "id": "b-10-document-authoring-model-6",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Authoring model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-authoring-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-rendering-model-7": {
+      "id": "b-10-document-rendering-model-7",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Rendering model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-rendering-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-composition-and-transfo-8": {
+      "id": "b-10-document-composition-and-transfo-8",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Composition and transforms",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-composition-and-transforms"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-validation-contract-9": {
+      "id": "b-10-document-validation-contract-9",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Validation contract",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-validation-contract"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-decisions-10": {
+      "id": "b-10-document-decisions-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-node-vocabulary-stays-sm-11": {
+      "id": "b-10-document-node-vocabulary-stays-sm-11",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Node vocabulary stays small and closed"
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-decision-new-node-t-12": {
+      "id": "b-10-document-decision-new-node-t-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " New node types are added only when the existing block vocabulary\ncannot represent a common prompt structure. Prompt-structure conventions map\nonto the existing vocabulary rather than getting their own node types: a\nworkflow is a "
+        },
+        {
+          "insert": "section",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tagged "
+        },
+        {
+          "insert": "workflow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with nested phase sections, steps\nare "
+        },
+        {
+          "insert": "orderedList",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " nodes, constraints are lists, and single-output skeletons\nuse "
+        },
+        {
+          "insert": "codeBlock",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " inside an output-format section. No workflow-specific or\ntechnique-specific node types exist."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-why-a-small-closed-13": {
+      "id": "b-10-document-why-a-small-closed-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " A small closed vocabulary keeps renderers, transforms, and validation\ntotal over one canonical AST, every consumer handles every node."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-applies-to-a-new-pr-14": {
+      "id": "b-10-document-applies-to-a-new-pr-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " A new prompt convention is expressed with existing nodes\nfirst; a vocabulary extension needs a structure the current nodes cannot\nrepresent."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-dynamic-values-enter-thr-15": {
+      "id": "b-10-document-dynamic-values-enter-thr-15",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Dynamic values enter through "
+        },
+        {
+          "insert": "variable",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-decision-runtime-va-16": {
+      "id": "b-10-document-decision-runtime-va-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Runtime values enter a prompt through "
+        },
+        {
+          "insert": "variable",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " nodes, declared runtime boundaries, never through raw text placeholders. "
+        },
+        {
+          "insert": "raw",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " nodes\nare reserved for content no structured node can express."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-why-raw-placeholder-17": {
+      "id": "b-10-document-why-raw-placeholder-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Raw placeholders and host string interpolation defeat validation\n(undeclared variables go undetected) and structural diffing."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-applies-to-any-new-18": {
+      "id": "b-10-document-applies-to-any-new-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Any new injection point for runtime data is a "
+        },
+        {
+          "insert": "variable",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\nnode; adding placeholder syntax inside text content is a restructure, not an\nextension."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-transforms-operate-on-as-19": {
+      "id": "b-10-document-transforms-operate-on-as-19",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Transforms operate on AST nodes, never strings"
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-decision-transforms-20": {
+      "id": "b-10-document-decision-transforms-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Transforms are immutable and id-targeted, insert, replace, and\nomit address nodes by id and return new documents. They operate at block\nscope only; inline transforms build on "
+        },
+        {
+          "insert": "visitPrompt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when needed."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-why-string-rewritin-21": {
+      "id": "b-10-document-why-string-rewritin-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " String rewriting breaks the canonical shape and destroys stable node\nids, which addressing, diffing, and annotation all depend on."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-applies-to-every-ne-22": {
+      "id": "b-10-document-applies-to-every-ne-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Every new transform takes and returns documents, targets ids,\nand never mutates its input."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-host-declarations-are-pa-23": {
+      "id": "b-10-document-host-declarations-are-pa-23",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Host declarations are parameters, not imports"
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-decision-the-valida-24": {
+      "id": "b-10-document-decision-the-valida-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The validator accepts host declarations (for example\n"
+        },
+        {
+          "insert": "declaredVariables",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") as parameters. The document core never imports from a\nhost."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-why-prompt-kit-stay-25": {
+      "id": "b-10-document-why-prompt-kit-stay-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Prompt-kit stays host-independent while still supporting\nhost-specific validation."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-applies-to-new-vali-26": {
+      "id": "b-10-document-applies-to-new-vali-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " New validation rules that need host knowledge take it as an\noption; a host import in "
+        },
+        {
+          "insert": "src/document",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a boundary violation."
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-modules-27": {
+      "id": "b-10-document-modules-27",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Modules"
+        }
+      ],
+      "children": []
+    },
+    "b-10-document-module-responsibilit-28": {
+      "id": "b-10-document-module-responsibilit-28",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Module",
+          "Responsibility"
+        ],
+        "rows": [
+          [
+            "nodes",
+            "Node types, guards, id generation, node construction"
+          ],
+          [
+            "schema",
+            "Document schema and shape validation"
+          ],
+          [
+            "canonical",
+            "Canonical form and content hashing"
+          ],
+          [
+            "render",
+            "XML-tagged Markdown rendering and the line model"
+          ],
+          [
+            "transforms",
+            "Id-targeted find/insert/replace/omit and traversal"
+          ],
+          [
+            "validate",
+            "Tree validation and diagnostics"
+          ]
+        ]
+      },
+      "children": []
+    }
+  }
+}

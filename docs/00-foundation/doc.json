@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "id": "00-foundation-00-overview",
+  "title": "Prompt-Kit Foundation",
+  "root": "b-00-overview-root-11",
+  "blocks": {
+    "b-00-overview-root-11": {
+      "id": "b-00-overview-root-11",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "foundation",
+          "purpose",
+          "principles",
+          "boundaries"
+        ],
+        "covers": "The Foundation layer for prompt-kit, including its purpose, boundaries, and authoring principles.",
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-prompt-kit-exists-to-mak-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-file-tree-4",
+        "b-00-overview-text-5",
+        "b-00-overview-contents-6",
+        "b-00-overview-10-purpose-and-boundary-7",
+        "b-00-overview-explains-the-problem-pro-8",
+        "b-00-overview-20-authoring-principles-9",
+        "b-00-overview-captures-the-authoring-r-10"
+      ]
+    },
+    "b-00-overview-prompt-kit-exists-to-mak-2": {
+      "id": "b-00-overview-prompt-kit-exists-to-mak-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit exists to make prompts authorable as structured objects while still\nrendering into linear text that an agent can read naturally. This layer captures\nthe intent behind that package before diving into AST details or implementation\nfiles."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-file-tree-4": {
+      "id": "b-00-overview-file-tree-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "File Tree"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-text-5": {
+      "id": "b-00-overview-text-5",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "10-purpose-and-boundary/",
+            "note": "Purpose, ownership, and canonical source."
+          },
+          {
+            "path": "20-authoring-principles/",
+            "note": "Structured authoring principles."
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-00-overview-contents-6": {
+      "id": "b-00-overview-contents-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Contents"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-purpose-and-boundary-7": {
+      "id": "b-00-overview-10-purpose-and-boundary-7",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Purpose And Boundary",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "00-foundation/10-purpose-and-boundary"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-explains-the-problem-pro-8": {
+      "id": "b-00-overview-explains-the-problem-pro-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Explains the problem prompt-kit solves, the package boundary, and the runtime\nsystems that stay outside the package."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-20-authoring-principles-9": {
+      "id": "b-00-overview-20-authoring-principles-9",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Authoring Principles",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "00-foundation/20-authoring-principles"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-captures-the-authoring-r-10": {
+      "id": "b-00-overview-captures-the-authoring-r-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Captures the authoring rules that keep prompt documents flexible, readable, and\nsafe to render in several environments."
+        }
+      ],
+      "children": []
+    }
+  }
+}

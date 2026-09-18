@@ -1,0 +1,903 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-70-prompt-structure-10-agent-prompt",
+  "title": "Agent Prompt Structure",
+  "root": "b-10-agent-prompt-root-54",
+  "blocks": {
+    "b-10-agent-prompt-root-54": {
+      "id": "b-10-agent-prompt-root-54",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "agent-prompts",
+          "state-structure",
+          "workflow",
+          "rules"
+        ],
+        "covers": "How to structure an agent system prompt around purpose, declared state, state-navigated workflow, completion checks, and final rules.",
+        "depends-on": [
+          "10-system-design/70-prompt-structure/00-overview.md"
+        ]
+      },
+      "children": [
+        "b-10-agent-prompt-an-agent-prompt-defines-2",
+        "b-10-agent-prompt-the-defining-property-is-3",
+        "b-10-agent-prompt-divider-4",
+        "b-10-agent-prompt-canonical-section-order-5",
+        "b-10-agent-prompt-agent-prompts-use-this-o-6",
+        "b-10-agent-prompt-xml-7",
+        "b-10-agent-prompt-the-conditional-sections-8",
+        "b-10-agent-prompt-purpose-9",
+        "b-10-agent-prompt-purpose-says-what-the-10",
+        "b-10-agent-prompt-purpose-should-describe-11",
+        "b-10-agent-prompt-goal-12",
+        "b-10-agent-prompt-goal-names-the-end-sta-13",
+        "b-10-agent-prompt-an-agent-whose-purpose-i-14",
+        "b-10-agent-prompt-purpose-and-goal-therefo-15",
+        "b-10-agent-prompt-purpose-what-does-t-16",
+        "b-10-agent-prompt-goal-what-state-mus-17",
+        "b-10-agent-prompt-state-structure-18",
+        "b-10-agent-prompt-state-structure-declar-19",
+        "b-10-agent-prompt-the-section-describes-fi-20",
+        "b-10-agent-prompt-xml-21",
+        "b-10-agent-prompt-only-state-belongs-here-22",
+        "b-10-agent-prompt-names-should-expose-the-23",
+        "b-10-agent-prompt-workflow-24",
+        "b-10-agent-prompt-workflow-describes-the-25",
+        "b-10-agent-prompt-state-names-create-the-b-26",
+        "b-10-agent-prompt-workflow-steps-carry-sit-27",
+        "b-10-agent-prompt-error-handling-28",
+        "b-10-agent-prompt-error-handling-is-opti-29",
+        "b-10-agent-prompt-generic-advice-such-as-30",
+        "b-10-agent-prompt-success-criteria-31",
+        "b-10-agent-prompt-success-criteria-is-op-32",
+        "b-10-agent-prompt-this-differs-from-goal-33",
+        "b-10-agent-prompt-success-criteria-are-unn-34",
+        "b-10-agent-prompt-rules-35",
+        "b-10-agent-prompt-rules-contains-process-36",
+        "b-10-agent-prompt-use-direct-absolute-lan-37",
+        "b-10-agent-prompt-rules-should-not-be-copi-38",
+        "b-10-agent-prompt-rejected-patterns-39",
+        "b-10-agent-prompt-several-familiar-prompt-40",
+        "b-10-agent-prompt-rejected-pattern-can-41",
+        "b-10-agent-prompt-there-is-consequently-no-42",
+        "b-10-agent-prompt-anti-patterns-43",
+        "b-10-agent-prompt-turn-count-navigation-44",
+        "b-10-agent-prompt-makes-retries-and-interr-45",
+        "b-10-agent-prompt-context-disguised-as-s-46",
+        "b-10-agent-prompt-references-in-state-str-47",
+        "b-10-agent-prompt-goal-as-a-purpose-echo-48",
+        "b-10-agent-prompt-structure-without-adding-49",
+        "b-10-agent-prompt-untestable-success-lan-50",
+        "b-10-agent-prompt-the-goal-has-been-reache-51",
+        "b-10-agent-prompt-rule-duplication-re-52",
+        "b-10-agent-prompt-creates-multiple-sources-53"
+      ]
+    },
+    "b-10-agent-prompt-an-agent-prompt-defines-2": {
+      "id": "b-10-agent-prompt-an-agent-prompt-defines-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent prompt defines the behavior of a system that works across multiple\nmodel calls. External code owns the loop and re-renders live state; the system\nprompt tells the agent what it does and how it operates within that loop."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-the-defining-property-is-3": {
+      "id": "b-10-agent-prompt-the-defining-property-is-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The defining property is that "
+        },
+        {
+          "insert": "the agent navigates state, not turns",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ". On each\nrequest, it reads the current state fields, identifies the applicable workflow\nphase, and performs the next useful work. A workflow tied to “turn 2” or “the\nthird call” becomes wrong as soon as a retry, interruption, or branch changes\nthe call count."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-divider-4": {
+      "id": "b-10-agent-prompt-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-agent-prompt-canonical-section-order-5": {
+      "id": "b-10-agent-prompt-canonical-section-order-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Canonical Section Order"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-agent-prompts-use-this-o-6": {
+      "id": "b-10-agent-prompt-agent-prompts-use-this-o-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agent prompts use this order:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-xml-7": {
+      "id": "b-10-agent-prompt-xml-7",
+      "type": "code",
+      "props": {
+        "language": "xml"
+      },
+      "text": [
+        {
+          "insert": "<purpose>             <!-- what the agent does, in 1-3 sentences -->\n<goal>                <!-- end state, only when distinct from purpose -->\n<state_structure>     <!-- names and meanings of live state fields -->\n<workflow>            <!-- phases selected by inspecting state -->\n<error_handling>      <!-- only when failure modes need instruction -->\n<success_criteria>    <!-- only when \"done well\" needs a testable bar -->\n<rules>               <!-- fewer than 7 non-negotiables, always last -->"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-the-conditional-sections-8": {
+      "id": "b-10-agent-prompt-the-conditional-sections-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The conditional sections earn their place through information the other\nsections do not already provide. This keeps a prompt small enough to read as a\nsingle behavioral contract while reserving the strongest recency position for\nits non-negotiable rules."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-purpose-9": {
+      "id": "b-10-agent-prompt-purpose-9",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Purpose"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-purpose-says-what-the-10": {
+      "id": "b-10-agent-prompt-purpose-says-what-the-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "purpose",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " says what the agent does in one to three concrete sentences. It is a\ntask definition, not a persona or backstory. “Maintains a prompt document while\nresolving queued author requests” gives the model an operating role; “You are a\nhelpful prompt expert” does not."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-purpose-should-describe-11": {
+      "id": "b-10-agent-prompt-purpose-should-describe-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Purpose should describe standing behavior rather than the current assignment.\nThe current document, open requests, and work completed so far belong to live\nstate. Reference material about document structure or formatting belongs in\nself-describing context blocks."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-goal-12": {
+      "id": "b-10-agent-prompt-goal-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Goal"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-goal-names-the-end-sta-13": {
+      "id": "b-10-agent-prompt-goal-names-the-end-sta-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "goal",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " names the end state the workflow works toward. It appears only when that\nend state adds information beyond purpose."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-an-agent-whose-purpose-i-14": {
+      "id": "b-10-agent-prompt-an-agent-whose-purpose-i-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent whose purpose is to classify each incoming ticket does not need a goal\nthat repeats “classify the ticket.” An interview agent does benefit from a goal\nsuch as “a finalized specification with no unresolved questions,” because that\nend state helps it decide when to stop asking and start finalizing."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-purpose-and-goal-therefo-15": {
+      "id": "b-10-agent-prompt-purpose-and-goal-therefo-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Purpose and goal therefore answer different questions:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-purpose-what-does-t-16": {
+      "id": "b-10-agent-prompt-purpose-what-does-t-16",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Purpose:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " What does this agent do?"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-goal-what-state-mus-17": {
+      "id": "b-10-agent-prompt-goal-what-state-mus-17",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Goal:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " What state must exist when this run is complete?"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-state-structure-18": {
+      "id": "b-10-agent-prompt-state-structure-18",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "State Structure"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-state-structure-declar-19": {
+      "id": "b-10-agent-prompt-state-structure-declar-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "state_structure",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declares the live state fields the application re-renders on\nevery request. The workflow refers to these fields by name, which lets the agent\nrecover its position after retries, pauses, or branch changes."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-the-section-describes-fi-20": {
+      "id": "b-10-agent-prompt-the-section-describes-fi-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The section describes field meaning, not current field values. For example:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-xml-21": {
+      "id": "b-10-agent-prompt-xml-21",
+      "type": "code",
+      "props": {
+        "language": "xml"
+      },
+      "text": [
+        {
+          "insert": "<state_structure>\n    - `current_document`: the document being changed in its current form.\n    - `changes_so_far`: accepted changes already applied during this run.\n    - `open_queue`: unresolved requests that still require action.\n</state_structure>"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-only-state-belongs-here-22": {
+      "id": "b-10-agent-prompt-only-state-belongs-here-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Only state belongs here. Standing reference blocks do not: each context block\nopens with what it contains and when to consult it, so a prompt-side context\ninventory would duplicate information and couple the system prompt to freely\nchangeable context. Tool definitions and schemas likewise live on the agent in\nthe tool layer, not in "
+        },
+        {
+          "insert": "state_structure",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or another prompt section."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-names-should-expose-the-23": {
+      "id": "b-10-agent-prompt-names-should-expose-the-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Names should expose the conditions the workflow needs to test. "
+        },
+        {
+          "insert": "open_queue",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is\nuseful because a phase can continue while it contains unresolved entries;\n"
+        },
+        {
+          "insert": "misc_data",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hides the same navigation signal behind an ambiguous label."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-workflow-24": {
+      "id": "b-10-agent-prompt-workflow-24",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Workflow"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-workflow-describes-the-25": {
+      "id": "b-10-agent-prompt-workflow-describes-the-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "workflow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " describes the phases the agent follows. Each phase has an objective\nand numbered steps, and the agent chooses or repeats a phase by inspecting the\ndeclared state fields. The full phase grammar, optional fields, and loop form\nare defined in "
+        },
+        {
+          "insert": "Workflow Structure",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure/20-workflow"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-state-names-create-the-b-26": {
+      "id": "b-10-agent-prompt-state-names-create-the-b-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "State names create the bridge between declaration and procedure. “Loop to step\n2 until "
+        },
+        {
+          "insert": "open_queue",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " has no unresolved entries” remains valid across any number\nof model calls. “Repeat for three turns” does not."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-workflow-steps-carry-sit-27": {
+      "id": "b-10-agent-prompt-workflow-steps-carry-sit-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Workflow steps carry situational instructions that apply at a particular point\nin the process. Keeping those instructions local prevents the final "
+        },
+        {
+          "insert": "rules",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\nsection from becoming a long collection of branches and exceptions."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-error-handling-28": {
+      "id": "b-10-agent-prompt-error-handling-28",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Error Handling"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-error-handling-is-opti-29": {
+      "id": "b-10-agent-prompt-error-handling-is-opti-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "error_handling",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is optional. It belongs in a prompt when known failures require\na specific behavioral response: preserving state after a failed write,\ndistinguishing a retryable tool error from a permanent one, or reporting a\nblocked queue entry without losing the rest of the queue."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-generic-advice-such-as-30": {
+      "id": "b-10-agent-prompt-generic-advice-such-as-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Generic advice such as “handle errors gracefully” does not justify a section.\nUseful error handling identifies the failure condition and the required\nrecovery or escalation behavior. Tool schema details still remain in the tool\nlayer."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-success-criteria-31": {
+      "id": "b-10-agent-prompt-success-criteria-31",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Success Criteria"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-success-criteria-is-op-32": {
+      "id": "b-10-agent-prompt-success-criteria-is-op-32",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "success_criteria",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is optional and testable. It defines how the agent verifies\nthat the intended end state is good enough before finishing."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-this-differs-from-goal-33": {
+      "id": "b-10-agent-prompt-this-differs-from-goal-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This differs from "
+        },
+        {
+          "insert": "goal",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": the goal names the destination, while success\ncriteria test its quality. “A completed migration plan” is a goal. “Every\nsource path has exactly one destination and every unsupported item is called\nout” is a success criterion. Vague standards such as “produce a high-quality\nresult” cannot guide a final check and should be removed."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-success-criteria-are-unn-34": {
+      "id": "b-10-agent-prompt-success-criteria-are-unn-34",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Success criteria are unnecessary when the workflow and output contract already\nmake completion unambiguous. Duplicating those checks adds weight without\nchanging behavior."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-rules-35": {
+      "id": "b-10-agent-prompt-rules-35",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Rules"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-rules-contains-process-36": {
+      "id": "b-10-agent-prompt-rules-contains-process-36",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "rules",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " contains process-wide non-negotiables and is always the last prompt\nsection. This position uses recency for the constraints the agent must still\nhonor after reading the entire procedure."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-use-direct-absolute-lan-37": {
+      "id": "b-10-agent-prompt-use-direct-absolute-lan-37",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use direct, absolute language where the requirement is actually absolute:\n“Never overwrite an unresolved edit” or “When a write fails, preserve the\nqueue entry.” Keep the section under seven rules. A longer list usually mixes\nglobal invariants with situational guidance; the latter belongs in the\nrelevant workflow phase."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-rules-should-not-be-copi-38": {
+      "id": "b-10-agent-prompt-rules-should-not-be-copi-38",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rules should not be copied into each phase. Repetition obscures which\ninstructions are global and makes future edits likely to leave contradictory\nversions behind."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-rejected-patterns-39": {
+      "id": "b-10-agent-prompt-rejected-patterns-39",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Rejected Patterns"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-several-familiar-prompt-40": {
+      "id": "b-10-agent-prompt-several-familiar-prompt-40",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Several familiar prompt patterns are deliberately absent because they mix\nbehavior, reference, runtime integration, and live data. The canonical order\nseparates those concerns:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-rejected-pattern-can-41": {
+      "id": "b-10-agent-prompt-rejected-pattern-can-41",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Rejected pattern",
+          "Canonical form",
+          "Why"
+        ],
+        "rows": [
+          [
+            "A prompt-side tools section",
+            "None",
+            "Tool definitions and schemas live in the always-present tool layer; reference semantics can ride in self-describing context."
+          ],
+          [
+            "A state, inputs, or context inventory",
+            "state_structure",
+            "The prompt declares only live state fields. It does not inventory context blocks."
+          ],
+          [
+            "rules before the procedure",
+            "rules last",
+            "Final placement gives non-negotiables the recency position."
+          ],
+          [
+            "A final reminders recap",
+            "None",
+            "A second rule list creates duplication; the final rules section provides recency directly."
+          ],
+          [
+            "Steps-only workflows as an alternative",
+            "Phases always",
+            "Named phases make state-based navigation explicit; see the workflow specification for the fixed shape."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-10-agent-prompt-there-is-consequently-no-42": {
+      "id": "b-10-agent-prompt-there-is-consequently-no-42",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "There is consequently no "
+        },
+        {
+          "insert": "<tools>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", context-inventory, or "
+        },
+        {
+          "insert": "<reminders>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " section\nin an agent prompt. Adding one would reintroduce a boundary the canonical order\nis designed to remove."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-anti-patterns-43": {
+      "id": "b-10-agent-prompt-anti-patterns-43",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Anti-Patterns"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-turn-count-navigation-44": {
+      "id": "b-10-agent-prompt-turn-count-navigation-44",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Turn-count navigation:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Selecting work from call numbers instead of state"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-makes-retries-and-interr-45": {
+      "id": "b-10-agent-prompt-makes-retries-and-interr-45",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  makes retries and interruptions corrupt the process."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-context-disguised-as-s-46": {
+      "id": "b-10-agent-prompt-context-disguised-as-s-46",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Context disguised as state:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Listing standing guides or formatting"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-references-in-state-str-47": {
+      "id": "b-10-agent-prompt-references-in-state-str-47",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  references in "
+        },
+        {
+          "insert": "state_structure",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " couples prompt behavior to reference loading."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-goal-as-a-purpose-echo-48": {
+      "id": "b-10-agent-prompt-goal-as-a-purpose-echo-48",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Goal as a purpose echo:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Repeating the same sentence under two tags adds"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-structure-without-adding-49": {
+      "id": "b-10-agent-prompt-structure-without-adding-49",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  structure without adding a decision signal."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-untestable-success-lan-50": {
+      "id": "b-10-agent-prompt-untestable-success-lan-50",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Untestable success language:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " “Make it good” cannot tell the agent whether"
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-the-goal-has-been-reache-51": {
+      "id": "b-10-agent-prompt-the-goal-has-been-reache-51",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  the goal has been reached."
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-rule-duplication-re-52": {
+      "id": "b-10-agent-prompt-rule-duplication-re-52",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Rule duplication:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Repeating rules in phases or reviving "
+        },
+        {
+          "insert": "reminders",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-agent-prompt-creates-multiple-sources-53": {
+      "id": "b-10-agent-prompt-creates-multiple-sources-53",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  creates multiple sources of truth and weakens the last-section contract."
+        }
+      ],
+      "children": []
+    }
+  }
+}

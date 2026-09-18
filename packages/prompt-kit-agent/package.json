@@ -1,6 +1,6 @@
 {
 	"name": "@codecaine-ai/prompt-kit-agent",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -12,6 +12,7 @@
 	"dependencies": {
 		"@agent-kernel/db": "workspace:*",
 		"@agent-kernel/kernel": "workspace:*",
+		"@codecaine-ai/prompt-kit-server": "workspace:*",
 		"drizzle-orm": "^0.45.0",
 		"elysia": "^1.2.0"
 	},

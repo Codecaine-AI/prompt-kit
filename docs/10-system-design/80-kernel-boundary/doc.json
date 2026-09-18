@@ -1,0 +1,447 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-80-kernel-boundary",
+  "title": "Kernel Boundary",
+  "root": "b-80-kernel-boundary-root-27",
+  "blocks": {
+    "b-80-kernel-boundary-root-27": {
+      "id": "b-80-kernel-boundary-root-27",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "kernel",
+          "integration",
+          "context",
+          "tools"
+        ],
+        "covers": "How agent kernels consume prompt-kit documents while retaining ownership of runtime context, tools, registry behavior, traces, and Pi integration.",
+        "depends-on": [
+          "00-foundation/10-purpose-and-boundary.md",
+          "10-system-design/30-rendering-model.md"
+        ]
+      },
+      "children": [
+        "b-80-kernel-boundary-prompt-kit-is-a-prompt-a-2",
+        "b-80-kernel-boundary-divider-3",
+        "b-80-kernel-boundary-host-registry-flow-4",
+        "b-80-kernel-boundary-a-host-keeps-a-promptdo-5",
+        "b-80-kernel-boundary-runtime-packet-split-6",
+        "b-80-kernel-boundary-the-broader-runtime-pack-7",
+        "b-80-kernel-boundary-stable-system-prompt-ren-8",
+        "b-80-kernel-boundary-dynamic-context-assemble-9",
+        "b-80-kernel-boundary-conversation-history-and-10",
+        "b-80-kernel-boundary-tool-definitions-and-too-11",
+        "b-80-kernel-boundary-model-and-turn-configura-12",
+        "b-80-kernel-boundary-trace-session-metadata-13",
+        "b-80-kernel-boundary-prompt-kit-only-owns-the-14",
+        "b-80-kernel-boundary-tool-boundary-15",
+        "b-80-kernel-boundary-prompt-kit-should-not-re-16",
+        "b-80-kernel-boundary-this-keeps-prompt-text-a-17",
+        "b-80-kernel-boundary-viewer-boundary-18",
+        "b-80-kernel-boundary-viewer-systems-can-impor-19",
+        "b-80-kernel-boundary-the-kernel-viewer-can-re-20",
+        "b-80-kernel-boundary-authored-prompt-ast-prev-21",
+        "b-80-kernel-boundary-rendered-system-prompt-f-22",
+        "b-80-kernel-boundary-resolved-variables-23",
+        "b-80-kernel-boundary-runtime-context-preview-24",
+        "b-80-kernel-boundary-tool-configuration-from-25",
+        "b-80-kernel-boundary-prompt-kit-provides-the-26",
+        "mcp-add-0",
+        "mcp-add-1",
+        "mcp-add-2"
+      ]
+    },
+    "b-80-kernel-boundary-prompt-kit-is-a-prompt-a-2": {
+      "id": "b-80-kernel-boundary-prompt-kit-is-a-prompt-a-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit is a prompt authoring and rendering layer. A kernel consumes its\nprompt documents as one part of a larger runtime packet."
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-divider-3": {
+      "id": "b-80-kernel-boundary-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-80-kernel-boundary-host-registry-flow-4": {
+      "id": "b-80-kernel-boundary-host-registry-flow-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Host Registry Flow"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-a-host-keeps-a-promptdo-5": {
+      "id": "b-80-kernel-boundary-a-host-keeps-a-promptdo-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A host keeps a "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as the source of truth for each agent's system\nprompt. The host registry imports that document, validates it with host\ndeclarations (declared variables, host-specific checks), renders it, and\npasses the rendered system prompt to the runtime. The document, not the\nrendered string, is what the host stores, diffs, and edits."
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-runtime-packet-split-6": {
+      "id": "b-80-kernel-boundary-runtime-packet-split-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Runtime Packet Split"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-the-broader-runtime-pack-7": {
+      "id": "b-80-kernel-boundary-the-broader-runtime-pack-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The broader runtime packet usually has several parts:"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-stable-system-prompt-ren-8": {
+      "id": "b-80-kernel-boundary-stable-system-prompt-ren-8",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "stable system prompt rendered from "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-dynamic-context-assemble-9": {
+      "id": "b-80-kernel-boundary-dynamic-context-assemble-9",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "dynamic context assembled by the kernel or app"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-conversation-history-and-10": {
+      "id": "b-80-kernel-boundary-conversation-history-and-10",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "conversation history and current user turn"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-tool-definitions-and-too-11": {
+      "id": "b-80-kernel-boundary-tool-definitions-and-too-11",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "tool definitions and tool policies"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-model-and-turn-configura-12": {
+      "id": "b-80-kernel-boundary-model-and-turn-configura-12",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "model and turn configuration"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-trace-session-metadata-13": {
+      "id": "b-80-kernel-boundary-trace-session-metadata-13",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "trace/session metadata"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-prompt-kit-only-owns-the-14": {
+      "id": "b-80-kernel-boundary-prompt-kit-only-owns-the-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit only owns the first part. It can include prompt-side instructions\nabout context or tools, but the executable runtime systems live outside it."
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-tool-boundary-15": {
+      "id": "b-80-kernel-boundary-tool-boundary-15",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Tool Boundary"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-prompt-kit-should-not-re-16": {
+      "id": "b-80-kernel-boundary-prompt-kit-should-not-re-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit should not register tools. A prompt can include a "
+        },
+        {
+          "insert": "tool_policy",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\nsection or a reference placeholder, but the host decides which shared tools,\nprivate tools, or Pi-compatible registrations are available."
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-this-keeps-prompt-text-a-17": {
+      "id": "b-80-kernel-boundary-this-keeps-prompt-text-a-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This keeps prompt text aligned with runtime behavior without coupling the prompt\nAST package to one SDK."
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-viewer-boundary-18": {
+      "id": "b-80-kernel-boundary-viewer-boundary-18",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Viewer Boundary"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-viewer-systems-can-impor-19": {
+      "id": "b-80-kernel-boundary-viewer-systems-can-impor-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Viewer systems can import prompt-kit UI helpers such as\n"
+        },
+        {
+          "insert": "createPromptEditorModel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", a headless model that returns the prompt with\nstable ids, its flattened tree, rendered output, and validation result. The\nReact-facing surfaces, the editing surface, the lab shell, the style\nsettings, and the read-only prompt view, sit behind dedicated UI entry\npoints; their behavior is specified in\n"
+        },
+        {
+          "insert": "Prompt Editor",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor"
+            }
+          }
+        },
+        {
+          "insert": ". None of this defines a\nfull UI framework or host app shell."
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-the-kernel-viewer-can-re-20": {
+      "id": "b-80-kernel-boundary-the-kernel-viewer-can-re-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel viewer can render:"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-authored-prompt-ast-prev-21": {
+      "id": "b-80-kernel-boundary-authored-prompt-ast-prev-21",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "authored prompt AST preview"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-rendered-system-prompt-f-22": {
+      "id": "b-80-kernel-boundary-rendered-system-prompt-f-22",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "rendered system prompt for a specific run"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-resolved-variables-23": {
+      "id": "b-80-kernel-boundary-resolved-variables-23",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "resolved variables"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-runtime-context-preview-24": {
+      "id": "b-80-kernel-boundary-runtime-context-preview-24",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "runtime context preview"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-tool-configuration-from-25": {
+      "id": "b-80-kernel-boundary-tool-configuration-from-25",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "tool configuration from the host registry"
+        }
+      ],
+      "children": []
+    },
+    "b-80-kernel-boundary-prompt-kit-provides-the-26": {
+      "id": "b-80-kernel-boundary-prompt-kit-provides-the-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit provides the prompt-specific pieces only."
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-0": {
+      "id": "mcp-add-0",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Authoring Service Boundary"
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-1": {
+      "id": "mcp-add-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The pure Prompt Kit library does not register runtime tools. The separate MCP adapter exposes prompt-authoring operations, and the shared filesystem store coordinates those writes with Kernel catalog saves. Runtime tool execution, sessions, database ownership, and model invocation remain Kernel responsibilities."
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-2": {
+      "id": "mcp-add-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel refreshes its registry and records committed revisions after saves. New runs synchronize disk changes before freezing their prompt; existing runs keep their frozen prompt. See "
+        },
+        {
+          "insert": "Persistence and Recovery",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/30-persistence"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@codecaine-ai/prompt-kit-server",
+  "version": "0.0.2",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./guidance": "./src/guidance.ts"
+  },
+  "scripts": {
+    "test": "bun test tests",
+    "typecheck": "bunx --bun tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@codecaine-ai/docs-model": "workspace:*",
+    "@codecaine-ai/prompt-kit": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}

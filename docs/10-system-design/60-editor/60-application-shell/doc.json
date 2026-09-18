@@ -1,0 +1,572 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-60-editor-60-application-shell",
+  "title": "Application Shell",
+  "root": "b-60-application-shell-root-35",
+  "blocks": {
+    "b-60-application-shell-root-35": {
+      "id": "b-60-application-shell-root-35",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "shell",
+          "glass-panel",
+          "page-header",
+          "queue",
+          "autosave",
+          "history",
+          "annotate"
+        ],
+        "covers": "The lab shell around the editing surface — the in-document page header, the fixed glass panel with its Edit/AI tabs, views, the annotation queue, autosave, and history.",
+        "depends-on": [
+          "10-system-design/50-validation-contract.md",
+          "10-system-design/80-kernel-boundary.md"
+        ]
+      },
+      "children": [
+        "b-60-application-shell-the-editing-surface-is-m-2",
+        "b-60-application-shell-two-places-carry-all-the-3",
+        "b-60-application-shell-divider-4",
+        "b-60-application-shell-layout-5",
+        "b-60-application-shell-region-contents-6",
+        "b-60-application-shell-the-document-reserves-th-7",
+        "b-60-application-shell-the-glass-panel-8",
+        "b-60-application-shell-one-element-two-tabs-t-9",
+        "b-60-application-shell-tab-size-contents-10",
+        "b-60-application-shell-the-corner-is-pinned-th-11",
+        "b-60-application-shell-views-12",
+        "b-60-application-shell-the-shell-has-three-view-13",
+        "b-60-application-shell-the-annotation-queue-14",
+        "b-60-application-shell-everything-queues-nothi-15",
+        "b-60-application-shell-the-inline-composer-cur-16",
+        "b-60-application-shell-target-files-on-enter-17",
+        "b-60-application-shell-the-ai-tab-s-queue-panel-18",
+        "b-60-application-shell-human-readable-target-la-19",
+        "b-60-application-shell-apply-opens-one-session-20",
+        "b-60-application-shell-surveys-every-request-be-21",
+        "b-60-application-shell-comment-presence-renders-22",
+        "b-60-application-shell-violet-tick-down-comment-23",
+        "b-60-application-shell-row-states-speak-only-wh-24",
+        "b-60-application-shell-bar-staged-green-25",
+        "b-60-application-shell-history-26",
+        "b-60-application-shell-the-shell-s-history-wrap-27",
+        "b-60-application-shell-ts-28",
+        "b-60-application-shell-two-edit-channels-share-29",
+        "b-60-application-shell-autosave-30",
+        "b-60-application-shell-autosave-is-a-generic-de-31",
+        "b-60-application-shell-status-is-silent-when-he-32",
+        "b-60-application-shell-shortcuts-33",
+        "b-60-application-shell-cmd-z-cmd-shift-z-cm-34",
+        "mcp-add-0",
+        "mcp-add-1"
+      ]
+    },
+    "b-60-application-shell-the-editing-surface-is-m-2": {
+      "id": "b-60-application-shell-the-editing-surface-is-m-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The editing surface is mounted inside a lab shell. The shell owns the document\nhistory, the save lifecycle, the annotation queue, and the panel; the surface\nowns only editing. The shell never fetches: persistence, manifest data,\nrevision history, context previews, and the prompt-edit session all arrive as\nprops or callbacks."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-two-places-carry-all-the-3": {
+      "id": "b-60-application-shell-two-places-carry-all-the-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two places carry all the chrome: the DOCUMENT carries identity, and one fixed\nGLASS PANEL carries everything else."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-divider-4": {
+      "id": "b-60-application-shell-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-60-application-shell-layout-5": {
+      "id": "b-60-application-shell-layout-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Layout"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-region-contents-6": {
+      "id": "b-60-application-shell-region-contents-6",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Region",
+          "Contents"
+        ],
+        "rows": [
+          [
+            "Document column",
+            "Notion-style page header (title, model chip, click-to-edit description, history icon) INSIDE the scroller, then the editing surface. Left-justified at the style rail's margins."
+          ],
+          [
+            "Glass panel",
+            "Fixed card pinned top-right; header is an Edit/AI tab bar. Never dragged, never resized by hand."
+          ],
+          [
+            "Host",
+            "Style sidebar, owned by the host page."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-60-application-shell-the-document-reserves-th-7": {
+      "id": "b-60-application-shell-the-document-reserves-th-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The document reserves the panel's footprint on each surface's scroller, so\ncontent reflows beside the glass and the scrollbar stays at the region's far\nedge."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-the-glass-panel-8": {
+      "id": "b-60-application-shell-the-glass-panel-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Glass Panel"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-one-element-two-tabs-t-9": {
+      "id": "b-60-application-shell-one-element-two-tabs-t-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One element, two tabs; the active tab is the wide text tab (about 3/4 of the\nbar), the inactive one collapses to an icon, and the box animates between\nper-tab geometries."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-tab-size-contents-10": {
+      "id": "b-60-application-shell-tab-size-contents-10",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Tab",
+          "Size",
+          "Contents"
+        ],
+        "rows": [
+          [
+            "EDIT",
+            "300px wide, height fits its content",
+            "Zone stack: VIEW (switcher with token counts; the system row carries the autosave whisper subline), FIXTURE (state view only), OUTLINE (history icon swaps its body for the host's revisions zone), DETAILS (only while a node is selected)"
+          ],
+          [
+            "AI (✦)",
+            "520px wide, 80% of the region height",
+            "The annotation workspace: the queue (below), or the annotations pane for store-only hosts"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-60-application-shell-the-corner-is-pinned-th-11": {
+      "id": "b-60-application-shell-the-corner-is-pinned-th-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The corner is pinned: the top and right insets are style settings, both\nsliders in the style rail. Selecting AI from the context/state view returns to\nthe system view first; Escape (with no composer open) returns to Edit.\nEntering the AI tab IS entering annotate mode: document clicks pick annotation\ntargets, editing affordances hide, and the violet ambient tints the panel."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-views-12": {
+      "id": "b-60-application-shell-views-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Views"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-the-shell-has-three-view-13": {
+      "id": "b-60-application-shell-the-shell-has-three-view-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The shell has three views: "
+        },
+        {
+          "insert": "system",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The system view\nrenders the editing surface. The context view is a read-only render of the\nassembled context on the same surface tokens. The state view (present only\nwhen the host supplies a state zone) renders the selected fixture's state\ndocument, with the FIXTURE zone picking the snapshot. Undo, redo, and save are\ninert outside the system view. Each view registers its own outline anchors, so\nthe OUTLINE zone works in all three."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-the-annotation-queue-14": {
+      "id": "b-60-application-shell-the-annotation-queue-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Annotation Queue"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-everything-queues-nothi-15": {
+      "id": "b-60-application-shell-everything-queues-nothi-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Everything queues; nothing runs until Apply."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-the-inline-composer-cur-16": {
+      "id": "b-60-application-shell-the-inline-composer-cur-16",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The inline composer (Cursor-style single box, ring-aligned above the pinned"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-target-files-on-enter-17": {
+      "id": "b-60-application-shell-target-files-on-enter-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  target) files on Enter: node targets as "
+        },
+        {
+          "insert": "batch",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", document targets as\n  "
+        },
+        {
+          "insert": "global",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". An open composer is sticky, only its × or Escape closes it."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-the-ai-tab-s-queue-panel-18": {
+      "id": "b-60-application-shell-the-ai-tab-s-queue-panel-18",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The AI tab's queue panel is a chat layout: TARGETS section (rows: violet"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-human-readable-target-la-19": {
+      "id": "b-60-application-shell-human-readable-target-la-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  human-readable target label, the note indented beneath, quiet state, × on\n  hover), DOCUMENT section (whole-document notes plus their own input), slim\n  ✓/✕ records with Undo, and a bottom dock holding the one click-only Apply."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-apply-opens-one-session-20": {
+      "id": "b-60-application-shell-apply-opens-one-session-20",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Apply opens ONE session over the whole queue in filing order. The agent"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-surveys-every-request-be-21": {
+      "id": "b-60-application-shell-surveys-every-request-be-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  surveys every request before editing, then stages one proposal per request:\n  n reviewable diffs forming an ordered stack (accept from the head, reject\n  from the tail, with per-action disabled reasons)."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-comment-presence-renders-22": {
+      "id": "b-60-application-shell-comment-presence-renders-22",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Comment presence renders only in the AI state: margin count bubbles, a thin"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-violet-tick-down-comment-23": {
+      "id": "b-60-application-shell-violet-tick-down-comment-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  violet tick down commented rows, and a hover wash linking queue row to\n  target block. Clicking a bubble reopens the inline composer prefilled with\n  the note; saving refiles (same target and disposition, fresh id) and\n  dismisses the original."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-row-states-speak-only-wh-24": {
+      "id": "b-60-application-shell-row-states-speak-only-wh-24",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Row states speak only when meaningful: "
+        },
+        {
+          "insert": "processing",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (breathing dot, violet"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-bar-staged-green-25": {
+      "id": "b-60-application-shell-bar-staged-green-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  bar), "
+        },
+        {
+          "insert": "staged",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (green), "
+        },
+        {
+          "insert": "waiting on you",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (amber, with the inline reply).\n  Positions and counts are not rendered, order is the list order."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-history-26": {
+      "id": "b-60-application-shell-history-26",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "History"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-the-shell-s-history-wrap-27": {
+      "id": "b-60-application-shell-the-shell-s-history-wrap-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The shell's history wraps the transaction log with one interface:"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-ts-28": {
+      "id": "b-60-application-shell-ts-28",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "interface PromptLabHistory {\n  current(): PromptDocument;\n  commitSteps(steps: readonly PromptStep[]): boolean;\n  commitMeta(patch: PromptLabMetaPatch): boolean;\n  undo(): boolean;\n  redo(): boolean;\n  canUndo(): boolean;\n  canRedo(): boolean;\n  isDirty(): boolean;\n  markSaved(savedDocument?: PromptDocument): void;\n  transactions(): PromptTransaction[];\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-two-edit-channels-share-29": {
+      "id": "b-60-application-shell-two-edit-channels-share-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two edit channels share one undo stack. Block edits arrive as steps and go to\nthe inner transaction log. Document-metadata edits, title and description, live in an overlay with their own before/after entries; the unified stack\ninterleaves both kinds. Marking a save moves only the dirty baseline, so undo\nkeeps working across a save. Dirtiness compares the canonical serialization of\nthe current document against the saved canonical string. The inner log's\ncontent hash is a cheap local prefix; authoritative hashes come from the save\nAPI."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-autosave-30": {
+      "id": "b-60-application-shell-autosave-30",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Autosave"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-autosave-is-a-generic-de-31": {
+      "id": "b-60-application-shell-autosave-is-a-generic-de-31",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Autosave is a generic debounced-save coordinator: 1500ms debounce,\nsingle-flight with a trailing save, newest-value-wins, cancelled whenever the\ndraft is clean or carries validation errors, Cmd+S flushes."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-status-is-silent-when-he-32": {
+      "id": "b-60-application-shell-status-is-silent-when-he-32",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status is SILENT when healthy. Exceptional states (saving stuck, errors,\nretry) whisper on the system row's subline in the VIEW zone, and repeat at the\ntop of the AI tab while annotating. Save errors render under the document\nheader."
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-shortcuts-33": {
+      "id": "b-60-application-shell-shortcuts-33",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Shortcuts"
+        }
+      ],
+      "children": []
+    },
+    "b-60-application-shell-cmd-z-cmd-shift-z-cm-34": {
+      "id": "b-60-application-shell-cmd-z-cmd-shift-z-cm-34",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Cmd+Z / Cmd+Shift+Z / Cmd+S bind on the document (not per-component\nhandlers), guarded to events inside the lab or with nothing focused. Escape\nwalks outward: an open composer's target clears first; with nothing pinned,\nthe AI tab returns to Edit. The keyboard is the only undo surface, no\nundo/redo buttons exist."
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-0": {
+      "id": "mcp-add-0",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "External Saves"
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-1": {
+      "id": "mcp-add-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An MCP edit updates the canonical prompt independently of an unsaved browser draft. Host saves use the shared revision-checked store: an outdated browser hash conflicts instead of overwriting the external change. Reload and reconcile before resubmitting. Local editor undo and durable external change undo have distinct histories."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,841 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-10-prompt-kit-00-overview",
+  "title": "Library Package",
+  "root": "b-00-overview-root-35",
+  "blocks": {
+    "b-00-overview-root-35": {
+      "id": "b-00-overview-root-35",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "package",
+          "exports",
+          "entry-points",
+          "react",
+          "imports"
+        ],
+        "covers": "Package-level structural decisions for the prompt-kit library, including the entry-point split, the optional React peer, import direction, and test layout.",
+        "design_refs": [
+          "10-system-design/00-overview.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-codecaine-ai-prompt-ki-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-governed-by-4",
+        "b-00-overview-the-system-design-tier-5",
+        "b-00-overview-canonical-prompt-object-6",
+        "b-00-overview-authoring-model-7",
+        "b-00-overview-rendering-model-8",
+        "b-00-overview-composition-and-transfo-9",
+        "b-00-overview-validation-contract-10",
+        "b-00-overview-editor-10-system-11",
+        "b-00-overview-decisions-12",
+        "b-00-overview-entry-point-split-13",
+        "b-00-overview-decision-the-packag-14",
+        "b-00-overview-why-the-default-imp-15",
+        "b-00-overview-applies-to-every-ne-16",
+        "b-00-overview-optional-react-peer-17",
+        "b-00-overview-decision-react-an-18",
+        "b-00-overview-why-servers-script-19",
+        "b-00-overview-applies-to-new-depe-20",
+        "b-00-overview-two-consumer-facing-cons-21",
+        "b-00-overview-react-deduplication-is-m-22",
+        "b-00-overview-dedupe-optimizedeps-23",
+        "b-00-overview-consumer-builds-the-age-24",
+        "b-00-overview-observatory-hard-code-t-25",
+        "b-00-overview-downward-only-imports-26",
+        "b-00-overview-decision-imports-fl-27",
+        "b-00-overview-why-the-document-mo-28",
+        "b-00-overview-applies-to-new-modu-29",
+        "b-00-overview-tests-mirror-source-30",
+        "b-00-overview-decision-tests-live-31",
+        "b-00-overview-applies-to-a-new-mo-32",
+        "b-00-overview-areas-33",
+        "b-00-overview-area-responsibility-34",
+        "mcp-add-0",
+        "mcp-add-1"
+      ]
+    },
+    "b-00-overview-codecaine-ai-prompt-ki-2": {
+      "id": "b-00-overview-codecaine-ai-prompt-ki-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@codecaine-ai/prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the library package. Its source lives in\n"
+        },
+        {
+          "insert": "packages/prompt-kit/src",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", grouped into "
+        },
+        {
+          "insert": "document/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (the prompt AST and its\noperations), "
+        },
+        {
+          "insert": "annotations/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (the headless annotation surface), and "
+        },
+        {
+          "insert": "ui/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\n(editor models and the React authoring surface)."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-governed-by-4": {
+      "id": "b-00-overview-governed-by-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Governed by"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-system-design-tier-5": {
+      "id": "b-00-overview-the-system-design-tier-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "system design tier",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/00-overview"
+            }
+          }
+        },
+        {
+          "insert": " constrains this\npackage's shape:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-canonical-prompt-object-6": {
+      "id": "b-00-overview-canonical-prompt-object-6",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Canonical prompt object",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-canonical-prompt-object"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-authoring-model-7": {
+      "id": "b-00-overview-authoring-model-7",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Authoring model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-authoring-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-rendering-model-8": {
+      "id": "b-00-overview-rendering-model-8",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Rendering model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-rendering-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-composition-and-transfo-9": {
+      "id": "b-00-overview-composition-and-transfo-9",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Composition and transforms",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-composition-and-transforms"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-validation-contract-10": {
+      "id": "b-00-overview-validation-contract-10",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Validation contract",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-validation-contract"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-editor-10-system-11": {
+      "id": "b-00-overview-editor-10-system-11",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Editor",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decisions-12": {
+      "id": "b-00-overview-decisions-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-entry-point-split-13": {
+      "id": "b-00-overview-entry-point-split-13",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Entry-point split"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-the-packag-14": {
+      "id": "b-00-overview-decision-the-packag-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision. The package exposes seven entry points. The root export owns headless document APIs; ./annotations owns annotation state; ./authoring owns pure ID-relative compilation, address maps, schemas, and profile lints. ./ui owns headless editor models, while ./ui/lab, ./ui/style, and ./ui/surface own React surfaces."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-why-the-default-imp-15": {
+      "id": "b-00-overview-why-the-default-imp-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The default import stays framework-free, so servers, scripts, and\nkernels consume prompt documents without pulling in React."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-applies-to-every-ne-16": {
+      "id": "b-00-overview-applies-to-every-ne-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Every new module is exported through the specifier matching its\ndependencies. React code never lands behind the root export or "
+        },
+        {
+          "insert": "./ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-optional-react-peer-17": {
+      "id": "b-00-overview-optional-react-peer-17",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Optional React peer"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-react-an-18": {
+      "id": "b-00-overview-decision-react-an-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "react",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "react-dom",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are optional "
+        },
+        {
+          "insert": "peerDependencies",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-why-servers-script-19": {
+      "id": "b-00-overview-why-servers-script-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Servers, scripts, and tests consume the headless entries and must\ninstall without React."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-applies-to-new-depe-20": {
+      "id": "b-00-overview-applies-to-new-depe-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " New dependencies on React stay peer-side and optional; headless\nentries never require them at runtime."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-two-consumer-facing-cons-21": {
+      "id": "b-00-overview-two-consumer-facing-cons-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two consumer-facing constraints ride on this entry:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-react-deduplication-is-m-22": {
+      "id": "b-00-overview-react-deduplication-is-m-22",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "React deduplication is maintained in three places, each consumer's Vite"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-dedupe-optimizedeps-23": {
+      "id": "b-00-overview-dedupe-optimizedeps-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  "
+        },
+        {
+          "insert": "dedupe",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/"
+        },
+        {
+          "insert": "optimizeDeps",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " settings, the agent-kernel root "
+        },
+        {
+          "insert": "tsconfig.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\n  "
+        },
+        {
+          "insert": "@types/react",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " pin, and this repository's "
+        },
+        {
+          "insert": "react-dedup.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " bun test\n  preload. Preserve all three."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-consumer-builds-the-age-24": {
+      "id": "b-00-overview-consumer-builds-the-age-24",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Consumer builds (the agent-kernel example, the canvas viewer, and"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-observatory-hard-code-t-25": {
+      "id": "b-00-overview-observatory-hard-code-t-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  observatory) hard-code Tailwind content globs and Vite "
+        },
+        {
+          "insert": "fs.allow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " entries at\n  "
+        },
+        {
+          "insert": "prompt-kit/packages/prompt-kit/src",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Moving the package source requires\n  updating those consumers."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-downward-only-imports-26": {
+      "id": "b-00-overview-downward-only-imports-26",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Downward-only imports"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-imports-fl-27": {
+      "id": "b-00-overview-decision-imports-fl-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Imports flow one way: "
+        },
+        {
+          "insert": "ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " → "
+        },
+        {
+          "insert": "annotations",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " → "
+        },
+        {
+          "insert": "document",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ".\n"
+        },
+        {
+          "insert": "document",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " imports from neither of the other two."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-why-the-document-mo-28": {
+      "id": "b-00-overview-why-the-document-mo-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The document model stays headless and extractable; nothing above it\ncan leak into it."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-applies-to-new-modu-29": {
+      "id": "b-00-overview-applies-to-new-modu-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " New modules import only downward. A "
+        },
+        {
+          "insert": "document",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " module that\nneeds UI or annotation types is in the wrong layer."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-tests-mirror-source-30": {
+      "id": "b-00-overview-tests-mirror-source-30",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Tests mirror source"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-tests-live-31": {
+      "id": "b-00-overview-decision-tests-live-31",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Tests live under "
+        },
+        {
+          "insert": "tests/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", mirroring the "
+        },
+        {
+          "insert": "src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directory\nstructure ("
+        },
+        {
+          "insert": "tests/document/render/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tests "
+        },
+        {
+          "insert": "src/document/render/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and so on)."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-applies-to-a-new-mo-32": {
+      "id": "b-00-overview-applies-to-a-new-mo-32",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " A new module's tests land at the mirrored path under "
+        },
+        {
+          "insert": "tests/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-areas-33": {
+      "id": "b-00-overview-areas-33",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Areas"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-area-responsibility-34": {
+      "id": "b-00-overview-area-responsibility-34",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Area",
+          "Responsibility"
+        ],
+        "rows": [
+          [
+            "[src/document](10-document.md)",
+            "The prompt AST: nodes, schema, canonical form, rendering, transforms, validation"
+          ],
+          [
+            "src/annotations",
+            "Headless annotation schema and store over prompt documents"
+          ],
+          [
+            "[src/ui](20-ui.md)",
+            "Headless editor models and the React authoring surface"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "mcp-add-0": {
+      "id": "mcp-add-0",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Pure Authoring API"
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-1": {
+      "id": "mcp-add-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The authoring source is "
+        },
+        {
+          "insert": "packages/prompt-kit/src/authoring/index.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit/src/authoring/index.ts"
+            }
+          }
+        },
+        {
+          "insert": ". It imports no filesystem or model runtime. Kernel compatibility exports reuse the extracted compiler so internal staged proposals and external direct edits share operation semantics."
+        }
+      ],
+      "children": []
+    }
+  }
+}

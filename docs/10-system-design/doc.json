@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-00-overview",
+  "title": "Prompt-Kit System Design",
+  "root": "b-00-overview-root-23",
+  "blocks": {
+    "b-00-overview-root-23": {
+      "id": "b-00-overview-root-23",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "system-design",
+          "AST",
+          "renderer",
+          "transforms",
+          "editor"
+        ],
+        "covers": "The system design layer for prompt-kit, covering AST shape, authoring, rendering, transforms, validation, editor behavior, prompt-structure conventions, and kernel integration boundaries.",
+        "type": "overview"
+      },
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "System Design defines the PromptDocument contract and the authoring systems that operate on it. The same canonical document supports the editor, external MCP clients, and Kernel execution."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Canonical Prompt Object",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-canonical-prompt-object"
+            }
+          }
+        },
+        {
+          "insert": " defines the envelope, block and inline nodes, identity, and metadata."
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Authoring Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-authoring-model"
+            }
+          }
+        },
+        {
+          "insert": " defines how TypeScript, JSON, the editor, and external tools produce the same object."
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rendering Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-rendering-model"
+            }
+          }
+        },
+        {
+          "insert": " defines model-facing output and line projection."
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Composition and Transforms",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-composition-and-transforms"
+            }
+          }
+        },
+        {
+          "insert": " defines transformations on the tree."
+        }
+      ],
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Validation Contract",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-validation-contract"
+            }
+          }
+        },
+        {
+          "insert": " separates shape, semantic, variable, and profile checks."
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt Editor",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor"
+            }
+          }
+        },
+        {
+          "insert": " defines gestures, history, presentation, and host integration."
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt Structure",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure"
+            }
+          }
+        },
+        {
+          "insert": " owns the canonical writing standards loaded during authoring."
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel Boundary",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/80-kernel-boundary"
+            }
+          }
+        },
+        {
+          "insert": " separates prompt ownership from runtime context, tools, and execution."
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "External Prompt Authoring",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring"
+            }
+          }
+        },
+        {
+          "insert": " defines MCP tools, task snapshots, operations, persistence, and recovery."
+        }
+      ],
+      "children": []
+    }
+  }
+}

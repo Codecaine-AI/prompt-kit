@@ -1,5 +1,5 @@
 # Prompt Editor Tool Guide
-> Distilled from packages/prompt-kit-agent/catalog/prompt-editor/prompt/prompt.json and packages/prompt-kit-agent/catalog/prompt-editor/README.md — keep in sync.
+> Distilled from packages/prompt-kit-agent/catalog/prompt-editor/prompt/prompt.json — keep in sync.
 Use this block when choosing or interpreting a prompt-editor tool call.
 
 ## Transaction Steps

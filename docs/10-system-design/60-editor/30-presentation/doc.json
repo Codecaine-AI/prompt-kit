@@ -1,0 +1,580 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-60-editor-30-presentation",
+  "title": "Presentation",
+  "root": "b-30-presentation-root-23",
+  "blocks": {
+    "b-30-presentation-root-23": {
+      "id": "b-30-presentation-root-23",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "presentation",
+          "css-variables",
+          "style-settings",
+          "tokens"
+        ],
+        "covers": "The CSS variable contract shared by the editable prompt surface and the read-only prompt view, and the style settings that project it.",
+        "depends-on": [
+          "10-system-design/30-rendering-model.md"
+        ]
+      },
+      "children": [
+        "b-30-presentation-presentation-is-a-set-of-2",
+        "b-30-presentation-divider-3",
+        "b-30-presentation-viewer-only-guarantee-4",
+        "b-30-presentation-nothing-in-this-contract-5",
+        "b-30-presentation-variable-contract-6",
+        "b-30-presentation-a-host-may-set-any-pr-7",
+        "b-30-presentation-metrics-8",
+        "b-30-presentation-token-default-driv-9",
+        "b-30-presentation-visibility-10",
+        "b-30-presentation-token-values-effec-11",
+        "b-30-presentation-line-numbers-default-off-12",
+        "b-30-presentation-color-13",
+        "b-30-presentation-colors-come-in-two-forms-14",
+        "b-30-presentation-indent-geometry-has-two-15",
+        "b-30-presentation-style-settings-16",
+        "b-30-presentation-the-host-facing-settings-17",
+        "b-30-presentation-setting-concept-beha-18",
+        "b-30-presentation-projecting-settings-yiel-19",
+        "b-30-presentation-host-wiring-20",
+        "b-30-presentation-the-host-owns-the-settin-21",
+        "b-30-presentation-the-read-only-prompt-vie-22"
+      ]
+    },
+    "b-30-presentation-presentation-is-a-set-of-2": {
+      "id": "b-30-presentation-presentation-is-a-set-of-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Presentation is a set of CSS custom properties. The editable surface and the\nread-only prompt view read the same tokens, so switching between them reads as\ntoggling editability rather than opening a different document."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-divider-3": {
+      "id": "b-30-presentation-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-presentation-viewer-only-guarantee-4": {
+      "id": "b-30-presentation-viewer-only-guarantee-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Viewer-Only Guarantee"
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-nothing-in-this-contract-5": {
+      "id": "b-30-presentation-nothing-in-this-contract-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Nothing in this contract touches the document. Style settings change no node,\nno rendered string, and no content hash; they are not persisted with the\nprompt and they are not part of a save. Row shading, guides, and line numbers\nare painted with zero-layout-cost backgrounds and visibility multipliers, so\ntoggling them never changes row geometry either."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-variable-contract-6": {
+      "id": "b-30-presentation-variable-contract-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Variable Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-a-host-may-set-any-pr-7": {
+      "id": "b-30-presentation-a-host-may-set-any-pr-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A host may set any "
+        },
+        {
+          "insert": "--prompt-editor-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " property on the surface element or one\nof its ancestors. Every token has a literal fallback, so the components render\ncorrectly with no host variables set at all. A stable root class marks the\nscoped element, so descendants can observe style changes on it."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-metrics-8": {
+      "id": "b-30-presentation-metrics-8",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Metrics"
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-token-default-driv-9": {
+      "id": "b-30-presentation-token-default-driv-9",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Token",
+          "Default",
+          "Drives"
+        ],
+        "rows": [
+          [
+            "--prompt-editor-font-family",
+            "System mono stack",
+            "Row and editor type"
+          ],
+          [
+            "--prompt-editor-font-size",
+            "13px",
+            "Row and editor type"
+          ],
+          [
+            "--prompt-editor-line-height",
+            "22px",
+            "Row pitch, rule spacing, editor minimum height"
+          ],
+          [
+            "--prompt-editor-letter-spacing",
+            "0em",
+            "Row and editor tracking"
+          ],
+          [
+            "--prompt-editor-indent-width",
+            "2ch",
+            "Visual width of one renderer indent unit"
+          ],
+          [
+            "--prompt-editor-content-width",
+            "136ch",
+            "Measure of the buffer column"
+          ],
+          [
+            "--prompt-editor-gutter-width",
+            "36px (collapsed)",
+            "Gutter width; hosts widen it when line numbers are on"
+          ],
+          [
+            "--prompt-editor-grip-size",
+            "20px",
+            "Block drag-handle glyph size"
+          ],
+          [
+            "--prompt-editor-item-grip-size",
+            "14px",
+            "List-item drag-handle glyph size (smaller = item, larger = block)"
+          ],
+          [
+            "--prompt-editor-drop-line-width",
+            "2px",
+            "Drop-indicator thickness"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-30-presentation-visibility-10": {
+      "id": "b-30-presentation-visibility-10",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Visibility"
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-token-values-effec-11": {
+      "id": "b-30-presentation-token-values-effec-11",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Token",
+          "Values",
+          "Effect"
+        ],
+        "rows": [
+          [
+            "--prompt-editor-show-rules",
+            "0 / 1",
+            "Ruled-paper hairline intensity"
+          ],
+          [
+            "--prompt-editor-show-zebra",
+            "0 / 1",
+            "Alternating row tint intensity"
+          ],
+          [
+            "--prompt-editor-show-guides",
+            "0 / 1",
+            "Indent-guide visibility"
+          ],
+          [
+            "--prompt-editor-guides-display",
+            "block / none",
+            "Indent-guide display"
+          ],
+          [
+            "--prompt-editor-show-line-numbers",
+            "0 / 1",
+            "Gutter number visibility"
+          ],
+          [
+            "--prompt-editor-line-numbers-display",
+            "block / none",
+            "Gutter number display"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-30-presentation-line-numbers-default-off-12": {
+      "id": "b-30-presentation-line-numbers-default-off-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Line numbers default off: the flow renders a structured document whose address\nsystem is node ids and targeting rings, not source lines. The \"Line numbers\"\ntoggle (and the "
+        },
+        {
+          "insert": "classic",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " preset) restores the numbered gutter, which then\ntracks the raw view line for line. With numbers off the gutter collapses to\nthe width the drag affordances need."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-color-13": {
+      "id": "b-30-presentation-color-13",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Color"
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-colors-come-in-two-forms-14": {
+      "id": "b-30-presentation-colors-come-in-two-forms-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Colors come in two forms. Semantic tokens such as "
+        },
+        {
+          "insert": "--prompt-editor-bg",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ",\n"
+        },
+        {
+          "insert": "--prompt-editor-fg",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "--prompt-editor-guide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "--prompt-editor-rule",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ",\n"
+        },
+        {
+          "insert": "--prompt-editor-landmark",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "--prompt-editor-selection-bg",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ",\n"
+        },
+        {
+          "insert": "--prompt-editor-active-line-bg",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "--prompt-editor-hover-bg",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are consumed\ndirectly by the components. Syntax tokens, "
+        },
+        {
+          "insert": "--prompt-editor-syntax-punctuation",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "-tag",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "-attribute",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "-value",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ",\n"
+        },
+        {
+          "insert": "-variable",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "-reference",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "-list-marker",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", drive the shared XML highlighter.\nSeveral semantic tokens are additionally published in split\n"
+        },
+        {
+          "insert": "*-color",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " / "
+        },
+        {
+          "insert": "*-opacity",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " form so a host UI can bind a picker and a slider\nindependently. The semantic tokens also accept a legacy "
+        },
+        {
+          "insert": "--editor-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " fallback\nlayer for hosts that predate the style rail."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-indent-geometry-has-two-15": {
+      "id": "b-30-presentation-indent-geometry-has-two-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Indent geometry has two behavioral forms because rows measure the indent they\nactually rendered, while overlays (indent guides, the drop indicator) know a\nnode's depth without reading its text; both resolve to the same visual width."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-style-settings-16": {
+      "id": "b-30-presentation-style-settings-16",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Style Settings"
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-the-host-facing-settings-17": {
+      "id": "b-30-presentation-the-host-facing-settings-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The host-facing settings object is a flat record of metrics, toggles, and\ncolors, normalized on every read and write: numbers clamp, enums validate, and\nmissing values fall back."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-setting-concept-beha-18": {
+      "id": "b-30-presentation-setting-concept-beha-18",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Setting concept",
+          "Behavior"
+        ],
+        "rows": [
+          [
+            "Row shading",
+            "One three-way choice, none, rules, or zebra, because rules and zebra are alternative answers to the same question; the choice maps onto the two visibility multipliers"
+          ],
+          [
+            "Mono font",
+            "A named font choice from a small vetted set"
+          ],
+          [
+            "Presets",
+            "Named bundles (dense, balanced, reading); balanced is the default"
+          ],
+          [
+            "Persistence",
+            "Settings round-trip through local storage under a versioned key; open tabs stay in sync by observing storage events"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-30-presentation-projecting-settings-yiel-19": {
+      "id": "b-30-presentation-projecting-settings-yiel-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Projecting settings yields the full "
+        },
+        {
+          "insert": "--prompt-editor-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " record, ready to apply\nas inline custom properties."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-host-wiring-20": {
+      "id": "b-30-presentation-host-wiring-20",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Host Wiring"
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-the-host-owns-the-settin-21": {
+      "id": "b-30-presentation-the-host-owns-the-settin-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The host owns the settings and the sidebar that edits them. The lab shell\ntakes a settings prop, projects it, and applies the result on its root; when\nthe prop is omitted it reads the persisted settings once on mount."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-the-read-only-prompt-vie-22": {
+      "id": "b-30-presentation-the-read-only-prompt-vie-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The read-only prompt view takes an inherit-style flag for exactly this case: a\nhost that already projects live variables passes it so rail changes apply\nwithout a remount, instead of the view applying persisted settings locally."
+        }
+      ],
+      "children": []
+    }
+  }
+}

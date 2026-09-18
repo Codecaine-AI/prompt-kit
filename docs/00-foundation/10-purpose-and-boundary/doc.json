@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "id": "00-foundation-10-purpose-and-boundary",
+  "title": "Purpose And Boundary",
+  "root": "b-10-purpose-and-boundary-root-19",
+  "blocks": {
+    "b-10-purpose-and-boundary-root-19": {
+      "id": "b-10-purpose-and-boundary-root-19",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "prompt-kit",
+          "package-boundary",
+          "runtime",
+          "AST"
+        ],
+        "covers": "Why prompt-kit exists as a standalone prompt document library and what responsibilities stay outside it."
+      },
+      "children": [
+        "b-10-purpose-and-boundary-prompt-kit-is-a-library-2",
+        "b-10-purpose-and-boundary-divider-3",
+        "b-10-purpose-and-boundary-problem-4",
+        "b-10-purpose-and-boundary-agent-prompts-need-to-be-5",
+        "b-10-purpose-and-boundary-prompt-kit-sits-between-6",
+        "b-10-purpose-and-boundary-package-boundary-7",
+        "b-10-purpose-and-boundary-prompt-kit-owns-generic-8",
+        "b-10-purpose-and-boundary-prompt-kit-does-not-own-9",
+        "b-10-purpose-and-boundary-agent-registry-discovery-10",
+        "b-10-purpose-and-boundary-dynamic-context-loading-11",
+        "b-10-purpose-and-boundary-session-creation-and-too-12",
+        "b-10-purpose-and-boundary-trace-emission-and-subag-13",
+        "b-10-purpose-and-boundary-application-memory-layou-14",
+        "b-10-purpose-and-boundary-those-concerns-belong-to-15",
+        "b-10-purpose-and-boundary-source-of-truth-16",
+        "b-10-purpose-and-boundary-the-canonical-source-is-17",
+        "b-10-purpose-and-boundary-this-matters-for-authori-18",
+        "mcp-add-0",
+        "mcp-add-1"
+      ]
+    },
+    "b-10-purpose-and-boundary-prompt-kit-is-a-library-2": {
+      "id": "b-10-purpose-and-boundary-prompt-kit-is-a-library-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The Prompt Kit library owns typed, composable prompt documents. The workspace adds a filesystem authoring server and external MCP adapter, while Agent Kernel retains model execution, runtime tool registration, sessions, and traces."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-divider-3": {
+      "id": "b-10-purpose-and-boundary-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-purpose-and-boundary-problem-4": {
+      "id": "b-10-purpose-and-boundary-problem-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Problem"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-agent-prompts-need-to-be-5": {
+      "id": "b-10-purpose-and-boundary-agent-prompts-need-to-be-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agent prompts need to be both human-readable and machine-manipulable. A plain\nMarkdown prompt is easy to read, but hard to validate, transform, substitute, or\npreview consistently. A rigid schema is easy to validate, but can become too\nconstraining for real prompt-writing work."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-prompt-kit-sits-between-6": {
+      "id": "b-10-purpose-and-boundary-prompt-kit-sits-between-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit sits between those poles. Prompts are authored as structured\ndocuments, in code, as JSON documents, or through the editor UI, and\nconsumers can render them to linear text, inspect the tree, replace pieces,\nvalidate integrity, and drive editing surfaces from the same object. The\nmechanics of that object and its operations live in\n"
+        },
+        {
+          "insert": "System Design",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/00-overview"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-package-boundary-7": {
+      "id": "b-10-purpose-and-boundary-package-boundary-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Package Boundary"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-prompt-kit-owns-generic-8": {
+      "id": "b-10-purpose-and-boundary-prompt-kit-owns-generic-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit owns generic prompt structure: the canonical prompt document, its\nnode vocabulary, rendering to model-facing text, transformation and\ncomposition, validation, and the UI for viewing and editing prompt documents."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-prompt-kit-does-not-own-9": {
+      "id": "b-10-purpose-and-boundary-prompt-kit-does-not-own-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit does not own runtime behavior:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-agent-registry-discovery-10": {
+      "id": "b-10-purpose-and-boundary-agent-registry-discovery-10",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent registry discovery, model selection, or turn limits"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-dynamic-context-loading-11": {
+      "id": "b-10-purpose-and-boundary-dynamic-context-loading-11",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "dynamic context loading and conversation history"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-session-creation-and-too-12": {
+      "id": "b-10-purpose-and-boundary-session-creation-and-too-12",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "session creation and tool registration"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-trace-emission-and-subag-13": {
+      "id": "b-10-purpose-and-boundary-trace-emission-and-subag-13",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "trace emission and subagent orchestration"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-application-memory-layou-14": {
+      "id": "b-10-purpose-and-boundary-application-memory-layou-14",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "application memory layout"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-those-concerns-belong-to-15": {
+      "id": "b-10-purpose-and-boundary-those-concerns-belong-to-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Those concerns belong to a kernel or host application. A kernel imports\nprompt-kit, renders prompt documents, and wires them into its own runtime\npacket. Prompt-kit remains reusable because it does not know which runtime\nconsumes the rendered prompt. The agent host in "
+        },
+        {
+          "insert": "packages/prompt-kit-agent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is\none such consumer, and the seam between the two is specified in\n"
+        },
+        {
+          "insert": "Kernel Boundary",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/80-kernel-boundary"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-source-of-truth-16": {
+      "id": "b-10-purpose-and-boundary-source-of-truth-16",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Source Of Truth"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-the-canonical-source-is-17": {
+      "id": "b-10-purpose-and-boundary-the-canonical-source-is-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The canonical source is the structured prompt document. Rendered text is an\noutput artifact, not the authored source."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-and-boundary-this-matters-for-authori-18": {
+      "id": "b-10-purpose-and-boundary-this-matters-for-authori-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This matters for authoring tools. A prompt viewer can display the rendered\ntext, but editing must commit to the structured document. Hand-editing the\nrendered text creates a second source of truth and breaks transforms,\nvalidation, and stable ids. The editor follows this rule by presenting the\nrendered output as an editable projection while committing every gesture to the\nstructured document; its design lives in\n"
+        },
+        {
+          "insert": "60-editor/",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-0": {
+      "id": "mcp-add-0",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Shared Authoring"
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-1": {
+      "id": "mcp-add-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Humans and external agents should work on one canonical prompt with the same persistence guarantees. Direct edits need current writing guidance, a visible production render, revision checks, and recoverable history; they do not require a second model to mediate every save."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-e9e5cb017c4b30ef0cb27e4ffae8c3e4",
+  "title": "External Prompt Authoring",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "External agents edit existing Prompt Kit documents through one local MCP connection. Tasks supply current writing standards; valid edits save immediately with revision checks and guarded undo."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Structure"
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The MCP bridge routes typed requests to an authenticated loopback service. The service and Kernel catalog writer share the same filesystem store, so both coordinate writes to each canonical prompt file."
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "MCP Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/10-protocol"
+            }
+          }
+        },
+        {
+          "insert": " defines discovery, task state, tools, and completion."
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt Edit Transaction Guide",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/20-operations"
+            }
+          }
+        },
+        {
+          "insert": " defines the ordered operations on stable block IDs."
+        }
+      ],
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Persistence and Recovery",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/30-persistence"
+            }
+          }
+        },
+        {
+          "insert": " defines the save, conflict, journal, and undo contract."
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Rule"
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "External MCP edits save directly. The internal prompt-editor keeps its annotation-driven proposal and human review lifecycle. Both channels preserve canonical PromptDocuments and derive their model-facing text from those documents."
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This release edits existing catalog and explicitly registered standalone prompts. Creating or deleting prompts, editing annotations, staged external review, and running model evaluations are outside this tool contract."
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Why"
+        }
+      ],
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "External agents receive prompt-specific knowledge and structured edit operations without starting a second model. Shared persistence prevents a simultaneous UI save from silently replacing an external edit."
+        }
+      ],
+      "children": []
+    }
+  }
+}

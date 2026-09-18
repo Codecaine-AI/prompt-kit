@@ -1,0 +1,650 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-60-editor-10-editing-model",
+  "title": "Editing Model",
+  "root": "b-10-editing-model-root-32",
+  "blocks": {
+    "b-10-editing-model-root-32": {
+      "id": "b-10-editing-model-root-32",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "editing-model",
+          "line-model",
+          "steps",
+          "caret",
+          "projection"
+        ],
+        "covers": "How the prompt editor keeps the PromptDocument canonical, projects it into editable rows, commits every edit as a step, and keeps the caret continuous across structural moves.",
+        "depends-on": [
+          "10-system-design/10-canonical-prompt-object.md",
+          "10-system-design/30-rendering-model.md",
+          "10-system-design/40-composition-and-transforms.md"
+        ]
+      },
+      "children": [
+        "b-10-editing-model-the-editor-edits-a-prom-2",
+        "b-10-editing-model-divider-3",
+        "b-10-editing-model-one-source-of-truth-4",
+        "b-10-editing-model-the-surface-never-parses-5",
+        "b-10-editing-model-concern-owner-6",
+        "b-10-editing-model-row-projection-7",
+        "b-10-editing-model-the-line-projection-see-8",
+        "b-10-editing-model-role-emitted-for-e-9",
+        "b-10-editing-model-the-invariant-that-joine-10",
+        "b-10-editing-model-a-section-s-open-tag-is-11",
+        "b-10-editing-model-edit-points-12",
+        "b-10-editing-model-the-ordered-list-of-care-13",
+        "b-10-editing-model-committing-text-14",
+        "b-10-editing-model-each-node-type-has-exact-15",
+        "b-10-editing-model-node-type-editable-v-16",
+        "b-10-editing-model-text-commits-run-on-ever-17",
+        "b-10-editing-model-steps-not-snapshots-18",
+        "b-10-editing-model-block-edits-produce-step-19",
+        "b-10-editing-model-ts-20",
+        "b-10-editing-model-a-change-without-steps-21",
+        "b-10-editing-model-a-structural-gesture-tha-22",
+        "b-10-editing-model-selectednodeid-is-the-23",
+        "b-10-editing-model-caret-continuity-24",
+        "b-10-editing-model-the-surface-stores-one-e-25",
+        "b-10-editing-model-structural-gestures-land-26",
+        "b-10-editing-model-exactly-one-row-of-a-nod-27",
+        "b-10-editing-model-click-to-caret-28",
+        "b-10-editing-model-one-resolution-maps-a-cl-29",
+        "b-10-editing-model-headless-editor-model-30",
+        "b-10-editing-model-createprompteditormodel-31"
+      ]
+    },
+    "b-10-editing-model-the-editor-edits-a-prom-2": {
+      "id": "b-10-editing-model-the-editor-edits-a-prom-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The editor edits a "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The XML text on screen is a rendered\nprojection of that document, and every keystroke that changes structure or\ntext is committed as a step through a transaction log."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-divider-3": {
+      "id": "b-10-editing-model-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-editing-model-one-source-of-truth-4": {
+      "id": "b-10-editing-model-one-source-of-truth-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "One Source Of Truth"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-the-surface-never-parses-5": {
+      "id": "b-10-editing-model-the-surface-never-parses-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The surface never parses the rendered string back into nodes. A row knows\nwhich node it came from, an editor knows which property of that node it edits,\nand a commit writes that property back into the document."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-concern-owner-6": {
+      "id": "b-10-editing-model-concern-owner-6",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Concern",
+          "Owner"
+        ],
+        "rows": [
+          [
+            "Canonical state",
+            "The PromptDocument held by the host's history"
+          ],
+          [
+            "Rendered text",
+            "The XML-tagged Markdown renderer"
+          ],
+          [
+            "Editable rows",
+            "The line projection of the same document"
+          ],
+          [
+            "Undo/redo, dirty state",
+            "The host's history over the transaction log"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-10-editing-model-row-projection-7": {
+      "id": "b-10-editing-model-row-projection-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Row Projection"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-the-line-projection-see-8": {
+      "id": "b-10-editing-model-the-line-projection-see-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The line projection (see\n"
+        },
+        {
+          "insert": "Rendering Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-rendering-model"
+            }
+          }
+        },
+        {
+          "insert": ") yields one row per rendered\nline. Each row carries its source node, its depth, and a role, and the roles\ncarry the editability rule:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-role-emitted-for-e-9": {
+      "id": "b-10-editing-model-role-emitted-for-e-9",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Role",
+          "Emitted for",
+          "Editable"
+        ],
+        "rows": [
+          [
+            "gap",
+            "Blank separator between sibling blocks",
+            "No"
+          ],
+          [
+            "open",
+            "Container opening tag",
+            "Only a section tag with no rendered attributes"
+          ],
+          [
+            "close",
+            "Container closing tag",
+            "No"
+          ],
+          [
+            "content",
+            "Paragraph, field, raw line, code line",
+            "Yes"
+          ],
+          [
+            "fence",
+            "Code block fence lines",
+            "No"
+          ],
+          [
+            "item",
+            "One list item line",
+            "Yes"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-10-editing-model-the-invariant-that-joine-10": {
+      "id": "b-10-editing-model-the-invariant-that-joine-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The invariant that joined rows equal the rendered string is why the editor's\nline-number gutter matches the read-only view line for line, and why any\nrenderer layout change must be mirrored by the projection in lockstep."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-a-section-s-open-tag-is-11": {
+      "id": "b-10-editing-model-a-section-s-open-tag-is-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A section's open tag is editable because the tag "
+        },
+        {
+          "insert": "is",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " the section's name; the\nangle brackets are drawn as non-editable trim around the editor. An "
+        },
+        {
+          "insert": "example",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\nor "
+        },
+        {
+          "insert": "contextUsage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " open tag derives its text from other fields, and an\nattributed tag renders more than a name, so both stay structural."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-edit-points-12": {
+      "id": "b-10-editing-model-edit-points-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Edit Points"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-the-ordered-list-of-care-13": {
+      "id": "b-10-editing-model-the-ordered-list-of-care-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The ordered list of caret targets is derived from the rows: every editable\nline, except that multi-line leaf nodes ("
+        },
+        {
+          "insert": "raw",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "codeBlock",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") contribute a\nsingle point anchored on their first content line, because they edit as one\nmulti-line value. Arrow navigation, Backspace, and Delete all resolve against\nthis list, so \"the previous editable thing\" has one definition on the whole\nsurface."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-committing-text-14": {
+      "id": "b-10-editing-model-committing-text-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Committing Text"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-each-node-type-has-exact-15": {
+      "id": "b-10-editing-model-each-node-type-has-exact-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each node type has exactly one editable property:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-node-type-editable-v-16": {
+      "id": "b-10-editing-model-node-type-editable-v-16",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Node type",
+          "Editable value"
+        ],
+        "rows": [
+          [
+            "section",
+            "tag, passed through tag sanitization"
+          ],
+          [
+            "paragraph",
+            "content"
+          ],
+          [
+            "field",
+            "value"
+          ],
+          [
+            "raw",
+            "value"
+          ],
+          [
+            "codeBlock",
+            "code"
+          ],
+          [
+            "bulletList / orderedList",
+            "The addressed item's content"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-10-editing-model-text-commits-run-on-ever-17": {
+      "id": "b-10-editing-model-text-commits-run-on-ever-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Text commits run on every keystroke. Structured inline nodes survive the round\ntrip because the editable text form re-parses "
+        },
+        {
+          "insert": "{{name}}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "{{kind:name}}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\ntokens back into variable and reference nodes."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-steps-not-snapshots-18": {
+      "id": "b-10-editing-model-steps-not-snapshots-18",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Steps, Not Snapshots"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-block-edits-produce-step-19": {
+      "id": "b-10-editing-model-block-edits-produce-step-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Block edits produce steps, insert, remove, move, update, and hand them to\nthe host alongside the resulting document:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-ts-20": {
+      "id": "b-10-editing-model-ts-20",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "type PromptFlowChangeHandler = (\n  prompt: PromptDocument,\n  selectedNodeId?: string,\n  steps?: PromptStep[],\n) => void;"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-a-change-without-steps-21": {
+      "id": "b-10-editing-model-a-change-without-steps-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A change without "
+        },
+        {
+          "insert": "steps",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a document-metadata edit (title or description),\nwhich is not node-scoped and therefore not representable as a step. The host\ncommits steps to the transaction log and metadata to an overlay; both share\none undo/redo stack (see\n"
+        },
+        {
+          "insert": "Application Shell",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/60-application-shell"
+            }
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-a-structural-gesture-tha-22": {
+      "id": "b-10-editing-model-a-structural-gesture-tha-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A structural gesture that takes two or three steps is handed over as one array\nand committed as one transaction, so one undo takes back the whole move."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-selectednodeid-is-the-23": {
+      "id": "b-10-editing-model-selectednodeid-is-the-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "selectedNodeId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the commit's selection echo. While an inline edit session\nis live the surface forwards it as "
+        },
+        {
+          "insert": "undefined",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", hosts write the echo back\ninto selection state, and a keystroke must not re-select the block being typed\nin (the caret plus the edit wash is the whole treatment). Commits made outside\na live session, block menu inserts, item menu operations, drops, keep their\necho and still select deliberately."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-caret-continuity-24": {
+      "id": "b-10-editing-model-caret-continuity-24",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Caret Continuity"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-the-surface-stores-one-e-25": {
+      "id": "b-10-editing-model-the-surface-stores-one-e-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The surface stores one edit target: a node id, an optional item index, and a\ncaret. A caret is a numeric offset, "
+        },
+        {
+          "insert": "\"end\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or a "
+        },
+        {
+          "insert": "[start, end]",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " pair; a\nnumber is clamped to the value's length, "
+        },
+        {
+          "insert": "\"end\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " resolves to the end, and a\npair seats a selection so the next keystroke types over it."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-structural-gestures-land-26": {
+      "id": "b-10-editing-model-structural-gestures-land-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Structural gestures land the caret in the block they moved, at the same offset\nwhere possible, so a level change is never a reason to stop typing. Every\ncaret move re-seats the editor deliberately, a split, merge, arrow step,\nclick, or conversion each places the caret exactly once, and a stale blur\nfrom the editor being replaced can never cancel the new edit."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-exactly-one-row-of-a-nod-27": {
+      "id": "b-10-editing-model-exactly-one-row-of-a-nod-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Exactly one row of a node may host the editor at a time. A code block draws\ntwo fences, a section draws two tags, and a list draws a row per item; the\nsurface resolves which row owns the caret from the row's role, item index, and\ncontent line index. Two editors sharing a target would fight for focus."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-click-to-caret-28": {
+      "id": "b-10-editing-model-click-to-caret-28",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Click To Caret"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-one-resolution-maps-a-cl-29": {
+      "id": "b-10-editing-model-one-resolution-maps-a-cl-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One resolution maps a click point to a caret for every editable row. The click\nresolves to a text offset in the row, then display offset maps to editable\noffset by subtracting the row's display prefix, a plain row's leading indent,\nor nothing for list-item content whose marker is drawn as separate trim. For\n"
+        },
+        {
+          "insert": "raw",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "codeBlock",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " rows the clicked content line index is folded back into\nan offset within the single multi-line value. A point that resolves to no text\nposition falls back to caret-at-end, never caret-at-zero."
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-headless-editor-model-30": {
+      "id": "b-10-editing-model-headless-editor-model-30",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Headless Editor Model"
+        }
+      ],
+      "children": []
+    },
+    "b-10-editing-model-createprompteditormodel-31": {
+      "id": "b-10-editing-model-createprompteditormodel-31",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "createPromptEditorModel(prompt, options)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the headless entry for viewers\nand hosts: it ensures stable block ids (unless asked not to), flattens the\ndocument into a tree of entries carrying path, depth, sibling, label, and\nsummary metadata, preserves a valid requested selection (falling back to the\nfirst entry), renders the document with optional runtime variables, and\nvalidates it against optionally declared variable names. The result, prompt,\nselection, tree, rendered string, validation, is plain serializable data with\nno React or DOM dependency."
+        }
+      ],
+      "children": []
+    }
+  }
+}

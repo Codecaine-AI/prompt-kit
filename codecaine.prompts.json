@@ -1,0 +1,5 @@
+{
+  "name": "prompt-kit",
+  "profile": "agent",
+  "catalogRoots": ["packages/prompt-kit-agent/catalog"]
+}

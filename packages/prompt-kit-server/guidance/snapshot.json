@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "snapshotId": "sha256:5176b35b0823cc181aec595b67a1be8d17babe3063e1add208a18b3ee51113d8",
+  "profile": "generic",
+  "sources": [
+    {
+      "path": "docs/10-system-design/70-prompt-structure/doc.json",
+      "kind": "standard",
+      "sourceSha256": "0c2011707f7fc815b2d052699032d40a8dd415d89fd4d8bc28beeb630a0ece0c",
+      "renderedSha256": "fa89a01919d6f494c10e6cfe4b340c297736634fae3baff4c3cfb91109a3dead",
+      "sha256": "f31eb057d1962cecd6f53c2ce9f851b3ca9930c6485abf72c7792eeeba84dfc5"
+    },
+    {
+      "path": "docs/10-system-design/70-prompt-structure/10-agent-prompt/doc.json",
+      "kind": "standard",
+      "sourceSha256": "952e2c36423dd558ac4d0d2f3d1c4d338864c6f0246b820d6eab1a8d2a014d4a",
+      "renderedSha256": "55eb0f722d5c2a5be5123ce9d32d54b94d2e932a40f4f9fbc3791708ffd1b227",
+      "sha256": "9af0ac6d2833da41e0e0fdf7bd2376ab4a670bc58d278644343fb36cc0ecc7e4"
+    },
+    {
+      "path": "docs/10-system-design/70-prompt-structure/20-workflow/doc.json",
+      "kind": "standard",
+      "sourceSha256": "139d2c9cdd3b4e35595be12274150b8921c7e90f550c4b10cb2f1338719c8ff4",
+      "renderedSha256": "d87dde3cc00ee454b00b4ad22efc86d19c7f3a924e568d22ef403530fcf9f99a",
+      "sha256": "58ed1a13410e40a648f1c217dc6aa1eaebce260972722790013e725f0a08b321"
+    },
+    {
+      "path": "docs/10-system-design/70-prompt-structure/30-single-output/doc.json",
+      "kind": "standard",
+      "sourceSha256": "6d20a3670aff038885c75a817411a1cb303e6b8722965370c09bf853fb7a0cf1",
+      "renderedSha256": "c1c6edc6a9e3d09013355e7b36c46fb25c00ccc2b834adb868edfd4977a7fdf9",
+      "sha256": "bfe343ce05baea34f0dd163ff0cbadc6461b787576f061bdf16328a3d8238963"
+    },
+    {
+      "path": "docs/10-system-design/70-prompt-structure/40-quality/doc.json",
+      "kind": "standard",
+      "sourceSha256": "1065085733ca9e351d9d7813ba4d4e885fbb27cc481bd36b76412a6ee5dcf491",
+      "renderedSha256": "c7274f8eac0e649bbedf92daff14aec6e988a32ee4a8e79e229e7be765d7f937",
+      "sha256": "8f9b3a5e2eccf8310f19f79e458d386406fa39df8629a245664a15abe7ae82b3"
+    },
+    {
+      "path": "docs/10-system-design/70-prompt-structure/50-techniques/doc.json",
+      "kind": "standard",
+      "sourceSha256": "02b2bf0a0754849f9c242c743c6e536a5a86e56545d0a5559bf3ed0fc041fdc6",
+      "renderedSha256": "6a24e3d33ebbb59b842484bb316099fdb4f217e3d74ee84b47ed24c77eec1032",
+      "sha256": "8b89e4a701fac13ef6bc9b18d63e56450e0635a729374d75f449454fb4b74f32"
+    },
+    {
+      "path": "docs/10-system-design/10-canonical-prompt-object/doc.json",
+      "kind": "model",
+      "sourceSha256": "5831597afdeac82e74cd9a8eae2ce0153f10b55ea0bc2b877f1e230fc6ed2f9f",
+      "renderedSha256": "efbcd7edaf410c7eb83f8495057140dd6c1fa4a63cd680f28768a16c2500485b",
+      "sha256": "80f671fde7fb5d89812b687dec2732f1c96feed791280396d584db43a618678d"
+    },
+    {
+      "path": "docs/10-system-design/20-authoring-model/doc.json",
+      "kind": "model",
+      "sourceSha256": "1f76410e883746fbc39e5eb484add25edffafe789597a705c524e0dbdd8ee325",
+      "renderedSha256": "be2cbf3192f9b1e22b01e1a6322c09c3fe4721d9ed644bd7b58cc844af3d0b5c",
+      "sha256": "18bf0e61c3ba9aab8091e0b363bf650d886caa0fc84e4a7bbae0c885ddf135cf"
+    },
+    {
+      "path": "docs/10-system-design/50-validation-contract/doc.json",
+      "kind": "model",
+      "sourceSha256": "9b2a47313419d23bff6091a3a86bd3312c1dce8dd2e049cc5143e73d6426753b",
+      "renderedSha256": "8769addcb9830590db0c8d66d3844a90c491fce5bb58d674cb486e80aba54782",
+      "sha256": "c0a68b55d9a60605d66170f00238db6003d99cd26e0be55bb38303125d7f6758"
+    },
+    {
+      "path": "docs/10-system-design/60-editor/10-editing-model/doc.json",
+      "kind": "transaction",
+      "sourceSha256": "50101738f8a2390619a47ac83459ddb7acd8ba894122d95f081b487010f1c28b",
+      "renderedSha256": "74bbda5b5d0ef5d9ba3e0c418c4d4f912ccea2b174dc683ee07a3b5d68e0093d",
+      "sha256": "b65a5e13aa22acf112161bb99d83040614e2f0d1e7f24acdc7855c6f2811230e"
+    },
+    {
+      "path": "docs/10-system-design/90-external-authoring/20-operations/doc.json",
+      "kind": "transaction",
+      "sourceSha256": "583cde4fd1196e1d0f30a7ee4885fc058c8b211b90577ed6b8d7973c3347425b",
+      "renderedSha256": "06fcc73a6d65955b9eb954e467cae237af8eb193c30010a935fa550a4bb256bc",
+      "sha256": "8e871b948194930c3adafa75c0c60cc6bcc65707742f0176df207b33c9f9fb30"
+    }
+  ]
+}

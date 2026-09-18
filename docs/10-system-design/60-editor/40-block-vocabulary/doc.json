@@ -1,0 +1,469 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-60-editor-40-block-vocabulary",
+  "title": "Block Vocabulary",
+  "root": "b-40-block-vocabulary-root-19",
+  "blocks": {
+    "b-40-block-vocabulary-root-19": {
+      "id": "b-40-block-vocabulary-root-19",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "blocks",
+          "vocabulary",
+          "section",
+          "attrs",
+          "nodes"
+        ],
+        "covers": "The block types the prompt editor can create, how the remaining prompt-kit node types behave in the editor, and why a section's name is its tag.",
+        "depends-on": [
+          "10-system-design/10-canonical-prompt-object.md",
+          "10-system-design/30-rendering-model.md"
+        ]
+      },
+      "children": [
+        "b-40-block-vocabulary-the-editor-creates-five-2",
+        "b-40-block-vocabulary-divider-3",
+        "b-40-block-vocabulary-creatable-blocks-4",
+        "b-40-block-vocabulary-the-insert-palette-the-5",
+        "b-40-block-vocabulary-label-node-type-sl-6",
+        "b-40-block-vocabulary-section-carries-no-cont-7",
+        "b-40-block-vocabulary-non-creatable-nodes-8",
+        "b-40-block-vocabulary-field-example-con-9",
+        "b-40-block-vocabulary-node-type-row-behavi-10",
+        "b-40-block-vocabulary-section-example-c-11",
+        "b-40-block-vocabulary-a-section-s-name-is-its-12",
+        "b-40-block-vocabulary-a-sectionnode-carries-13",
+        "b-40-block-vocabulary-tag-sanitization-keeps-a-14",
+        "b-40-block-vocabulary-block-actions-15",
+        "b-40-block-vocabulary-every-block-carries-one-16",
+        "b-40-block-vocabulary-action-availability-17",
+        "b-40-block-vocabulary-creating-a-block-is-a-ty-18"
+      ]
+    },
+    "b-40-block-vocabulary-the-editor-creates-five-2": {
+      "id": "b-40-block-vocabulary-the-editor-creates-five-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The editor creates five block types. It renders and edits the whole prompt-kit\nnode set, but it does not offer every node type as something an author can\nadd."
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-divider-3": {
+      "id": "b-40-block-vocabulary-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-block-vocabulary-creatable-blocks-4": {
+      "id": "b-40-block-vocabulary-creatable-blocks-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Creatable Blocks"
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-the-insert-palette-the-5": {
+      "id": "b-40-block-vocabulary-the-insert-palette-the-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The insert palette, the slash menu, and markdown autoformat share one\nvocabulary, in one order, so the surfaces never disagree about what a prompt\nis made of."
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-label-node-type-sl-6": {
+      "id": "b-40-block-vocabulary-label-node-type-sl-6",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Label",
+          "Node type",
+          "Slash aliases",
+          "Autoformat"
+        ],
+        "rows": [
+          [
+            "Text",
+            "paragraph",
+            "paragraph, para, p, body, plain",
+            ", "
+          ],
+          [
+            "Section",
+            "section",
+            "tag, xml, element, group, wrap",
+            ", "
+          ],
+          [
+            "Bullets",
+            "bulletList",
+            "bullet, list, ul, unordered, dash, -",
+            "- , * "
+          ],
+          [
+            "Steps",
+            "orderedList",
+            "step, ordered, numbered, number, list, ol, 1.",
+            "1. , 1) "
+          ],
+          [
+            "Code",
+            "codeBlock",
+            "codeblock, snippet, fence, pre,  fence ",
+            " fence "
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-block-vocabulary-section-carries-no-cont-7": {
+      "id": "b-40-block-vocabulary-section-carries-no-cont-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Section carries no "
+        },
+        {
+          "insert": "container",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or code-adjacent synonym, because those would\npull it into the "
+        },
+        {
+          "insert": "/co",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " query that must belong to Code alone."
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-non-creatable-nodes-8": {
+      "id": "b-40-block-vocabulary-non-creatable-nodes-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Non-Creatable Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-field-example-con-9": {
+      "id": "b-40-block-vocabulary-field-example-con-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "field",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "example",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "contextUsage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "raw",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are part of the model and are\nfully supported by the surface, they render into rows, they are\ninline-editable where they have an editable value, they can be selected,\nmoved, duplicated, and deleted, and the details inspector edits their\nproperties. They are simply not offered as things to create from this UI."
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-node-type-row-behavi-10": {
+      "id": "b-40-block-vocabulary-node-type-row-behavi-10",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Node type",
+          "Row behavior",
+          "Inline-editable value"
+        ],
+        "rows": [
+          [
+            "field",
+            "One content row plus any children",
+            "value"
+          ],
+          [
+            "example",
+            "Open and close tag rows",
+            "None; the open tag is structural"
+          ],
+          [
+            "contextUsage",
+            "Open and close tag rows",
+            "None; the open tag is structural"
+          ],
+          [
+            "raw",
+            "One content row per line",
+            "value, as one multi-line editor"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-block-vocabulary-section-example-c-11": {
+      "id": "b-40-block-vocabulary-section-example-c-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "section",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "example",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "contextUsage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "field",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are the container blocks;\nonly those offer an add-child action."
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-a-section-s-name-is-its-12": {
+      "id": "b-40-block-vocabulary-a-section-s-name-is-its-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "A Section's Name Is Its Tag"
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-a-sectionnode-carries-13": {
+      "id": "b-40-block-vocabulary-a-sectionnode-carries-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "SectionNode",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " carries an optional "
+        },
+        {
+          "insert": "title",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " property, and the XML renderer\nnever reads it: the open tag is composed from "
+        },
+        {
+          "insert": "tag",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "attrs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " only (see\n"
+        },
+        {
+          "insert": "Rendering Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-rendering-model"
+            }
+          }
+        },
+        {
+          "insert": "). A \"title\" field on a\nsection would therefore be dead input, it would change the document and its\ncontent hash while changing nothing about the rendered prompt. The editor has\nno such field. A section's name is its "
+        },
+        {
+          "insert": "tag",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", edited in place on the open-tag\nrow, and everything else that appears in the open tag is an entry in "
+        },
+        {
+          "insert": "attrs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", what the inspector calls the section's fields."
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-tag-sanitization-keeps-a-14": {
+      "id": "b-40-block-vocabulary-tag-sanitization-keeps-a-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Tag sanitization keeps a typed tag renderable: whitespace becomes "
+        },
+        {
+          "insert": "_",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the\ncharacters that would break the tag out of its own brackets are dropped.\nAnything else is left exactly as typed, so an invalid name still reaches\nvalidation, which reports it and blocks the save, rather than being silently\nrewritten under the caret. Attribute keys get the parallel treatment."
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-block-actions-15": {
+      "id": "b-40-block-vocabulary-block-actions-15",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Block Actions"
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-every-block-carries-one-16": {
+      "id": "b-40-block-vocabulary-every-block-carries-one-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every block carries one left-edge affordance, pinned just inside the gutter at\nits first row. It is the drag handle, and clicking it opens a compact menu."
+        }
+      ],
+      "children": []
+    },
+    "b-40-block-vocabulary-action-availability-17": {
+      "id": "b-40-block-vocabulary-action-availability-17",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Action",
+          "Availability"
+        ],
+        "rows": [
+          [
+            "Rename",
+            "Sections; the menu's type header doubles as the tag field"
+          ],
+          [
+            "Duplicate",
+            "All blocks"
+          ],
+          [
+            "Add child",
+            "Container blocks"
+          ],
+          [
+            "Delete",
+            "All blocks"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-block-vocabulary-creating-a-block-is-a-ty-18": {
+      "id": "b-40-block-vocabulary-creating-a-block-is-a-ty-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Creating a block is a typing gesture, Enter, a markdown marker, or the slash\nmenu, so no insert button competes for the same few pixels."
+        }
+      ],
+      "children": []
+    }
+  }
+}

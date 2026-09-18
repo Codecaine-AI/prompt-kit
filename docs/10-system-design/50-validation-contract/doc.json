@@ -1,0 +1,468 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-50-validation-contract",
+  "title": "Validation Contract",
+  "root": "b-50-validation-contract-root-26",
+  "blocks": {
+    "b-50-validation-contract-root-26": {
+      "id": "b-50-validation-contract-root-26",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "validation",
+          "diagnostics",
+          "variables",
+          "schema"
+        ],
+        "covers": "The validation contract for prompt-kit documents, including schema checks, ids, XML tags, context usage, and declared variables.",
+        "depends-on": [
+          "10-system-design/10-canonical-prompt-object.md"
+        ]
+      },
+      "children": [
+        "b-50-validation-contract-prompt-kit-validation-ch-2",
+        "b-50-validation-contract-divider-3",
+        "b-50-validation-contract-validation-result-4",
+        "b-50-validation-contract-validateprompt-prompt-5",
+        "b-50-validation-contract-ts-6",
+        "b-50-validation-contract-diagnostics-include-seve-7",
+        "b-50-validation-contract-two-validation-layers-8",
+        "b-50-validation-contract-semantic-validation-assu-9",
+        "b-50-validation-contract-current-checks-10",
+        "b-50-validation-contract-the-validator-reports-er-11",
+        "b-50-validation-contract-unsupported-schema-versi-12",
+        "b-50-validation-contract-missing-prompt-id-13",
+        "b-50-validation-contract-duplicate-node-ids-14",
+        "b-50-validation-contract-invalid-xml-section-tags-15",
+        "b-50-validation-contract-context-usage-nodes-with-16",
+        "b-50-validation-contract-variables-not-present-in-17",
+        "b-50-validation-contract-variable-declarations-18",
+        "b-50-validation-contract-prompt-kit-does-not-own-19",
+        "b-50-validation-contract-ts-20",
+        "b-50-validation-contract-this-catches-references-21",
+        "b-50-validation-contract-static-versus-runtime-va-22",
+        "b-50-validation-contract-prompt-kit-can-validate-23",
+        "b-50-validation-contract-flexible-by-design-24",
+        "b-50-validation-contract-custom-section-tags-met-25",
+        "mcp-add-0",
+        "mcp-add-1",
+        "mcp-add-2"
+      ]
+    },
+    "b-50-validation-contract-prompt-kit-validation-ch-2": {
+      "id": "b-50-validation-contract-prompt-kit-validation-ch-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit validation checks prompt tree integrity without freezing prompt style.\nIt catches structural problems that make rendering and transformation unsafe."
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-divider-3": {
+      "id": "b-50-validation-contract-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-50-validation-contract-validation-result-4": {
+      "id": "b-50-validation-contract-validation-result-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Validation Result"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-validateprompt-prompt-5": {
+      "id": "b-50-validation-contract-validateprompt-prompt-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "validatePrompt(prompt, options)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " returns:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-ts-6": {
+      "id": "b-50-validation-contract-ts-6",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "interface PromptValidationResult {\n  ok: boolean;\n  diagnostics: PromptDiagnostic[];\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-diagnostics-include-seve-7": {
+      "id": "b-50-validation-contract-diagnostics-include-seve-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Diagnostics include severity, code, message, path, and optional node id. The\nresult is "
+        },
+        {
+          "insert": "ok",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when no diagnostic carries "
+        },
+        {
+          "insert": "severity: \"error\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; warnings do not\nblock. The validator runs document-level checks first, then traverses the full\ntree, blocks, list items, and inline nodes, collecting ids and checking each\nnode in place, so one pass reports every problem rather than stopping at the\nfirst."
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-two-validation-layers-8": {
+      "id": "b-50-validation-contract-two-validation-layers-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Two Validation Layers"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-semantic-validation-assu-9": {
+      "id": "b-50-validation-contract-semantic-validation-assu-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Semantic validation assumes it is looking at a "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". For untrusted\ninput, a JSON file, a save-endpoint body, the schema module's shape check\n("
+        },
+        {
+          "insert": "validatePromptDocumentShape",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", mirroring the published JSON Schema) runs\nfirst and reports structural mismatches by path. See\n"
+        },
+        {
+          "insert": "Authoring Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-authoring-model"
+            }
+          }
+        },
+        {
+          "insert": " for the JSON authoring form."
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-current-checks-10": {
+      "id": "b-50-validation-contract-current-checks-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Current Checks"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-the-validator-reports-er-11": {
+      "id": "b-50-validation-contract-the-validator-reports-er-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The validator reports errors for:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-unsupported-schema-versi-12": {
+      "id": "b-50-validation-contract-unsupported-schema-versi-12",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "unsupported schema version"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-missing-prompt-id-13": {
+      "id": "b-50-validation-contract-missing-prompt-id-13",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "missing prompt id"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-duplicate-node-ids-14": {
+      "id": "b-50-validation-contract-duplicate-node-ids-14",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "duplicate node ids"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-invalid-xml-section-tags-15": {
+      "id": "b-50-validation-contract-invalid-xml-section-tags-15",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "invalid XML section tags"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-context-usage-nodes-with-16": {
+      "id": "b-50-validation-contract-context-usage-nodes-with-16",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "context usage nodes with empty context ids"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-variables-not-present-in-17": {
+      "id": "b-50-validation-contract-variables-not-present-in-17",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "variables not present in "
+        },
+        {
+          "insert": "declaredVariables",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", when declarations are provided"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-variable-declarations-18": {
+      "id": "b-50-validation-contract-variable-declarations-18",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Variable Declarations"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-prompt-kit-does-not-own-19": {
+      "id": "b-50-validation-contract-prompt-kit-does-not-own-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit does not own the runtime variable catalog. A host can provide\n"
+        },
+        {
+          "insert": "declaredVariables",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " during validation:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-ts-20": {
+      "id": "b-50-validation-contract-ts-20",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "validatePrompt(prompt, {\n  declaredVariables: [\"userPrompt\", \"focus\"],\n});"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-this-catches-references-21": {
+      "id": "b-50-validation-contract-this-catches-references-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This catches references such as "
+        },
+        {
+          "insert": "variable(\"unknownName\")",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " before rendering."
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-static-versus-runtime-va-22": {
+      "id": "b-50-validation-contract-static-versus-runtime-va-22",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Static Versus Runtime Validation"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-prompt-kit-can-validate-23": {
+      "id": "b-50-validation-contract-prompt-kit-can-validate-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit can validate the static prompt object. It cannot prove that a runtime\ncontext loader will succeed, that a tool exists in a host registry, or that a\nconversation packet is available. Those failures should be surfaced by the host\nruntime through its own diagnostics or trace events."
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-flexible-by-design-24": {
+      "id": "b-50-validation-contract-flexible-by-design-24",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Flexible By Design"
+        }
+      ],
+      "children": []
+    },
+    "b-50-validation-contract-custom-section-tags-met-25": {
+      "id": "b-50-validation-contract-custom-section-tags-met-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Custom section tags, metadata, and archetype strings are valid when they satisfy\nthe small structural requirements. The validator provides a safety floor while\nleaving room for new prompt families."
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-0": {
+      "id": "mcp-add-0",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Authoring Profiles and Completion"
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-1": {
+      "id": "mcp-add-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The pure document validator remains permissive about valid custom tags and archetypes. External authoring explicitly selects agent, single-output, or generic writing profiles. Deterministic profile findings are returned after saves and must pass completion checks."
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-2": {
+      "id": "mcp-add-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "MCP mutation reloads authoritative variable declarations under the save lock and checks structured variable nodes plus raw rendered placeholders. Unknown standalone declarations block mutation and successful completion; an explicit empty declaration means no variables. See "
+        },
+        {
+          "insert": "MCP Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/10-protocol"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    }
+  }
+}

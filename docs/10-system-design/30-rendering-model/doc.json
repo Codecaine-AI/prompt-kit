@@ -1,0 +1,504 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-30-rendering-model",
+  "title": "Rendering Model",
+  "root": "b-30-rendering-model-root-28",
+  "blocks": {
+    "b-30-rendering-model-root-28": {
+      "id": "b-30-rendering-model-root-28",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "rendering",
+          "XML",
+          "markdown",
+          "variables"
+        ],
+        "covers": "How prompt-kit renders prompt documents, why XML-tagged Markdown is the default target, and how custom renderers fit the model.",
+        "depends-on": [
+          "10-system-design/10-canonical-prompt-object.md"
+        ]
+      },
+      "children": [
+        "b-30-rendering-model-prompt-kit-separates-pro-2",
+        "b-30-rendering-model-divider-3",
+        "b-30-rendering-model-default-render-target-4",
+        "b-30-rendering-model-xml-tagged-markdown-give-5",
+        "b-30-rendering-model-xml-6",
+        "b-30-rendering-model-markdown-remains-useful-7",
+        "b-30-rendering-model-renderer-contract-8",
+        "b-30-rendering-model-renderxmlmarkdown-promp-9",
+        "b-30-rendering-model-option-purpose-10",
+        "b-30-rendering-model-the-default-missing-vari-11",
+        "b-30-rendering-model-node-rendering-12",
+        "b-30-rendering-model-each-block-node-type-has-13",
+        "b-30-rendering-model-node-rendered-as-14",
+        "b-30-rendering-model-a-section-s-optional-ti-15",
+        "b-30-rendering-model-line-projection-16",
+        "b-30-rendering-model-alongside-the-rendered-s-17",
+        "b-30-rendering-model-escaping-18",
+        "b-30-rendering-model-text-and-attribute-value-19",
+        "b-30-rendering-model-custom-renderers-20",
+        "b-30-rendering-model-the-ast-is-not-coupled-t-21",
+        "b-30-rendering-model-visual-prompt-editors-22",
+        "b-30-rendering-model-documentation-pages-23",
+        "b-30-rendering-model-compact-diff-views-24",
+        "b-30-rendering-model-model-specific-prompt-fo-25",
+        "b-30-rendering-model-diagnostics-and-lint-out-26",
+        "b-30-rendering-model-custom-renderers-should-27"
+      ]
+    },
+    "b-30-rendering-model-prompt-kit-separates-pro-2": {
+      "id": "b-30-rendering-model-prompt-kit-separates-pro-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit separates prompt structure from rendered output. The default renderer\nturns the AST into XML-tagged Markdown, which keeps the final prompt readable for\nagents and inspectable for humans."
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-divider-3": {
+      "id": "b-30-rendering-model-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-rendering-model-default-render-target-4": {
+      "id": "b-30-rendering-model-default-render-target-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Default Render Target"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-xml-tagged-markdown-give-5": {
+      "id": "b-30-rendering-model-xml-tagged-markdown-give-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "XML-tagged Markdown gives each major prompt section a semantic boundary:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-xml-6": {
+      "id": "b-30-rendering-model-xml-6",
+      "type": "code",
+      "props": {
+        "language": "xml"
+      },
+      "text": [
+        {
+          "insert": "<purpose>\n    - Find and evaluate sources.\n</purpose>\n\n<workflow>\n    1. Read the assignment.\n    2. Search for relevant evidence.\n</workflow>"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-markdown-remains-useful-7": {
+      "id": "b-30-rendering-model-markdown-remains-useful-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Markdown remains useful inside tags because agents read it naturally. XML tags\nmake section boundaries explicit and easier to inspect in traces, viewers, and\ndebug output."
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-renderer-contract-8": {
+      "id": "b-30-rendering-model-renderer-contract-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Renderer Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-renderxmlmarkdown-promp-9": {
+      "id": "b-30-rendering-model-renderxmlmarkdown-promp-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "renderXmlMarkdown(prompt, options)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " accepts a "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and produces a\nstring. Current options include:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-option-purpose-10": {
+      "id": "b-30-rendering-model-option-purpose-10",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Option",
+          "Purpose"
+        ],
+        "rows": [
+          [
+            "indentText",
+            "Controls indentation, defaulting to four spaces"
+          ],
+          [
+            "variables",
+            "Provides values for variable() inline nodes"
+          ],
+          [
+            "missingVariable",
+            "Controls missing variables: placeholder, empty, or error"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-30-rendering-model-the-default-missing-vari-11": {
+      "id": "b-30-rendering-model-the-default-missing-vari-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The default missing variable behavior is "
+        },
+        {
+          "insert": "placeholder",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", producing\n"
+        },
+        {
+          "insert": "{{variableName}}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-node-rendering-12": {
+      "id": "b-30-rendering-model-node-rendering-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Node Rendering"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-each-block-node-type-has-13": {
+      "id": "b-30-rendering-model-each-block-node-type-has-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each block node type has one rendered form:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-node-rendered-as-14": {
+      "id": "b-30-rendering-model-node-rendered-as-14",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Node",
+          "Rendered as"
+        ],
+        "rows": [
+          [
+            "section",
+            "An XML tag pair around its rendered children"
+          ],
+          [
+            "paragraph",
+            "Its inline content as a paragraph line"
+          ],
+          [
+            "bulletList / orderedList",
+            "Markdown list items, nested children indented beneath their item"
+          ],
+          [
+            "field",
+            "A label: value line"
+          ],
+          [
+            "codeBlock",
+            "A fenced code block, with the language on the opening fence"
+          ],
+          [
+            "example",
+            "An <example> tag pair, the node's title emitted as a title=\"…\" attribute"
+          ],
+          [
+            "raw",
+            "Its value as provided, indented to position"
+          ],
+          [
+            "contextUsage",
+            "A context usage tag carrying context_id, wrapping its instructions"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-30-rendering-model-a-section-s-optional-ti-15": {
+      "id": "b-30-rendering-model-a-section-s-optional-ti-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A section's optional "
+        },
+        {
+          "insert": "title",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " property is never rendered; the open tag is\ncomposed from "
+        },
+        {
+          "insert": "tag",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "attrs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " only. The one consumer of a title is the\n"
+        },
+        {
+          "insert": "example",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " node, which turns it into an attribute."
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-line-projection-16": {
+      "id": "b-30-rendering-model-line-projection-16",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Line Projection"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-alongside-the-rendered-s-17": {
+      "id": "b-30-rendering-model-alongside-the-rendered-s-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Alongside the rendered string, the render module projects a document into a\nline model: one record per rendered line, each carrying its source node, its\ndepth, and a role (open tag, close tag, content, list item, fence, gap). The\ninvariant is that joining the projected lines equals the rendered string\nexactly, same indentation, same blank lines, same framing. This is what lets\nan editing surface address rendered lines while mutating only the document;\nthe editor built on it is specified in\n"
+        },
+        {
+          "insert": "Editing Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/10-editing-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-escaping-18": {
+      "id": "b-30-rendering-model-escaping-18",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Escaping"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-text-and-attribute-value-19": {
+      "id": "b-30-rendering-model-text-and-attribute-value-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Text and attribute values are XML-escaped by the renderer. This keeps authored\ncontent from accidentally breaking section tags. "
+        },
+        {
+          "insert": "raw",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " nodes are the explicit\nescape hatch for already-rendered material."
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-custom-renderers-20": {
+      "id": "b-30-rendering-model-custom-renderers-20",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Custom Renderers"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-the-ast-is-not-coupled-t-21": {
+      "id": "b-30-rendering-model-the-ast-is-not-coupled-t-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The AST is not coupled to XML-tagged Markdown. Consumers can write renderers for:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-visual-prompt-editors-22": {
+      "id": "b-30-rendering-model-visual-prompt-editors-22",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "visual prompt editors"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-documentation-pages-23": {
+      "id": "b-30-rendering-model-documentation-pages-23",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "documentation pages"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-compact-diff-views-24": {
+      "id": "b-30-rendering-model-compact-diff-views-24",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "compact diff views"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-model-specific-prompt-fo-25": {
+      "id": "b-30-rendering-model-model-specific-prompt-fo-25",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "model-specific prompt formats"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-diagnostics-and-lint-out-26": {
+      "id": "b-30-rendering-model-diagnostics-and-lint-out-26",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "diagnostics and lint output"
+        }
+      ],
+      "children": []
+    },
+    "b-30-rendering-model-custom-renderers-should-27": {
+      "id": "b-30-rendering-model-custom-renderers-should-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Custom renderers should read the same "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " source instead of parsing\nthe default rendered string."
+        }
+      ],
+      "children": []
+    }
+  }
+}

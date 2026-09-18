@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-f440587e4c6274b0aaecfa070ab8a49b",
+  "title": "MCP Adapter",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11",
+        "authored-12"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The MCP package turns the authoring store into a multi-project external tool connection in "
+        },
+        {
+          "insert": "packages/prompt-kit-mcp/src/service.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit-mcp/src/service.ts"
+            }
+          }
+        },
+        {
+          "insert": ". It does not start a model."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Governed by"
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "MCP Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/10-protocol"
+            }
+          }
+        },
+        {
+          "insert": " owns public task behavior; "
+        },
+        {
+          "insert": "Prompt Edit Transaction Guide",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/20-operations"
+            }
+          }
+        },
+        {
+          "insert": " owns edit semantics."
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Ownership"
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: transport and client installation remain in the MCP package. The shared filesystem server and pure library do not depend on MCP or Agent Kernel. Runtime state belongs to an authenticated local daemon; source documents remain on disk."
+        }
+      ],
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why: clients share one endpoint while Kernel hosts can save through the filesystem library independently. Applies to future client adapters and transports."
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Source Map"
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Source",
+          "Responsibility"
+        ],
+        "rows": [
+          [
+            "src/mcp.ts",
+            "Stdio MCP bridge and guidance resource."
+          ],
+          [
+            "src/service.ts",
+            "Workspace routing, tasks, fingerprints, and completion."
+          ],
+          [
+            "src/tools.ts",
+            "Strict tool arguments and lock-held declaration validation."
+          ],
+          [
+            "src/discovery.ts",
+            "Bounded catalog/standalone discovery and per-entry errors."
+          ],
+          [
+            "src/daemon.ts and src/lifecycle.ts",
+            "Authenticated loopback service and singleton lifecycle."
+          ],
+          [
+            "src/install.ts",
+            "Client previews, staged backups, rollback, restoration, and doctor."
+          ],
+          [
+            "src/pi-extension.ts",
+            "pi lifecycle, real-schema tool forwarding, and instruction injection."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These paths are relative to packages/prompt-kit-mcp. The installed connection is named codecaine-prompts; it is separate from codecaine-docs."
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Verification Contract"
+        }
+      ],
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Run package tests and typechecks for store or tool changes. The installed-connection exercise in "
+        },
+        {
+          "insert": "scripts/verify-installed-mcp.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "scripts/verify-installed-mcp.ts"
+            }
+          }
+        },
+        {
+          "insert": " uses real client configuration, reads the catalog, and edits a disposable standalone fixture through two MCP clients. It verifies derived rendering, stale-save rejection, completion, and undo without modifying catalog prompts."
+        }
+      ],
+      "children": []
+    },
+    "authored-12": {
+      "id": "authored-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Installer tests cover preservation of unrelated settings, unmanaged-name collisions, and rollback after a later file fails to commit. Protocol success does not establish that an already-open client UI has reloaded its tools or selected a skill."
+        }
+      ],
+      "children": []
+    }
+  }
+}

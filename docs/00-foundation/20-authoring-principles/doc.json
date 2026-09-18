@@ -1,0 +1,261 @@
+{
+  "schemaVersion": 1,
+  "id": "00-foundation-20-authoring-principles",
+  "title": "Authoring Principles",
+  "root": "b-20-authoring-principles-root-16",
+  "blocks": {
+    "b-20-authoring-principles-root-16": {
+      "id": "b-20-authoring-principles-root-16",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "authoring",
+          "composition",
+          "rendering",
+          "validation"
+        ],
+        "covers": "The prompt authoring principles behind prompt-kit documents, rendering, transforms, and validation.",
+        "depends-on": [
+          "00-foundation/10-purpose-and-boundary.md"
+        ]
+      },
+      "children": [
+        "b-20-authoring-principles-prompt-kit-treats-prompt-2",
+        "b-20-authoring-principles-divider-3",
+        "b-20-authoring-principles-structured-but-not-britt-4",
+        "b-20-authoring-principles-prompt-documents-should-5",
+        "b-20-authoring-principles-linear-reading-stays-pri-6",
+        "b-20-authoring-principles-agents-still-read-prompt-7",
+        "b-20-authoring-principles-stable-ids-make-composit-8",
+        "b-20-authoring-principles-nodes-carry-stable-ids-s-9",
+        "b-20-authoring-principles-rendering-is-separate-fr-10",
+        "b-20-authoring-principles-the-canonical-prompt-obj-11",
+        "b-20-authoring-principles-dynamic-context-belongs-12",
+        "b-20-authoring-principles-prompt-kit-can-describe-13",
+        "b-20-authoring-principles-validation-should-catch-14",
+        "b-20-authoring-principles-validation-exists-to-giv-15"
+      ]
+    },
+    "b-20-authoring-principles-prompt-kit-treats-prompt-2": {
+      "id": "b-20-authoring-principles-prompt-kit-treats-prompt-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit treats prompts as structured documents first and rendered text\nsecond. The structure stays flexible enough for prompt authors while giving\nkernels and editors a stable object to inspect and manipulate. This page holds\nthe reasoning behind that stance; the mechanics live in\n"
+        },
+        {
+          "insert": "System Design",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/00-overview"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-divider-3": {
+      "id": "b-20-authoring-principles-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-authoring-principles-structured-but-not-britt-4": {
+      "id": "b-20-authoring-principles-structured-but-not-britt-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Structured But Not Brittle"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-prompt-documents-should-5": {
+      "id": "b-20-authoring-principles-prompt-documents-should-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt documents should be typed, but they should not force every prompt into a\nsingle narrow shape. A small vocabulary of reusable blocks covers the common\ncases, and authors can extend beyond it when a prompt family needs a different\nstructure. Recommended layouts are conveniences, not the only valid layouts.\nThe block vocabulary itself is defined in\n"
+        },
+        {
+          "insert": "Canonical Prompt Object",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-canonical-prompt-object"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-linear-reading-stays-pri-6": {
+      "id": "b-20-authoring-principles-linear-reading-stays-pri-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Linear Reading Stays Primary"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-agents-still-read-prompt-7": {
+      "id": "b-20-authoring-principles-agents-still-read-prompt-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agents still read prompts linearly. Whatever structure the document carries,\nthe default rendering must produce a clear, stable text document that a model\nreads naturally. The AST exists to improve authoring, validation,\ntransformation, and UI rendering, not to make the final prompt hard to read."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-stable-ids-make-composit-8": {
+      "id": "b-20-authoring-principles-stable-ids-make-composit-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Stable Ids Make Composition Practical"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-nodes-carry-stable-ids-s-9": {
+      "id": "b-20-authoring-principles-nodes-carry-stable-ids-s-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Nodes carry stable ids so prompt pieces can be replaced, omitted, or inserted\nwithout string surgery. A prompt family can keep a shared base prompt and swap\nsections for a specific runtime, evaluation, or host application. The\noperations built on this hook are specified in\n"
+        },
+        {
+          "insert": "Composition And Transforms",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-composition-and-transforms"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-rendering-is-separate-fr-10": {
+      "id": "b-20-authoring-principles-rendering-is-separate-fr-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Rendering Is Separate From Structure"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-the-canonical-prompt-obj-11": {
+      "id": "b-20-authoring-principles-the-canonical-prompt-obj-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The canonical prompt object is not tied to one renderer. A readable default\noutput serves as system prompt text, while other consumers build custom\nrenderers from the same AST for diff views, editors, diagnostics, or\nalternative prompt formats. The renderer boundary is specified in\n"
+        },
+        {
+          "insert": "Rendering Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-rendering-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-dynamic-context-belongs-12": {
+      "id": "b-20-authoring-principles-dynamic-context-belongs-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Dynamic Context Belongs Around The Prompt"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-prompt-kit-can-describe-13": {
+      "id": "b-20-authoring-principles-prompt-kit-can-describe-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-kit can describe that a prompt expects to use a context packet, but it\ndoes not load that packet. Runtime context is owned by the kernel or host app.\nThat split keeps stable behavioral instructions in the prompt and dynamic data\nin the runtime context pipeline."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-validation-should-catch-14": {
+      "id": "b-20-authoring-principles-validation-should-catch-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Validation Should Catch Structure, Not Freeze Style"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-principles-validation-exists-to-giv-15": {
+      "id": "b-20-authoring-principles-validation-exists-to-giv-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Validation exists to give authors a solid floor: a document that renders,\ncomposes, and round-trips through tools without silent breakage. It should\ncatch structural integrity problems, not reject every custom section or\nmetadata shape. Prompt authors need a floor, not a narrow hallway. The\ndiagnostic rules live in\n"
+        },
+        {
+          "insert": "Validation Contract",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-validation-contract"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    }
+  }
+}

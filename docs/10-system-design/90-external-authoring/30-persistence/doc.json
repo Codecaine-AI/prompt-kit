@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-0ec5a8d8b039e7653729bea0091c79ad",
+  "title": "Persistence and Recovery",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11",
+        "authored-12"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The filesystem store is the shared write authority for external MCP tools and Kernel catalog saves. Canonical JSON owns the prompt; production Markdown is a derived file with a recoverable update sequence."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Structure"
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Save a prompt revision",
+            "steps": [
+              {
+                "text": "Acquire the canonical-file OS lease",
+                "steps": [
+                  {
+                    "text": "All writers use one deterministic loopback lease port for the same canonical path."
+                  },
+                  {
+                    "text": "An unrelated occupied port blocks progress instead of selecting a second lock."
+                  }
+                ]
+              },
+              {
+                "text": "Recover pending journal work and read canonical JSON"
+              },
+              {
+                "text": "Compare expected hash and reload variable declarations"
+              },
+              {
+                "text": "Compile, validate, and render the candidate document"
+              },
+              {
+                "text": "Journal the change and atomically replace canonical JSON"
+              },
+              {
+                "text": "Replace the derived render and complete the journal"
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Rule"
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The two output files do not form one atomic filesystem transaction. The durable journal records before and after revisions and recovery status. A failure after canonical commit reports that the prompt has been committed; the next mutation repairs the derived render before accepting another edit."
+        }
+      ],
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Undo is durable across daemon restarts, scoped to the original project root and prompt, and guarded by the recorded resulting revision. An intervening edit makes undo conflict. Whole-directory relocation can recover incomplete writes when the prompt filename and relative render layout remain unchanged; changed layouts fail visibly. Root-scoped undo does not carry across a moved project root."
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Source, render, and journal paths remain confined to the project. Reject path traversal, symlink escapes, render/source aliasing, and corrupt journals. The lock is keyed by canonical prompt path rather than discovery root, so a parent project and nested Kernel catalog cannot acquire independent write authority."
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Kernel Synchronization"
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel saves use the shared store, then refresh the registry and record a database revision. If database recording fails after file commit, the response distinguishes the committed file from the failed bookkeeping and supports idempotent retry. Disk synchronization recognizes MCP journal provenance as prompt-kit-mcp."
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "New runs synchronize the disk revision before freezing the prompt for execution. Existing runs keep their frozen prompt. Unsaved browser edits remain local and must reconcile a stale-save conflict after an MCP write."
+        }
+      ],
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Why"
+        }
+      ],
+      "children": []
+    },
+    "authored-12": {
+      "id": "authored-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Cross-process serialization prevents lost updates, while the journal repairs interrupted derived output without treating stale rendered text as authoritative."
+        }
+      ],
+      "children": []
+    }
+  }
+}

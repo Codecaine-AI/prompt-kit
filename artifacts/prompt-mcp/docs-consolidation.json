@@ -1,0 +1,34 @@
+{
+  "verifiedAt": "2026-09-18T00:52:30.340Z",
+  "nativeDocuments": 41,
+  "migratedPublishedPages": 29,
+  "removedSupersededMarkdownDocuments": 14,
+  "docsChecksPassed": true,
+  "audit": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "staleReferences": 0,
+  "tests": {
+    "library": 655,
+    "server": 23,
+    "mcp": 25,
+    "agent": 33,
+    "total": 736
+  },
+  "typechecks": "all four packages passed",
+  "installedClients": [
+    "codex",
+    "claude",
+    "pi"
+  ],
+  "installedDoctor": true,
+  "guidanceSnapshot": "sha256:5176b35b0823cc181aec595b67a1be8d17babe3063e1add208a18b3ee51113d8",
+  "nativeGuidanceSources": 11,
+  "hostContext": {
+    "loadedInputs": 13,
+    "allOk": true
+  },
+  "retainedMarkdown": "Runtime skill/reference projections, local runtime context blocks, historical drafts, and reference material are retained.",
+  "backup": "~/.local/state/codecaine-prompts/docs-markdown-backup-2026-09-17"
+}

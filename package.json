@@ -1,1 +1,16 @@
-{"name": "codecaine-prompt-kit", "version": "0.0.1","private":true,"type":"module","workspaces":["packages/*"],"scripts":{"test":"bun run --cwd packages/prompt-kit test && bun run --cwd packages/prompt-kit-agent test","typecheck":"bun run --cwd packages/prompt-kit typecheck && bun run --cwd packages/prompt-kit-agent typecheck","dev:agent":"bun run --cwd packages/prompt-kit-agent dev"}}
+{
+  "name": "codecaine-prompt-kit", "version": "0.0.2",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "bun run --cwd packages/prompt-kit test && bun run --cwd packages/prompt-kit-server test && bun run --cwd packages/prompt-kit-mcp test && bun run --cwd packages/prompt-kit-agent test",
+    "typecheck": "bun run --cwd packages/prompt-kit typecheck && bun run --cwd packages/prompt-kit-server typecheck && bun run --cwd packages/prompt-kit-mcp typecheck && bun run --cwd packages/prompt-kit-agent typecheck",
+    "dev:agent": "bun run --cwd packages/prompt-kit-agent dev",
+    "mcp": "bun packages/prompt-kit-mcp/src/cli.ts mcp",
+    "mcp:install": "bun packages/prompt-kit-mcp/src/cli.ts install",
+    "mcp:doctor": "bun packages/prompt-kit-mcp/src/cli.ts doctor"
+  }
+}

@@ -1,21 +1,12 @@
 /**
- * Section ② — the prompt-editor's STANDING KNOWLEDGE, and nothing else.
+ * Section ② — session-invariant prompt authoring knowledge.
  *
- * `assemble()` bakes five named context blocks from the catalog's new shared
- * and prompt-editor-local block files. Each block is served by kernel `file`
- * loaders and rendered as its own XML tag; the tool guide deliberately joins
- * tool semantics first and the shared transaction vocabulary second.
- *
- * There is deliberately NO envelope here. The kernel's L2 context set wraps
- * section ② in its single <context> message itself — these blocks land as
- * entries inside it, and wrapping again would double-envelope the request.
- *
- * Live session data (the target prompt render, applied diffs, and the request
- * queue) is section ③ and belongs to the state sidecar (../state/index.ts),
- * which seeds it from the SpawnContext and renders it per request. This module
- * never reads `sessionData`.
+ * Canonical native Docs files are loaded through Kernel file loaders, validated,
+ * and projected by the same pure functions used by the guidance service. This keeps
+ * the catalog bundle usable through Node/jiti and never starts a model or
+ * server. Prompt-editor tool semantics and state vocabulary remain local.
  */
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
 	AgentContextResolver,
@@ -23,53 +14,33 @@ import type {
 	SpawnContext,
 } from "@agent-kernel/kernel/context";
 import { defineContext } from "@agent-kernel/kernel/agent-definition";
+import {
+	assembleGuidanceText,
+	GUIDANCE_SOURCE_MANIFEST,
+	renderGuidanceSource,
+} from "@codecaine-ai/prompt-kit-server/guidance";
 import { block } from "../../shared/xml";
 
 export interface ContextBlock {
-	/** XML tag emitted for this section ② block. */
 	readonly tag: string;
-	/** Source files joined inside the tag, in reading order. */
 	readonly files: ReadonlyArray<string>;
 }
 
-// import.meta.url, not the bun-only import.meta.dir: pi loads bundles under
-// Node via jiti, where `dir` is undefined.
 const MODULE_DIR = dirname(fileURLToPath(import.meta.url));
-const SHARED_BLOCKS_DIR = join(MODULE_DIR, "..", "..", "_shared", "blocks");
+const REPO_ROOT = resolve(MODULE_DIR, "../../../../..");
 const LOCAL_BLOCKS_DIR = join(MODULE_DIR, "blocks");
-
-const sharedBlock = (filename: string): string =>
-	join(SHARED_BLOCKS_DIR, filename);
 const localBlock = (filename: string): string => join(LOCAL_BLOCKS_DIR, filename);
 
-/** The five standing context blocks, in their rendered reading order. */
+export const GUIDANCE_FILES: ReadonlyArray<string> = GUIDANCE_SOURCE_MANIFEST.map(
+	(source) => join(REPO_ROOT, source.path),
+);
+
 export const CONTEXT_BLOCKS: ReadonlyArray<ContextBlock> = [
-	{
-		tag: "prompt_document_model",
-		files: [sharedBlock("10-document-model.md")],
-	},
-	{
-		tag: "section_guide",
-		files: [sharedBlock("20-section-guide-agent.md")],
-	},
-	{
-		tag: "quality_guide",
-		files: [sharedBlock("50-quality-guide.md")],
-	},
-	{
-		tag: "tool_guide",
-		files: [
-			localBlock("20-tool-guide.md"),
-			sharedBlock("70-transaction-guide.md"),
-		],
-	},
-	{
-		tag: "state_reference",
-		files: [localBlock("10-state-reference.md")],
-	},
+	{ tag: "prompt_kit_authoring", files: GUIDANCE_FILES },
+	{ tag: "tool_guide", files: [localBlock("20-tool-guide.md")] },
+	{ tag: "state_reference", files: [localBlock("10-state-reference.md")] },
 ];
 
-/** All source files in kernel-loader order. */
 export const CONTEXT_FILES: ReadonlyArray<string> = CONTEXT_BLOCKS.flatMap(
 	(entry) => entry.files,
 );
@@ -85,26 +56,44 @@ function loadedPath(input: LoadedMap[number]): string {
 		: "";
 }
 
-// `_ctx` is the contract's second parameter, deliberately unread: section ②
-// is session-invariant standing knowledge. Session state rides section ③.
+function unavailableStatus(
+	files: ReadonlyArray<string>,
+	loadedByPath: ReadonlyMap<string, LoadedMap[number]>,
+): string | undefined {
+	for (const path of files) {
+		const input = loadedByPath.get(path);
+		if (input === undefined || input.status !== "ok") {
+			return input?.status ?? "missing";
+		}
+	}
+	return undefined;
+}
+
 function assemble(loaded: LoadedMap, _ctx: SpawnContext): string {
 	const loadedByPath = new Map(loaded.map((input) => [loadedPath(input), input]));
-
 	return CONTEXT_BLOCKS.map((entry) => {
-		const inputs = entry.files.map((path) => loadedByPath.get(path));
-		const unavailableIndex = inputs.findIndex(
-			(input) => input === undefined || input.status !== "ok",
-		);
-		if (unavailableIndex === -1) {
-			const body = inputs
-				.map((input) => input?.content ?? "")
-				.join("\n\n");
-			return block(entry.tag, "", body);
+		const status = unavailableStatus(entry.files, loadedByPath);
+		if (status !== undefined) {
+			return `<${entry.tag} status="${status}"></${entry.tag}>`;
 		}
 
-		const unavailable = inputs[unavailableIndex];
-		const status = unavailable?.status ?? "missing";
-		return `<${entry.tag} status="${status}"></${entry.tag}>`;
+		if (entry.tag === "prompt_kit_authoring") {
+			const contents = Object.fromEntries(
+				GUIDANCE_SOURCE_MANIFEST.map((source, index) => [
+					source.id,
+					renderGuidanceSource(
+						source.path,
+						loadedByPath.get(GUIDANCE_FILES[index]!)?.content ?? "",
+					),
+				]),
+			);
+			return block(entry.tag, "", assembleGuidanceText("agent", contents));
+		}
+
+		const body = entry.files
+			.map((path) => loadedByPath.get(path)?.content ?? "")
+			.join("\n\n");
+		return block(entry.tag, "", body);
 	}).join("\n");
 }
 

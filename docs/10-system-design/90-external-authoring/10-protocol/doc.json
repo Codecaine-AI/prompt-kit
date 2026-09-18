@@ -1,0 +1,391 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-e966482c72a66ad11c067ce95c7ea753",
+  "title": "MCP Protocol",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The codecaine-prompts connection exposes nine tools over MCP stdio. An authenticated loopback service owns task snapshots while prompt files remain authoritative across service restarts."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Structure"
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"project\": \"example-project\",\n  \"prompt_id\": \"rewritePrompt\",\n  \"task_id\": \"example-task\",\n  \"expected_hash\": \"pk1-<current revision>\",\n  \"ops\": [\n    {\n      \"op\": \"update_node\",\n      \"nodeId\": \"opening\",\n      \"patch\": {\n        \"content\": [\n          \"Rewrite the supplied paragraph.\"\n        ]\n      }\n    }\n  ]\n}",
+        "fields": [
+          {
+            "name": "project",
+            "type": "string",
+            "description": "Use the explicit project ID returned by discovery."
+          },
+          {
+            "name": "prompt_id",
+            "type": "string",
+            "description": "Use the discovered prompt identity, which can differ from the agent name."
+          },
+          {
+            "name": "task_id",
+            "type": "string",
+            "description": "Scopes writes to the workspace, project, profile, and knowledge snapshot."
+          },
+          {
+            "name": "expected_hash",
+            "type": "string",
+            "description": "Current pk1 revision returned by reading the prompt."
+          },
+          {
+            "name": "ops",
+            "type": "PromptEditOp[]",
+            "description": "One ordered batch applied to a scratch document before persistence."
+          }
+        ],
+        "name": "Authoring Request",
+        "source": {
+          "path": "packages/prompt-kit-mcp/src/tools.ts"
+        }
+      },
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "prompts_discover",
+            "kind": "query",
+            "params": [
+              {
+                "name": "workspace",
+                "type": "string",
+                "description": "Absolute workspace path; defaults to the connected workspace.",
+                "required": false
+              }
+            ],
+            "returns": "DiscoveryResult",
+            "description": "Scans explicit roots and bounded workspace members. Reports malformed entries without importing executable context or starting a Kernel."
+          },
+          {
+            "name": "prompts_list",
+            "kind": "query",
+            "params": [
+              {
+                "name": "project",
+                "type": "string"
+              }
+            ],
+            "returns": "PromptListResult"
+          },
+          {
+            "name": "prompts_begin",
+            "kind": "action",
+            "params": [
+              {
+                "name": "project",
+                "type": "string"
+              },
+              {
+                "name": "profile",
+                "type": "agent | single-output | generic",
+                "description": "Defaults to the project profile.",
+                "required": false
+              }
+            ],
+            "returns": "TaskResult",
+            "description": "Returns task_id, fresh standards, the operation guide, and the pinned guidance snapshot."
+          },
+          {
+            "name": "prompts_guidance",
+            "kind": "query",
+            "params": [
+              {
+                "name": "task_id",
+                "type": "string",
+                "required": false
+              },
+              {
+                "name": "reference",
+                "type": "string",
+                "required": false
+              },
+              {
+                "name": "profile",
+                "type": "agent | single-output | generic",
+                "required": false
+              }
+            ],
+            "returns": "GuidanceResult",
+            "description": "With task_id, reads the task snapshot. Without a task, loads current guidance."
+          }
+        ],
+        "title": "Discovery and Knowledge"
+      },
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "prompts_read",
+            "kind": "query",
+            "params": [
+              {
+                "name": "project",
+                "type": "string"
+              },
+              {
+                "name": "prompt_id",
+                "type": "string"
+              }
+            ],
+            "returns": "PromptReadResult",
+            "description": "Returns normalized document, production render, address map, hash, declarations, and findings without saving."
+          },
+          {
+            "name": "prompts_apply_ops",
+            "kind": "action",
+            "params": [
+              {
+                "name": "project",
+                "type": "string"
+              },
+              {
+                "name": "prompt_id",
+                "type": "string"
+              },
+              {
+                "name": "task_id",
+                "type": "string"
+              },
+              {
+                "name": "expected_hash",
+                "type": "string"
+              },
+              {
+                "name": "ops",
+                "type": "PromptEditOp[]"
+              }
+            ],
+            "returns": "PromptSaveResult",
+            "description": "Saves a valid operation batch immediately; returns the canonical document, render, revision, and durable changeId."
+          },
+          {
+            "name": "prompts_undo",
+            "kind": "action",
+            "params": [
+              {
+                "name": "project",
+                "type": "string"
+              },
+              {
+                "name": "prompt_id",
+                "type": "string"
+              },
+              {
+                "name": "task_id",
+                "type": "string"
+              },
+              {
+                "name": "expected_hash",
+                "type": "string"
+              },
+              {
+                "name": "change_id",
+                "type": "string"
+              }
+            ],
+            "returns": "PromptSaveResult",
+            "description": "Requires the recorded resulting revision to remain current and revalidates the restored document against current declarations."
+          },
+          {
+            "name": "prompts_check",
+            "kind": "query",
+            "params": [
+              {
+                "name": "project",
+                "type": "string"
+              },
+              {
+                "name": "prompt_id",
+                "type": "string"
+              },
+              {
+                "name": "task_id",
+                "type": "string",
+                "description": "Supply to record completion against the task.",
+                "required": false
+              }
+            ],
+            "returns": "PromptCheckResult",
+            "returnShape": {
+              "fields": [
+                {
+                  "name": "ok",
+                  "type": "boolean"
+                },
+                {
+                  "name": "hash",
+                  "type": "string"
+                },
+                {
+                  "name": "expected_hash",
+                  "type": "string"
+                },
+                {
+                  "name": "structurally_valid",
+                  "type": "boolean"
+                },
+                {
+                  "name": "variable_declarations_known",
+                  "type": "boolean"
+                },
+                {
+                  "name": "profile",
+                  "type": "string"
+                },
+                {
+                  "name": "validation",
+                  "type": "object"
+                },
+                {
+                  "name": "findings",
+                  "type": "Finding[]"
+                },
+                {
+                  "name": "blocking",
+                  "type": "Finding[]"
+                }
+              ]
+            },
+            "description": "Checks structure, variables, and profile rules at the current revision."
+          },
+          {
+            "name": "prompts_end",
+            "kind": "action",
+            "params": [
+              {
+                "name": "task_id",
+                "type": "string"
+              }
+            ],
+            "returns": "TaskCompletionResult",
+            "description": "Rereads changed prompts and reports missing or outdated successful checks. Ending does not roll back saved edits."
+          }
+        ],
+        "title": "Read, Save, and Complete"
+      },
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Rule"
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every mutation requires a task in the same workspace and project plus a current prompt hash. Guidance is pinned within a task; new tasks observe updated canonical standards. Configuration and runtime/tool fingerprints reject writes when their contract changes."
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Catalog declarations come from agent manifests. Standalone prompts must explicitly declare variables; an empty array means none. Unknown declarations permit reads but block mutation and successful checks. The store reloads declarations inside the prompt lock."
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Structural errors and undeclared variables block persistence. Selected-profile findings are returned after saves and must be resolved for completion. Generic profile does not impose agent section order. A successful check establishes deterministic validity, not behavioral quality."
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Why"
+        }
+      ],
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A task provides stable knowledge while the revision guard protects shared data. Neither task lifetime nor client identity gives exclusive ownership of a prompt."
+        }
+      ],
+      "children": []
+    }
+  }
+}

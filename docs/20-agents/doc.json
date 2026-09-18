@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-7a53a6cae91a534671622606511f0396",
+  "title": "Prompt Kit Agents",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt-editor is the first-party agent that works the annotation request queue. External MCP clients edit prompts directly and do not spawn this agent."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt Editor",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-agents/10-prompt-editor"
+            }
+          }
+        },
+        {
+          "insert": " owns the internal agent contract, standing context, state, and tools."
+        }
+      ],
+      "children": []
+    }
+  }
+}

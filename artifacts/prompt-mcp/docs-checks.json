@@ -1,0 +1,371 @@
+[
+  {
+    "path": "00-foundation",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "00-foundation/10-purpose-and-boundary",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "00-foundation/20-authoring-principles",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "01-overview",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/10-canonical-prompt-object",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/20-authoring-model",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/30-rendering-model",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/40-composition-and-transforms",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/50-validation-contract",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/60-editor",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/60-editor/10-editing-model",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/60-editor/20-keyboard-model",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/60-editor/30-presentation",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/60-editor/40-block-vocabulary",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/60-editor/50-interaction-model",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/60-editor/60-application-shell",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/70-prompt-structure",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/70-prompt-structure/10-agent-prompt",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/70-prompt-structure/20-workflow",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/70-prompt-structure/30-single-output",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/70-prompt-structure/40-quality",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/70-prompt-structure/50-techniques",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/80-kernel-boundary",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/90-external-authoring",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/90-external-authoring/10-protocol",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/90-external-authoring/20-operations",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "10-system-design/90-external-authoring/30-persistence",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "20-agents",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "20-agents/10-prompt-editor",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "30-implementation",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "30-implementation/10-prompt-kit",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "30-implementation/10-prompt-kit/10-document",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "30-implementation/10-prompt-kit/20-ui",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "30-implementation/20-prompt-kit-agent",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "30-implementation/30-prompt-kit-server",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "30-implementation/40-prompt-kit-mcp",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "40-guides",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "40-guides/10-connect-mcp",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "40-guides/20-edit-prompts",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  },
+  {
+    "path": "40-guides/30-development",
+    "ok": true,
+    "lint": {
+      "phase": "complete",
+      "findings": [],
+      "blocking": []
+    }
+  }
+]

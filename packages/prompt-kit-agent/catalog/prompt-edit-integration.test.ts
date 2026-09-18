@@ -264,12 +264,10 @@ describe("launchPromptEditSession over the sidecar", () => {
 				sessionData: launch.spawn.sessionData,
 			}),
 		);
-		// Five bare sibling blocks: the kernel's L2 set owns the <context>
+		// Three bare sibling blocks: the kernel's L2 set owns the <context>
 		// envelope, and the static prompt does not inventory them.
 		const tags = [
-			"prompt_document_model",
-			"section_guide",
-			"quality_guide",
+			"prompt_kit_authoring",
 			"tool_guide",
 			"state_reference",
 		];
@@ -277,7 +275,6 @@ describe("launchPromptEditSession over the sidecar", () => {
 			expect(out).toContain(`<${tag}>`);
 			expect(out).toContain(`</${tag}>`);
 		}
-		expect(out).not.toContain("<prompt_kit_authoring>");
 		expect(out).not.toContain("<doc ");
 		// state_reference documents the section-③ vocabulary; unique values prove
 		// that the live session instance itself did not leak into context.

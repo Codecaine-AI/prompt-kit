@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-6c238f0c6c3493ba54fb97ecbfa87236",
+  "title": "Authoring Store",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The authoring server implements shared filesystem persistence and canonical guidance loading in "
+        },
+        {
+          "insert": "packages/prompt-kit-server/src/index.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit-server/src/index.ts"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Governed by"
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Persistence and Recovery",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/30-persistence"
+            }
+          }
+        },
+        {
+          "insert": " defines save authority and revision behavior. "
+        },
+        {
+          "insert": "MCP Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/10-protocol"
+            }
+          }
+        },
+        {
+          "insert": " defines knowledge and completion boundaries."
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Shared Store"
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: Kernel catalog saves and MCP writes call createPromptStore; they do not maintain separate prompt writers. The implementation in "
+        },
+        {
+          "insert": "packages/prompt-kit-server/src/store.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit-server/src/store.ts"
+            }
+          }
+        },
+        {
+          "insert": " owns confinement, canonical-path locking, validation, journaling, derived render recovery, and guarded undo."
+        }
+      ],
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why: a lock keyed by canonical prompt path coordinates independent processes even when discovery roots differ. A single OS-held lease fails safely on port collisions; choosing another port would weaken serialization. Applies to all future prompt persistence adapters."
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Native Guidance"
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: "
+        },
+        {
+          "insert": "packages/prompt-kit-server/src/guidance.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit-server/src/guidance.ts"
+            }
+          }
+        },
+        {
+          "insert": " validates native Docs bundles and projects them through the shared Docs model renderer. The maintained manifest selects standards and profile essentials; generated references are portable derived artifacts."
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why: external clients and the internal prompt editor consume the same normative content. An incomplete checkout fails visibly; only a packaged installation with no canonical sources uses the bundled snapshot. Applies to guidance consumers, tests, and installation generation."
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Tests"
+        }
+      ],
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Store tests cover cross-process conflicts, fresh declarations, partial commits, recovery, root-scoped undo, and path confinement. Guidance tests cover native projection, invalid sources, snapshot changes, and generated-reference provenance."
+        }
+      ],
+      "children": []
+    }
+  }
+}

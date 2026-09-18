@@ -4,7 +4,7 @@
  *
  * The static prompt is the purpose, declared state shape, phased workflow,
  * proposal-repair handling, and final rules — operational text only. Reference
- * and tool semantics live in five sibling context blocks (section ②); the
+ * and tool semantics live in shared and local context blocks (section ②); the
  * target prompt, applied-diff log, and request queue are session STATE rendered
  * by the state sidecar (section ③), and tool mechanics live in the schemas.
  *
@@ -44,7 +44,9 @@ import {
 import promptEditorContext, {
 	CONTEXT_BLOCKS,
 	CONTEXT_FILES,
+	GUIDANCE_FILES,
 } from "./prompt-editor/context/index";
+import { loadGuidance } from "../../prompt-kit-server/src/guidance";
 import promptEditorState, {
 	type PromptEditorState,
 } from "./prompt-editor/state/index";
@@ -417,26 +419,15 @@ describe("prompt-editor bundle", () => {
 });
 
 describe("prompt-editor context sidecar", () => {
-	test("declares the new block files in loader and assembly order", () => {
+	test("declares canonical guidance and local references in loader order", () => {
 		const expectedBlocks = [
 			{
-				tag: "prompt_document_model",
-				files: [join(CATALOG_DIR, "_shared", "blocks", "10-document-model.md")],
-			},
-			{
-				tag: "section_guide",
-				files: [join(CATALOG_DIR, "_shared", "blocks", "20-section-guide-agent.md")],
-			},
-			{
-				tag: "quality_guide",
-				files: [join(CATALOG_DIR, "_shared", "blocks", "50-quality-guide.md")],
+				tag: "prompt_kit_authoring",
+				files: GUIDANCE_FILES,
 			},
 			{
 				tag: "tool_guide",
-				files: [
-					join(BUNDLE_DIR, "context", "blocks", "20-tool-guide.md"),
-					join(CATALOG_DIR, "_shared", "blocks", "70-transaction-guide.md"),
-				],
+				files: [join(BUNDLE_DIR, "context", "blocks", "20-tool-guide.md")],
 			},
 			{
 				tag: "state_reference",
@@ -460,19 +451,18 @@ describe("prompt-editor context sidecar", () => {
 		}
 	});
 
-	test("assembles five standing-knowledge tags and nothing else", async () => {
+	test("assembles the same agent guidance plus local tool and state references", async () => {
 		const loaded = await loadDeclaredFiles();
 		const out = await promptEditorContext.assemble(loaded, fakeSpawnContext());
-		// The kernel's L2 context set owns the <context> envelope. These five
+		const shared = await loadGuidance({ profile: "agent" });
+		// The kernel's L2 context set owns the <context> envelope. These three
 		// self-describing blocks are direct siblings and need no prompt inventory.
 		const tags = [
-			"prompt_document_model",
-			"section_guide",
-			"quality_guide",
+			"prompt_kit_authoring",
 			"tool_guide",
 			"state_reference",
 		];
-		expect(out.startsWith("<prompt_document_model>")).toBe(true);
+		expect(out.startsWith("<prompt_kit_authoring>")).toBe(true);
 		expect(out.endsWith("</state_reference>")).toBe(true);
 		for (const tag of tags) {
 			expect(out).toContain(`<${tag}>`);
@@ -483,31 +473,48 @@ describe("prompt-editor context sidecar", () => {
 				.map((tag) => out.indexOf(`<${tag}>`))
 				.sort((a, b) => a - b),
 		);
-		expect(out).not.toContain("<prompt_kit_authoring>");
 		expect(out).not.toContain("<doc ");
-		// Tool call semantics precede the shared transaction vocabulary inside
-		// the one combined tool block.
-		expect(out.indexOf("# Prompt Editor Tool Guide")).toBeLessThan(
-			out.indexOf("# Prompt Edit Transaction Guide"),
+		const sharedBody = out
+			.match(/<prompt_kit_authoring>\n([\s\S]*?)\n<\/prompt_kit_authoring>/)?.[1]
+			?.split("\n")
+			.map((line) => line.replace(/^ {4}/, ""))
+			.join("\n");
+		expect(sharedBody).toBe(shared.text);
+		expect(shared.sources.every((source) => source.path.endsWith("/doc.json"))).toBe(
+			true,
 		);
+		expect(shared.sources.every((source) => source.sourceSha256.length === 64)).toBe(
+			true,
+		);
+		expect(shared.sources.every((source) => source.renderedSha256.length === 64)).toBe(
+			true,
+		);
+		expect(sharedBody).toContain("# Workflow Structure");
+		expect(sharedBody).toContain("| update_node | Shallow-merge supported fields");
+		expect(sharedBody).toContain("| insert_after | Insert one block");
+		expect(sharedBody).toContain("## Repair");
+		expect(sharedBody).toContain("Errors identify the offending operation");
+		expect(out).toContain("# Prompt Editor Tool Guide");
 		// state_reference documents the section-③ vocabulary, but this assembled
 		// context carries no live session instance.
 	});
 
-	test("a missing source degrades its whole block to a status-marked empty tag", async () => {
+	test("a missing canonical source degrades the shared guidance block honestly", async () => {
 		const loaded = await loadDeclaredFiles();
-		const withoutTransactionGuide = loaded.filter((input) => {
+		const withoutCanonicalSource = loaded.filter((input) => {
 			const path = String((input.decl as { path?: unknown }).path ?? "");
-			return path !== CONTEXT_FILES[4];
+			return path !== GUIDANCE_FILES[0];
 		});
 		const out = await promptEditorContext.assemble(
-			withoutTransactionGuide,
+			withoutCanonicalSource,
 			fakeSpawnContext(),
 		);
-		expect(out).toContain('<tool_guide status="missing"></tool_guide>');
-		expect(out).not.toContain("# Prompt Editor Tool Guide");
-		expect(out).not.toContain("# Prompt Edit Transaction Guide");
+		expect(out).toContain(
+			'<prompt_kit_authoring status="missing"></prompt_kit_authoring>',
+		);
+		expect(out).not.toContain("# Agent Prompt Structure");
 		// Unaffected tags still assemble normally.
+		expect(out).toContain("# Prompt Editor Tool Guide");
 		expect(out).toContain("# Prompt Editor State Reference");
 	});
 

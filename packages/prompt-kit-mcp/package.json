@@ -1,0 +1,19 @@
+{
+  "name": "@codecaine-ai/prompt-kit-mcp",
+  "version": "0.0.2",
+  "private": true,
+  "type": "module",
+  "bin": { "codecaine-prompts": "./src/cli.ts" },
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "bun test src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "bun src/cli.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@codecaine-ai/prompt-kit": "workspace:*",
+    "@codecaine-ai/prompt-kit-server": "workspace:*"
+  },
+  "devDependencies": { "@types/bun": "latest", "typescript": "^5" }
+}

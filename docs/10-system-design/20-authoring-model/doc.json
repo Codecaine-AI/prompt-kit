@@ -1,0 +1,918 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-20-authoring-model",
+  "title": "Authoring Model",
+  "root": "b-20-authoring-model-root-48",
+  "blocks": {
+    "b-20-authoring-model-root-48": {
+      "id": "b-20-authoring-model-root-48",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "authoring",
+          "definePrompt",
+          "JSON",
+          "archetypes",
+          "sections",
+          "variables"
+        ],
+        "covers": "How prompt documents are authored as plain data, in JSON, and through the editor, including archetypes, sections, variables, and context usage nodes.",
+        "depends-on": [
+          "10-system-design/10-canonical-prompt-object.md"
+        ]
+      },
+      "children": [
+        "b-20-authoring-model-a-prompt-is-authored-as-2",
+        "b-20-authoring-model-divider-3",
+        "b-20-authoring-model-three-authoring-surfaces-4",
+        "b-20-authoring-model-surface-how-it-produ-5",
+        "b-20-authoring-model-all-three-converge-on-on-6",
+        "b-20-authoring-model-documents-as-plain-data-7",
+        "b-20-authoring-model-defineprompt-input-is-8",
+        "b-20-authoring-model-ts-9",
+        "b-20-authoring-model-nodes-are-object-literal-10",
+        "b-20-authoring-model-ts-11",
+        "b-20-authoring-model-because-documents-are-pl-12",
+        "b-20-authoring-model-the-json-form-13",
+        "b-20-authoring-model-a-promptdocument-seria-14",
+        "b-20-authoring-model-a-published-json-schema-15",
+        "b-20-authoring-model-node-type-for-registrie-16",
+        "b-20-authoring-model-validatepromptdocuments-17",
+        "b-20-authoring-model-typescript-against-an-un-18",
+        "b-20-authoring-model-shape-validation-answers-19",
+        "b-20-authoring-model-the-editor-20",
+        "b-20-authoring-model-the-prompt-editor-is-the-21",
+        "b-20-authoring-model-archetypes-22",
+        "b-20-authoring-model-archetype-is-document-23",
+        "b-20-authoring-model-sections-24",
+        "b-20-authoring-model-sections-are-the-main-st-25",
+        "b-20-authoring-model-common-tags-include-26",
+        "b-20-authoring-model-purpose-27",
+        "b-20-authoring-model-rules-28",
+        "b-20-authoring-model-key-knowledge-29",
+        "b-20-authoring-model-goal-30",
+        "b-20-authoring-model-background-31",
+        "b-20-authoring-model-workflow-32",
+        "b-20-authoring-model-tool-policy-33",
+        "b-20-authoring-model-state-protocol-34",
+        "b-20-authoring-model-output-format-35",
+        "b-20-authoring-model-success-criteria-36",
+        "b-20-authoring-model-reminders-37",
+        "b-20-authoring-model-these-names-are-conventi-38",
+        "b-20-authoring-model-variables-39",
+        "b-20-authoring-model-variables-are-inline-ref-40",
+        "b-20-authoring-model-ts-41",
+        "b-20-authoring-model-variable-declarations-us-42",
+        "b-20-authoring-model-generic-reference-node-43",
+        "b-20-authoring-model-context-usage-44",
+        "b-20-authoring-model-a-contextusage-node-is-45",
+        "b-20-authoring-model-ts-46",
+        "b-20-authoring-model-this-does-not-load-conte-47",
+        "mcp-add-0",
+        "mcp-add-1"
+      ]
+    },
+    "b-20-authoring-model-a-prompt-is-authored-as-2": {
+      "id": "b-20-authoring-model-a-prompt-is-authored-as-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A PromptDocument is a plain object tree. TypeScript source, JSON files, the interactive editor, and external MCP operations all produce the same canonical shape."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-divider-3": {
+      "id": "b-20-authoring-model-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-authoring-model-three-authoring-surfaces-4": {
+      "id": "b-20-authoring-model-three-authoring-surfaces-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Authoring Surfaces"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-surface-how-it-produ-5": {
+      "id": "b-20-authoring-model-surface-how-it-produ-5",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Surface",
+          "How it produces a document"
+        ],
+        "rows": [
+          [
+            "TypeScript",
+            "Node object literals, typed by the node model, assembled with definePrompt"
+          ],
+          [
+            "JSON",
+            "A serialized PromptDocument, checked against the published document schema"
+          ],
+          [
+            "Editor",
+            "The prompt editing surface, which commits structural steps against the same document"
+          ],
+          [
+            "External MCP",
+            "ID-relative operation batches with guidance, revision checks, and direct persistence."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-20-authoring-model-all-three-converge-on-on-6": {
+      "id": "b-20-authoring-model-all-three-converge-on-on-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These surfaces converge on one object. The document does not record which authoring surface produced it, so a prompt can move between code, files, the editor, and external tools."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-documents-as-plain-data-7": {
+      "id": "b-20-authoring-model-documents-as-plain-data-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Documents As Plain Data"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-defineprompt-input-is-8": {
+      "id": "b-20-authoring-model-defineprompt-input-is-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "definePrompt(input)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the document constructor. It fills in the envelope, "
+        },
+        {
+          "insert": "kind: \"prompt\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the current "
+        },
+        {
+          "insert": "schemaVersion",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and applies defaults, so\nauthors supply only the identity and body:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-ts-9": {
+      "id": "b-20-authoring-model-ts-9",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "import { definePrompt } from \"@codecaine-ai/prompt-kit\";\n\nconst prompt = definePrompt({\n  id: \"researchPrompt\",\n  archetype: \"workflow\",\n  nodes: [\n    {\n      type: \"section\",\n      tag: \"purpose\",\n      children: [\n        { type: \"paragraph\", content: [\"Research the request.\"] },\n      ],\n    },\n  ],\n});"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-nodes-are-object-literal-10": {
+      "id": "b-20-authoring-model-nodes-are-object-literal-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Nodes are object literals. "
+        },
+        {
+          "insert": "createNode(node)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is an identity helper that\ntype-checks a single node literal in place, which keeps large documents\nreadable without wrapping every node in a constructor call:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-ts-11": {
+      "id": "b-20-authoring-model-ts-11",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "import { createNode } from \"@codecaine-ai/prompt-kit\";\n\nconst rules = createNode({\n  type: \"section\",\n  tag: \"rules\",\n  id: \"sourceRules\",\n  children: [\n    {\n      type: \"bulletList\",\n      items: [{ type: \"listItem\", content: [\"Prefer primary sources.\"] }],\n    },\n  ],\n});"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-because-documents-are-pl-12": {
+      "id": "b-20-authoring-model-because-documents-are-pl-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Because documents are plain data, composition is ordinary programming:\nspread shared node arrays, map over configuration, or apply the id-targeted\ntransforms described in\n"
+        },
+        {
+          "insert": "Composition And Transforms",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-composition-and-transforms"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-the-json-form-13": {
+      "id": "b-20-authoring-model-the-json-form-13",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The JSON Form"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-a-promptdocument-seria-14": {
+      "id": "b-20-authoring-model-a-promptdocument-seria-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " serializes directly to JSON, and hosts persist prompts as\nJSON documents alongside their agent definitions. Two validation layers keep\nthat form trustworthy:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-a-published-json-schema-15": {
+      "id": "b-20-authoring-model-a-published-json-schema-15",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A published JSON Schema (draft 2020-12) describes "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and every"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-node-type-for-registrie-16": {
+      "id": "b-20-authoring-model-node-type-for-registrie-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  node type, for registries, save endpoints, and external tooling."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-validatepromptdocuments-17": {
+      "id": "b-20-authoring-model-validatepromptdocuments-17",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "validatePromptDocumentShape(value)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " performs the same structural check in"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-typescript-against-an-un-18": {
+      "id": "b-20-authoring-model-typescript-against-an-un-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "  TypeScript against an untrusted value, returning "
+        },
+        {
+          "insert": "{ valid, errors }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with a\n  path-qualified message per problem, so callers do not need a JSON Schema\n  runtime."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-shape-validation-answers-19": {
+      "id": "b-20-authoring-model-shape-validation-answers-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Shape validation answers \"is this a "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " at all\". Semantic\ndiagnostics, duplicate ids, invalid tags, undeclared variables, belong to\nthe validation contract described in\n"
+        },
+        {
+          "insert": "Validation Contract",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-validation-contract"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-the-editor-20": {
+      "id": "b-20-authoring-model-the-editor-20",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Editor"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-the-prompt-editor-is-the-21": {
+      "id": "b-20-authoring-model-the-prompt-editor-is-the-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt editor is the interactive authoring surface. It presents the\ndocument as editable XML-tagged Markdown, commits every gesture as a\nstructural step, and never treats the rendered text as a source of truth. Its\nbehavior is specified in "
+        },
+        {
+          "insert": "Prompt Editor",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-archetypes-22": {
+      "id": "b-20-authoring-model-archetypes-22",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Archetypes"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-archetype-is-document-23": {
+      "id": "b-20-authoring-model-archetype-is-document-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "archetype",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is document metadata describing broad intent. "
+        },
+        {
+          "insert": "\"singleOutput\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\nmarks a bounded-completion prompt and "
+        },
+        {
+          "insert": "\"workflow\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " marks a multi-step or\nprocess prompt, but the type is deliberately open, any string is valid, so\nnew prompt families do not require a schema change. Tooling may use the\narchetype to pick defaults or grouping; nothing in rendering or validation\ndepends on it."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-sections-24": {
+      "id": "b-20-authoring-model-sections-24",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Sections"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-sections-are-the-main-st-25": {
+      "id": "b-20-authoring-model-sections-are-the-main-st-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Sections are the main structural unit because rendered prompts are read\nlinearly. A section has a "
+        },
+        {
+          "insert": "tag",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", optional attributes, and child block nodes."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-common-tags-include-26": {
+      "id": "b-20-authoring-model-common-tags-include-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Common tags include:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-purpose-27": {
+      "id": "b-20-authoring-model-purpose-27",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "purpose",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-rules-28": {
+      "id": "b-20-authoring-model-rules-28",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "rules",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-key-knowledge-29": {
+      "id": "b-20-authoring-model-key-knowledge-29",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "key_knowledge",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-goal-30": {
+      "id": "b-20-authoring-model-goal-30",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "goal",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-background-31": {
+      "id": "b-20-authoring-model-background-31",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "background",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-workflow-32": {
+      "id": "b-20-authoring-model-workflow-32",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "workflow",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-tool-policy-33": {
+      "id": "b-20-authoring-model-tool-policy-33",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "tool_policy",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-state-protocol-34": {
+      "id": "b-20-authoring-model-state-protocol-34",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "state_protocol",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-output-format-35": {
+      "id": "b-20-authoring-model-output-format-35",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "output_format",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-success-criteria-36": {
+      "id": "b-20-authoring-model-success-criteria-36",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "success_criteria",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-reminders-37": {
+      "id": "b-20-authoring-model-reminders-37",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "reminders",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-these-names-are-conventi-38": {
+      "id": "b-20-authoring-model-these-names-are-conventi-38",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These names are conventions, not the only allowed tags. Validation only\nrequires section tags to be valid XML names. The model-facing conventions for\nchoosing and ordering sections live in\n"
+        },
+        {
+          "insert": "Prompt-Kit Prompt Structure",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-variables-39": {
+      "id": "b-20-authoring-model-variables-39",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Variables"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-variables-are-inline-ref-40": {
+      "id": "b-20-authoring-model-variables-are-inline-ref-40",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Variables are inline reference nodes with an optional inline fallback:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-ts-41": {
+      "id": "b-20-authoring-model-ts-41",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "{\n  type: \"paragraph\",\n  content: [\n    \"Current request: \",\n    { type: \"variable\", name: \"userPrompt\" },\n  ],\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-variable-declarations-us-42": {
+      "id": "b-20-authoring-model-variable-declarations-us-42",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Variable declarations usually live in the host system. Prompt-kit validation\ncan check references against declarations when the host provides them, and the\nrenderer substitutes values at render time (see\n"
+        },
+        {
+          "insert": "Rendering Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-rendering-model"
+            }
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-generic-reference-node-43": {
+      "id": "b-20-authoring-model-generic-reference-node-43",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Generic "
+        },
+        {
+          "insert": "reference",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " nodes are the parallel inline form for non-variable\nplaceholders such as tools; they carry a "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and a "
+        },
+        {
+          "insert": "name",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and render as\nplaceholders for consumers that resolve them later."
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-context-usage-44": {
+      "id": "b-20-authoring-model-context-usage-44",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Context Usage"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-a-contextusage-node-is-45": {
+      "id": "b-20-authoring-model-a-contextusage-node-is-45",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "contextUsage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " node is a prompt-side note that a named runtime context\npacket is expected:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-ts-46": {
+      "id": "b-20-authoring-model-ts-46",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "{\n  type: \"contextUsage\",\n  contextId: \"researchMemory\",\n  instructions: [\n    { type: \"paragraph\", content: [\"Use loaded notes as evidence.\"] },\n  ],\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-20-authoring-model-this-does-not-load-conte-47": {
+      "id": "b-20-authoring-model-this-does-not-load-conte-47",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This does not load context. It documents prompt behavior and renders a\nstructured context usage tag. The host runtime still owns context loaders and\nfailure handling."
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-0": {
+      "id": "mcp-add-0",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "External Authoring"
+        }
+      ],
+      "children": []
+    },
+    "mcp-add-1": {
+      "id": "mcp-add-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "External agents use "
+        },
+        {
+          "insert": "MCP Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/10-protocol"
+            }
+          }
+        },
+        {
+          "insert": " to read current standards and apply ID-relative operations. The service edits existing registered JSON prompts and saves valid batches immediately. Writing profiles are explicit authoring rules; an AST archetype does not implicitly select a profile."
+        }
+      ],
+      "children": []
+    }
+  }
+}

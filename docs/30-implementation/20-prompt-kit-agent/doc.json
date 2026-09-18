@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-20-prompt-kit-agent",
+  "title": "Agent Host Package",
+  "root": "b-20-prompt-kit-agent-root-30",
+  "blocks": {
+    "b-20-prompt-kit-agent-root-30": {
+      "id": "b-20-prompt-kit-agent-root-30",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "agent-host",
+          "catalog",
+          "kernel",
+          "prompt-document",
+          "sidecars"
+        ],
+        "covers": "Structural decisions for the agent host package — catalog layout, the prompt document as sole prompt source, workflow-in-AST, the context/state sidecar split, and catalog-adjacent tests.",
+        "design_refs": [
+          "10-system-design/80-kernel-boundary.md",
+          "10-system-design/70-prompt-structure/00-overview.md"
+        ]
+      },
+      "children": [
+        "authored-1",
+        "authored-2",
+        "authored-3",
+        "authored-4",
+        "authored-5",
+        "authored-6",
+        "authored-7",
+        "authored-8",
+        "authored-9",
+        "authored-10",
+        "authored-11",
+        "authored-12"
+      ]
+    },
+    "authored-1": {
+      "id": "authored-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The internal agent host wires Kernel boot, catalog APIs, and staged prompt-edit sessions in "
+        },
+        {
+          "insert": "packages/prompt-kit-agent/src/app.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit-agent/src/app.ts"
+            }
+          }
+        },
+        {
+          "insert": ". The agent definition lives in "
+        },
+        {
+          "insert": "Prompt Editor",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-agents/10-prompt-editor"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "authored-2": {
+      "id": "authored-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Governed by"
+        }
+      ],
+      "children": []
+    },
+    "authored-3": {
+      "id": "authored-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel Boundary",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/80-kernel-boundary"
+            }
+          }
+        },
+        {
+          "insert": " constrains runtime ownership. "
+        },
+        {
+          "insert": "Persistence and Recovery",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/90-external-authoring/30-persistence"
+            }
+          }
+        },
+        {
+          "insert": " constrains writes. "
+        },
+        {
+          "insert": "Prompt Structure",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure"
+            }
+          }
+        },
+        {
+          "insert": " constrains standing authoring knowledge."
+        }
+      ],
+      "children": []
+    },
+    "authored-4": {
+      "id": "authored-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Catalog Ownership"
+        }
+      ],
+      "children": []
+    },
+    "authored-5": {
+      "id": "authored-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: one directory under catalog/ owns each manifest, canonical prompt, context, and state. The canonical PromptDocument is the only system-prompt source; prompt/system.md is derived. Why: keeping the bundle together makes agent behavior inspectable and avoids host-side prompt assembly. Applies to current and future catalog agents."
+        }
+      ],
+      "children": []
+    },
+    "authored-6": {
+      "id": "authored-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Knowledge and Live State"
+        }
+      ],
+      "children": []
+    },
+    "authored-7": {
+      "id": "authored-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: context loads the shared native Docs guidance plus local tool/state references, while state renders session-specific target text, revisions, diffs, and the request queue. Why: reference knowledge changes with the docs and live state changes with each session. Applies to catalog context/state sidecars and tests."
+        }
+      ],
+      "children": []
+    },
+    "authored-8": {
+      "id": "authored-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Kernel Save Adapter"
+        }
+      ],
+      "children": []
+    },
+    "authored-9": {
+      "id": "authored-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: accepted proposals save through the Kernel catalog adapter into the shared authoring store. Kernel retains registry refresh, database provenance, and next-run prompt freezing. Why: direct external writes and staged internal review need the same file-level conflict and recovery behavior without sharing a model lifecycle."
+        }
+      ],
+      "children": []
+    },
+    "authored-10": {
+      "id": "authored-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Modules and Tests"
+        }
+      ],
+      "children": []
+    },
+    "authored-11": {
+      "id": "authored-11",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Module",
+          "Responsibility"
+        ],
+        "rows": [
+          [
+            "src/kernel.ts",
+            "Boot database, model aliases, catalog roots, and Kernel manifest."
+          ],
+          [
+            "src/app.ts",
+            "Wire catalog, edit-session, trace-read, and health routes."
+          ],
+          [
+            "src/prompt-edit.ts",
+            "Bind per-spawn session service and private tools."
+          ],
+          [
+            "src/server.ts",
+            "Listen, select port, and shut down gracefully."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "authored-12": {
+      "id": "authored-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Catalog assembly and prompt-edit contract tests live beside the catalog. Harness tests live in test/. The package test command runs both roots; new catalog contracts follow this layout."
+        }
+      ],
+      "children": []
+    }
+  }
+}

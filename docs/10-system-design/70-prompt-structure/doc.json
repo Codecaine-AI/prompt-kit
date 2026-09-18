@@ -1,0 +1,393 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-70-prompt-structure-00-overview",
+  "title": "Prompt-Kit Prompt Structure",
+  "root": "b-00-overview-root-25",
+  "blocks": {
+    "b-00-overview-root-25": {
+      "id": "b-00-overview-root-25",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "prompt-structure",
+          "system-prompts",
+          "context",
+          "state"
+        ],
+        "covers": "The model-facing prompt-structure conventions for prompt-kit, including placement boundaries, agent prompts, workflows, single-output prompts, quality, and optional techniques.",
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-prompt-structure-begins-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-file-tree-4",
+        "b-00-overview-text-5",
+        "b-00-overview-the-three-face-placement-6",
+        "b-00-overview-an-agent-reads-three-dis-7",
+        "b-00-overview-face-carries-chang-8",
+        "b-00-overview-this-separation-is-a-wor-9",
+        "b-00-overview-the-placement-rule-has-t-10",
+        "b-00-overview-runtime-data-remains-out-11",
+        "b-00-overview-boundary-rule-12",
+        "b-00-overview-behavior-lives-in-an-age-13",
+        "b-00-overview-contents-14",
+        "b-00-overview-10-agent-prompt-md-10-15",
+        "b-00-overview-defines-the-canonical-se-16",
+        "b-00-overview-20-workflow-md-20-work-17",
+        "b-00-overview-defines-the-required-pha-18",
+        "b-00-overview-30-single-output-md-30-19",
+        "b-00-overview-defines-the-smaller-stru-20",
+        "b-00-overview-40-quality-md-40-quali-21",
+        "b-00-overview-combines-quality-dimensi-22",
+        "b-00-overview-50-techniques-md-50-te-23",
+        "b-00-overview-catalogs-optional-prompt-24"
+      ]
+    },
+    "b-00-overview-prompt-structure-begins-2": {
+      "id": "b-00-overview-prompt-structure-begins-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt structure begins with placement. Behavior, reusable reference material,\nand live session data have different lifecycles, so combining them makes prompts\nharder to change and gives the model a less reliable picture of its work. These\npages define where each kind of material belongs and how the system-prompt\nportion should be shaped. They are the model-facing conventions of the system\ndesign: what a rendered prompt looks like, not how the system produces it."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-file-tree-4": {
+      "id": "b-00-overview-file-tree-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "File Tree"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-text-5": {
+      "id": "b-00-overview-text-5",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "10-agent-prompt/",
+            "note": "Multi-turn agent prompt structure."
+          },
+          {
+            "path": "20-workflow/",
+            "note": "Phase grammar and navigation by state."
+          },
+          {
+            "path": "30-single-output/",
+            "note": "Bounded one-call prompt structure."
+          },
+          {
+            "path": "40-quality/",
+            "note": "Quality checks and anti-patterns."
+          },
+          {
+            "path": "50-techniques/",
+            "note": "Optional techniques selected for a named risk."
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-00-overview-the-three-face-placement-6": {
+      "id": "b-00-overview-the-three-face-placement-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Three-Face Placement Rule"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-an-agent-reads-three-dis-7": {
+      "id": "b-00-overview-an-agent-reads-three-dis-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent reads three distinct faces of model-facing material. A fourth surface,\nits tools, is attached by the runtime rather than written into prompt text."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-face-carries-chang-8": {
+      "id": "b-00-overview-face-carries-chang-8",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Face",
+          "Carries",
+          "Change cost"
+        ],
+        "rows": [
+          [
+            "System prompt ①",
+            "Behavior only: what the system does, how it operates, and what the agent should do",
+            "Changing it means changing the agent"
+          ],
+          [
+            "Context ②",
+            "Reference material: how things are structured, formatting rules, and how tools should operate. Each block opens by saying what it is and when to consult it",
+            "Add or adjust freely without touching the prompt"
+          ],
+          [
+            "State ③",
+            "The live picture: the current document, diffs so far, open queue, and other data that changes with action",
+            "Re-rendered every request; fields are declared in <state_structure>"
+          ],
+          [
+            "Tool layer",
+            "Tool definitions and schemas attached to the agent and always present",
+            "Not prompt text at all"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-00-overview-this-separation-is-a-wor-9": {
+      "id": "b-00-overview-this-separation-is-a-wor-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This separation is a working-memory decision, not merely an organizational one.\nThe model should be able to distinguish enduring behavior from material it can\nconsult and from the current facts it must act on. Loading only relevant context\nalso reduces stale or unrelated material competing for attention."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-placement-rule-has-t-10": {
+      "id": "b-00-overview-the-placement-rule-has-t-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The placement rule has two direct corollaries. Prompts do not contain a\n"
+        },
+        {
+          "insert": "<tools>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " section because schemas and tool descriptions belong to the tool\nlayer. They also do not inventory context blocks: each context block is\nself-describing, so it can be added, removed, or revised without changing the\nagent's prompt."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-runtime-data-remains-out-11": {
+      "id": "b-00-overview-runtime-data-remains-out-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Runtime data remains outside the stable prompt. Small dynamic values, loaded\nreferences, the current user turn, conversation history, tool results, and app\nstate are supplied by the host as context or state according to their role.\nInterleaving them with standing behavior makes freshness and authority harder\nfor the model to judge."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-boundary-rule-12": {
+      "id": "b-00-overview-boundary-rule-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Boundary Rule"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-behavior-lives-in-an-age-13": {
+      "id": "b-00-overview-behavior-lives-in-an-age-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Behavior lives in an agent's system prompt. Reference lives in context blocks.\nThe live picture lives in state. This boundary also distinguishes documentation\nfrom executable procedure: a file that says \"do step 1 through N against the\ncurrent session\" is an agent workflow, not documentation. Documentation may\nexplain that workflow's structure and rationale, but it does not perform the\nsession's work."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-contents-14": {
+      "id": "b-00-overview-contents-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Contents"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-agent-prompt-md-10-15": {
+      "id": "b-00-overview-10-agent-prompt-md-10-15",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Agent Prompt Structure",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure/10-agent-prompt"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-defines-the-canonical-se-16": {
+      "id": "b-00-overview-defines-the-canonical-se-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Defines the canonical section order for a state-navigating, multi-turn agent\nprompt and explains when each optional section earns its place."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-20-workflow-md-20-work-17": {
+      "id": "b-00-overview-20-workflow-md-20-work-17",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Workflow Structure",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure/20-workflow"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-defines-the-required-pha-18": {
+      "id": "b-00-overview-defines-the-required-pha-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Defines the required phase shape, shallow nesting model, state-based navigation,\nand the open question on optional phase fields."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-30-single-output-md-30-19": {
+      "id": "b-00-overview-30-single-output-md-30-19",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Single-Output Prompts",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure/30-single-output"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-defines-the-smaller-stru-20": {
+      "id": "b-00-overview-defines-the-smaller-stru-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Defines the smaller structure for one-call transformations with a single\nbounded output."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-40-quality-md-40-quali-21": {
+      "id": "b-00-overview-40-quality-md-40-quali-21",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Prompt Quality",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure/40-quality"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-combines-quality-dimensi-22": {
+      "id": "b-00-overview-combines-quality-dimensi-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Combines quality dimensions, named anti-patterns, rendered-shape judgment, and\nthe minimum QA pass."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-50-techniques-md-50-te-23": {
+      "id": "b-00-overview-50-techniques-md-50-te-23",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Prompting Techniques",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-prompt-structure/50-techniques"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-catalogs-optional-prompt-24": {
+      "id": "b-00-overview-catalogs-optional-prompt-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Catalogs optional prompting and thinking techniques chosen in response to a\nspecific failure risk."
+        }
+      ],
+      "children": []
+    }
+  }
+}
