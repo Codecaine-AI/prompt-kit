@@ -17,12 +17,11 @@ export interface SlashSession {
 }
 
 /**
- * Whether typing turned `previous` into `next` by putting a `/` at the START of
- * an empty line. Nothing else opens the menu — a slash inside a sentence is a
- * slash, and re-opening on a line that already carries text would hijack it.
+ * Whether typing or pasting a slash command started an empty line. A slash
+ * inside prose stays literal, as does a pasted path with no matching command.
  */
 export function shouldOpenSlash(previous: string, next: string): boolean {
-	return previous === "" && next === "/";
+	return previous === "" && next.startsWith("/") && matchSlashCommands(next.slice(1)).length > 0;
 }
 
 /**

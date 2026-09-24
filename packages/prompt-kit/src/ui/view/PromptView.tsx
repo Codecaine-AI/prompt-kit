@@ -15,6 +15,7 @@ import {
 	promptEditorGutterWidth,
 	promptEditorIndentForDepth,
 } from "../surface/editor-surface";
+import { highlightJsonLine } from "../surface/json-highlight";
 import { highlightXmlLine } from "../surface/xml-highlight";
 import {
 	classifyRenderedLines,
@@ -138,6 +139,7 @@ export function PromptView({
 	bare = false,
 	size = "sm",
 	inheritStyle = false,
+	highlightJson = false,
 }: {
 	content: string | null;
 	title: string;
@@ -154,6 +156,8 @@ export function PromptView({
 	 * without a remount.
 	 */
 	inheritStyle?: boolean;
+	/** Color JSON payloads while preserving their text and indentation. */
+	highlightJson?: boolean;
 }) {
 	const lines = useMemo(() => (content ? content.split("\n") : []), [content]);
 	const lineInfos = useMemo(
@@ -277,7 +281,7 @@ export function PromptView({
 										...guideBackground(depth),
 									}}
 								>
-									{line ? highlightXmlLine(line) : null}
+									{line ? (highlightJson ? highlightJsonLine(line) : null) ?? highlightXmlLine(line) : null}
 								</td>
 							</tr>
 							);

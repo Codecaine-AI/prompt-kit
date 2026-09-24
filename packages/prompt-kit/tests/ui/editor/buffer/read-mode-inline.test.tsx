@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { cleanup, fireEvent, render } from "@testing-library/react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { highlightXmlLine } from "../../../../src/ui/surface/xml-highlight";
 
 import type { PromptDocument } from "../../../../src/index";
 import {
@@ -111,10 +113,9 @@ describe("read-mode prose rows decode entities", () => {
 	});
 });
 
-// happy-dom drops style declarations whose values are bare var()/color-mix()
-// tokens (background, color), so these tests assert the treatments through the
-// declarations it KEEPS — the tag name's weight, the chip's radius + padding,
-// the ticks' opacity — plus the span structure itself.
+// happy-dom drops var()/color-mix() declarations, including font-weight.
+// Check weight in server-rendered markup; check token structure and supported
+// chip geometry in the DOM. Browser checks cover resolved theme colors.
 describe("read-mode inline tag + code-chip treatments", () => {
 	it("an inline <tag> token takes the tag treatment (one token span, bold name)", () => {
 		renderFlow();
@@ -122,11 +123,12 @@ describe("read-mode inline tag + code-chip treatments", () => {
 		// The whole token renders as ONE span ("<" + name + ">")…
 		const token = spans.find((span) => span.textContent === "<state>");
 		expect(token).toBeTruthy();
-		// …with the tag-name span inside carrying the highlight's 500 weight.
+		// …with the tag-name span inside carrying the highlight's 500 fallback weight.
 		const tagName = spans.find((span) => span.textContent === "state")!;
 		expect(tagName).toBeTruthy();
 		expect(token!.contains(tagName)).toBe(true);
-		expect(tagName.style.fontWeight).toBe("500");
+		expect(renderToStaticMarkup(<>{highlightXmlLine(token!.textContent!)}</>))
+			.toContain("font-weight:var(--prompt-editor-tag-weight, 500)");
 	});
 
 	it("an inline closing tag in an ITEM row takes the same treatment", () => {
@@ -136,7 +138,8 @@ describe("read-mode inline tag + code-chip treatments", () => {
 		expect(token).toBeTruthy();
 		const tagName = spans.find((span) => span.textContent === "view")!;
 		expect(tagName).toBeTruthy();
-		expect(tagName.style.fontWeight).toBe("500");
+		expect(renderToStaticMarkup(<>{highlightXmlLine(token!.textContent!)}</>))
+			.toContain("font-weight:var(--prompt-editor-tag-weight, 500)");
 	});
 
 	it("backtick spans chip with the ticks still visible (muted, not hidden)", () => {

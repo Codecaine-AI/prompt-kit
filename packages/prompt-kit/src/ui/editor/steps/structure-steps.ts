@@ -41,6 +41,7 @@ import {
 	emptyInline,
 	removeListItemStep,
 	unnestListItemStep,
+	splitInlineLines,
 } from "./list-item-steps";
 import { findUnnestLocation } from "./node-mutations";
 
@@ -173,6 +174,47 @@ export function escapeListStep(
 		focusNodeId: insertedNodeId(insert.step),
 		caretOffset: 0,
 	};
+}
+
+/** Backspace at an item's start removes one level without dropping its text. */
+export function unlistItemStep(
+	prompt: PromptDocument,
+	listNodeId: string,
+	itemIndex: number,
+): StructureStepResult | null {
+	const list = findListNodeById(prompt, listNodeId);
+	const item = list?.items[itemIndex];
+	if (!list || !item) return null;
+	const nested = findUnnestLocation(prompt, listNodeId, itemIndex);
+	if (nested) return escapeByOutdent(prompt, listNodeId, itemIndex, nested);
+	if (!getPromptBlockNodeById(prompt, listNodeId)) return null;
+
+	// Split around the lifted item so following items and children keep their order.
+	const paragraph: ParagraphNode = { type: "paragraph", id: item.id, content: item.content };
+	const blocks: PromptBlockNode[] = [];
+	if (itemIndex > 0) blocks.push({ ...list, items: list.items.slice(0, itemIndex) });
+	blocks.push(paragraph, ...(item.children ?? []));
+	if (itemIndex + 1 < list.items.length) {
+		blocks.push({
+			...list, id: undefined, items: list.items.slice(itemIndex + 1),
+			...(list.type === "orderedList" ? { start: (list.start ?? 1) + itemIndex + 1 } : {}),
+		});
+	}
+	const replaced = replaceBlockWithStep(prompt, listNodeId, { ...blocks[0]!, id: listNodeId });
+	if (!replaced.step) return null;
+	const steps: PromptStep[] = [replaced.step];
+	let doc = replaced.prompt;
+	let anchor = listNodeId;
+	let focusNodeId = itemIndex === 0 ? listNodeId : undefined;
+	for (const block of blocks.slice(1)) {
+		const inserted = insertPromptBlockNodeWithStep(doc, anchor, block, "after");
+		if (!inserted.step || inserted.step.op !== "insert" || !inserted.step.node.id) return null;
+		steps.push(inserted.step);
+		doc = inserted.prompt;
+		anchor = inserted.step.node.id;
+		if (block === paragraph) focusNodeId = anchor;
+	}
+	return { prompt: doc, steps, focusNodeId, caretOffset: 0 };
 }
 
 function escapeByOutdent(
@@ -309,7 +351,7 @@ export function promoteSectionStep(
 /**
  * Turns a paragraph into another block IN PLACE, keeping its id and position
  * (one update step). The paragraph's inline content is carried into the new
- * node's first editable slot — the first list item, the code body, or the
+ * node's editable content — one item per line for lists, the code body, or the
  * section's first child paragraph — so this is safe on a paragraph that
  * already holds text, not just an empty one. Structured inline (variables,
  * references) survives; adjacent plain runs are coalesced so the result is
@@ -347,12 +389,15 @@ export function convertParagraphToStep(
 		};
 	}
 	const isList = target === "bulletList" || target === "orderedList";
+	const itemLines = isList ? splitInlineLines(content) : undefined;
 	return {
 		prompt: result.prompt,
 		steps: [result.step],
 		focusNodeId: paragraphNodeId,
-		...(isList ? { focusItemIndex: 0 } : {}),
-		caretOffset,
+		...(itemLines ? { focusItemIndex: itemLines.length - 1 } : {}),
+		caretOffset: itemLines
+			? inlineToEditableText(itemLines.at(-1)!).length
+			: caretOffset,
 	};
 }
 
@@ -396,8 +441,8 @@ function buildConverted(
 	switch (target) {
 		case "bulletList":
 		case "orderedList": {
-			const item: ListItemNode = { type: "listItem", content };
-			return { type: target, id, items: [item] } as ListNode;
+			const items: ListItemNode[] = splitInlineLines(content).map((line) => ({type: "listItem", content: line}));
+			return { type: target, id, items } as ListNode;
 		}
 		case "codeBlock": {
 			const code: CodeBlockNode = {
@@ -432,7 +477,7 @@ function buildConverted(
  * part of the canonical document, so they must be settled before the step is
  * recorded or undo/redo would re-mint them.
  */
-function replaceBlockWithStep(
+export function replaceBlockWithStep(
 	prompt: PromptDocument,
 	nodeId: string,
 	replacement: PromptBlockNode,

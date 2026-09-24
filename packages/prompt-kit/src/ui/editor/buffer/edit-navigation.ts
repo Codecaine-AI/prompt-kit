@@ -41,35 +41,13 @@ export function findEditPointIndex(
 	);
 }
 
-/**
- * What Backspace at caret 0 should do. The caret ALWAYS goes back/up: when no
- * structural change is safe the resolution still moves focus to the previous
- * editable row's end. Merges never cross container boundaries — items only
- * merge into items of the SAME list, paragraphs only into a directly
- * preceding sibling paragraph.
- */
+/** Backspace removes a list level or joins text across a sibling boundary. */
 export type BackspaceResolution =
 	| { kind: "none" }
 	| { kind: "focus-previous"; previous: EditPoint }
-	| {
-			kind: "merge-items";
-			listId: string;
-			itemIndex: number;
-			previous: EditPoint;
-	  }
-	| {
-			kind: "merge-paragraphs";
-			previousId: string;
-			currentId: string;
-			previous: EditPoint;
-	  }
-	| {
-			kind: "remove-empty-item";
-			listId: string;
-			itemIndex: number;
-			removesWholeList: boolean;
-			previous?: EditPoint;
-	  }
+	| { kind: "unlist-item"; listId: string; itemIndex: number }
+	| { kind: "merge-paragraph-into-list"; listId: string; itemIndex: number; currentId: string }
+	| { kind: "merge-paragraphs"; previousId: string; currentId: string; previous: EditPoint }
 	| { kind: "remove-empty-paragraph"; nodeId: string; previous?: EditPoint };
 
 export function resolveBackspace(
@@ -92,33 +70,19 @@ export function resolveBackspace(
 		if (node.type !== "bulletList" && node.type !== "orderedList") {
 			return { kind: "none" };
 		}
-		const itemIndex = point.itemIndex ?? 0;
-		if (options.valueIsEmpty) {
-			return {
-				kind: "remove-empty-item",
-				listId: point.nodeId,
-				itemIndex,
-				removesWholeList: node.items.length <= 1,
-				previous,
-			};
-		}
-		// Like-kind: the previous caret target is an item of the SAME list.
-		// (An intervening nested list breaks adjacency — its items become the
-		// previous points — which correctly prevents merging across it.)
-		if (previous && previous.nodeId === point.nodeId) {
-			return {
-				kind: "merge-items",
-				listId: point.nodeId,
-				itemIndex,
-				previous,
-			};
-		}
-		return previous
-			? { kind: "focus-previous", previous }
-			: { kind: "none" };
+		return { kind: "unlist-item", listId: point.nodeId, itemIndex: point.itemIndex ?? 0 };
 	}
 
 	if (node.type === "paragraph") {
+		const previousLine = previous ? lines[previous.row] : undefined;
+		const previousEntry = previous ? options.entriesById.get(previous.nodeId) : undefined;
+		const currentEntry = options.entriesById.get(point.nodeId);
+		if (previous && previousLine?.role === "item" && previousEntry && currentEntry &&
+			previousEntry.index + 1 === currentEntry.index &&
+			samePath(previousEntry.parentPath, currentEntry.parentPath)) {
+			return { kind: "merge-paragraph-into-list", listId: previous.nodeId,
+				itemIndex: previous.itemIndex ?? 0, currentId: point.nodeId };
+		}
 		if (options.valueIsEmpty) {
 			return {
 				kind: "remove-empty-paragraph",

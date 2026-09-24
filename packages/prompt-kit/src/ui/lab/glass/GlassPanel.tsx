@@ -1,314 +1,190 @@
-// THE GLASS PANEL (2026-08-05 redesign): fixed furniture, not a floating
-// window. No drag, no resize, no per-user geometry — the panel sits with the
-// system like an instrument, and its header is a two-tab bar:
-//
-//   edit — the zone stack (VIEW / FIXTURE / OUTLINE / DETAILS), the lab's
-//          resting chrome. A wide text tab (~3/4 of the bar).
-//   ai   — the AI workspace (active runs, requests, comments). A small icon
-//          tab (~1/4); selecting it is entering the AI state, and the panel
-//          animates to that tab's own size.
-//
-// Each tab owns its geometry in PANEL_GEOMETRY below — width, height, and
-// position are set per tab, and the element stays mounted across the switch
-// so the box animates between them while the content cross-fades. The host
-// still reserves the panel's footprint (the document always sits beside the
-// glass, never under it).
+// A persistent 44px rail; the outline and AI expand left over the document.
+// View controls keep the same position in all three states.
 "use client";
 
-import {
-	useEffect,
-	useRef,
-	useState,
-	type CSSProperties,
-	type ReactNode,
-} from "react";
-import { Pencil, Sparkles } from "lucide-react";
-
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, ChevronRight, FileText, ListTree, Sparkles, Wrench } from "lucide-react";
 import { ANNOTATE_COLORS } from "../annotate/AmbientWash";
+import { EDITOR_COLORS } from "../../surface/editor-surface";
+import type { LabView, PanelViewEntry } from "./zones";
+import { useViewTransition } from "./use-view-transition";
+import { RailButton } from "./RailButton";
+import { ContextIcon, StateIcon } from "./RailIcons";
 
 export type LabPanelTab = "edit" | "ai";
-
-/**
- * Per-tab geometry — THE single place to set each view's size. The panel's
- * top-right corner is PINNED (top inset below, right inset from the style
- * rail's "Panel inset"); a tab switch widens leftward and extends downward
- * from that corner instead of moving the box.
- *
- *   edit — fits its content: height follows the zone stack (capped at the
- *          region).
- *   ai   — one consistent size: a fixed fraction of the region height.
- */
 export const PANEL_GEOMETRY = {
-	edit: { width: 300 },
-	ai: { width: 520, heightFraction: 0.8 },
+  rail: { width: 44 },
+  edit: { width: 252, height: 480 },
+  ai: { width: 520, heightFraction: 0.8 },
 } as const;
-
-/** The pinned corner's default distance from the region's top edge — both
- * insets are adjustable in the style rail (the right inset arrives via
- * --prompt-editor-panel-right, the top inset via the `topInset` prop since
- * the fit-to-content cap math needs it as a number). */
 export const PANEL_TOP_INSET = 12;
-/** Clearance kept below the panel when content would run past the region. */
 const PANEL_BOTTOM_GAP = 12;
+const PANEL_HEADER_HEIGHT = 40;
+/** Only the rail reserves document space, including while AI is open. */
+export const DOCK_DEFAULT_WIDTH: number = PANEL_GEOMETRY.rail.width;
 
-export const DOCK_DEFAULT_WIDTH: number = PANEL_GEOMETRY.edit.width;
-
-const TRANSITION_MS = 260;
-const EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
-/** The ACTIVE tab's share of the header bar; the inactive icon tab takes the
- * rest — the tabs swap roles (wide text ⇄ small icon) on switch. */
-const WIDE_TAB_FRACTION = 0.75;
-
-/** Tab contents fade in as the widths trade places. */
-const fadeIn: CSSProperties = {
-	animation: `labFloatContentIn ${TRANSITION_MS}ms ${EASE}`,
+const VIEW_LABELS: Record<LabView, string> = {
+  system: "Prompt", context: "Context", state: "State", tools: "Tools",
 };
-
+const VIEW_ICONS = { system: FileText, context: ContextIcon, state: StateIcon, tools: Wrench };
 export interface GlassPanelProps {
-	tab: LabPanelTab;
-	/** Tapping a tab IS the mode switch — the host owns what each tab means. */
-	onTabSelect: (tab: LabPanelTab) => void;
-	/** AI: a request is in flight — the tab's dot beats faster. */
-	busy?: boolean;
-	/** Distance from the region's top to the pinned corner (style rail). */
-	topInset?: number;
-	children: ReactNode;
-	/** Reports the active tab's width so the host reserves the footprint
-	 * beside the document — in both states. */
-	onWidthChange?: (width: number) => void;
+  tab: LabPanelTab;
+  onTabSelect: (tab: LabPanelTab) => void;
+  expanded: boolean;
+  onExpandedChange: (expanded: boolean) => void;
+  views: PanelViewEntry[];
+  activeView: LabView;
+  onViewSelect: (view: LabView) => void;
+  /** An exceptional save state remains discoverable when collapsed. */
+  promptStatus?: string;
+  busy?: boolean;
+  topInset?: number;
+  children: ReactNode;
 }
 
 export function GlassPanel({
-	tab,
-	onTabSelect,
-	busy = false,
-	topInset = PANEL_TOP_INSET,
-	children,
-	onWidthChange,
+  tab, onTabSelect, expanded, onExpandedChange, views, activeView,
+  onViewSelect, promptStatus, busy = false, topInset = PANEL_TOP_INSET, children,
 }: GlassPanelProps) {
-	// Mount → next frame → visible: lets the transition-in actually run.
-	const [entered, setEntered] = useState(false);
-	const panelRef = useRef<HTMLDivElement | null>(null);
-	const headerRef = useRef<HTMLElement | null>(null);
-	const scrollRef = useRef<HTMLDivElement | null>(null);
-	const innerRef = useRef<HTMLDivElement | null>(null);
-	// Both heights resolve to PIXELS so the tab-switch height change tweens
-	// (a %↔px pair would jump). Null until measured — the style falls back to
-	// auto/% for the first paint and non-browser environments.
-	const [regionHeight, setRegionHeight] = useState<number | null>(null);
-	const [contentHeight, setContentHeight] = useState<number | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const viewContentRef = useViewTransition(`${tab}:${activeView}`);
+  const contentId = useId();
+  const [regionHeight, setRegionHeight] = useState<number | null>(null);
+  const [regionWidth, setRegionWidth] = useState<number | null>(null);
+  const ai = tab === "ai";
+  const open = ai || expanded;
+  const state = ai ? "ai" : expanded ? "tree" : "rail";
+  const active = views.find((entry) => entry.id === activeView);
+  // Shared header, 32px buttons, 4px gaps, one 9px separator, padding, border.
+  const railHeight = PANEL_HEADER_HEIGHT + views.length * 36 + 59;
+  const width = ai ? PANEL_GEOMETRY.ai.width : expanded ? PANEL_GEOMETRY.edit.width : DOCK_DEFAULT_WIDTH;
+  const contentWidth = (ai ? PANEL_GEOMETRY.ai.width : PANEL_GEOMETRY.edit.width) - DOCK_DEFAULT_WIDTH;
 
-	const ai = tab === "ai";
-	const geometry = PANEL_GEOMETRY[tab];
+  useEffect(() => {
+    if (typeof ResizeObserver === "undefined") return;
+    const region = panelRef.current?.parentElement;
+    if (!region) return;
+    const measure = () => {
+      const bounds = region.getBoundingClientRect();
+      setRegionHeight(bounds.height);
+      setRegionWidth(bounds.width);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(region);
+    return () => observer.disconnect();
+  }, []);
 
-	useEffect(() => {
-		const frame = requestAnimationFrame(() => setEntered(true));
-		return () => cancelAnimationFrame(frame);
-	}, []);
+  // Move focus out of content that becomes hidden, including Escape from AI.
+  useEffect(() => {
+    if (!open && panelRef.current?.querySelector("[data-lab-panel-content]")?.contains(document.activeElement)) {
+      toggleRef.current?.focus();
+    }
+  }, [open]);
 
-	useEffect(() => {
-		onWidthChange?.(geometry.width);
-	}, [geometry.width, onWidthChange]);
+  const cap = regionHeight === null ? null : Math.max(0, regionHeight - topInset - PANEL_BOTTOM_GAP);
+  const naturalHeight = ai
+    ? regionHeight === null ? 480 : Math.round(regionHeight * PANEL_GEOMETRY.ai.heightFraction)
+    : expanded ? PANEL_GEOMETRY.edit.height : railHeight;
 
-	useEffect(() => {
-		if (typeof ResizeObserver === "undefined") return;
-		const region = panelRef.current?.parentElement;
-		if (!region) return;
-		const measure = () =>
-			setRegionHeight(region.getBoundingClientRect().height);
-		measure();
-		const observer = new ResizeObserver(measure);
-		observer.observe(region);
-		return () => observer.disconnect();
-	}, []);
+  function toggle() {
+    if (open) {
+      onExpandedChange(false);
+      if (ai) onTabSelect("edit");
+    } else onExpandedChange(true);
+  }
 
-	// Fit-to-content (edit tab): track the zone stack's natural height so the
-	// panel hugs it — and so returning from AI animates to the right size.
-	useEffect(() => {
-		if (typeof ResizeObserver === "undefined") return;
-		if (tab !== "edit") return;
-		const inner = innerRef.current;
-		if (!inner) return;
-		const measure = () => {
-			const scroll = scrollRef.current;
-			const header = headerRef.current;
-			if (!scroll || !header) return;
-			// The inner wrapper's height is content-intrinsic — the scroller
-			// itself flex-fills the panel, so ITS scrollHeight would echo the
-			// panel's current height back (and the panel would never shrink).
-			const scrollStyle = window.getComputedStyle(scroll);
-			const padding =
-				(Number.parseFloat(scrollStyle.paddingTop) || 0) +
-				(Number.parseFloat(scrollStyle.paddingBottom) || 0);
-			setContentHeight(
-				inner.offsetHeight + padding + header.offsetHeight + 2,
-			);
-		};
-		measure();
-		const observer = new ResizeObserver(measure);
-		observer.observe(inner);
-		return () => observer.disconnect();
-	}, [tab]);
-
-	// The pinned corner leaves `cap` of room before the region's bottom.
-	const cap =
-		regionHeight === null
-			? null
-			: regionHeight - topInset - PANEL_BOTTOM_GAP;
-	const height: CSSProperties["height"] = ai
-		? cap === null
-			? `${PANEL_GEOMETRY.ai.heightFraction * 100}%`
-			: Math.round(
-					Math.min(PANEL_GEOMETRY.ai.heightFraction * regionHeight!, cap),
-				)
-		: contentHeight === null || cap === null
-			? "auto"
-			: Math.min(contentHeight, cap);
-
-	const tabStyle = (active: boolean): CSSProperties => ({
-		color: active
-			? ai
-				? ANNOTATE_COLORS.accentLit
-				: "var(--prompt-editor-foreground, #E6E6E6)"
-			: "var(--prompt-editor-line-number, #5F6672)",
-	});
-
-	return (
-		<div
-			ref={panelRef}
-			data-lab-dock=""
-			data-lab-float-mode={ai ? "annotate" : "dock"}
-			{...(ai ? { "data-lab-annotate-panel": "" } : {})}
-			role="complementary"
-			aria-label={ai ? "AI workspace" : "Lab panel"}
-			className="absolute z-30 flex flex-col overflow-hidden rounded-[10px] border"
-			style={{
-				top: topInset,
-				right: "var(--prompt-editor-panel-right, 24px)",
-				width: geometry.width,
-				height,
-				maxWidth: "92%",
-				transformOrigin: "top right",
-				transform: entered ? "scale(1)" : "scale(0.985)",
-				opacity: entered ? 1 : 0,
-				transition: `opacity ${TRANSITION_MS}ms ${EASE}, transform ${TRANSITION_MS}ms ${EASE}, width ${TRANSITION_MS}ms ${EASE}, height ${TRANSITION_MS}ms ${EASE}`,
-				background: "rgb(24 24 24 / 0.72)",
-				backdropFilter: "blur(13px)",
-				WebkitBackdropFilter: "blur(13px)",
-				borderColor: ai
-					? ANNOTATE_COLORS.line
-					: "var(--prompt-editor-panel-border, #2B2B2B)",
-				boxShadow:
-					"0 18px 48px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.35)",
-			}}
-		>
-			{/* THE TAB BAR — the panel's only header. The tabs SWAP roles on
-			    switch: the active tab is the wide text tab, the inactive one
-			    collapses to an icon, and both widths animate so the change
-			    reads as the two trading places while the box takes the
-			    incoming tab's geometry. */}
-			<header
-				ref={headerRef}
-				data-lab-annotate-panel-header=""
-				className="relative flex shrink-0 select-none border-b"
-				style={{
-					borderColor: ai
-						? ANNOTATE_COLORS.line
-						: "var(--prompt-editor-panel-border, #2B2B2B)",
-				}}
-			>
-				<span
-					aria-hidden
-					data-lab-panel-tab-indicator=""
-					className="absolute bottom-0 h-px"
-					style={{
-						left: ai ? `${(1 - WIDE_TAB_FRACTION) * 100}%` : 0,
-						width: `${WIDE_TAB_FRACTION * 100}%`,
-						background: ai
-							? ANNOTATE_COLORS.accent
-							: "var(--prompt-editor-selection-accent, #6E9ECF)",
-						transition: `left ${TRANSITION_MS}ms ${EASE}, background ${TRANSITION_MS}ms ${EASE}`,
-					}}
-				/>
-				<button
-					type="button"
-					data-lab-panel-tab="edit"
-					aria-label="Edit"
-					aria-pressed={!ai}
-					title="Edit"
-					onClick={() => onTabSelect("edit")}
-					className="flex items-center justify-center gap-1.5 py-2 text-[10px] uppercase tracking-[0.14em] transition-all hover:text-foreground"
-					style={{
-						width: ai
-							? `${(1 - WIDE_TAB_FRACTION) * 100}%`
-							: `${WIDE_TAB_FRACTION * 100}%`,
-						transition: `width ${TRANSITION_MS}ms ${EASE}, color 150ms ease`,
-						...tabStyle(!ai),
-					}}
-				>
-					{ai ? (
-						<Pencil key="icon" size={12} aria-hidden style={fadeIn} />
-					) : (
-						<span key="label" style={fadeIn}>
-							Edit
-						</span>
-					)}
-				</button>
-				<button
-					type="button"
-					data-lab-panel-tab="ai"
-					aria-label="AI"
-					aria-pressed={ai}
-					title={ai ? "AI workspace — esc to finish" : "AI workspace"}
-					onClick={() => onTabSelect("ai")}
-					className="flex items-center justify-center gap-1.5 border-l py-2 text-[10px] uppercase tracking-[0.14em] transition-all hover:text-foreground"
-					style={{
-						width: ai
-							? `${WIDE_TAB_FRACTION * 100}%`
-							: `${(1 - WIDE_TAB_FRACTION) * 100}%`,
-						transition: `width ${TRANSITION_MS}ms ${EASE}, color 150ms ease`,
-						borderColor: ai
-							? ANNOTATE_COLORS.line
-							: "var(--prompt-editor-panel-border, #2B2B2B)",
-						...tabStyle(ai),
-					}}
-				>
-					{ai && (
-						<span
-							data-lab-annotate-dot={busy ? "fast" : "slow"}
-							aria-hidden
-							className="h-[5px] w-[5px] rounded-full"
-							style={{
-								background: ANNOTATE_COLORS.accent,
-								animation: `prompt-annotate-breathe ${busy ? "0.72s" : "2.6s"} ease-in-out infinite`,
-							}}
-						/>
-					)}
-					{ai ? (
-						<span key="label" style={fadeIn}>
-							Annotations
-						</span>
-					) : (
-						<Sparkles key="icon" size={12} aria-hidden style={fadeIn} />
-					)}
-				</button>
-			</header>
-			{/* Keyed by tab: the content CROSS-FADES when the box changes role,
-			    so the switch reads as one object changing shape. */}
-			<div
-				key={tab}
-				ref={scrollRef}
-				className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 pt-2"
-				style={{ animation: `labFloatContentIn ${TRANSITION_MS}ms ${EASE}` }}
-			>
-				{/* Measured wrapper: fit-to-content reads this element's size in
-				    the edit tab; the AI tab fills the panel so its dock can pin
-				    to the bottom (chat layout). */}
-				<div ref={innerRef} className={ai ? "h-full" : undefined}>
-					{children}
-				</div>
-			</div>
-			<style>{`@keyframes labFloatContentIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
-		</div>
-	);
+  return (
+    <div
+      ref={panelRef}
+      data-lab-dock=""
+      data-lab-panel-state={state}
+      data-lab-float-mode={ai ? "annotate" : "dock"}
+      {...(ai ? { "data-lab-annotate-panel": "" } : {})}
+      role="complementary"
+      aria-label={ai ? "AI workspace" : "Prompt navigation"}
+      className="absolute z-30 flex overflow-hidden rounded-lg border"
+      style={{
+        top: topInset,
+        right: "var(--prompt-editor-panel-right, 24px)",
+        width,
+        height: cap === null ? naturalHeight : Math.min(naturalHeight, cap),
+        maxWidth: "calc(100% - var(--prompt-editor-panel-right, 24px) - 8px)",
+        maxHeight: `calc(100% - ${topInset + PANEL_BOTTOM_GAP}px)`,
+        transition: "width 340ms cubic-bezier(0.2, 0.7, 0.2, 1), height 340ms cubic-bezier(0.2, 0.7, 0.2, 1)",
+        background: `color-mix(in srgb, var(--prompt-editor-glass-bg, ${EDITOR_COLORS.bg}) 88%, transparent)`,
+        backdropFilter: "blur(20px) saturate(1.3)",
+        WebkitBackdropFilter: "blur(20px) saturate(1.3)",
+        borderColor: ai ? ANNOTATE_COLORS.line : "var(--prompt-editor-panel-border, rgb(128 128 128 / 0.22))",
+        boxShadow: "var(--prompt-editor-panel-shadow, 0 8px 28px rgb(0 0 0 / 0.24), 0 2px 6px rgb(0 0 0 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.07))",
+      }}
+    >
+      <div
+        id={contentId}
+        data-lab-panel-content=""
+        aria-hidden={!open}
+        inert={!open}
+        className="absolute inset-y-0 flex min-h-0 flex-col"
+        style={{
+          right: 42,
+          // Keep text at its final measure while the outer glass reveals it.
+          width: `min(${contentWidth}px, calc(${regionWidth === null ? "100vw" : `${regionWidth}px`} - var(--prompt-editor-panel-right, 24px) - 52px))`,
+          opacity: open ? 1 : 0,
+          visibility: open ? "visible" : "hidden",
+          transition: open ? "opacity 180ms ease 50ms, visibility 0s" : "opacity 110ms ease, visibility 0s 110ms",
+        }}
+      >
+        <header data-lab-annotate-panel-header="" className="flex shrink-0 items-center gap-2 border-b px-3" style={{ height: PANEL_HEADER_HEIGHT, borderColor: EDITOR_COLORS.guide }}>
+          {ai && <RailButton type="button" data-lab-panel-tab="edit" aria-label="Edit" tip="Return to navigation" onClick={() => onTabSelect("edit")} className="rounded p-1 text-muted-foreground hover:bg-foreground/5"><ArrowLeft size={14} aria-hidden /></RailButton>}
+          <span className="min-w-0 truncate text-[12px] font-medium">{ai ? "Annotations" : VIEW_LABELS[activeView]}</span>
+          {!ai && <span className="ml-auto text-[10px] tabular-nums text-muted-foreground" title={`Estimated tokens in the ${activeView} view`}>{active?.tokens.toLocaleString()} tok</span>}
+        </header>
+        <div data-lab-panel-scroll="" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-2.5 pb-2 pt-1">
+          <div ref={viewContentRef} data-lab-view-content="" className={ai ? "h-full" : undefined}>{children}</div>
+        </div>
+      </div>
+      <nav
+        aria-label="Prompt views"
+        data-lab-persistent-rail=""
+        className="absolute inset-y-0 right-0 flex flex-col overflow-y-auto overflow-x-hidden overscroll-contain"
+        style={{ width: 42, borderLeft: `1px solid ${open ? EDITOR_COLORS.guide : "transparent"}`, transition: "border-color 180ms ease" }}
+      >
+        <div data-lab-rail-header="" className="flex shrink-0 items-center justify-center border-b" style={{ height: PANEL_HEADER_HEIGHT, borderColor: EDITOR_COLORS.guide }}>
+        <RailButton ref={toggleRef} type="button" data-lab-rail-toggle="" aria-label={open ? "Collapse outline" : "Expand outline"} aria-expanded={open} aria-controls={contentId} tip={open ? "Collapse outline" : "Expand outline"} onClick={toggle} className="lab-rail-button">
+          {open ? <ChevronRight size={16} aria-hidden /> : <ListTree size={16} aria-hidden />}
+        </RailButton>
+        </div>
+        <div className="flex flex-1 flex-col items-center gap-1 py-1.5">
+        {views.map((entry) => {
+          const Icon = VIEW_ICONS[entry.id];
+          const current = !ai && entry.id === activeView;
+          const status = entry.id === "system" ? promptStatus : undefined;
+          return <RailButton
+            key={entry.id} type="button" data-lab-view={entry.id}
+            aria-label={`${VIEW_LABELS[entry.id]}${status ? `: ${status}` : ""}`}
+            aria-pressed={current}
+            tip={entry.id === "system" ? "System" : VIEW_LABELS[entry.id]}
+            onClick={() => { onViewSelect(entry.id); onExpandedChange(true); }}
+            className="lab-rail-button relative"
+            style={current ? { color: EDITOR_COLORS.selectionAccent, background: EDITOR_COLORS.hoverBg } : undefined}
+          ><Icon size={16} aria-hidden />{status && <span data-lab-save-indicator="" aria-hidden className="absolute right-1 top-1 h-1 w-1 rounded-full bg-amber-400" />}</RailButton>;
+        })}
+        <span aria-hidden className="my-1 h-px w-5 shrink-0" style={{ background: EDITOR_COLORS.guide }} />
+        <RailButton type="button" data-lab-panel-tab="ai" aria-label="AI" aria-pressed={ai} tip={ai ? "Return to navigation" : "AI workspace"} onClick={() => onTabSelect(ai ? "edit" : "ai")} className="lab-rail-button relative mt-auto" style={{ color: ANNOTATE_COLORS.accentLit, background: ai ? ANNOTATE_COLORS.fill : undefined }}>
+          <Sparkles size={16} aria-hidden />
+          {busy && <span data-lab-annotate-dot="fast" role="status" aria-label="AI is working" className="absolute right-1 top-1 h-1 w-1 rounded-full" style={{ background: ANNOTATE_COLORS.accentLit }} />}
+        </RailButton>
+        </div>
+      </nav>
+      <style>{`
+        [data-lab-persistent-rail], [data-lab-panel-scroll] { scrollbar-width:none; }
+        [data-lab-persistent-rail]::-webkit-scrollbar, [data-lab-panel-scroll]::-webkit-scrollbar { display:none; }
+        [data-lab-dock] .lab-rail-button { display:flex; align-items:center; justify-content:center; width:32px; height:32px; flex-shrink:0; border-radius:4px; color:var(--prompt-editor-muted, #989FA9); transition:background-color 160ms ease, color 160ms ease; }
+        [data-lab-dock] .lab-rail-button:hover { background:var(--prompt-editor-hover-bg, rgb(255 255 255 / 0.04)); }
+        [data-lab-dock] button:focus-visible { outline:2px solid var(--prompt-editor-selection-accent, #6E9ECF); outline-offset:-2px; }
+        @media (prefers-reduced-motion: reduce) { [data-lab-dock], [data-lab-dock] * { transition:none !important; } }
+      `}</style>
+    </div>
+  );
 }

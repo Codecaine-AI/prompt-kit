@@ -65,7 +65,7 @@ export function highlightXmlLine(line: string): React.ReactNode {
 		result.push(
 			<span key={keyIndex} style={{ color: EDITOR_COLORS.syntaxPunctuation }}>
 				{"<"}
-				<span style={{ color: EDITOR_COLORS.syntaxTag, fontWeight: 500 }}>
+				<span style={{ color: EDITOR_COLORS.syntaxTag, fontWeight: "var(--prompt-editor-tag-weight, 500)" }}>
 					{fragmentOpen[1]}
 				</span>
 			</span>,
@@ -146,7 +146,7 @@ export function highlightXmlLine(line: string): React.ReactNode {
 			<span key={keyIndex++} style={{ color: EDITOR_COLORS.syntaxPunctuation }}>
 				{"<"}
 				{isClosing && "/"}
-				<span style={{ color: EDITOR_COLORS.syntaxTag, fontWeight: 500 }}>
+				<span style={{ color: EDITOR_COLORS.syntaxTag, fontWeight: "var(--prompt-editor-tag-weight, 500)" }}>
 					{tagName}
 				</span>
 				{formattedAttributes}

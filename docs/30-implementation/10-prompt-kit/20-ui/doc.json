@@ -28,6 +28,7 @@
         "b-20-ui-editor-10-system-5",
         "b-20-ui-presentation-10-6",
         "b-20-ui-kernel-boundary-7",
+        "ui-shell-governing-reference",
         "b-20-ui-decisions-8",
         "b-20-ui-headless-vs-react-module-9",
         "b-20-ui-decision-models-st-10",
@@ -41,7 +42,23 @@
         "b-20-ui-moves-are-remove-plus-in-18",
         "b-20-ui-decision-reparentin-19",
         "b-20-ui-why-id-preservation-20",
-        "b-20-ui-applies-to-every-ne-21"
+        "b-20-ui-applies-to-every-ne-21",
+        "ui-persistent-glass-heading",
+        "ui-persistent-glass-decision",
+        "ui-persistent-glass-why",
+        "ui-persistent-glass-scope",
+        "ui-rail-labels-heading",
+        "ui-rail-labels-decision",
+        "ui-rail-labels-why",
+        "ui-rail-labels-scope",
+        "ui-outline-rail-heading",
+        "ui-outline-rail-decision",
+        "ui-outline-rail-why",
+        "ui-outline-rail-scope",
+        "ui-host-controlled-view-heading",
+        "ui-host-controlled-view-decision",
+        "ui-host-controlled-view-why",
+        "ui-host-controlled-view-scope"
       ]
     },
     "b-20-ui-packages-prompt-kit-src-2": {
@@ -185,6 +202,25 @@
             "reference": {
               "kind": "doc",
               "path": "10-system-design/80-kernel-boundary"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "ui-shell-governing-reference": {
+      "id": "ui-shell-governing-reference",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Application Shell",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-editor/60-application-shell"
             }
           }
         }
@@ -457,6 +493,595 @@
         },
         {
           "insert": " Every new move or reparent gesture reuses the shared helpers\nand commits atomically; a move that recreates nodes with fresh ids is a bug."
+        }
+      ],
+      "children": []
+    },
+    "ui-persistent-glass-heading": {
+      "id": "ui-persistent-glass-heading",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Persistent Glass Uses an Anchored Rail"
+        }
+      ],
+      "children": []
+    },
+    "ui-persistent-glass-decision": {
+      "id": "ui-persistent-glass-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "lab/glass/GlassPanel.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " positions the rail and expanding content independently, while "
+        },
+        {
+          "insert": "lab/index.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reserves only the collapsed rail's footprint in document scrollers."
+        }
+      ],
+      "children": []
+    },
+    "ui-persistent-glass-why": {
+      "id": "ui-persistent-glass-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The rail stays fixed at the right edge during animation, and outline text keeps its final measure. Collapsed navigation remains mounted with "
+        },
+        {
+          "insert": "aria-hidden",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "inert",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "lab/glass/use-view-transition.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " animates view changes without adding keyed remounts or replacing the host's editor state."
+        }
+      ],
+      "children": []
+    },
+    "ui-persistent-glass-scope": {
+      "id": "ui-persistent-glass-scope",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Changes under "
+        },
+        {
+          "insert": "lab/glass/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", including future navigation controls, retain the stable document footprint and reduced-motion handling. "
+        },
+        {
+          "insert": "lab/glass/zones.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " renders tree rows. "
+        },
+        {
+          "insert": "lab/index.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns folded branches per view and positions history above the outline without a header row."
+        }
+      ],
+      "children": []
+    },
+    "ui-rail-labels-heading": {
+      "id": "ui-rail-labels-heading",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Rail Controls Share Icons and Tooltips"
+        }
+      ],
+      "children": []
+    },
+    "ui-rail-labels-decision": {
+      "id": "ui-rail-labels-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "lab/glass/RailButton.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns delayed, label-only tooltips and renders them through a portal to "
+        },
+        {
+          "insert": "document.body",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "ui-rail-labels-why": {
+      "id": "ui-rail-labels-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The glass clips its own contents during animation, so inline tooltips would be clipped. A portal preserves the tooltip, and the shared control keeps hover, focus, cancellation, and Escape behavior consistent."
+        }
+      ],
+      "children": []
+    },
+    "ui-rail-labels-scope": {
+      "id": "ui-rail-labels-scope",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Existing and future icon controls in the rail reuse "
+        },
+        {
+          "insert": "RailButton",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "lab/glass/RailIcons.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " contains the Context and State SVG components adapted from the local Nucleo UI outline library. Their sources are "
+        },
+        {
+          "insert": "school-education/18px_book-open.svg",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "design-development/18px_brackets-curly.svg",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " under the reference library's "
+        },
+        {
+          "insert": "icons/nucleo/nucleo_ui/outline/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Prompt, Tools, AI, and navigation glyphs use Lucide. Both icon families inherit "
+        },
+        {
+          "insert": "currentColor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "ui-outline-rail-heading": {
+      "id": "ui-outline-rail-heading",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The Outline Rail Is One Path With a Sliding Window"
+        }
+      ],
+      "children": []
+    },
+    "ui-outline-rail-decision": {
+      "id": "ui-outline-rail-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "PanelOutlineList",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "lab/glass/zones.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " computes one SVG path from the visible rows and draws it three times in a single overlay: the faint hairline, the accent segment, and the dot. The accent segment is a "
+        },
+        {
+          "insert": "stroke-dasharray",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " window offset along the path with "
+        },
+        {
+          "insert": "stroke-dashoffset",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; the dot is a zero-length dash with a round cap. Both transition with CSS, using the "
+        },
+        {
+          "insert": "OUTLINE_MOTION_MS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "OUTLINE_MOTION_EASE",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " constants."
+        }
+      ],
+      "children": []
+    },
+    "ui-outline-rail-why": {
+      "id": "ui-outline-rail-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Per-row rail pieces cannot animate between rows; a browser can only interpolate a dash window along one continuous path. Corners are true quarter-circle arcs, so segment lengths are analytic and the path's "
+        },
+        {
+          "insert": "pathLength",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " equals the computed total; the window and dot land exactly on row boundaries with no measurement pass or first-paint flash. Rows are fixed at 25px for the same reason. Corner radius, rail offsets, and dot size are named constants; a radius of zero yields square corners."
+        }
+      ],
+      "children": []
+    },
+    "ui-outline-rail-scope": {
+      "id": "ui-outline-rail-scope",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The accent and dot elements are keyed on the visible-row signature, so a fold or unfold remounts them and snaps rather than sliding across a reshaped path; scroll-spy changes keep the same elements and animate. A "
+        },
+        {
+          "insert": "matchMedia",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook disables every transition under reduced motion. "
+        },
+        {
+          "insert": "lab/index.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " pins the active row during a click-initiated smooth scroll and releases it on "
+        },
+        {
+          "insert": "scrollend",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or after 120ms without scroll events, so the dot glides once to the clicked row instead of following each intermediate scroll position. Future outline decorations extend the shared path rather than adding per-row drawing."
+        }
+      ],
+      "children": []
+    },
+    "ui-host-controlled-view-heading": {
+      "id": "ui-host-controlled-view-heading",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Hosts Own URL Navigation"
+        }
+      ],
+      "children": []
+    },
+    "ui-host-controlled-view-decision": {
+      "id": "ui-host-controlled-view-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "PromptInlineLab",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " accepts optional "
+        },
+        {
+          "insert": "view",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "onViewChange",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " props, with local selection when the host does not control it."
+        }
+      ],
+      "children": []
+    },
+    "ui-host-controlled-view-why": {
+      "id": "ui-host-controlled-view-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Prompt Kit stays independent of routing. Agent Kernel's "
+        },
+        {
+          "insert": "AgentPromptLabContainer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " forwards these props. Observatory's "
+        },
+        {
+          "insert": "src/ui/router.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "App.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "pages/AgentPage.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " connect them to the URL and page header. The host keeps the same agent lab mounted while the view changes."
+        }
+      ],
+      "children": []
+    },
+    "ui-host-controlled-view-scope": {
+      "id": "ui-host-controlled-view-scope",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Host adapters and future lab navigation integrate through these props rather than writing browser history inside Prompt Kit. "
+        },
+        {
+          "insert": "tests/ui/lab/persistent-rail.test.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " covers controlled view changes and leaving AI through host navigation. "
+        },
+        {
+          "insert": "tests/ui/lab/rail-button.test.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " covers tooltip delay, dismissal, and accessibility."
         }
       ],
       "children": []

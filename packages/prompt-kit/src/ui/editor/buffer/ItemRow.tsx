@@ -54,7 +54,7 @@ export function ItemRow({
 }) {
 	const node = line.node;
 	const itemIndex = line.itemIndex ?? 0;
-	const marker = listMarker(node, itemIndex);
+	const marker = listMarker(node, itemIndex, line.listDepth);
 
 	return (
 		<div className="flex min-w-0 items-start" style={{ textIndent: 0 }}>

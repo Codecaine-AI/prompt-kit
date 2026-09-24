@@ -7,6 +7,7 @@ import type {
 	PromptInline,
 } from "../../../index";
 import {
+	getPromptBlockNodeById,
 	editableTextToInline,
 	ensurePromptNodeIds,
 	inlineToEditableText,
@@ -14,6 +15,7 @@ import {
 import {
 	assignListItemIds,
 	collectPromptIds,
+	nextPromptNodeId,
 	stripListItemIds,
 } from "../../../document/nodes/ids";
 import {
@@ -910,4 +912,123 @@ function findLastListChildIndex(children: readonly PromptBlockNode[]): number {
 		}
 	}
 	return -1;
+}
+
+/** Split text lines without flattening variables or references into strings. */
+export function splitInlineLines(content: readonly PromptInline[]): PromptInline[][] {
+	const lines: PromptInline[][] = [[]];
+	for (const part of content) {
+		if (typeof part !== "string") { lines.at(-1)!.push(part); continue; }
+		const pieces = part.split(/\r\n?|\n/);
+		pieces.forEach((piece, index) => {
+			if (index > 0) lines.push([]);
+			lines.at(-1)!.push(piece);
+		});
+	}
+	return lines;
+}
+
+
+export function pastedListMarker(text: string) {
+	const match = /^([ \t]*)(?:([-*+•]) |(\d+)[.)] )/.exec(text);
+	if (!match) return null;
+	return {
+		indent: match[1]!.replace(/\t/g, "    ").length,
+		length: match[0].length,
+		type: match[3] ? "orderedList" as const : "bulletList" as const,
+		start: match[3] ? Number(match[3]) : undefined,
+	};
+}
+
+export type PastedListStack = Array<{indent: number; list: ListNode}>;
+
+/** Build only marked list nesting; unmarked lines remain the caller's decision. */
+export function appendPastedListItem(
+	blocks: PromptBlockNode[], stack: PastedListStack,
+	marker: NonNullable<ReturnType<typeof pastedListMarker>>,
+	content: PromptInline[], used: Set<string>, fixedRoot = false,
+): {list: ListNode; itemIndex: number} {
+	while (stack.length > 1 && marker.indent < stack.at(-1)!.indent) stack.pop();
+	let current = stack.at(-1);
+	let siblings = blocks;
+	if (current && marker.indent > current.indent && current.list.items.length) {
+		const parent = current.list.items.at(-1)!;
+		siblings = parent.children ??= [];
+		current = undefined;
+	} else if (stack.length > 1) {
+		siblings = stack[stack.length - 2]!.list.items.at(-1)!.children!;
+	}
+	if (!current || (current.list.type !== marker.type && !(fixedRoot && stack.length === 1))) {
+		if (current) stack.pop();
+		const id = nextPromptNodeId(marker.type, used);
+		used.add(id);
+		const list: ListNode = marker.type === "orderedList"
+			? {type: "orderedList", id, start: marker.start, items: []}
+			: {type: "bulletList", id, items: []};
+		siblings.push(list);
+		current = {indent: marker.indent, list};
+		stack.push(current);
+	}
+	current.list.items.push({type: "listItem", content});
+	return {list: current.list, itemIndex: current.list.items.length - 1};
+}
+
+/** A multiline paste inserts sibling or nested items in one reversible update. */
+export function pasteListItemsStep(
+	prompt: PromptDocument, listId: string, itemIndex: number,
+	before: string, pasted: string, after: string,
+): ListItemStepResult {
+	const normalized = pasted.replace(/\r\n?/g, "\n");
+	const lines = (after ? normalized : normalized.replace(/\n$/, "")).split("\n");
+	const used = collectPromptIds(prompt);
+	let focusListId = listId;
+	let focusItemIndex = itemIndex;
+	let caretOffset = 0;
+	const result = updateListByIdWithStep(prompt, listId, (list) => {
+		const source = list.items[itemIndex];
+		if (!source) return list;
+		const root = withItems(list, []);
+		const baseIndent = pastedListMarker(lines[0]!)?.indent ?? 0;
+		const stack: PastedListStack = [{indent: baseIndent, list: root}];
+		lines.forEach((line, index) => {
+			const marker = pastedListMarker(line);
+			if (!marker) stack.splice(1);
+			const text = (index === 0 ? before : "") + line.slice(marker?.length ?? 0);
+			const target = appendPastedListItem([], stack, marker ?? {
+				indent: baseIndent, length: 0, type: list.type, start: undefined,
+			}, editableTextToInline(text + (index === lines.length - 1 ? after : "")), used, true);
+			if (index === 0) {
+				target.list.items[target.itemIndex] = {...source, children: source.children ? [...source.children] : undefined, content: target.list.items[target.itemIndex]!.content};
+			}
+			focusListId = target.list.id!;
+			focusItemIndex = target.itemIndex + (target.list === root ? itemIndex : 0);
+			caretOffset = text.length;
+		});
+		const inserted = root.items.map((item) => assignListItemIds(item, used));
+		return withItems(list, [...list.items.slice(0, itemIndex), ...inserted, ...list.items.slice(itemIndex + 1)]);
+	});
+	return {...result, focusListId, focusItemIndex, caretOffset};
+}
+
+/** Join a following sibling paragraph into the preceding visible list item. */
+export function mergeParagraphIntoListSteps(
+	prompt: PromptDocument, listId: string, itemIndex: number, paragraphId: string,
+): { prompt: PromptDocument; steps: PromptStep[]; focusNodeId?: string; focusItemIndex?: number; caretOffset?: number } | null {
+	const rootId = resolveListRootId(prompt, listId);
+	const root = rootId ? getPromptBlockNodeById(prompt, rootId) : undefined;
+	const paragraph = getPromptBlockNodeById(prompt, paragraphId);
+	const item = getListById(prompt, listId)?.items[itemIndex];
+	if (!root || !paragraph || !item || paragraph.node.type !== "paragraph") return null;
+	if (root.index + 1 !== paragraph.index ||
+		JSON.stringify(root.parentPath) !== JSON.stringify(paragraph.parentPath)) return null;
+	const content = concatInline(item.content, paragraph.node.content);
+	const updated = updateListByIdWithStep(prompt, listId, (list) => ({
+		...list, items: list.items.map((existing, index) => index === itemIndex ? { ...existing, content } : existing),
+	}));
+	const removed = removePromptBlockNodeByIdWithStep(updated.prompt, paragraphId);
+	if (!removed.step) return null;
+	return {
+		prompt: removed.prompt, steps: [...(updated.step ? [updated.step] : []), removed.step],
+		focusNodeId: listId, focusItemIndex: itemIndex, caretOffset: inlineToEditableText(item.content).length,
+	};
 }

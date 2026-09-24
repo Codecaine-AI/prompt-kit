@@ -174,7 +174,7 @@ describe("PromptFlowXml row stamps", () => {
 		// metrics the styles feed are asserted directly.)
 		expect(grip.className).toContain("w-7");
 		expect(EDITOR_METRICS.lineHeight).toContain(
-			"var(--prompt-editor-line-height, 22px)",
+			"var(--prompt-editor-line-height, 26px)",
 		);
 		// Grab affordance: cursor grab at rest, grabbing while held.
 		expect(grip.className).toContain("cursor-grab");

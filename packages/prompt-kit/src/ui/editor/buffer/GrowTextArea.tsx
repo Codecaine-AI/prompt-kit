@@ -130,6 +130,9 @@ export function GrowTextArea({
 			onChange={(event) => onChange(event.target.value, event.target)}
 			onBlur={onBlur}
 			onKeyDown={(event) => {
+				// Composition keys belong to the IME, including Enter confirming a
+				// candidate. Older engines report that confirmation as keyCode 229.
+				if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
 				// The host sees every key FIRST. An overlay it owns — the slash
 				// menu — must be able to take Escape to close itself while the
 				// caret keeps blinking, which it cannot do if Escape has already
@@ -154,6 +157,7 @@ export function GrowTextArea({
 				// up); everywhere else the inherited size IS the metric, so the
 				// editor never changes glyph size when the caret arrives.
 				fontSize: "inherit",
+				fontWeight: "inherit",
 				minHeight: EDITOR_METRICS.lineHeight,
 				color: color ?? EDITOR_COLORS.fg,
 			}}

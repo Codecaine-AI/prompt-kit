@@ -72,7 +72,7 @@ export function SectionOutline({
 	return (
 		<nav
 			aria-label="Prompt sections"
-			className="flex w-48 shrink-0 flex-col overflow-y-auto overscroll-contain pb-4 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5 hover:[&::-webkit-scrollbar-thumb]:bg-white/15"
+			className="flex w-48 shrink-0 flex-col overflow-y-auto overscroll-contain pb-4 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-transparent [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-1.5 hover:[&::-webkit-scrollbar-thumb]:bg-foreground/15"
 			style={
 				{
 					background: EDITOR_COLORS.bg,

@@ -74,7 +74,7 @@ export function SectionTagRow({
 					className="min-w-0"
 					// Same weight as the resting name: the textarea inherits it, so
 					// the glyphs do not thicken or thin when the caret arrives.
-					style={{ width: tagWidth(tag.length), fontWeight: 500 }}
+					style={{ width: tagWidth(tag.length), fontWeight: "var(--prompt-editor-tag-weight, 500)" }}
 				>
 					<InlineEditor
 						key={`edit:${editSeq}`}
@@ -90,7 +90,7 @@ export function SectionTagRow({
 					/>
 				</div>
 			) : (
-				<div style={{ color: EDITOR_COLORS.syntaxTag, fontWeight: 500 }}>
+				<div style={{ color: EDITOR_COLORS.syntaxTag, fontWeight: "var(--prompt-editor-tag-weight, 500)" }}>
 					<RowText
 						line={line}
 						editable

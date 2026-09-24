@@ -33,6 +33,7 @@ export function BlockCluster({
 	onRetag,
 	onRemove,
 	onInsertChild,
+	onConvert,
 	onDragHandleDown,
 }: {
 	node: PromptBlockNode;
@@ -46,6 +47,7 @@ export function BlockCluster({
 	onRetag: (tag: string) => void;
 	onRemove: () => void;
 	onInsertChild: (type: PromptBlockNodeType) => void;
+	onConvert?: (type: "bulletList" | "orderedList") => void;
 	onDragHandleDown: (event: React.PointerEvent<HTMLElement>) => void;
 }) {
 	return (
@@ -90,7 +92,7 @@ export function BlockCluster({
 				// a full line-height tall around the ~20px grip), with a hover wash
 				// and grab/grabbing cursors. Pointer-down still starts a drag and a
 				// motionless click still opens the block menu.
-				className="prompt-editor-grip pointer-events-auto flex w-7 cursor-grab touch-none items-center justify-center rounded-[3px] hover:bg-white/10 active:cursor-grabbing"
+				className="prompt-editor-grip pointer-events-auto flex w-7 cursor-grab touch-none items-center justify-center rounded-[3px] hover:bg-foreground/10 active:cursor-grabbing"
 				style={{
 					height: EDITOR_METRICS.lineHeight,
 					color: EDITOR_COLORS.grip,
@@ -113,6 +115,7 @@ export function BlockCluster({
 					onRetag={onRetag}
 					onRemove={onRemove}
 					onInsertChild={onInsertChild}
+					onConvert={onConvert}
 				/>
 			)}
 		</div>

@@ -67,6 +67,8 @@ export interface XmlLine {
 	editable: boolean;
 	/** For list nodes: which item this line renders (0-based). */
 	itemIndex?: number;
+	/** List nesting only, excluding surrounding XML containers. */
+	listDepth?: number;
 	/**
 	 * For item lines: the rendered item's OWN id (`node.items[itemIndex].id`).
 	 * Items are annotation targets in their own right; overlay layers stamp
@@ -85,6 +87,7 @@ export interface XmlLine {
 
 interface Cursor {
 	depth: number;
+	listDepth?: number;
 	ctx: XmlMarkdownRenderContext;
 	lines: XmlLine[];
 }
@@ -409,6 +412,7 @@ function emitList(node: PromptListNode, level: number, cursor: Cursor): void {
 			role: "item",
 			editable: true,
 			itemIndex: index,
+			listDepth: cursor.listDepth ?? 0,
 			// The item is its own annotation target; the list is its parent.
 			itemId: item.id,
 			parentNodeId: listId,
@@ -420,7 +424,10 @@ function emitList(node: PromptListNode, level: number, cursor: Cursor): void {
 			// siblings, so the first child abuts the item line as required.
 			// Blocks nested in an item parent to the ITEM (falling back to the
 			// list when the item carries no id).
+			const parentListDepth = cursor.listDepth ?? 0;
+			cursor.listDepth = parentListDepth + 1;
 			emitNodes(children, level + 1, cursor, item.id ?? listId);
+			cursor.listDepth = parentListDepth;
 		}
 	});
 }

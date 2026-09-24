@@ -172,7 +172,7 @@ export function ContextSurface({
 								marginTop: "var(--prompt-editor-margin-top, 0px)",
 							}}
 						>
-							<PromptView content={rendered} title="Context" bare inheritStyle />
+							<PromptView content={rendered} title="Context" bare inheritStyle highlightJson />
 						</div>
 					</div>
 					{outlineShown && (

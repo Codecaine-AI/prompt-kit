@@ -264,7 +264,7 @@ function QueueRow({
 				"group rounded-md border-l-2 px-1.5 py-1 transition-colors",
 				entry.processing || waiting
 					? "border-transparent"
-					: "border-transparent hover:bg-white/[0.03]",
+					: "border-transparent hover:bg-foreground/[0.03]",
 				focusNodeId && "cursor-pointer",
 			)}
 			style={
@@ -318,7 +318,7 @@ function QueueRow({
 					className="ml-auto shrink-0 text-[10px] tracking-[0.04em]"
 					style={{
 						color: entry.staged
-							? "var(--prompt-editor-diff-add-fg, #3FB950)"
+							? "var(--prompt-editor-diff-add-fg, var(--editor-diff-add-fg, #3FB950))"
 							: entry.processing
 								? ANNOTATE_COLORS.accentLit
 								: waiting
@@ -445,7 +445,7 @@ function RecordRow({
 				aria-hidden
 				style={{
 					color: record.ok
-						? "var(--prompt-editor-diff-add-fg, #3FB950)"
+						? "var(--prompt-editor-diff-add-fg, var(--editor-diff-add-fg, #3FB950))"
 						: undefined,
 				}}
 			>

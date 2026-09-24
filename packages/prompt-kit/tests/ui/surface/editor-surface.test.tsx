@@ -31,16 +31,16 @@ describe("prompt editor surface contract", () => {
 	});
 
 	test("uses the balanced standalone fallbacks", () => {
-		expect(EDITOR_FONT_PX).toBe(13);
-		expect(LINE_HEIGHT_PX).toBe(22);
+		expect(EDITOR_FONT_PX).toBe(15);
+		expect(LINE_HEIGHT_PX).toBe(26);
 		expect(EDITOR_METRICS).toEqual({
 			fontFamily:
-				'var(--prompt-editor-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace)',
-			fontSize: "var(--prompt-editor-font-size, 13px)",
-			lineHeight: "var(--prompt-editor-line-height, 22px)",
+				'var(--prompt-editor-font-family, ui-sans-serif, system-ui, sans-serif)',
+			fontSize: "var(--prompt-editor-font-size, 15px)",
+			lineHeight: "var(--prompt-editor-line-height, 26px)",
 			letterSpacing: "var(--prompt-editor-letter-spacing, 0em)",
 			indentWidth: "var(--prompt-editor-indent-width, 2ch)",
-			contentWidth: "var(--prompt-editor-content-width, 136ch)",
+			contentWidth: "var(--prompt-editor-content-width, 88ch)",
 			gutterWidth: "var(--prompt-editor-gutter-width, 36px)",
 			gripSize: "var(--prompt-editor-grip-size, 20px)",
 			itemGripSize: "var(--prompt-editor-item-grip-size, 14px)",
@@ -48,11 +48,11 @@ describe("prompt editor surface contract", () => {
 			landmarkFontScale: "var(--prompt-editor-landmark-font-scale, 1.08)",
 			landmarkPad: "var(--prompt-editor-landmark-pad, 8px)",
 			gapHeightBase:
-				"var(--prompt-editor-gap-height-base, var(--prompt-editor-line-height, 22px))",
+				"var(--prompt-editor-gap-height-base, var(--prompt-editor-line-height, 26px))",
 			gapHeightSub:
-				"var(--prompt-editor-gap-height-sub, calc(var(--prompt-editor-line-height, 22px) + 32px))",
+				"var(--prompt-editor-gap-height-sub, calc(var(--prompt-editor-line-height, 26px) + 32px))",
 			gapHeightTop:
-				"var(--prompt-editor-gap-height-top, calc(var(--prompt-editor-line-height, 22px) + 64px))",
+				"var(--prompt-editor-gap-height-top, calc(var(--prompt-editor-line-height, 26px) + 64px))",
 		});
 		expect(EDITOR_COLORS).toEqual({
 			bg: "var(--prompt-editor-bg, var(--editor-bg, #1E1E1E))",
@@ -70,38 +70,38 @@ describe("prompt editor surface contract", () => {
 			landmark:
 				"var(--prompt-editor-landmark, var(--editor-landmark, rgb(255 255 255 / 0.06)))",
 			syntaxPunctuation:
-				"var(--prompt-editor-syntax-punctuation, #6E7681)",
-			syntaxTag: "var(--prompt-editor-syntax-tag, #B48EC7)",
+				"var(--prompt-editor-syntax-punctuation, var(--editor-syntax-punctuation, #6E7681))",
+			syntaxTag: "var(--prompt-editor-syntax-tag, var(--editor-syntax-tag, #B48EC7))",
 			syntaxTagLandmark:
-				"var(--prompt-editor-syntax-tag-landmark, #BC9AD3)",
+				"var(--prompt-editor-syntax-tag-landmark, var(--editor-syntax-tag-landmark, #BC9AD3))",
 			syntaxTagSublandmark:
-				"var(--prompt-editor-syntax-tag-sublandmark, #A992BE)",
-			inlineCode: "var(--prompt-editor-inline-code, #5FBCA5)",
+				"var(--prompt-editor-syntax-tag-sublandmark, var(--editor-syntax-tag-sublandmark, #A992BE))",
+			inlineCode: "var(--prompt-editor-inline-code, var(--editor-inline-code, #5FBCA5))",
 			inlineChipBg:
-				"var(--prompt-editor-inline-chip-bg, rgb(95 188 165 / 0.08))",
+				"var(--prompt-editor-inline-chip-bg, var(--editor-inline-chip-bg, rgb(95 188 165 / 0.08)))",
 			syntaxAttribute:
-				"var(--prompt-editor-syntax-attribute, #85AECB)",
-			syntaxValue: "var(--prompt-editor-syntax-value, #C09A78)",
-			syntaxVariable: "var(--prompt-editor-syntax-variable, #D9C578)",
+				"var(--prompt-editor-syntax-attribute, var(--editor-syntax-attribute, #85AECB))",
+			syntaxValue: "var(--prompt-editor-syntax-value, var(--editor-syntax-value, #C09A78))",
+			syntaxVariable: "var(--prompt-editor-syntax-variable, var(--editor-syntax-variable, #D9C578))",
 			syntaxReference:
-				"var(--prompt-editor-syntax-reference, #5FBCA5)",
+				"var(--prompt-editor-syntax-reference, var(--editor-syntax-reference, #5FBCA5))",
 			syntaxListMarker:
 				"var(--prompt-editor-syntax-list-marker, var(--editor-line-number, #7E8590))",
 			hoverBg:
-				"var(--prompt-editor-hover-bg, rgb(255 255 255 / 0.05))",
+				"var(--prompt-editor-hover-bg, var(--editor-hover-bg, rgb(255 255 255 / 0.05)))",
 			selectionBg:
-				"var(--prompt-editor-selection-bg, rgb(61 123 191 / 0.16))",
+				"var(--prompt-editor-selection-bg, var(--editor-selection-bg, rgb(61 123 191 / 0.16)))",
 			selectionAccent:
-				"var(--prompt-editor-selection-accent, #4D9DE0)",
+				"var(--prompt-editor-selection-accent, var(--editor-selection-accent, #4D9DE0))",
 			activeLineBg:
-				"var(--prompt-editor-active-line-bg, rgb(255 255 255 / 0.035))",
-			grip: "var(--prompt-editor-grip-color, #8A919C)",
-			dropLine: "var(--prompt-editor-drop-line-color, #4D9DE0)",
-			diffDelBg: "var(--prompt-editor-diff-del-bg, rgb(248 81 73 / 0.13))",
-			diffDelFg: "var(--prompt-editor-diff-del-fg, #F85149)",
-			diffAddBg: "var(--prompt-editor-diff-add-bg, rgb(63 185 80 / 0.13))",
-			diffAddFg: "var(--prompt-editor-diff-add-fg, #3FB950)",
-			threadAccent: "var(--prompt-editor-thread-accent, #D29922)",
+				"var(--prompt-editor-active-line-bg, var(--editor-active-line-bg, rgb(255 255 255 / 0.035)))",
+			grip: "var(--prompt-editor-grip-color, var(--editor-grip-color, #8A919C))",
+			dropLine: "var(--prompt-editor-drop-line-color, var(--editor-drop-line-color, #4D9DE0))",
+			diffDelBg: "var(--prompt-editor-diff-del-bg, var(--editor-diff-del-bg, rgb(248 81 73 / 0.13)))",
+			diffDelFg: "var(--prompt-editor-diff-del-fg, var(--editor-diff-del-fg, #F85149))",
+			diffAddBg: "var(--prompt-editor-diff-add-bg, var(--editor-diff-add-bg, rgb(63 185 80 / 0.13)))",
+			diffAddFg: "var(--prompt-editor-diff-add-fg, var(--editor-diff-add-fg, #3FB950))",
+			threadAccent: "var(--prompt-editor-thread-accent, var(--editor-thread-accent, #D29922))",
 		});
 	});
 

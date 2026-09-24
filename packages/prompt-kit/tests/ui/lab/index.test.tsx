@@ -91,9 +91,10 @@ describe("PromptInlineLab structure", () => {
     expect(markup).toContain('data-lab-view="context"');
     // No state zone wired → no state view row.
     expect(markup).not.toContain('data-lab-view="state"');
-    // Counts live on the switcher rows (quiet numbers, no unit chatter).
+    // Counts live in the active header and hover tooltips. Icons have labels.
     expect(markup).toContain("Estimated tokens in the system view");
-    expect(markup).toContain("Estimated tokens in the context view");
+    expect(markup).toContain('aria-label="Context"');
+    expect(markup).toContain('data-lab-panel-state="rail"');
 
     // The old inspector is dissolved: no tabs, no collapse, no Inspect.
     expect(markup).not.toContain("Collapse inspector");
@@ -114,11 +115,11 @@ describe("PromptInlineLab structure", () => {
 
     // The document wrapper no longer caps/centers around the surfaces —
     // it projects the style settings' Content width verbatim as the
-    // content-width var (default 136ch; the old hard 96ch cap swallowed the
+    // content-width var (default 88ch; the old hard 96ch cap swallowed the
     // slider), so each surface's scroller spans to the dock while the text
     // column caps inside it.
-    expect(markup).toContain("--prompt-editor-content-width:136ch");
-    expect(markup).not.toContain("max-width:136ch");
+    expect(markup).toContain("--prompt-editor-content-width:88ch");
+    expect(markup).not.toContain("max-width:88ch");
 
     // The editor rows container LEFT-JUSTIFIES at the style rail's margins
     // inside the full-width scroller (2026-08-04 audit — centering retired).
@@ -177,7 +178,7 @@ describe("PromptInlineLab structure", () => {
     expect(markup).not.toContain("d631b52690");
   });
 
-  test("the outline header's history toggle swaps the zone body to revisions and back", () => {
+  test("the floating history toggle swaps the headerless outline to revisions and back", () => {
     render(
       <PromptInlineLab
         prompt={prompt}
@@ -190,24 +191,27 @@ describe("PromptInlineLab structure", () => {
     expect(document.querySelector("[data-lab-panel-history]")).toBeNull();
     const outlineZone = () =>
       document.querySelector('[data-lab-zone="outline"]')!;
-    expect(outlineZone().textContent).toContain("Outline");
+    expect(outlineZone().getAttribute("aria-label")).toBe("Outline");
+    expect(outlineZone().querySelector("[data-lab-zone-header]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Expand outline" }));
     const toggle = screen.getByRole("button", { name: "History" });
     expect(toggle.getAttribute("aria-pressed")).toBe("false");
 
     // The toggle swaps the ZONE BODY: revisions replace the outline, the
-    // header retitles, and the rest of the zone stack stays put.
+    // accessible label changes, and the rest of the zone stack stays put.
     fireEvent.click(toggle);
     const historyView = document.querySelector("[data-lab-panel-history]")!;
     expect(historyView).toBeTruthy();
     expect(outlineZone().contains(historyView)).toBe(true);
     expect(screen.getByText("rev-history")).toBeTruthy();
-    expect(outlineZone().textContent).toContain("History");
-    expect(document.querySelector('[data-lab-zone="view"]')).toBeTruthy();
+    expect(outlineZone().getAttribute("aria-label")).toBe("Revision history");
+    expect(document.querySelector("[data-lab-persistent-rail]")).toBeTruthy();
 
     // The same toggle returns the outline.
     fireEvent.click(screen.getByRole("button", { name: "History" }));
     expect(document.querySelector("[data-lab-panel-history]")).toBeNull();
-    expect(outlineZone().textContent).toContain("Outline");
+    expect(outlineZone().getAttribute("aria-label")).toBe("Outline");
+    expect(outlineZone().querySelector("[data-lab-zone-header]")).toBeNull();
   });
 
   test("no revisionsZone → no history icon, no history view", () => {
@@ -352,14 +356,14 @@ describe("PromptInlineLab config zone", () => {
     expect(document.querySelector('[data-lab-view="config"]')).toBeNull();
   });
 
-  test("renders a read-only model after the VIEW zone", () => {
+  test("renders a read-only model inside the expanded panel", () => {
     render(<PromptInlineLab prompt={prompt} configZone={{ model: "gpt-5" }} />);
 
-    const viewZone = document.querySelector('[data-lab-zone="view"]')!;
+    fireEvent.click(screen.getByRole("button", { name: "Expand outline" }));
     const configZone = document.querySelector<HTMLElement>(
       '[data-lab-zone="config"]',
     )!;
-    expect(viewZone.nextElementSibling).toBe(configZone);
+    expect(document.querySelector("[data-lab-panel-content]")!.contains(configZone)).toBe(true);
     expect(within(configZone).getByText("Config")).toBeTruthy();
     expect(within(configZone).getByText("Model")).toBeTruthy();
     expect(within(configZone).getByText("gpt-5")).toBeTruthy();
@@ -383,19 +387,75 @@ describe("PromptInlineLab config zone", () => {
     const configZone = document.querySelector<HTMLElement>(
       '[data-lab-zone="config"]',
     )!;
+    fireEvent.click(screen.getByRole("button", { name: "Expand outline" }));
     const select = within(configZone).getByRole("combobox", { name: "Model" });
     expect((select as HTMLSelectElement).value).toBe("gpt-5");
     fireEvent.change(select, { target: { value: "gpt-5-mini" } });
     expect(changes).toEqual(["gpt-5-mini"]);
   });
 
-  test("shows an em dash for a null model", () => {
+  test("shows an unset label for a null model", () => {
     render(<PromptInlineLab prompt={prompt} configZone={{ model: null }} />);
 
     const configZone = document.querySelector<HTMLElement>(
       '[data-lab-zone="config"]',
     )!;
-    expect(within(configZone).getByText("—")).toBeTruthy();
+    expect(within(configZone).getByText("Not configured")).toBeTruthy();
+  });
+});
+
+describe("PromptInlineLab preview and thinking controls", () => {
+  test("context fixtures stay available across views and change context and tools together", () => {
+    const selections: string[] = [];
+    const fixtures = [{ id: "B1", label: "B1 skincare" }, { id: "B2", label: "B2 availability" }];
+    const props = (id: string) => ({
+      prompt,
+      contextFixtures: { fixtures, activeFixtureId: id, onFixtureSelect: (value: string) => selections.push(value) },
+      context: { renderedContext: `<assignment>${id}</assignment>` },
+      toolsZone: { renderedTools: `<tool>${id}_submit</tool>` },
+    });
+    const { rerender } = render(<PromptInlineLab {...props("B1")} />);
+    fireEvent.click(screen.getByRole("button", { name: "Expand outline" }));
+    const selector = () => screen.getByRole("combobox", { name: "Context fixture" });
+    fireEvent.change(selector(), { target: { value: "B2" } });
+    expect(selections).toEqual(["B2"]);
+    rerender(<PromptInlineLab {...props("B2")} />);
+    fireEvent.click(document.querySelector('[data-lab-view="context"]')!);
+    expect(document.querySelector('[data-context-scroll="context"]')?.textContent).toContain("B2");
+    expect(document.querySelector('[data-context-scroll="context"]')?.textContent).not.toContain("B1");
+    expect((selector() as HTMLSelectElement).value).toBe("B2");
+    fireEvent.click(document.querySelector('[data-lab-view="tools"]')!);
+    expect(document.querySelector('[data-context-scroll="tools"]')?.textContent).toContain("B2_submit");
+    expect(selector()).toBeTruthy();
+    rerender(<PromptInlineLab prompt={prompt} />);
+    expect(screen.queryByRole("combobox", { name: "Context fixture" })).toBeNull();
+  });
+
+  test("thinking is controlled by the host with supported options and save feedback", () => {
+    const changes: string[] = [];
+    const config = { model: "test/model", thinking: "medium", thinkingOptions: ["low", "medium", "high"], onThinkingChange: (value: string) => changes.push(value) };
+    const { rerender } = render(<PromptInlineLab prompt={prompt} configZone={config} />);
+    fireEvent.click(screen.getByRole("button", { name: "Expand outline" }));
+    const selector = () => screen.getByRole("combobox", { name: "Default thinking" }) as HTMLSelectElement;
+    expect(Array.from(selector().options, option => option.value)).toEqual(["low", "medium", "high"]);
+    fireEvent.change(selector(), { target: { value: "high" } });
+    expect(changes).toEqual(["high"]);
+    rerender(<PromptInlineLab prompt={prompt} configZone={{ ...config, disabled: true, status: "Saving…" }} />);
+    expect(selector().disabled).toBe(true);
+    expect(selector().value).toBe("medium");
+    expect(screen.getByRole("status").textContent).toBe("Saving…");
+    rerender(<PromptInlineLab prompt={prompt} configZone={{ ...config, error: "Save failed" }} />);
+    expect(selector().value).toBe("medium");
+    expect(screen.getByRole("alert").textContent).toBe("Save failed");
+    rerender(<PromptInlineLab prompt={prompt} configZone={{ ...config, thinking: "high", status: "Saved for future runs." }} />);
+    expect(selector().value).toBe("high");
+  });
+
+  test("thinking without a save callback is read-only", () => {
+    render(<PromptInlineLab prompt={prompt} configZone={{ model: "test/model", thinking: "medium", thinkingOptions: ["medium"] }} />);
+    expect(screen.getByText("Default thinking")).toBeTruthy();
+    expect(screen.getByText("medium")).toBeTruthy();
+    expect(screen.queryByRole("combobox", { name: "Default thinking" })).toBeNull();
   });
 });
 
@@ -422,6 +482,7 @@ describe("PromptInlineLab dock outline", () => {
 
   test("system sections list in the OUTLINE zone and click scrolls the buffer", () => {
     render(<PromptInlineLab prompt={nestedPrompt} />);
+    fireEvent.click(screen.getByRole("button", { name: "Expand outline" }));
 
     const zone = document.querySelector('[data-lab-zone="outline"]');
     expect(zone).toBeTruthy();
@@ -616,7 +677,7 @@ describe("PromptInlineLab annotate mode", () => {
 
     // Edit tab: the zone stack is on screen (no COMMENTS zone — what's
     // active lives on the AI tab), the workspace is not mounted.
-    expect(document.querySelector('[data-lab-zone="view"]')).toBeTruthy();
+    expect(document.querySelector("[data-lab-persistent-rail]")).toBeTruthy();
     expect(document.querySelector('[data-lab-zone="comments"]')).toBeNull();
     expect(document.querySelector("[data-lab-annotate-panel]")).toBeNull();
     expect(document.querySelector('[data-plannotator="root"]')).toBeNull();
@@ -632,12 +693,12 @@ describe("PromptInlineLab annotate mode", () => {
     const pane = document.querySelector('[data-plannotator="root"]');
     expect(pane).toBeTruthy();
     expect(panel!.contains(pane)).toBe(true);
-    expect(document.querySelector('[data-lab-zone="view"]')).toBeNull();
+    expect(document.querySelector("[data-lab-persistent-rail]")).toBeTruthy();
 
     // The Edit tab returns the zones.
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
     expect(document.querySelector("[data-lab-annotate-panel]")).toBeNull();
-    expect(document.querySelector('[data-lab-zone="view"]')).toBeTruthy();
+    expect(document.querySelector("[data-lab-persistent-rail]")).toBeTruthy();
   });
 
   test("focusing a listed annotation reopens the anchored popover, not a pane composer", async () => {

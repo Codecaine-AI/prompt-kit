@@ -338,7 +338,7 @@ describe("the sidebar queue", () => {
 /* ------------------------------------------------------------------ */
 
 describe("ambient mode signals", () => {
-	test("entering morphs the glass and shows the breathing dot — no edge line", () => {
+	test("entering expands AI while keeping the rail and idle icon quiet", () => {
 		render(<PromptInlineLab prompt={prompt} />);
 		expect(document.querySelector("[data-lab-annotate-chip]")).toBeNull();
 		// Edit mode: the floating glass dock is up in its dock shape.
@@ -356,18 +356,13 @@ describe("ambient mode signals", () => {
 			document.querySelector("[data-lab-dock]")!.getAttribute("data-lab-float-mode"),
 		).toBe("annotate");
 		expect(document.querySelector("[data-lab-annotate-panel]")).toBeTruthy();
-		// The tab bar swaps roles: the AI tab is now the wide text tab and
-		// carries the breathing dot.
 		const header = document.querySelector("[data-lab-annotate-panel-header]")!;
 		expect(header.textContent).toContain("Annotations");
-		expect(
-			header.querySelector("[data-lab-annotate-dot]")!.getAttribute(
-				"data-lab-annotate-dot",
-			),
-		).toBe("slow");
+		expect(document.querySelector("[data-lab-persistent-rail]")).toBeTruthy();
+		expect(document.querySelector("[data-lab-annotate-dot]")).toBeNull();
 	});
 
-	test("the tab's dot beats faster while the queue is draining", () => {
+	test("the rail marks AI busy while the queue is draining", () => {
 		openAnnotate({
 			requests: [request("R4", "batch", "open")],
 			proposals: [],

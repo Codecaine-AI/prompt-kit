@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { matchAutoformatMarker, resolveAutoformat } from "../../../../src/ui/editor/buffer/autoformat";
+import { matchAutoformatMarker, resolveAutoformat, resolveLineAutoformat } from "../../../../src/ui/editor/buffer/autoformat";
 
 describe("matchAutoformatMarker", () => {
 	it("reads the bullet markers", () => {
@@ -71,5 +71,21 @@ describe("resolveAutoformat", () => {
 
 	it("does not fire when the edit was not an append", () => {
 		expect(resolveAutoformat("xyz", "- ")).toBeNull();
+	});
+});
+
+
+describe("logical-line autoformat", () => {
+	it("converts a marker inserted before existing text", () => {
+		expect(resolveLineAutoformat("-hello", "- hello", 2)).toEqual({start: 0, end: 7});
+	});
+	it("recognizes numbered lists after a soft newline", () => {
+		expect(resolveLineAutoformat("Intro\n1.", "Intro\n1. ", 9)).toEqual({start: 6, end: 9});
+	});
+	it("leaves ordinary dashes, replacements, and existing markers alone", () => {
+		expect(resolveLineAutoformat("a -", "a - b", 4)).toBeNull();
+		expect(resolveLineAutoformat("abc", "- ", 2)).toBeNull();
+		expect(resolveLineAutoformat("- a", "- ab", 4)).toBeNull();
+		expect(resolveLineAutoformat("Intro\n-text", "Intro\ntext", 6)).toBeNull();
 	});
 });

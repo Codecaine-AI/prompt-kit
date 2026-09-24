@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH } from "../surface/editor-surface";
 
 export type PromptMonoFontFamily =
+	| "sans"
 	| "system"
 	| "sf-mono"
 	| "jetbrains-mono"
@@ -87,9 +88,10 @@ export interface PromptStyleStorage {
 
 export const PROMPT_STYLE_STORAGE_KEY = "agentKernel.promptEditorStyle.v2";
 
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 
 const FONT_STACKS: Record<PromptMonoFontFamily, string> = {
+	sans: "ui-sans-serif, system-ui, sans-serif",
 	system:
 		'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
 	"sf-mono":
@@ -100,19 +102,16 @@ const FONT_STACKS: Record<PromptMonoFontFamily, string> = {
 		'"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
 };
 
-// THE one theme (2026-08-04 audit): the "painted" palette over the balanced
-// metrics. Presets are gone — this is the global baseline every surface
-// shares, and the style rail adjusts it directly.
+// Document typography follows Docs System: sans-serif prose, larger text,
+// generous leading, and a shorter reading measure. Hosts supply theme colors.
 const BASE_SETTINGS: PromptStyleSettings = {
-	fontFamily: "system",
-	fontSize: 13,
-	lineHeight: 22,
+	fontFamily: "sans",
+	fontSize: 15,
+	lineHeight: 26,
 	letterSpacing: 0,
 	indentWidth: 20,
-	// Wide enough to use the pane at large window sizes: at ~2000px the text
-	// column would otherwise stop well short of the inspector and the prose
-	// would wrap far more than it needs to.
-	contentWidth: 136,
+	// Limit long lines so the eye can return to the next line comfortably.
+	contentWidth: 88,
 	marginLeft: 48,
 	marginTop: 24,
 	panelInset: 24,
@@ -147,7 +146,7 @@ const BASE_SETTINGS: PromptStyleSettings = {
 	listMarkerColor: "#6C737B",
 
 	guideColor: "#FFFFFF",
-	guideOpacity: 0.1,
+	guideOpacity: 0.18,
 	landmarkColor: "#FFFFFF",
 	// Off by default: landmark rows already read as landmarks from the larger
 	// tag type and band padding; the full-width wash competes with selection
@@ -178,6 +177,7 @@ export const PROMPT_STYLE_DEFAULTS: Readonly<PromptStyleSettings> =
 	BASE_SETTINGS;
 
 const FONT_FAMILIES = new Set<PromptMonoFontFamily>([
+	"sans",
 	"system",
 	"sf-mono",
 	"jetbrains-mono",
@@ -457,12 +457,21 @@ export function loadPromptStyleSettings(
 		const payload: unknown = JSON.parse(raw);
 		if (
 			!isRecord(payload) ||
-			payload.version !== STORAGE_VERSION ||
+			(payload.version !== 2 && payload.version !== STORAGE_VERSION) ||
 			!("settings" in payload)
 		) {
 			return { ...PROMPT_STYLE_DEFAULTS };
 		}
-		return normalizePromptStyleSettings(payload.settings);
+		// Older saves contain a full snapshot, including the former defaults.
+		// Migrate those defaults without discarding unrelated custom settings.
+		const settings = isRecord(payload.settings) ? { ...payload.settings } : {};
+		if (payload.version === 2) {
+			if (settings.fontFamily === "system") settings.fontFamily = "sans";
+			if (settings.fontSize === 13) settings.fontSize = 15;
+			if (settings.lineHeight === 22) settings.lineHeight = 26;
+			if (settings.contentWidth === 136) settings.contentWidth = 88;
+		}
+		return normalizePromptStyleSettings(settings);
 	} catch {
 		return { ...PROMPT_STYLE_DEFAULTS };
 	}
@@ -514,12 +523,29 @@ function hexWithOpacity(color: string, opacity: number): string {
 
 /**
  * Project a complete settings value onto a prompt-surface root. Defaults are
- * deliberately emitted too: the settings contract is the single source of
- * truth, while the variables stay scoped to the prompt editor rather than
- * recoloring the entire host application.
+ * emitted as host-theme references with dark fallbacks. Customized colors stay
+ * local to this editor and override the host theme unless followTheme is set.
+ * Following the theme leaves saved colors untouched and retains layout settings.
  */
-export function promptStyleVars(settings: PromptStyleSettings): CSSProperties {
+export function promptStyleVars(
+	settings: PromptStyleSettings,
+	options: { followTheme?: boolean } = {},
+): CSSProperties {
 	const value = normalizePromptStyleSettings(settings);
+	const color = (key: keyof PromptStyleSettings, token: string): string =>
+		options.followTheme || value[key] === PROMPT_STYLE_DEFAULTS[key]
+			? `var(--editor-${token}, ${PROMPT_STYLE_DEFAULTS[key]})`
+			: String(value[key]);
+	const alpha = (
+		key: keyof PromptStyleSettings,
+		opacityKey: keyof PromptStyleSettings,
+		token: string,
+	): string => {
+		const fallback = hexWithOpacity(String(value[key]), Number(value[opacityKey]));
+		return options.followTheme || value[key] === PROMPT_STYLE_DEFAULTS[key]
+			? `color-mix(in srgb, ${color(key, token)} ${Number(value[opacityKey]) * 100}%, transparent)`
+			: fallback;
+	};
 
 	return {
 		"--prompt-editor-font-family": FONT_STACKS[value.fontFamily],
@@ -540,27 +566,24 @@ export function promptStyleVars(settings: PromptStyleSettings): CSSProperties {
 		"--prompt-editor-show-guides": value.showGuides ? "1" : "0",
 		"--prompt-editor-guides-display": value.showGuides ? "block" : "none",
 
-		"--prompt-editor-bg": value.surfaceColor,
-		"--prompt-editor-fg": value.foregroundColor,
-		"--prompt-editor-gutter-bg": value.gutterColor,
-		"--prompt-editor-line-number": value.lineNumberColor,
-		"--prompt-editor-line-number-active": value.activeLineNumberColor,
+		"--prompt-editor-bg": color("surfaceColor", "bg"),
+		"--prompt-editor-fg": color("foregroundColor", "fg"),
+		"--prompt-editor-gutter-bg": color("gutterColor", "gutter-bg"),
+		"--prompt-editor-line-number": color("lineNumberColor", "line-number"),
+		"--prompt-editor-line-number-active": color("activeLineNumberColor", "line-number-active"),
 
-		"--prompt-editor-syntax-punctuation": value.tagPunctuationColor,
-		"--prompt-editor-syntax-tag": value.tagNameColor,
-		"--prompt-editor-syntax-tag-landmark": value.tagLandmarkColor,
-		"--prompt-editor-syntax-tag-sublandmark": value.tagSublandmarkColor,
-		"--prompt-editor-syntax-attribute": value.attributeNameColor,
-		"--prompt-editor-syntax-value": value.attributeValueColor,
-		"--prompt-editor-syntax-variable": value.variableColor,
-		"--prompt-editor-syntax-reference": value.referenceColor,
-		"--prompt-editor-syntax-list-marker": value.listMarkerColor,
-		"--prompt-editor-inline-code": value.inlineCodeColor,
+		"--prompt-editor-syntax-punctuation": color("tagPunctuationColor", "syntax-punctuation"),
+		"--prompt-editor-syntax-tag": color("tagNameColor", "syntax-tag"),
+		"--prompt-editor-syntax-tag-landmark": color("tagLandmarkColor", "syntax-tag-landmark"),
+		"--prompt-editor-syntax-tag-sublandmark": color("tagSublandmarkColor", "syntax-tag-sublandmark"),
+		"--prompt-editor-syntax-attribute": color("attributeNameColor", "syntax-attribute"),
+		"--prompt-editor-syntax-value": color("attributeValueColor", "syntax-value"),
+		"--prompt-editor-syntax-variable": color("variableColor", "syntax-variable"),
+		"--prompt-editor-syntax-reference": color("referenceColor", "syntax-reference"),
+		"--prompt-editor-syntax-list-marker": color("listMarkerColor", "syntax-list-marker"),
+		"--prompt-editor-inline-code": color("inlineCodeColor", "inline-code"),
 		"--prompt-editor-inline-chip-opacity": String(value.inlineChipOpacity),
-		"--prompt-editor-inline-chip-bg": hexWithOpacity(
-			value.inlineCodeColor,
-			value.inlineChipOpacity,
-		),
+		"--prompt-editor-inline-chip-bg": alpha("inlineCodeColor", "inlineChipOpacity", "inline-code"),
 		"--prompt-editor-landmark-font-scale": String(value.landmarkFontScale),
 		"--prompt-editor-gap-height-base": `${value.lineHeight}px`,
 		"--prompt-editor-gap-height-sub": `${gapHeight(
@@ -575,54 +598,33 @@ export function promptStyleVars(settings: PromptStyleSettings): CSSProperties {
 		)}px`,
 		"--prompt-editor-landmark-pad": `${Math.round(8 * value.gapRamp)}px`,
 
-		"--prompt-editor-guide-color": value.guideColor,
+		"--prompt-editor-guide-color": color("guideColor", "guide-color"),
 		"--prompt-editor-guide-opacity": String(value.guideOpacity),
-		"--prompt-editor-guide": hexWithOpacity(
-			value.guideColor,
-			value.guideOpacity,
-		),
-		"--prompt-editor-landmark-color": value.landmarkColor,
+		"--prompt-editor-guide": alpha("guideColor", "guideOpacity", "guide-color"),
+		"--prompt-editor-landmark-color": color("landmarkColor", "landmark-color"),
 		"--prompt-editor-landmark-opacity": String(value.landmarkOpacity),
-		"--prompt-editor-landmark": hexWithOpacity(
-			value.landmarkColor,
-			value.landmarkOpacity,
-		),
+		"--prompt-editor-landmark": alpha("landmarkColor", "landmarkOpacity", "landmark-color"),
 
-		"--prompt-editor-selection-color": value.selectionColor,
+		"--prompt-editor-selection-color": color("selectionColor", "selection-color"),
 		"--prompt-editor-selection-opacity": String(value.selectionOpacity),
-		"--prompt-editor-selection-bg": hexWithOpacity(
-			value.selectionColor,
-			value.selectionOpacity,
-		),
-		"--prompt-editor-selection-accent": value.selectionAccentColor,
-		"--prompt-editor-active-line-color": value.activeLineColor,
+		"--prompt-editor-selection-bg": alpha("selectionColor", "selectionOpacity", "selection-color"),
+		"--prompt-editor-selection-accent": color("selectionAccentColor", "selection-accent"),
+		"--prompt-editor-active-line-color": color("activeLineColor", "active-line-color"),
 		"--prompt-editor-active-line-opacity": String(value.activeLineOpacity),
-		"--prompt-editor-active-line-bg": hexWithOpacity(
-			value.activeLineColor,
-			value.activeLineOpacity,
-		),
-		"--prompt-editor-hover-color": value.hoverColor,
+		"--prompt-editor-active-line-bg": alpha("activeLineColor", "activeLineOpacity", "active-line-color"),
+		"--prompt-editor-hover-color": color("hoverColor", "hover-color"),
 		"--prompt-editor-hover-opacity": String(value.hoverOpacity),
-		"--prompt-editor-hover-bg": hexWithOpacity(
-			value.hoverColor,
-			value.hoverOpacity,
-		),
+		"--prompt-editor-hover-bg": alpha("hoverColor", "hoverOpacity", "hover-color"),
 
-		"--prompt-editor-grip-color": value.gripColor,
+		"--prompt-editor-grip-color": color("gripColor", "grip-color"),
 		"--prompt-editor-grip-size": `${value.gripSize}px`,
 		"--prompt-editor-grip-opacity": String(value.gripOpacity),
-		"--prompt-editor-grip": hexWithOpacity(
-			value.gripColor,
-			value.gripOpacity,
-		),
-		"--prompt-editor-drop-line-color": value.dropIndicatorColor,
+		"--prompt-editor-grip": alpha("gripColor", "gripOpacity", "grip-color"),
+		"--prompt-editor-drop-line-color": color("dropIndicatorColor", "drop-line-color"),
 		"--prompt-editor-drop-line-width": `${value.dropIndicatorWidth}px`,
 		"--prompt-editor-drop-line-opacity": String(
 			value.dropIndicatorOpacity,
 		),
-		"--prompt-editor-drop-line": hexWithOpacity(
-			value.dropIndicatorColor,
-			value.dropIndicatorOpacity,
-		),
+		"--prompt-editor-drop-line": alpha("dropIndicatorColor", "dropIndicatorOpacity", "drop-line-color"),
 	} as CSSProperties;
 }

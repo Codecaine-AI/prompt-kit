@@ -8,6 +8,7 @@
 // invertible transaction and undo/redo covers the whole model.
 "use client";
 
+import { insertPromptBlockNodeWithStep } from "../transactions";
 import type { PromptDocument } from "../../../index";
 import type {
 	PromptEditorTreeEntry,
@@ -16,8 +17,7 @@ import type {
 import {
 	mergeListItemsStep,
 	nestListItemStep,
-	removeListItemStep,
-	removeListWithStep,
+	mergeParagraphIntoListSteps,
 	splitListItemStep,
 	unnestListItemStep,
 } from "../steps/list-item-steps";
@@ -37,6 +37,7 @@ import {
 	splitParagraphSteps,
 } from "../steps/node-mutations";
 import {
+	unlistItemStep,
 	demoteSectionStep,
 	escapeListStep,
 	indentParagraphIntoSectionStep,
@@ -83,10 +84,9 @@ export interface EditorKeyContext {
  *                  the caret becomes a new sibling below, caret at its start.
  *                  At end-of-text that is a clean "add next". Raw/code keep
  *                  Enter as a literal newline.
- *   Backspace @0   merge into the previous like-kind sibling (caret at the
- *                  join); empty node → delete it and focus the previous row's
- *                  end; no safe merge → still move focus back/up. Never a dead
- *                  keystroke, never a merge across a container boundary.
+ *   Backspace @0   remove one list level while keeping the item's text; join
+ *                  a paragraph into the preceding sibling paragraph or list
+ *                  item, keeping the caret at the join.
  *   Delete @end    the mirror: absorb the next like-kind sibling.
  *   ArrowUp/Down   leave the row at its first/last line (or from anywhere in a
  *                  single-line row) and land on the previous/next editable row.
@@ -139,6 +139,20 @@ export function handleEditorKey(
 			if (!collapsed || end !== value.length) return;
 			event.preventDefault();
 			applyDeleteForward(line, context);
+			return;
+		}
+		case "ArrowLeft":
+		case "ArrowRight": {
+			if (event.shiftKey || !collapsed) return;
+			const previous = event.key === "ArrowLeft";
+			if (previous ? start !== 0 : end !== value.length) return;
+			const points = collectEditPoints(context.lines);
+			const index = currentPointIndex(points, line);
+			if (index < 0) return;
+			const target = points[previous ? index - 1 : index + 1];
+			if (!target) return;
+			event.preventDefault();
+			context.moveEdit(pointTarget(target, previous ? "end" : 0));
 			return;
 		}
 		case "ArrowUp":
@@ -264,24 +278,15 @@ function applyBackspace(
 			moveEdit(pointTarget(resolution.previous, "end"));
 			return;
 
-		case "merge-items": {
-			const result = mergeListItemsStep(
-				prompt,
-				resolution.listId,
-				resolution.itemIndex,
-			);
-			if (!result.step) {
-				moveEdit(pointTarget(resolution.previous, "end"));
-				return;
-			}
-			onPromptChange(result.prompt, resolution.listId, [result.step]);
-			moveEdit({
-				nodeId: resolution.listId,
-				itemIndex: result.focusItemIndex ?? resolution.itemIndex - 1,
-				caret: result.caretOffset ?? "end",
-			});
+		case "unlist-item":
+			commitStructure(context, unlistItemStep(prompt, resolution.listId, resolution.itemIndex));
 			return;
-		}
+
+		case "merge-paragraph-into-list":
+			commitStructure(context, mergeParagraphIntoListSteps(
+				prompt, resolution.listId, resolution.itemIndex, resolution.currentId,
+			));
+			return;
 
 		case "merge-paragraphs": {
 			const result = mergeParagraphsSteps(
@@ -298,26 +303,6 @@ function applyBackspace(
 				nodeId: resolution.previousId,
 				caret: result.caretOffset ?? "end",
 			});
-			return;
-		}
-
-		case "remove-empty-item": {
-			if (resolution.removesWholeList) {
-				const removed = removeListWithStep(prompt, resolution.listId);
-				if (!removed.step) return;
-				onPromptChange(removed.prompt, resolution.previous?.nodeId, [
-					removed.step,
-				]);
-			} else {
-				const result = removeListItemStep(
-					prompt,
-					resolution.listId,
-					resolution.itemIndex,
-				);
-				if (!result.step) return;
-				onPromptChange(result.prompt, resolution.listId, [result.step]);
-			}
-			landAfterRemoval(context, resolution.previous);
 			return;
 		}
 
@@ -433,15 +418,19 @@ function applyStructuralEnter(
 
 /** Moves the caret from a section's tag line into the section's body. */
 function enterSectionBody(line: XmlLine, context: EditorKeyContext): boolean {
-	const { lines, moveEdit } = context;
+	const { lines, moveEdit, prompt, onPromptChange } = context;
 	const row = lines.findIndex((candidate) => candidate === line);
 	if (row < 0) return false;
-	const points = collectEditPoints(lines);
-	// The first edit point below the tag line is the section's first editable
-	// row (its own child, since children render before the close tag).
-	const target = points.find((point) => point.row > row);
-	if (!target) return false;
-	moveEdit(pointTarget(target, "end"));
+	const close = lines.findIndex((candidate, index) => index > row && candidate.nodeId === line.nodeId && candidate.role === "close");
+	const target = collectEditPoints(lines).find((point) => point.row > row && point.row < close);
+	if (target) {
+		moveEdit(pointTarget(target, "end"));
+		return true;
+	}
+	const inserted = insertPromptBlockNodeWithStep(prompt, line.nodeId, {type: "paragraph", content: [""]}, "child");
+	if (inserted.step?.op !== "insert" || !inserted.step.node.id) return false;
+	onPromptChange(inserted.prompt, inserted.step.node.id, [inserted.step]);
+	moveEdit({nodeId: inserted.step.node.id, caret: 0});
 	return true;
 }
 

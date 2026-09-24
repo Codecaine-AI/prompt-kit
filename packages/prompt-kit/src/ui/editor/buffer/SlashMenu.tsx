@@ -159,6 +159,9 @@ export function SlashMenu({
 			// Keep focus — and the caret — in the textarea. Preventing the
 			// default of the bubbled mousedown is what stops the focus change.
 			onMouseDown={(event) => event.preventDefault()}
+			// The surface's background click ends editing. Choosing an option
+			// must keep the caret that the command just placed in its new block.
+			onClick={(event) => event.stopPropagation()}
 			className="fixed z-40 overflow-y-auto overflow-x-hidden rounded-[4px] border border-border bg-card p-1 shadow-lg"
 			style={{
 				width: MENU_WIDTH,
@@ -205,11 +208,11 @@ function SlashMenuRow({
 			onClick={onSelect}
 			className={cn(
 				"flex cursor-pointer items-center gap-2 rounded-[2px] px-1.5 py-1",
-				selected ? "bg-accent/10 text-foreground" : "text-muted-foreground",
+				selected ? "bg-accent/50 text-foreground" : "text-muted-foreground",
 			)}
 		>
 			<span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
-				{Icon && <Icon size={12} className={selected ? "text-accent" : undefined} />}
+				{Icon && <Icon size={12} className={selected ? "text-accent-foreground" : undefined} />}
 			</span>
 			<span className="text-[12px] leading-none">{command.label}</span>
 			<span className="ml-auto truncate text-[11px] leading-none text-muted-foreground/70">

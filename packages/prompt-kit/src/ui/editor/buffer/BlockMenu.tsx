@@ -2,7 +2,7 @@
 "use client";
 
 import cn from "classnames";
-import { Copy, CornerDownRight, Tag, Trash2 } from "lucide-react";
+import { Copy, CornerDownRight, List, ListOrdered, Tag, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { PromptBlockNode } from "../../../index";
 import type {
@@ -23,9 +23,11 @@ export function BlockMenu({
 	onRetag,
 	onRemove,
 	onInsertChild,
+	onConvert,
 }: {
 	node: PromptBlockNode;
 	canInsertChild: boolean;
+	onConvert?: (type: "bulletList" | "orderedList") => void;
 	onClose: () => void;
 	onDuplicate: () => void;
 	onRetag: (tag: string) => void;
@@ -71,6 +73,10 @@ export function BlockMenu({
 					</span>
 				)}
 			</div>
+			{node.type === "paragraph" && onConvert && <>
+				<MenuItem icon={List} label="Turn into bullets" onClick={() => onConvert("bulletList")} />
+				<MenuItem icon={ListOrdered} label="Turn into numbered list" onClick={() => onConvert("orderedList")} />
+			</>}
 			<MenuItem
 				icon={Copy}
 				label="Duplicate"
@@ -80,6 +86,7 @@ export function BlockMenu({
 				}}
 			/>
 			{canInsertChild && (
+				<>
 				<MenuItem
 					icon={CornerDownRight}
 					label="Add child"
@@ -88,6 +95,8 @@ export function BlockMenu({
 						onClose();
 					}}
 				/>
+				<MenuItem icon={Tag} label="Add subsection" onClick={() => {onInsertChild("section"); onClose();}} />
+				</>
 			)}
 			<MenuItem
 				icon={Trash2}

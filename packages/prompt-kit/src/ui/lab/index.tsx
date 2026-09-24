@@ -3,9 +3,8 @@
 // The prompt lab shell (2026-08-05 redesign): the DOCUMENT carries the
 // agent's identity — a Notion-style page header at the top of the document
 // column (name as title, model chip, collapsible click-to-edit description).
-// The GLASS PANEL is fixed furniture pinned top-right, its header an
-// Edit/AI tab bar. The Edit tab holds the working zones — the VIEW
-// switcher (whose system row carries the autosave whisper), FIXTURE
+// The GLASS PANEL expands left from a persistent rail pinned top-right.
+// Its compact tree holds the working zones, including FIXTURE
 // (state), OUTLINE (its history icon swaps the body for the host's
 // revisions zone), DETAILS (while a node is selected OR the caret sits in
 // one — caret-first, the zone follows the caret silently). The AI tab IS
@@ -36,6 +35,8 @@
 // `promptStyleVars` from `../style` produces a matching style object.
 
 import cn from "classnames";
+import { useViewTransition } from "./glass/use-view-transition";
+import { RailButton } from "./glass/RailButton";
 import {
   useCallback,
   useEffect,
@@ -133,7 +134,6 @@ import { contextOutlineSections } from "./page/context-outline";
 import {
   PanelFixtureList,
   PanelOutlineList,
-  PanelViewSwitcher,
   PanelZone,
   type PanelViewEntry,
   type LabView,
@@ -144,6 +144,7 @@ import {
   ToolsSurface,
   type LabToolsZone,
 } from "./page/ToolsSurface";
+import { FixtureSelect, type LabContextFixtures } from "./page/FixtureSelect";
 import { ConfigSurface, type LabConfigZone } from "./page/ConfigSurface";
 import {
   createAnnotationStore,
@@ -179,6 +180,7 @@ export type { LabContextPreview } from "./page/ContextSurface";
 export type { LabView } from "./glass/zones";
 export type { LabFixture, LabStateZone } from "./page/StateSurface";
 export type { LabToolsZone } from "./page/ToolsSurface";
+export type { LabContextFixtures } from "./page/FixtureSelect";
 export type { LabConfigZone } from "./page/ConfigSurface";
 export {
   createPromptLabHistory,
@@ -269,11 +271,18 @@ export interface PromptInlineLabProps {
   }) => Promise<ManifestSaveOutcome>;
   /** Read-only context preview shown when the dock selects CONTEXT. */
   context?: LabContextPreview;
+  /** Optional host-controlled view, for URL navigation and reload restoration. */
+  view?: LabView;
+  onViewChange?: (view: LabView) => void;
+  /** Named context fixtures controlled by the host. */
+  contextFixtures?: LabContextFixtures;
   /**
    * Viewer-only style settings controlled by the host. When omitted, the lab
    * reads the persisted settings once while mounting.
    */
   styleSettings?: PromptStyleSettings;
+  /** Use host theme colors instead of saved palette overrides. */
+  followTheme?: boolean;
   /**
    * History content (stats + history + diff). Host-composed — see
    * AgentPromptLabContainer. Reached through the document header's history
@@ -379,7 +388,11 @@ export function PromptInlineLab({
   manifest,
   onManifestSave,
   context,
+  view: controlledView,
+  onViewChange,
+  contextFixtures,
   styleSettings,
+  followTheme = false,
   revisionsZone,
   stateZone,
   toolsZone,
@@ -407,7 +420,12 @@ export function PromptInlineLab({
   });
   const [saveErrors, setSaveErrors] = useState<string[]>([]);
   const [lastSavedAt, setLastSavedAt] = useState<Date | undefined>(undefined);
-  const [view, setView] = useState<LabView>("system");
+  const [internalView, setInternalView] = useState<LabView>("system");
+  const view = controlledView ?? internalView;
+  const setView = (next: LabView) => {
+    setInternalView(next);
+    onViewChange?.(next);
+  };
   const [mode, setMode] = useState<LabMode>("edit");
   // The pinned annotation target — the exact thing the user clicked (node)
   // or dragged (range). What you click IS the target: there is no scope
@@ -431,9 +449,10 @@ export function PromptInlineLab({
   const [highlightedCommentKey, setHighlightedCommentKey] = useState<
     string | null
   >(null);
-  // The floating glass dock's current width — reserved as document-area
-  // padding so text reflows beside the panel rather than under it.
-  const [annotatePanelWidth, setAnnotatePanelWidth] = useState(DOCK_DEFAULT_WIDTH);
+  const [outlineExpanded, setOutlineExpanded] = useState(false);
+  const panelReturnView = useRef<LabView>("system");
+  // Keep folded branches per view when the panel changes mode.
+  const [collapsedOutline, setCollapsedOutline] = useState<Partial<Record<LabView, ReadonlySet<string>>>>({});
   // Apply has been pressed and the batch has not drained. It is the ONLY
   // piece of run state the lab owns — everything else (in flight, staged,
   // resolved) is read back off the session, so the narration can never
@@ -614,8 +633,8 @@ export function PromptInlineLab({
       : undefined);
   const appliedStyleSettings = styleSettings ?? persistedStyleSettings;
   const styleVars = useMemo(
-    () => promptStyleVars(appliedStyleSettings),
-    [appliedStyleSettings],
+    () => promptStyleVars(appliedStyleSettings, { followTheme }),
+    [appliedStyleSettings, followTheme],
   );
   // The document column's measure: the style rail's Content width setting,
   // verbatim (2026-08-04 audit — the old 96ch cap silently swallowed most of
@@ -641,7 +660,17 @@ export function PromptInlineLab({
         ? "system"
         : view;
   const inSystem = activeView === "system";
+  const documentViewRef = useViewTransition(activeView);
   const annotateActive = mode === "annotate" && inSystem;
+  // Host navigation (including browser Back) can leave the AI view without
+  // going through the rail's click handler. Do not restore stale AI mode later.
+  useEffect(() => {
+    if (!inSystem) {
+      setMode("edit");
+      pinAnnotationTarget(null);
+      setApplyingQueue(false);
+    }
+  }, [inSystem, pinAnnotationTarget]);
 
   // The panel's History view exists only where its icon does (system view
   // with a revisions zone) — leaving either snaps the glass back to zones.
@@ -764,6 +793,21 @@ export function PromptInlineLab({
   const [outlineActiveRow, setOutlineActiveRow] = useState<number | null>(
     null,
   );
+  const outlinePinnedRowRef = useRef<{
+    row: number;
+    timer: number | null;
+  } | null>(null);
+  const outlineSpyUpdateRef = useRef<() => void>(() => {});
+  const armOutlinePinSettle = useCallback(() => {
+    const pinned = outlinePinnedRowRef.current;
+    if (!pinned) return;
+    if (pinned.timer !== null) window.clearTimeout(pinned.timer);
+    pinned.timer = window.setTimeout(() => {
+      if (outlinePinnedRowRef.current !== pinned) return;
+      outlinePinnedRowRef.current = null;
+      outlineSpyUpdateRef.current();
+    }, 120);
+  }, []);
   useEffect(() => {
     const anchors = OUTLINE_ANCHORS[activeView];
     const scroller =
@@ -773,6 +817,12 @@ export function PromptInlineLab({
       return;
     }
     const update = () => {
+      // Keep a clicked row pinned while its smooth scroll is still moving;
+      // the spy gets one fresh read as soon as scrolling settles.
+      if (outlinePinnedRowRef.current) {
+        armOutlinePinSettle();
+        return;
+      }
       const threshold =
         scroller.getBoundingClientRect().top + LINE_HEIGHT_PX * 2;
       let active = outlineSections[0]!.row;
@@ -792,16 +842,40 @@ export function PromptInlineLab({
       }
       setOutlineActiveRow((current) => (current === active ? current : active));
     };
+    const releasePin = () => {
+      const pinned = outlinePinnedRowRef.current;
+      if (!pinned) return;
+      if (pinned.timer !== null) window.clearTimeout(pinned.timer);
+      outlinePinnedRowRef.current = null;
+      update();
+    };
+    outlineSpyUpdateRef.current = update;
     update();
     scroller.addEventListener("scroll", update);
-    return () => scroller.removeEventListener("scroll", update);
-  }, [activeView, outlineSections]);
+    scroller.addEventListener("scrollend", releasePin);
+    return () => {
+      scroller.removeEventListener("scroll", update);
+      scroller.removeEventListener("scrollend", releasePin);
+      const pinned = outlinePinnedRowRef.current;
+      if (pinned && pinned.timer !== null) window.clearTimeout(pinned.timer);
+      outlinePinnedRowRef.current = null;
+      if (outlineSpyUpdateRef.current === update) {
+        outlineSpyUpdateRef.current = () => {};
+      }
+    };
+  }, [activeView, armOutlinePinSettle, outlineSections]);
 
   const scrollToOutlineSection = useCallback(
     (section: OutlineSection) => {
       // Clicking is the selection here — mark it immediately rather than
       // waiting on a smooth scroll to settle.
       setOutlineActiveRow(section.row);
+      const previousPin = outlinePinnedRowRef.current;
+      if (previousPin && previousPin.timer !== null) {
+        window.clearTimeout(previousPin.timer);
+      }
+      outlinePinnedRowRef.current = { row: section.row, timer: null };
+      armOutlinePinSettle();
       const anchors = OUTLINE_ANCHORS[activeView];
       const scroller =
         rootRef.current?.querySelector<HTMLElement>(anchors.scroller) ?? null;
@@ -821,7 +895,7 @@ export function PromptInlineLab({
         element.scrollIntoView?.({ block: "start", behavior: "smooth" });
       }
     },
-    [activeView],
+    [activeView, armOutlinePinSettle],
   );
 
   // The targeting hook owns its containerRef; this mirror lets callbacks
@@ -1558,17 +1632,23 @@ export function PromptInlineLab({
   }
 
   /**
-   * The panel's tab bar is the mode switch: AI is the annotate/AI state
-   * (system view only — selecting it from another view returns to system),
-   * Edit is the resting state.
+   * AI annotates the system prompt. Returning to navigation restores the
+   * view that was active before AI opened.
    */
   function handlePanelTabSelect(next: LabPanelTab) {
     if (next === "ai") {
+      panelReturnView.current = activeView;
       if (!inSystem) setView("system");
       setAnnotateMode("annotate");
       return;
     }
     setAnnotateMode("edit");
+    setView(panelReturnView.current);
+  }
+
+  function handlePanelViewSelect(next: LabView) {
+    setAnnotateMode("edit");
+    setView(next);
   }
 
   function setAnnotateMode(next: LabMode) {
@@ -1612,9 +1692,14 @@ export function PromptInlineLab({
     // and stops the event before it reaches here), so this only fires when
     // nothing is pinned.
     if (event.key === "Escape") {
-      if (!annotateActive || annotationTarget) return;
-      event.preventDefault();
-      setAnnotateMode("edit");
+      if (event.defaultPrevented || annotationTarget) return;
+      if (annotateActive) {
+        event.preventDefault();
+        handlePanelTabSelect("edit");
+      } else if (outlineExpanded) {
+        event.preventDefault();
+        setOutlineExpanded(false);
+      }
       return;
     }
     if (!mod) return;
@@ -1654,13 +1739,13 @@ export function PromptInlineLab({
   return (
     <section
       ref={rootRef}
-      style={styleVars}
+      style={{ ...styleVars, fontFamily: "var(--prompt-editor-font-family)" }}
       data-lab-mode={annotateActive ? "annotate" : "edit"}
       className={cn(
         // `relative` is the ambient signals' anchor: the mode's edge line and
         // its bottom-centre chip position against the lab, not the viewport,
         // so an embedded lab never paints over the page around it.
-        "@container relative flex h-full min-h-0 flex-1 flex-col bg-card font-mono",
+        "@container relative flex h-full min-h-0 flex-1 flex-col bg-card",
         className,
       )}
     >
@@ -1679,15 +1764,10 @@ export function PromptInlineLab({
           style={
             {
               background: EDITOR_COLORS.bg,
-              // The glass panel's footprint, published as a variable: each
-              // surface's SCROLLER pads its inside by it, so content reflows
-              // beside the glass while the scrollbar stays at the region's
-              // far right. Width + the style rail's panel inset + a 12px gap
-              // between document and glass.
+              // Expanding navigation overlays the document. Reserve only the
+              // persistent rail, so switching tree/AI never reflows text.
               "--prompt-editor-reserved-right":
-                annotatePanelWidth > 0
-                  ? `${annotatePanelWidth + appliedStyleSettings.panelInset + 12}px`
-                  : "0px",
+                `${DOCK_DEFAULT_WIDTH + appliedStyleSettings.panelInset + 12}px`,
             } as React.CSSProperties
           }
         >
@@ -1749,6 +1829,8 @@ export function PromptInlineLab({
                 projected `--prompt-editor-content-width` + `centerContent`);
                 full-bleed in the narrow two-column fallback. */}
             <div
+              ref={documentViewRef}
+              data-lab-document-view={activeView}
               className="flex h-full min-h-0 min-w-0 flex-1"
               style={
                 dockInMargin
@@ -1860,17 +1942,21 @@ export function PromptInlineLab({
 
         </div>
 
-        {/* THE GLASS PANEL (2026-08-05 redesign): fixed furniture with an
-            Edit / AI tab bar for a header. Edit holds the zone stack; AI is
-            the workspace (active runs, requests, comments) — selecting the
-            AI tab IS entering the AI state, and the panel animates to that
-            tab's own geometry. The document reserves the footprint in both. */}
+        {/* The persistent rail stays fixed while its content expands left. */}
         <GlassPanel
           tab={annotateActive ? "ai" : "edit"}
           onTabSelect={handlePanelTabSelect}
           busy={anyRunInFlight}
           topInset={appliedStyleSettings.panelTopInset}
-          onWidthChange={setAnnotatePanelWidth}
+          expanded={outlineExpanded}
+          onExpandedChange={setOutlineExpanded}
+          views={dockViews}
+          activeView={activeView}
+          onViewSelect={handlePanelViewSelect}
+          promptStatus={onSave ? (
+            saveErrors.length > 0 ? "Save failed" : errorCount > 0 ? "Validation errors" :
+            autosaveState.saving ? "Saving" : dirty || autosaveState.pending ? "Unsaved changes" : undefined
+          ) : undefined}
         >
           {annotateActive && inSystem ? (
             <div className="flex h-full min-h-0 flex-col gap-3">
@@ -1916,34 +2002,28 @@ export function PromptInlineLab({
             </div>
           ) : (
             <>
-          {/* VIEW — the switcher replaces the old tabs AND the old token
-              readout; counts ride each row, quiet and right-aligned. */}
-          <PanelZone id="view" label="View">
-            <PanelViewSwitcher
-              views={dockViews}
-              active={activeView}
-              onSelect={setView}
-              // Layering rule: the system row IS the savable prompt — it
-              // alone carries the save status. (History rides the OUTLINE
-              // header: its body is what the toggle replaces.)
-              rowSublines={{
-                system: onSave ? (
-                  <AutosaveWhisper
-                    dirty={dirty}
-                    errorCount={errorCount}
-                    hasSave={Boolean(onSave)}
-                    pending={autosaveState.pending}
-                    saving={autosaveState.saving}
-                    saveErrors={saveErrors}
-                    lastSavedAt={lastSavedAt}
-                    retryDisabled={errorCount > 0 || !onSave}
-                    onRetry={() => ensureController().retry()}
-                    exceptionalOnly
-                  />
-                ) : undefined,
-              }}
-            />
-          </PanelZone>
+          {onSave && (
+            <div data-lab-view-subline="system">
+              <AutosaveWhisper
+                dirty={dirty}
+                errorCount={errorCount}
+                hasSave={Boolean(onSave)}
+                pending={autosaveState.pending}
+                saving={autosaveState.saving}
+                saveErrors={saveErrors}
+                lastSavedAt={lastSavedAt}
+                retryDisabled={errorCount > 0 || !onSave}
+                onRetry={() => ensureController().retry()}
+                exceptionalOnly
+              />
+            </div>
+          )}
+
+          {contextFixtures && contextFixtures.fixtures.length > 0 && (
+            <PanelZone id="context-fixture" label="Preview">
+              <FixtureSelect {...contextFixtures} />
+            </PanelZone>
+          )}
 
           {configZone && (
             <PanelZone id="config" label="Config">
@@ -1965,32 +2045,26 @@ export function PromptInlineLab({
           {/* OUTLINE — every view; hidden only when the document has no
               sections to map. */}
           {(outlineSections.length > 0 || (inSystem && revisionsZone)) && (
-            <PanelZone
-              id="outline"
-              label={panelHistory ? "History" : "Outline"}
-              action={
-                inSystem && revisionsZone ? (
-                  <button
-                    type="button"
-                    data-lab-history-toggle=""
-                    aria-label="History"
-                    aria-pressed={panelHistory}
-                    title={panelHistory ? "Back to outline" : "History"}
-                    onClick={() => setPanelHistory((open) => !open)}
-                    className={cn(
-                      "transition-colors",
-                      panelHistory
-                        ? "text-foreground"
-                        : "text-muted-foreground/50 hover:text-foreground",
-                    )}
-                  >
-                    <History size={12} aria-hidden />
-                  </button>
-                ) : undefined
-              }
-            >
-              {/* The zone below the header IS the toggle's subject: outline
-                  at rest, the revision history in its place on demand. */}
+            <section data-lab-zone="outline" aria-label={panelHistory ? "Revision history" : "Outline"} className="relative pb-3 pt-2">
+              {inSystem && revisionsZone && (
+                <RailButton
+                  type="button"
+                  data-lab-history-toggle=""
+                  aria-label="History"
+                  aria-pressed={panelHistory}
+                  tip={panelHistory ? "Back to outline" : "History"}
+                  onClick={() => setPanelHistory((open) => !open)}
+                  className={cn(
+                    "absolute right-0 top-2 z-10 rounded p-1.5 transition-colors",
+                    panelHistory
+                      ? "text-foreground"
+                      : "text-muted-foreground/50 hover:text-foreground",
+                  )}
+                >
+                  <History size={12} aria-hidden />
+                </RailButton>
+              )}
+              {/* History floats above the outline without reserving a row. */}
               {panelHistory && inSystem && revisionsZone ? (
                 <div data-lab-panel-history="">{revisionsZone}</div>
               ) : (
@@ -1998,9 +2072,16 @@ export function PromptInlineLab({
                   sections={outlineSections}
                   activeRow={outlineActiveRow}
                   onSelect={scrollToOutlineSection}
+                  collapsedIds={collapsedOutline[activeView]}
+                  onToggle={(section) => setCollapsedOutline((previous) => {
+                    const ids = new Set(previous[activeView]);
+                    if (ids.has(section.nodeId)) ids.delete(section.nodeId);
+                    else ids.add(section.nodeId);
+                    return { ...previous, [activeView]: ids };
+                  })}
                 />
               )}
-            </PanelZone>
+            </section>
           )}
 
           {/* DETAILS — mounts while a block is selected OR the caret sits in

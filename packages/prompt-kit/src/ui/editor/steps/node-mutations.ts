@@ -29,10 +29,37 @@ import { updateNode } from "../shared";
 import type { PromptFlowViewProps } from "../types";
 import type { XmlLine } from "../../../document/render/line-model";
 
-/** The rendered marker prefix for an item ("1." for ordered, "-" for bullet). */
-export function listMarker(node: PromptBlockNode, itemIndex: number): string {
-	if (node.type === "orderedList") return `${(node.start ?? 1) + itemIndex}.`;
-	return "-";
+/** Display ordered markers as decimal, alphabetic, then Roman by list depth. */
+export function listMarker(node: PromptBlockNode, itemIndex: number, listDepth = 0): string {
+	if (node.type !== "orderedList") return "-";
+	const value = (node.start ?? 1) + itemIndex;
+	if (!Number.isSafeInteger(value) || value < 1) return `${value}.`;
+	if (listDepth % 3 === 1) {
+		let remaining = value;
+		let marker = "";
+		while (remaining > 0) {
+			remaining -= 1;
+			marker = String.fromCharCode(97 + remaining % 26) + marker;
+			remaining = Math.floor(remaining / 26);
+		}
+		return `${marker}.`;
+	}
+	if (listDepth % 3 === 2 && value < 4000) {
+		let remaining = value;
+		let marker = "";
+		for (const [number, numeral] of [
+			[1000, "m"], [900, "cm"], [500, "d"], [400, "cd"],
+			[100, "c"], [90, "xc"], [50, "l"], [40, "xl"],
+			[10, "x"], [9, "ix"], [5, "v"], [4, "iv"], [1, "i"],
+		] as const) {
+			while (remaining >= number) {
+				marker += numeral;
+				remaining -= number;
+			}
+		}
+		return `${marker}.`;
+	}
+	return `${value}.`;
 }
 
 /** Editable text of an item, without the marker. */

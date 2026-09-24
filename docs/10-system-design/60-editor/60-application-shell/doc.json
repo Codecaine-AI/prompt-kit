@@ -34,8 +34,29 @@
         "b-60-application-shell-one-element-two-tabs-t-9",
         "b-60-application-shell-tab-size-contents-10",
         "b-60-application-shell-the-corner-is-pinned-th-11",
+        "shell-glass-treatment",
+        "shell-glass-treatment-body",
+        "shell-scroll-treatment",
+        "shell-outline-spacing",
+        "shell-outline-spacing-body",
+        "shell-outline-behavior",
+        "shell-history-behavior",
+        "shell-navigation-motion",
+        "shell-motion-principle",
+        "shell-outline-motion",
+        "shell-motion-values",
+        "shell-motion-accessibility",
         "b-60-application-shell-views-12",
         "b-60-application-shell-the-shell-has-three-view-13",
+        "shell-icon-meaning",
+        "shell-icon-decisions",
+        "shell-icon-rationale",
+        "shell-tooltip-contract",
+        "shell-tooltip-contract-body",
+        "shell-tooltip-placement",
+        "shell-host-navigation",
+        "lab-view-navigation-motion",
+        "shell-ai-return",
         "b-60-application-shell-the-annotation-queue-14",
         "b-60-application-shell-everything-queues-nothi-15",
         "b-60-application-shell-the-inline-composer-cur-16",
@@ -78,7 +99,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Two places carry all the chrome: the DOCUMENT carries identity, and one fixed\nGLASS PANEL carries everything else."
+          "insert": "The document carries the agent's identity. A floating glass panel provides navigation and the AI workspace, with a compact rail as its resting state."
         }
       ],
       "children": []
@@ -113,11 +134,11 @@
         "rows": [
           [
             "Document column",
-            "Notion-style page header (title, model chip, click-to-edit description, history icon) INSIDE the scroller, then the editing surface. Left-justified at the style rail's margins."
+            "Page header with title, model, description, and history inside the scroller, followed by the editing surface."
           ],
           [
             "Glass panel",
-            "Fixed card pinned top-right; header is an Edit/AI tab bar. Never dragged, never resized by hand."
+            "Persistent icon rail pinned at the top right. The compact outline and AI workspace expand to its left."
           ],
           [
             "Host",
@@ -133,7 +154,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The document reserves the panel's footprint on each surface's scroller, so\ncontent reflows beside the glass and the scrollbar stays at the region's far\nedge."
+          "insert": "Each document scroller reserves 44px for the rail, plus the configured right inset and a 12px gap. The compact tree and AI workspace overlay the document without changing its width or line wrapping."
         }
       ],
       "children": []
@@ -157,7 +178,7 @@
       "props": {},
       "text": [
         {
-          "insert": "One element, two tabs; the active tab is the wide text tab (about 3/4 of the\nbar), the inactive one collapses to an icon, and the box animates between\nper-tab geometries."
+          "insert": "The panel starts as a collapsed icon rail. Selecting a view opens its compact tree while keeping the view controls at the right edge. The collapse control returns to the rail, and the AI control opens the annotation workspace."
         }
       ],
       "children": []
@@ -167,20 +188,25 @@
       "type": "structured-table",
       "props": {
         "columns": [
-          "Tab",
+          "State",
           "Size",
           "Contents"
         ],
         "rows": [
           [
-            "EDIT",
-            "300px wide, height fits its content",
-            "Zone stack: VIEW (switcher with token counts; the system row carries the autosave whisper subline), FIXTURE (state view only), OUTLINE (history icon swaps its body for the host's revisions zone), DETAILS (only while a node is selected)"
+            "Rail",
+            "44px wide, height fits available controls",
+            "Expand, Prompt, Context, optional State and Tools, and AI."
           ],
           [
-            "AI (✦)",
+            "Compact tree",
+            "252px wide, 480px tall",
+            "Active view name and token count, host configuration and fixtures, collapsible outline, history, and selected-node details."
+          ],
+          [
+            "AI",
             "520px wide, 80% of the region height",
-            "The annotation workspace: the queue (below), or the annotations pane for store-only hosts"
+            "Annotation queue, or annotations pane for store-only hosts. The view rail remains available."
           ]
         ]
       },
@@ -192,7 +218,178 @@
       "props": {},
       "text": [
         {
-          "insert": "The corner is pinned: the top and right insets are style settings, both\nsliders in the style rail. Selecting AI from the context/state view returns to\nthe system view first; Escape (with no composer open) returns to Edit.\nEntering the AI tab IS entering annotate mode: document clicks pick annotation\ntargets, editing affordances hide, and the violet ambient tints the panel."
+          "insert": "The panel is anchored to the lab region's top-right corner using the configured insets. It expands left while the icon rail stays anchored. The content header and rail header share a 40px height, so their horizontal dividers align. Available region dimensions cap the panel's width and height."
+        }
+      ],
+      "children": []
+    },
+    "shell-glass-treatment": {
+      "id": "shell-glass-treatment",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Glass Treatment"
+        }
+      ],
+      "children": []
+    },
+    "shell-glass-treatment-body": {
+      "id": "shell-glass-treatment-body",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The rail and expanded panel use the same translucent glass, subtle border, and shadow. The collapsed rail retains its shadow so it reads as floating above the document. The background mixes 88% of the host glass color with transparency. Backdrop blur is 20px with saturation 1.3. Host glass, border, and shadow tokens remain authoritative."
+        }
+      ],
+      "children": []
+    },
+    "shell-scroll-treatment": {
+      "id": "shell-scroll-treatment",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The rail and panel body hide scrollbar tracks while retaining vertical scrolling when content exceeds the available height. Horizontal overflow is clipped. A full set of view controls fits the collapsed rail at its natural height without creating nested scrollbars."
+        }
+      ],
+      "children": []
+    },
+    "shell-outline-spacing": {
+      "id": "shell-outline-spacing",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Outline and History"
+        }
+      ],
+      "children": []
+    },
+    "shell-outline-spacing-body": {
+      "id": "shell-outline-spacing-body",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The outline has no visible OUTLINE heading or dedicated action row. Its section adds 8px of top padding. The history icon floats at the section's top-right, with the same 8px top offset, and takes no space in document flow. It is positioned relative to the outline section, not fixed to the viewport. It appears only for the system view when the host supplies revisions."
+        }
+      ],
+      "children": []
+    },
+    "shell-outline-behavior": {
+      "id": "shell-outline-behavior",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Outline rows are 25px tall with 12px of indentation per depth level. Section labels jump to their document anchors, and separate chevrons fold child branches. One continuous hairline runs down the left edge of the list and jogs inward around the children of every expanded parent, so hierarchy is visible whether or not a branch is active. The active block, the current row's top-level section and its visible children, draws its part of that hairline in the selection accent, and a dot on the line marks the current row. A folded parent that contains the current section takes the dot itself. Folded branches survive view and AI changes within the mounted lab."
+        }
+      ],
+      "children": []
+    },
+    "shell-history-behavior": {
+      "id": "shell-history-behavior",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The history control replaces the outline body with the host's revisions and toggles back to the tree. Its delayed tooltip reads History or Back to outline. Other host zones, including configuration, fixtures, and selected-node details, remain available."
+        }
+      ],
+      "children": []
+    },
+    "shell-navigation-motion": {
+      "id": "shell-navigation-motion",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Motion"
+        }
+      ],
+      "children": []
+    },
+    "shell-motion-principle": {
+      "id": "shell-motion-principle",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Opening and closing preserve the document layout. Navigation content keeps its final width during the reveal, avoiding text rewrapping. The icon rail remains anchored through the transition. View changes use a short fade and vertical movement to soften the content replacement."
+        }
+      ],
+      "children": []
+    },
+    "shell-outline-motion": {
+      "id": "shell-outline-motion",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The accent segment and dot slide along the hairline, through the curves, rather than jumping between rows. Clicking a label pins the outline to that row for the whole smooth scroll; scroll tracking resumes once the scroller has been quiet for 120ms, or immediately on a scroll-end event. Folding or unfolding a branch changes the hairline's shape, so the accent and dot snap to their new positions instead of animating across the list."
+        }
+      ],
+      "children": []
+    },
+    "shell-motion-values": {
+      "id": "shell-motion-values",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Interaction",
+          "Timing",
+          "Treatment"
+        ],
+        "rows": [
+          [
+            "Panel opening and closing",
+            "340ms",
+            "Width and height use cubic-bezier(0.2, 0.7, 0.2, 1)."
+          ],
+          [
+            "Navigation content reveal",
+            "180ms after a 50ms delay",
+            "Opacity fades in as the glass opens."
+          ],
+          [
+            "Navigation content dismissal",
+            "110ms",
+            "Opacity fades out before visibility becomes hidden."
+          ],
+          [
+            "Document and glass view switch",
+            "240ms",
+            "Opacity moves from 0 to 1 while translateY moves from 6px to 0, using the same easing as the panel."
+          ],
+          [
+            "Icon hover and selection",
+            "160ms",
+            "Background and foreground colors transition."
+          ],
+          [
+            "Outline accent and dot",
+            "160ms",
+            "The accent segment and dot slide along the hairline with cubic-bezier(0.33, 1, 0.68, 1), an ease-out with no overshoot, measured from the Mintlify table of contents. The active label's color fades over the same duration."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "shell-motion-accessibility": {
+      "id": "shell-motion-accessibility",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Reduced-motion preferences disable panel transitions, view-entry animations, and the outline's sliding accent, dot, and label fade. Initial mounting does not play the view-switch animation. Collapsed content is hidden from accessibility navigation and made inert immediately, while its visual fade completes. Focus inside content that closes returns to the rail toggle."
         }
       ],
       "children": []
@@ -216,7 +413,165 @@
       "props": {},
       "text": [
         {
-          "insert": "The shell has three views: "
+          "insert": "Prompt selects the system editing view. Context shows the assembled context as a read-only document. State and Tools appear when the host supplies their zones. State shows the selected fixture, and Tools shows the rendered tool definitions. Undo, redo, and save operate only in the system view. Selecting any view icon opens its compact tree."
+        }
+      ],
+      "children": []
+    },
+    "shell-icon-meaning": {
+      "id": "shell-icon-meaning",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Icons and Labels"
+        }
+      ],
+      "children": []
+    },
+    "shell-icon-decisions": {
+      "id": "shell-icon-decisions",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "View",
+          "Icon",
+          "Meaning and Label"
+        ],
+        "rows": [
+          [
+            "System prompt",
+            "Document",
+            "Instructions. The panel heading and button name use Prompt; the tooltip and URL use System and system."
+          ],
+          [
+            "Context",
+            "Open book",
+            "Reference information. Tooltip: Context."
+          ],
+          [
+            "State",
+            "Curly braces",
+            "Structured snapshot data. Tooltip: State."
+          ],
+          [
+            "Tools",
+            "Wrench",
+            "Available actions. Tooltip: Tools."
+          ],
+          [
+            "AI",
+            "Sparkles",
+            "Annotation workspace. Tooltip: AI workspace, or Return to navigation when active."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "shell-icon-rationale": {
+      "id": "shell-icon-rationale",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The open book avoids the copy-action meaning of overlapping pages. Curly braces distinguish state data from settings sliders. Icons render at 16px inside 32px controls, with an active tint and visible keyboard-focus ring. AI displays a busy indicator only while work is running."
+        }
+      ],
+      "children": []
+    },
+    "shell-tooltip-contract": {
+      "id": "shell-tooltip-contract",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Tooltips"
+        }
+      ],
+      "children": []
+    },
+    "shell-tooltip-contract-body": {
+      "id": "shell-tooltip-contract-body",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Tooltips contain only the short label. They have no description, token count, or save-status sentence. Hover and keyboard focus open them after 400ms. Leaving before the delay cancels opening. Pointer exit allows a 100ms grace period to enter the tooltip. Click, blur, scrolling, or resize dismisses a visible tooltip."
+        }
+      ],
+      "children": []
+    },
+    "shell-tooltip-placement": {
+      "id": "shell-tooltip-placement",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Tooltips float outside the glass clipping boundary, beside their controls. They use compact dark styling, 12px text, and 5px vertical by 8px horizontal padding. A visible tooltip is linked to its button through "
+        },
+        {
+          "insert": "aria-describedby",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Escape dismisses it before the lab handles that key. The active view's token count stays in the panel header."
+        }
+      ],
+      "children": []
+    },
+    "shell-host-navigation": {
+      "id": "shell-host-navigation",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Host Navigation"
+        }
+      ],
+      "children": []
+    },
+    "lab-view-navigation-motion": {
+      "id": "lab-view-navigation-motion",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The host can control selection through "
+        },
+        {
+          "insert": "view",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "onViewChange",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Observatory stores the view in "
+        },
+        {
+          "insert": "/:projectId/agent/:agentName/:view",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and shows Project / Agent / View in its page header. The route accepts "
         },
         {
           "insert": "system",
@@ -234,7 +589,7 @@
           }
         },
         {
-          "insert": ", and "
+          "insert": ", "
         },
         {
           "insert": "state",
@@ -243,7 +598,36 @@
           }
         },
         {
-          "insert": ". The system view\nrenders the editing surface. The context view is a read-only render of the\nassembled context on the same surface tokens. The state view (present only\nwhen the host supplies a state zone) renders the selected fixture's state\ndocument, with the FIXTURE zone picking the snapshot. Undo, redo, and save are\ninert outside the system view. Each view registers its own outline anchors, so\nthe OUTLINE zone works in all three."
+          "insert": ", and "
+        },
+        {
+          "insert": "tools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Missing or unrecognized view segments select "
+        },
+        {
+          "insert": "system",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Reload, Back, and Forward restore the selected view. Rail expansion and folded branches are local UI state and are not encoded in that URL."
+        }
+      ],
+      "children": []
+    },
+    "shell-ai-return": {
+      "id": "shell-ai-return",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "AI annotations target the system prompt. Opening AI from another view switches to system and remembers the previous view. Returning restores that view and the prior collapsed or expanded navigation state. Selecting a view icon from AI opens that view's tree. Host navigation away from system clears AI mode so browser history cannot restore stale annotation mode."
         }
       ],
       "children": []
@@ -515,7 +899,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Status is SILENT when healthy. Exceptional states (saving stuck, errors,\nretry) whisper on the system row's subline in the VIEW zone, and repeat at the\ntop of the AI tab while annotating. Save errors render under the document\nheader."
+          "insert": "Healthy autosave is silent. An attention dot on the Prompt icon exposes saving, unsaved changes, validation errors, or save failures while the rail is collapsed. Exceptional save status and retry controls appear above the expanded navigation content and in the AI workspace. Save errors also render under the document header."
         }
       ],
       "children": []
@@ -539,7 +923,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Cmd+Z / Cmd+Shift+Z / Cmd+S bind on the document (not per-component\nhandlers), guarded to events inside the lab or with nothing focused. Escape\nwalks outward: an open composer's target clears first; with nothing pinned,\nthe AI tab returns to Edit. The keyboard is the only undo surface, no\nundo/redo buttons exist."
+          "insert": "Cmd+Z, Cmd+Shift+Z, and Cmd+S bind on the document, guarded to events inside the lab or with nothing focused. Escape dismisses a visible tooltip first. Otherwise it closes an open annotation composer, returns from AI, or collapses an expanded tree in that order. Events already handled by a child are respected. Undo and redo use keyboard shortcuts."
         }
       ],
       "children": []

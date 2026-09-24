@@ -2,11 +2,17 @@
 // only; row rendering, affordances, drag, and mutations live in siblings.
 "use client";
 
+import { autoformatParagraphLine, pasteParagraphLines } from "../steps/writing-steps";
+import { pasteListItemsStep } from "../steps/list-item-steps";
+
 import cn from "classnames";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PromptBlockNode } from "../../../index";
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { PromptDocument, PromptBlockNode } from "../../../index";
 import {
 	editableTextToInline,
+	createPromptBlockTemplate,
+	createPromptEditorModel,
+	type PromptBlockNodeType,
 	type PromptEditorTreeEntry,
 } from "../model";
 
@@ -29,7 +35,7 @@ import type {
 	PromptFlowViewProps,
 } from "../types";
 import { buildXmlLineModel, type XmlLine } from "../../../document/render/line-model";
-import { resolveAutoformat } from "./autoformat";
+import { resolveAutoformat, resolveLineAutoformat } from "./autoformat";
 import { caretAnchor } from "./caret-rect";
 import {
 	caretForLineClick,
@@ -38,7 +44,7 @@ import {
 } from "./click-caret";
 import { DragGhost, DropIndicator, useXmlDrag } from "./drag-controller";
 import type { ItemDropCommand } from "./drop-targeting";
-import type { PromptStep } from "../transactions";
+import { insertPromptBlockNodeWithStep, type PromptStep } from "../transactions";
 import {
 	blockHandleUnit,
 	itemHandleUnit,
@@ -104,6 +110,7 @@ import {
 	convertBlockToParagraphStep,
 	convertParagraphToStep,
 	type ConvertParagraphTarget,
+	type StructureStepResult,
 } from "../steps/structure-steps";
 import {
 	InlineInsertSlot,
@@ -112,6 +119,7 @@ import {
 	type PromptFlowStagedRegion,
 } from "./StagedRows";
 import { XmlRow } from "./XmlRow";
+import { InsertionSlot } from "./InsertionSlot";
 
 export type { PromptFlowInlineInsert, PromptFlowStagedRegion } from "./StagedRows";
 
@@ -165,8 +173,8 @@ interface InlineEditTarget extends EditTarget {
 }
 
 export function PromptFlowXml({
-	prompt,
-	model,
+	prompt: savedPrompt,
+	model: savedModel,
 	selectedNodeId,
 	onSelectNode,
 	onPromptChange: hostPromptChange,
@@ -221,6 +229,13 @@ export function PromptFlowXml({
 	 */
 	inlineInserts?: PromptFlowInlineInsert[];
 }) {
+	type PendingInsertion = { base: PromptDocument; prompt: PromptDocument; step: Extract<PromptStep, {op: "insert"}> };
+	const [pendingInsertion, setPendingInsertion] = useState<PendingInsertion | null>(null);
+	const pendingInsertionRef = useRef(pendingInsertion);
+	const pending = pendingInsertion?.base === savedPrompt ? pendingInsertion : null;
+	pendingInsertionRef.current = pending;
+	const prompt = pending?.prompt ?? savedPrompt;
+	const model = useMemo(() => pending ? createPromptEditorModel(prompt) : savedModel, [pending, prompt, savedModel]);
 	// CARET-FIRST (2026-08-06): the caret is the entire treatment for editing —
 	// clicking or typing in text never selects a block. Two guards keep block
 	// selection chrome out of caret flows:
@@ -242,12 +257,18 @@ export function PromptFlowXml({
 	selectedNodeIdRef.current = selectedNodeId;
 	const editSessionLiveRef = useRef(false);
 	const onPromptChange = useCallback<PromptFlowChangeHandler>(
-		(nextPrompt, nextSelectedNodeId, steps) =>
+		(nextPrompt, nextSelectedNodeId, steps) => {
+			const insertion = pendingInsertionRef.current;
+			if (insertion) {
+				pendingInsertionRef.current = null;
+				setPendingInsertion(null);
+			}
 			hostPromptChange(
 				nextPrompt,
 				editSessionLiveRef.current ? undefined : nextSelectedNodeId,
-				steps,
-			),
+				insertion && steps ? [insertion.step, ...steps] : steps,
+			);
+		},
 		[hostPromptChange],
 	);
 
@@ -298,6 +319,10 @@ export function PromptFlowXml({
 		(SlashSession & { anchor: SlashMenuAnchor }) | null
 	>(null);
 	const editSeqRef = useRef(0);
+	const currentEditRef = useRef(editTarget);
+	currentEditRef.current = editTarget;
+	const caretRecoveryRef = useRef<EditTarget[]>([]);
+
 	/**
 	 * Structural selection: ONE contiguous sibling run — items of one list
 	 * (shift-click on item rows, or a plain drag within one list) or blocks
@@ -335,6 +360,9 @@ export function PromptFlowXml({
 		literal: string;
 		seq: number;
 	} | null>(null);
+	// A selected block has no textarea yet. Defer its first slash's caret
+	// measurement until focusEdit has mounted the editor.
+	const pendingSlashRef = useRef<string | null>(null);
 
 	/**
 	 * Single entry point for putting the caret somewhere. CARET-FIRST: placing
@@ -346,6 +374,13 @@ export function PromptFlowXml({
 	 */
 	const focusEdit = useCallback(
 		(target: EditTarget) => {
+			const current = currentEditRef.current;
+			const active = document.activeElement;
+			if (current && active instanceof HTMLTextAreaElement) {
+				caretRecoveryRef.current.push({nodeId: current.nodeId, itemIndex: current.itemIndex, caret: active.selectionStart});
+				if (caretRecoveryRef.current.length > 100) caretRecoveryRef.current.shift();
+			}
+			pendingSlashRef.current = null;
 			editSeqRef.current += 1;
 			// Seated synchronously so a commit in this same tick already
 			// suppresses the selection echo (see the caret-first guards above).
@@ -369,6 +404,74 @@ export function PromptFlowXml({
 		},
 		[onSelectNode],
 	);
+
+	// Undo or an external document update can remove the node/item holding the
+	// caret. Restore the most recent surviving caret instead of leaving editing
+	// pointed at a node that no longer renders.
+	useLayoutEffect(() => {
+		if (!editTarget) return;
+		const exists = (target: EditTarget) => lines.some((line) =>
+			line.nodeId === target.nodeId && line.editable &&
+			(target.itemIndex === undefined ? line.role !== "item" : line.role === "item" && line.itemIndex === target.itemIndex));
+		if (exists(editTarget)) return;
+		const recovered = [...caretRecoveryRef.current].reverse().find(exists);
+		if (recovered) { focusEdit(recovered); return; }
+		const first = lines.find((line) => line.editable);
+		if (first) focusEdit({nodeId: first.nodeId, itemIndex: first.itemIndex, caret: 0});
+		else setEditTarget(null);
+	}, [lines, editTarget, focusEdit]);
+
+	function insertAndEdit(type: PromptBlockNodeType, targetId: string | null, position: "before" | "after" | "child" = "after") {
+		// Reuse only an empty paragraph immediately beside this sibling boundary.
+		// Never search descendants: a blank section body is a different location.
+		if (type === "paragraph" && position !== "child" && targetId) {
+			const target = entriesById.get(targetId);
+			if (target) {
+				const boundary = target.index + (position === "after" ? 1 : 0);
+				const siblings = model.tree.filter((entry) =>
+					JSON.stringify(entry.parentPath) === JSON.stringify(target.parentPath));
+				const candidates = [boundary, boundary - 1].map((index) =>
+					siblings.find((entry) => entry.index === index));
+				const empty = candidates.find((entry) => entry?.node.type === "paragraph" &&
+					entry.node.content.every((part) => typeof part === "string" && part.length === 0));
+				if (empty) {
+					focusEdit({ nodeId: empty.id, caret: 0 });
+					return;
+				}
+			}
+		}
+		const insertionPrompt = pendingInsertionRef.current?.base ?? prompt;
+		const node = createPromptBlockTemplate(type, insertionPrompt);
+		if (node.type === "paragraph") node.content = [""];
+		if (node.type === "section") node.children = [{type: "paragraph", content: [""]}];
+		if (node.type === "bulletList" || node.type === "orderedList") node.items = [{type: "listItem", content: [""]}];
+		const result = insertPromptBlockNodeWithStep(insertionPrompt, targetId, node, position);
+		if (result.step?.op !== "insert" || !result.step.node.id) return;
+		const inserted = result.step.node;
+		focusEdit({
+			nodeId: inserted.id!,
+			...(inserted.type === "bulletList" || inserted.type === "orderedList" ? {itemIndex: 0} : {}),
+			caret: inserted.type === "section" ? [0, inserted.tag.length] : 0,
+		});
+		if (type === "paragraph" && position !== "child") {
+			const draft = {base: insertionPrompt, prompt: result.prompt, step: result.step};
+			pendingInsertionRef.current = draft;
+			setPendingInsertion(draft);
+		} else {
+			pendingInsertionRef.current = null;
+			setPendingInsertion(null);
+			onPromptChange(result.prompt, inserted.id, [result.step]);
+		}
+	}
+
+	// A clicked writing position is local until its first edit. Leaving it
+	// creates no document mutation, save, or undo entry.
+	useEffect(() => {
+		if (pending && editTarget?.nodeId !== pending.step.node.id) {
+			pendingInsertionRef.current = null;
+			setPendingInsertion(null);
+		}
+	}, [pending, editTarget?.nodeId]);
 
 	// The caret-follow feed for quiet host panels (see the prop doc): reports
 	// the enclosing node of the live edit session, and undefined at rest.
@@ -574,6 +677,36 @@ export function PromptFlowXml({
 		return true;
 	}
 
+	function applyWritingResult(result: StructureStepResult | null): boolean {
+		if (!result?.steps.length || !result.focusNodeId) return false;
+		onPromptChange(result.prompt, result.focusNodeId, result.steps);
+		focusEdit({nodeId: result.focusNodeId, itemIndex: result.focusItemIndex, caret: result.caretOffset ?? 0});
+		return true;
+	}
+
+	function handleEditorPaste(event: React.ClipboardEvent<HTMLElement>): void {
+		const element = event.target;
+		if (!(element instanceof HTMLTextAreaElement) || !editTarget) return;
+		const line = lines.find((candidate) => candidate.nodeId === editTarget.nodeId && isEditingLine(editTarget, candidate));
+		if (!line || (line.node.type !== "paragraph" && line.role !== "item")) return;
+		const pasted = event.clipboardData.getData("text/plain").replace(/\r\n?/g, "\n");
+		if (!pasted.includes("\n") && !/^\s*(?:[-*+•] |\d+[.)] )/.test(pasted)) return;
+		const before = element.value.slice(0, element.selectionStart);
+		const after = element.value.slice(element.selectionEnd);
+		if (line.role === "item") {
+			const result = pasteListItemsStep(prompt, line.nodeId, line.itemIndex ?? 0, before, pasted, after);
+			if (!result.step) return;
+			event.preventDefault();
+			applyWritingResult({...result, steps: [result.step], focusNodeId: result.focusListId ?? line.nodeId});
+		} else {
+			const text = after ? pasted : pasted.replace(/\n$/, "");
+			const result = pasteParagraphLines(prompt, line.nodeId, before + text + after, before.length + text.length);
+			if (!result) return;
+			event.preventDefault();
+			applyWritingResult(result);
+		}
+	}
+
 	/**
 	 * Every keystroke's resulting text, before it becomes a text commit. Three
 	 * things can happen to it, in this order: it feeds an open slash menu, it
@@ -583,7 +716,7 @@ export function PromptFlowXml({
 	function handleEditorChange(
 		line: XmlLine,
 		next: string,
-		element: HTMLTextAreaElement,
+		element?: HTMLTextAreaElement,
 	): void {
 		const entry = entriesById.get(line.nodeId);
 		if (!entry) return;
@@ -599,7 +732,7 @@ export function PromptFlowXml({
 			// query stay on the line as literal prose.
 			setSlash(
 				session
-					? { ...session, anchor: caretAnchor(element, next.length) }
+					? { ...session, anchor: element ? caretAnchor(element, next.length) : slash.anchor }
 					: null,
 			);
 			commit();
@@ -608,9 +741,13 @@ export function PromptFlowXml({
 
 		if (line.node.type === "paragraph" && shouldOpenSlash(previous, next)) {
 			commit();
+			if (!element) {
+				pendingSlashRef.current = line.nodeId;
+				return;
+			}
 			setSlash({
 				nodeId: line.nodeId,
-				query: "",
+				query: next.slice(1),
 				selectedIndex: 0,
 				anchor: caretAnchor(element, next.length),
 			});
@@ -618,6 +755,13 @@ export function PromptFlowXml({
 		}
 
 		if (line.node.type === "paragraph" && line.role === "content") {
+			const logical = resolveLineAutoformat(previous, next, element?.selectionStart ?? next.length);
+			if (logical && applyWritingResult(autoformatParagraphLine(prompt, line.nodeId, next, logical.start, logical.end))) {
+				if (logical.start === 0 && logical.end === next.length) {
+					undoMarkerRef.current = {nodeId: line.nodeId, literal: next, seq: editSeqRef.current};
+				}
+				return;
+			}
 			const marker = resolveAutoformat(previous, next);
 			if (
 				marker &&
@@ -769,13 +913,14 @@ export function PromptFlowXml({
 			const entry = entriesById.get(line.nodeId);
 			if (!entry) return;
 			event.preventDefault();
-			const next = editorValueForLine(line.node, line) + event.key;
+			const previous = editorValueForLine(line.node, line);
+			const next = previous + event.key;
 			focusEdit({
 				nodeId: line.nodeId,
 				itemIndex: line.itemIndex,
 				caret: next.length,
 			});
-			commitEdit(prompt, entry, line, next, onPromptChange);
+			handleEditorChange(line, next);
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
@@ -818,6 +963,19 @@ export function PromptFlowXml({
 
 	const scrollRef = useRef<HTMLDivElement | null>(null);
 	const rowsRef = useRef<HTMLDivElement | null>(null);
+	useLayoutEffect(() => {
+		const nodeId = pendingSlashRef.current;
+		if (!nodeId || nodeId !== editTarget?.nodeId) return;
+		pendingSlashRef.current = null;
+		const element = rowsRef.current?.querySelector("textarea");
+		if (!element || !element.value.startsWith("/")) return;
+		setSlash({
+			nodeId,
+			query: element.value.slice(1),
+			selectedIndex: 0,
+			anchor: caretAnchor(element, element.value.length),
+		});
+	}, [editTarget]);
 
 	// Rows are one line-height at rest but grow when their content wraps, so
 	// overlays (guides, landmark span, drop line) can't assume a fixed row
@@ -1568,6 +1726,7 @@ export function PromptFlowXml({
 
 	return (
 		<section
+			onPaste={handleEditorPaste}
 			className={cn(
 				PROMPT_EDITOR_ROOT_CLASS,
 				"flex h-full min-h-0 flex-1 flex-col",
@@ -1595,10 +1754,19 @@ export function PromptFlowXml({
 				<div
 				ref={scrollRef}
 				data-prompt-flow-scroll="xml"
+				onClick={(event) => {
+					if (event.target !== event.currentTarget) return;
+					if (event.currentTarget.closest('[data-annotation-targeting="true"]')) return;
+					if (window.getSelection?.()?.isCollapsed === false) return;
+					const rows = rowsRef.current;
+					if (rows && event.clientY < rows.getBoundingClientRect().bottom) return;
+					event.stopPropagation();
+					insertAndEdit("paragraph", prompt.nodes.at(-1)?.id ?? null);
+				}}
 				// A permanent scrollbar track pressed against the outline's
 				// hairline reads as a second divider, so the buffer's scrollbar is
 				// an overlay pill on a transparent track — visible on hover.
-				className="min-h-0 min-w-0 flex-1 overflow-auto [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-[3px] [&::-webkit-scrollbar-thumb]:border-solid [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2.5 hover:[&::-webkit-scrollbar-thumb]:bg-white/15"
+				className="min-h-0 min-w-0 flex-1 overflow-auto [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-[3px] [&::-webkit-scrollbar-thumb]:border-solid [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-clip-content [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:w-2.5 hover:[&::-webkit-scrollbar-thumb]:bg-foreground/15"
 				onScroll={() => {
 					// Content sliding under a stationary pointer must not carry a
 					// stale hover wash along: scrolling retires the hovered NODE
@@ -1652,12 +1820,13 @@ export function PromptFlowXml({
 				{model.tree.length === 0 ? (
 					<div
 						className="p-4"
+						onClick={(event) => event.stopPropagation()}
 						style={{
 							maxWidth: EDITOR_METRICS.contentWidth,
 							marginInline: "var(--prompt-editor-margin-left, 0px) auto",
 						}}
 					>
-						<EmptyFlow onInsert={(type) => flow.insertBlock(type, null)} />
+						<EmptyFlow onInsert={(type) => insertAndEdit(type, null)} />
 					</div>
 				) : (
 					<div
@@ -1685,7 +1854,7 @@ export function PromptFlowXml({
 							// the scroller from y=0) aligned with row boundaries, and
 							// row-metric offsets measure relative to this container's
 							// border box, so absolute overlays stay aligned.
-							paddingBlock: EDITOR_METRICS.lineHeight,
+							paddingBlock: 0,
 							// ONLY while the plain drag's STRUCTURAL phase is live
 							// (boundary crossed) is the surface a selection canvas,
 							// not text — within-unit drags and the resting surface
@@ -1699,6 +1868,7 @@ export function PromptFlowXml({
 							setHoverRow(null);
 						}}
 					>
+						<InsertionSlot label="Insert text at start" onInsert={() => insertAndEdit("paragraph", prompt.nodes[0]?.id ?? null, "before")} />
 						{/* THE structural-selection paint: ONE contiguous rounded
 						    rect spanning the run's full row extent (top of its
 						    first row → bottom of its last), so the zone reads as
@@ -1913,8 +2083,10 @@ export function PromptFlowXml({
 									}
 									onCloseMenu={() => setMenuNodeId(null)}
 									onInsertChild={(type) =>
-										flow.insertBlock(type, line.nodeId, "child")
+										insertAndEdit(type, line.nodeId, "child")
 									}
+									onInsertBefore={() => insertAndEdit("paragraph", line.nodeId, "before")}
+									onConvert={(type) => applyWritingResult(convertParagraphToStep(prompt, line.nodeId, type))}
 									onDuplicate={() => flow.duplicateBlock(line.nodeId)}
 									onRetag={(tag) =>
 										entry && retagSection(prompt, entry, tag, onPromptChange)
@@ -2113,6 +2285,7 @@ export function PromptFlowXml({
 							);
 						})}
 
+						<InsertionSlot label="Insert text at end" onInsert={() => insertAndEdit("paragraph", prompt.nodes.at(-1)?.id ?? null, "after")} />
 						{/* Indent guides: thin bracket-style hairlines connecting a
 						    container's open tag to its close tag. Positioned from
 						    measured row offsets so wrapped rows don't misalign them. */}

@@ -106,37 +106,28 @@ describe("resolveBackspace decision table", () => {
 		});
 	});
 
-	test("a non-first item merges into the previous item of the same list", () => {
-		const result = backspaceAt(doc(bullets("a", "b")), 1);
-		expect(result.kind).toBe("merge-items");
-		if (result.kind !== "merge-items") throw new Error("unreachable");
-		expect(result.itemIndex).toBe(1);
-		expect(result.previous.itemIndex).toBe(0);
+	for (const empty of [false, true]) {
+		test(`a list item removes its list level, empty=${empty}`, () => {
+			expect(backspaceAt(doc(bullets("a", empty ? "" : "b")), 1, empty)).toMatchObject({
+				kind: "unlist-item", itemIndex: 1,
+			});
+		});
+	}
+
+	test("the first list item removes its marker instead of moving up", () => {
+		expect(backspaceAt(doc(paragraph("intro"), bullets("a", "b")), 1)).toMatchObject({
+			kind: "unlist-item", itemIndex: 0,
+		});
 	});
 
-	test("the FIRST item never merges into whatever sits above the list", () => {
-		// A paragraph above a list is not a like-kind sibling: the caret must
-		// still travel back, but the structure stays untouched.
-		const result = backspaceAt(doc(paragraph("intro"), bullets("a", "b")), 1);
-		expect(result.kind).toBe("focus-previous");
-		if (result.kind !== "focus-previous") throw new Error("unreachable");
-		expect(result.previous.itemIndex).toBeUndefined();
+	test("a paragraph joins the preceding list", () => {
+		expect(backspaceAt(doc(bullets("a"), paragraph("b")), 1)).toMatchObject({
+			kind: "merge-paragraph-into-list", itemIndex: 0,
+		});
 	});
 
-	test("an empty item is removed, keeping the list when others remain", () => {
-		const result = backspaceAt(doc(bullets("a", "")), 1, true);
-		expect(result.kind).toBe("remove-empty-item");
-		if (result.kind !== "remove-empty-item") throw new Error("unreachable");
-		expect(result.itemIndex).toBe(1);
-		expect(result.removesWholeList).toBe(false);
-		expect(result.previous?.itemIndex).toBe(0);
-	});
-
-	test("emptying the only item removes the whole list", () => {
-		const result = backspaceAt(doc(paragraph("intro"), bullets("")), 1, true);
-		expect(result.kind).toBe("remove-empty-item");
-		if (result.kind !== "remove-empty-item") throw new Error("unreachable");
-		expect(result.removesWholeList).toBe(true);
+	test("a paragraph cannot join a list across a section boundary", () => {
+		expect(backspaceAt(doc(section("notes", bullets("a")), paragraph("b")), 2).kind).toBe("focus-previous");
 	});
 
 	test("sibling paragraphs merge", () => {

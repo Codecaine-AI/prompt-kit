@@ -10,6 +10,7 @@ import {
 } from "../../../../src/ui/editor/model";
 import {
 	applySteps,
+	revertSteps,
 	type PromptStep,
 } from "../../../../src/ui/editor/transactions";
 
@@ -368,64 +369,71 @@ describe("Enter on a section tag", () => {
  * Backspace
  * --------------------------------------------------------------- */
 
-// With the per-item remove × gone, the keyboard IS the item-delete path:
-// Backspace in an emptied item removes exactly that item (or the whole list
-// when it was the last one), and Backspace at the start of a non-empty item
-// merges it into the one above. These press the real keymap end-to-end.
-describe("Backspace on a list item", () => {
-	test("removes an emptied item, keeping the list when others remain", () => {
-		const before = doc(bullets("one", ""));
-		const pressed = press(
-			before,
-			{ nodeId: id.bullets(1), itemIndex: 1 },
-			"Backspace",
-			{ value: "", caret: 0 },
-		);
+describe("Backspace at list boundaries", () => {
+	for (const kind of ["bulletList", "orderedList"] as const) {
+		for (const itemIndex of [0, 1, 2]) {
+			for (const text of ["", "Keep {{name}}"] ) {
+				test(`${kind} item ${itemIndex} loses its marker and retains text ${JSON.stringify(text)}`, () => {
+					const before = doc({type: kind, id: "list", ...(kind === "orderedList" ? {start: 4} : {}), items:
+						["First", "Middle", "Last"].map((value, index) => ({type: "listItem", content: [index === itemIndex ? text : value]}))});
+					const pressed = press(before, {nodeId: "list", itemIndex}, "Backspace", {value: text, caret: 0});
+					expectOneTransaction(before, pressed);
+					expect(revertSteps(pressed.prompt, pressed.steps)).toEqual(before);
+					const paragraph = pressed.prompt.nodes.find(node => node.type === "paragraph")!;
+					expect(paragraph).toMatchObject({content: [text]});
+					expect(pressed.moved).toEqual({nodeId: paragraph.id!, itemIndex: undefined, caret: 0});
+					if (kind === "orderedList" && itemIndex < 2) expect(pressed.prompt.nodes.at(-1)).toMatchObject({start: 4 + itemIndex + 1});
+				});
+			}
+		}
+		for (const prefix of ["", "Existing "]) {
+			test(`paragraph joins ${kind} with prefix ${JSON.stringify(prefix)}`, () => {
+				const before = doc({type: kind, id: "list", items: [{type: "listItem", content: [prefix]}]}, {type: "paragraph", id: "p", content: ["A diagram"]});
+				const pressed = press(before, {nodeId: "p"}, "Backspace", {value: "A diagram", caret: 0});
+				expectOneTransaction(before, pressed);
+				expect(pressed.prompt.nodes).toHaveLength(1);
+				expect(pressed.prompt.nodes[0]).toMatchObject({items: [{content: [prefix + "A diagram"]}]});
+				expect(pressed.moved).toEqual({nodeId: "list", itemIndex: 0, caret: prefix.length});
+				expect(revertSteps(pressed.prompt, pressed.steps)).toEqual(before);
+			});
+		}
+	}
 
+	test("lifting an item keeps its descendants before following items", () => {
+		const before = doc({type: "bulletList", id: "list", items: [
+			{type: "listItem", content: ["First"]},
+			{type: "listItem", content: ["Lift"], children: [{...bullets("Child"), id: "child"}]},
+			{type: "listItem", content: ["Last"]},
+		]});
+		const pressed = press(before, {nodeId: "list", itemIndex: 1}, "Backspace", {value: "Lift", caret: 0});
+		expect(pressed.text).toBe("- First\n\nLift\n\n- Child\n\n- Last");
 		expectOneTransaction(before, pressed);
-		expect(pressed.text).toBe("- one");
-		expect(pressed.prevented).toBe(true);
-		// The caret lands on the previous item, ready to keep deleting.
-		expect(pressed.moved).toEqual({
-			nodeId: id.bullets(1),
-			itemIndex: 0,
-			caret: "end",
-		});
+		expect(revertSteps(pressed.prompt, pressed.steps)).toEqual(before);
+		expect(pressed.prompt.nodes[2]?.id).toBe("child");
 	});
 
-	test("removes the whole list with its last emptied item", () => {
-		const before = doc(
-			{ type: "paragraph", content: ["keep"] },
-			bullets(""),
-		);
-		const pressed = press(
-			before,
-			{ nodeId: id.bullets(1), itemIndex: 0 },
-			"Backspace",
-			{ value: "", caret: 0 },
-		);
-
+	test("a nested item outdents one level with its text", () => {
+		const before = doc({type: "bulletList", id: "list", items: [
+			{type: "listItem", content: ["Parent"], children: [{...bullets("Lift", "Following"), id: "child"}]},
+		]});
+		const pressed = press(before, {nodeId: "child", itemIndex: 0}, "Backspace", {value: "Lift", caret: 0});
 		expectOneTransaction(before, pressed);
-		// Only the paragraph survives — an empty list would render nothing.
-		expect(pressed.text).toBe("keep");
+		expect(pressed.moved).toEqual({nodeId: "list", itemIndex: 1, caret: 0});
+		expect(pressed.text).toContain("- Lift");
+		expect(pressed.text).toContain("Following");
+		expect(revertSteps(pressed.prompt, pressed.steps)).toEqual(before);
 	});
 
-	test("merges a non-empty item into the previous one at caret 0", () => {
-		const before = doc(bullets("one", "two"));
-		const pressed = press(
-			before,
-			{ nodeId: id.bullets(1), itemIndex: 1 },
-			"Backspace",
-			{ value: "two", caret: 0 },
-		);
-
+	test("a paragraph joins the last visible nested item and retains inline variables", () => {
+		const before = doc({type: "bulletList", id: "list", items: [
+			{type: "listItem", content: ["Parent"], children: [{...bullets("Child "), id: "child"}]},
+		]}, {type: "paragraph", id: "p", content: [{type: "variable", name: "name"}]});
+		const pressed = press(before, {nodeId: "p"}, "Backspace", {value: "{{name}}", caret: 0});
 		expectOneTransaction(before, pressed);
-		expect(pressed.text).toBe("- onetwo");
-		expect(pressed.moved).toEqual({
-			nodeId: id.bullets(1),
-			itemIndex: 0,
-			caret: 3,
-		});
+		expect(pressed.prompt.nodes).toHaveLength(1);
+		expect(pressed.moved).toEqual({nodeId: "child", itemIndex: 0, caret: 6});
+		expect(JSON.stringify(pressed.prompt)).toContain('"type":"variable"');
+		expect(revertSteps(pressed.prompt, pressed.steps)).toEqual(before);
 	});
 });
 

@@ -32,12 +32,12 @@ describe("prompt style defaults", () => {
 	// so a stray click can never reset the look.
 	test("exports the frozen painted baseline", () => {
 		expect(PROMPT_STYLE_DEFAULTS).toEqual({
-			fontFamily: "system",
-			fontSize: 13,
-			lineHeight: 22,
+			fontFamily: "sans",
+			fontSize: 15,
+			lineHeight: 26,
 			letterSpacing: 0,
 			indentWidth: 20,
-			contentWidth: 136,
+			contentWidth: 88,
 			marginLeft: 48,
 			marginTop: 24,
 			panelInset: 24,
@@ -63,7 +63,7 @@ describe("prompt style defaults", () => {
 			inlineChipOpacity: 0.08,
 			listMarkerColor: "#6C737B",
 			guideColor: "#FFFFFF",
-			guideOpacity: 0.1,
+			guideOpacity: 0.18,
 			landmarkColor: "#FFFFFF",
 			landmarkOpacity: 0,
 			selectionColor: "#3D7BBF",
@@ -159,8 +159,21 @@ describe("prompt style persistence", () => {
 		savePromptStyleSettings(settings, storage);
 		const raw = storage.entries.get(PROMPT_STYLE_STORAGE_KEY);
 		expect(raw).toBeDefined();
-		expect(JSON.parse(raw!).version).toBe(2);
+		expect(JSON.parse(raw!).version).toBe(3);
 		expect(loadPromptStyleSettings(storage)).toEqual(settings);
+	});
+
+	test("migrates the old reading defaults and preserves custom geometry", () => {
+		const storage = memoryStorage({
+			[PROMPT_STYLE_STORAGE_KEY]: JSON.stringify({version: 2, settings: {
+				fontFamily: "system", fontSize: 13, lineHeight: 22, contentWidth: 136,
+				marginLeft: 72, guideOpacity: 0.25,
+			}}),
+		});
+		expect(loadPromptStyleSettings(storage)).toMatchObject({
+			fontFamily: "sans", fontSize: 15, lineHeight: 26, contentWidth: 88,
+			marginLeft: 72, guideOpacity: 0.25,
+		});
 	});
 
 	test("removes storage when reset to defaults", () => {
@@ -179,7 +192,7 @@ describe("prompt style persistence", () => {
 			[PROMPT_STYLE_STORAGE_KEY]: "{",
 		});
 		const future = memoryStorage({
-			[PROMPT_STYLE_STORAGE_KEY]: '{"version":3,"settings":{"fontSize":20}}',
+			[PROMPT_STYLE_STORAGE_KEY]: '{"version":99,"settings":{"fontSize":20}}',
 		});
 
 		expect(loadPromptStyleSettings(corrupt)).toEqual(PROMPT_STYLE_DEFAULTS);
@@ -213,6 +226,25 @@ describe("prompt style persistence", () => {
 });
 
 describe("promptStyleVars", () => {
+	test("can follow every host color without changing saved custom preferences", () => {
+		const settings = { ...PROMPT_STYLE_DEFAULTS, surfaceColor: "#222222", hoverColor: "#334455", fontSize: 17 };
+		const vars = promptStyleVars(settings, { followTheme: true }) as Record<string, string>;
+		expect(vars["--prompt-editor-bg"]).toBe("var(--editor-bg, #1E1E1E)");
+		expect(vars["--prompt-editor-hover-bg"]).toContain("var(--editor-hover-color, #FFFFFF)");
+		expect(vars["--prompt-editor-font-size"]).toBe("17px");
+		expect(settings.surfaceColor).toBe("#222222");
+		expect((promptStyleVars(settings) as Record<string, string>)["--prompt-editor-bg"]).toBe("#222222");
+	});
+
+	test("inherits host palette by default and preserves customized colors", () => {
+		const defaults = promptStyleVars(PROMPT_STYLE_DEFAULTS) as Record<string, string>;
+		expect(defaults["--prompt-editor-bg"]).toBe("var(--editor-bg, #1E1E1E)");
+		expect(defaults["--prompt-editor-hover-bg"]).toContain("var(--editor-hover-color, #FFFFFF)");
+		const custom = promptStyleVars({ ...PROMPT_STYLE_DEFAULTS, surfaceColor: "#FAFAFA", hoverColor: "#102030" }) as Record<string, string>;
+		expect(custom["--prompt-editor-bg"]).toBe("#FAFAFA");
+		expect(custom["--prompt-editor-hover-bg"]).toBe(`rgb(16 32 48 / ${PROMPT_STYLE_DEFAULTS.hoverOpacity})`);
+	});
+
 	test("emits prompt-scoped metrics, toggles, palette, and alpha colors", () => {
 		const vars = promptStyleVars({
 			...PROMPT_STYLE_DEFAULTS,
@@ -225,7 +257,7 @@ describe("promptStyleVars", () => {
 
 		expect(vars["--prompt-editor-font-family"]).toContain("IBM Plex Mono");
 		expect(vars["--prompt-editor-font-size"]).toBe("16px");
-		expect(vars["--prompt-editor-line-height"]).toBe("22px");
+		expect(vars["--prompt-editor-line-height"]).toBe("26px");
 		// Line numbers, rules, and zebra retired: the gutter is always the
 		// collapsed affordance strip and their toggles no longer exist.
 		expect(vars["--prompt-editor-gutter-width"]).toBe("36px");
@@ -235,11 +267,11 @@ describe("promptStyleVars", () => {
 		expect("--prompt-editor-rule" in vars).toBe(false);
 		expect(vars["--prompt-editor-guide"]).toBe("rgb(16 32 48 / 0.25)");
 		expect(vars["--prompt-editor-syntax-tag"]).toBe(
-			PROMPT_STYLE_DEFAULTS.tagNameColor,
+			`var(--editor-syntax-tag, ${PROMPT_STYLE_DEFAULTS.tagNameColor})`,
 		);
 		expect(vars["--prompt-editor-drop-line-width"]).toBe("3px");
 		expect(vars["--prompt-editor-selection-accent"]).toBe(
-			PROMPT_STYLE_DEFAULTS.selectionAccentColor,
+			`var(--editor-selection-accent, ${PROMPT_STYLE_DEFAULTS.selectionAccentColor})`,
 		);
 	});
 
@@ -258,24 +290,24 @@ describe("promptStyleVars", () => {
 		expect(vars["--prompt-editor-gap-height-sub"]).toBe("36px");
 		expect(vars["--prompt-editor-gap-height-top"]).toBe("52px");
 		expect(vars["--prompt-editor-syntax-tag-landmark"]).toBe(
-			PROMPT_STYLE_DEFAULTS.tagLandmarkColor,
+			`var(--editor-syntax-tag-landmark, ${PROMPT_STYLE_DEFAULTS.tagLandmarkColor})`,
 		);
 		expect(vars["--prompt-editor-syntax-tag-sublandmark"]).toBe(
-			PROMPT_STYLE_DEFAULTS.tagSublandmarkColor,
+			`var(--editor-syntax-tag-sublandmark, ${PROMPT_STYLE_DEFAULTS.tagSublandmarkColor})`,
 		);
 		expect(vars["--prompt-editor-landmark-pad"]).toBe("4px");
-		expect(vars["--prompt-editor-inline-code"]).toBe("#5FBCA5");
+		expect(vars["--prompt-editor-inline-code"]).toBe("var(--editor-inline-code, #5FBCA5)");
 		expect(vars["--prompt-editor-inline-chip-opacity"]).toBe("0.1");
 		expect(vars["--prompt-editor-inline-chip-bg"]).toBe(
-			"rgb(95 188 165 / 0.1)",
+			"color-mix(in srgb, var(--editor-inline-code, #5FBCA5) 10%, transparent)",
 		);
 
 		const flat = promptStyleVars({
 			...PROMPT_STYLE_DEFAULTS,
 			gapRamp: 0,
 		}) as Record<string, string>;
-		expect(flat["--prompt-editor-gap-height-base"]).toBe("22px");
-		expect(flat["--prompt-editor-gap-height-sub"]).toBe("22px");
-		expect(flat["--prompt-editor-gap-height-top"]).toBe("22px");
+		expect(flat["--prompt-editor-gap-height-base"]).toBe("26px");
+		expect(flat["--prompt-editor-gap-height-sub"]).toBe("26px");
+		expect(flat["--prompt-editor-gap-height-top"]).toBe("26px");
 	});
 });

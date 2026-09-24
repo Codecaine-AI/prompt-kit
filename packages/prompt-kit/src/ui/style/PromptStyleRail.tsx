@@ -20,6 +20,7 @@ const FONT_OPTIONS: Array<{
   value: PromptStyleSettings["fontFamily"];
   label: string;
 }> = [
+  { value: "sans", label: "System sans (Docs)" },
   { value: "system", label: "System mono" },
   { value: "sf-mono", label: "SF Mono" },
   { value: "jetbrains-mono", label: "JetBrains Mono" },

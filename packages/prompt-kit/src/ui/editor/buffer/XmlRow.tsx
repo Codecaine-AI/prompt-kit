@@ -17,6 +17,8 @@ import {
 } from "../../surface/editor-surface";
 import type { PromptFlowViewProps } from "../types";
 import { lineRendersDecodedEntities, type XmlLine } from "../../../document/render/line-model";
+import { PROMPT_CODE_FONT_FAMILY } from "../../surface/editor-surface";
+import { InsertionSlot } from "./InsertionSlot";
 import { BlockCluster } from "./BlockCluster";
 import { dragHandleRailWidth } from "./drag-handle";
 import type { EditorAriaAttributes } from "./GrowTextArea";
@@ -98,6 +100,8 @@ export interface XmlRowProps {
 	onToggleMenu: () => void;
 	onCloseMenu: () => void;
 	onInsertChild: (type: PromptBlockNodeType) => void;
+	onInsertBefore?: () => void;
+	onConvert?: (type: "bulletList" | "orderedList") => void;
 	onDuplicate: () => void;
 	onRetag: (tag: string) => void;
 	onRemove: () => void;
@@ -162,6 +166,8 @@ export function XmlRow({
 	onToggleMenu,
 	onCloseMenu,
 	onInsertChild,
+	onConvert,
+	onInsertBefore,
 	onDuplicate,
 	onRetag,
 	onRemove,
@@ -242,10 +248,19 @@ export function XmlRow({
 			style={{
 				...rowGridStyle,
 				...roleInk,
+				...(line.node.type === "codeBlock" || line.node.type === "raw"
+					? { "--prompt-editor-font-family": PROMPT_CODE_FONT_FAMILY, fontFamily: PROMPT_CODE_FONT_FAMILY } as React.CSSProperties
+					: {}),
 				opacity: dragging
 					? "var(--prompt-editor-drag-opacity, 0.3)"
 					: undefined,
 			}}
+			onClick={isGap && onInsertBefore ? (event) => {
+				if (event.currentTarget.closest('[data-annotation-targeting="true"]')) return;
+				if (window.getSelection?.()?.isCollapsed === false) return;
+				event.stopPropagation();
+				onInsertBefore();
+			} : undefined}
 			onMouseEnter={isGap ? onHoverGap : onHoverNode}
 			// Capture-phase so a shift-click on an item row NEVER reaches the
 			// text / marker click handlers (which would open an editor): range
@@ -352,6 +367,7 @@ export function XmlRow({
 					onRetag={onRetag}
 					onRemove={onRemove}
 					onInsertChild={onInsertChild}
+					onConvert={onConvert}
 					onDragHandleDown={onDragHandleDown}
 				/>
 			)}
@@ -379,7 +395,7 @@ export function XmlRow({
 						type="button"
 						title="Drag, or click for item menu"
 						aria-label="Item handle and menu"
-						className="prompt-editor-item-grip pointer-events-auto flex w-7 cursor-grab touch-none select-none items-center justify-center rounded-[3px] hover:bg-white/10 active:cursor-grabbing"
+						className="prompt-editor-item-grip pointer-events-auto flex w-7 cursor-grab touch-none select-none items-center justify-center rounded-[3px] hover:bg-foreground/10 active:cursor-grabbing"
 						style={{
 							height: EDITOR_METRICS.lineHeight,
 							color: EDITOR_COLORS.grip,
@@ -430,6 +446,7 @@ export function XmlRow({
 					isGap
 						? undefined
 						: {
+								fontWeight: isSectionTag && line.role === "open" ? 600 : undefined,
 								paddingLeft: `calc(0.75rem + ${indentWidth})`,
 								textIndent: `calc(0px - ${indentWidth})`,
 								// Landmark scale on the body only — the gutter number
@@ -456,7 +473,7 @@ export function XmlRow({
 				}}
 			>
 				{isGap ? (
-					<GapRow height={gapHeightForLine(line)} />
+					<InsertionSlot label="Insert text here" height={gapHeightForLine(line)} onInsert={onInsertBefore ?? (() => {})} />
 				) : isSectionTag && entry ? (
 					<SectionTagRow
 						line={line}
@@ -526,39 +543,19 @@ export function XmlRow({
  * — resolves the row's ink without any text or markup change.
  */
 function roleInkOverrides(line: XmlLine): React.CSSProperties | undefined {
-	if (line.role === "close") {
-		// A closing tag mirrors its opener's tier color EXACTLY — brackets
-		// included — so where a section starts and where it ends carry the same
-		// ink. Color only: the landmark font scale stays on the open tag.
-		if (line.depth === 0) {
-			return {
-				"--prompt-editor-syntax-tag": EDITOR_COLORS.syntaxTagLandmark,
-				"--prompt-editor-syntax-punctuation":
-					EDITOR_COLORS.syntaxTagLandmark,
-			} as React.CSSProperties;
-		}
-		if (line.depth === 1) {
-			return {
-				"--prompt-editor-syntax-tag": EDITOR_COLORS.syntaxTagSublandmark,
-				"--prompt-editor-syntax-punctuation":
-					EDITOR_COLORS.syntaxTagSublandmark,
-			} as React.CSSProperties;
-		}
-		// Deeper closes match their openers by simply using the stock tag ink.
-		return undefined;
-	}
-	if (line.role !== "open") return undefined;
-	if (line.depth === 0) {
-		return {
-			"--prompt-editor-syntax-tag": EDITOR_COLORS.syntaxTagLandmark,
-		} as React.CSSProperties;
-	}
-	if (line.depth === 1) {
-		return {
-			"--prompt-editor-syntax-tag": EDITOR_COLORS.syntaxTagSublandmark,
-		} as React.CSSProperties;
-	}
-	return undefined;
+	if (line.role !== "open" && line.role !== "close") return undefined;
+	const ink = line.depth === 0
+		? EDITOR_COLORS.syntaxTagLandmark
+		: line.depth === 1
+			? EDITOR_COLORS.syntaxTagSublandmark
+			: undefined;
+	return {
+		...(ink ? { "--prompt-editor-syntax-tag": ink } : {}),
+		"--prompt-editor-syntax-punctuation": "var(--prompt-editor-syntax-tag)",
+		"--prompt-editor-tag-weight": line.role === "open"
+			? "var(--prompt-editor-open-tag-weight, 700)"
+			: "var(--prompt-editor-close-tag-weight, 600)",
+	} as React.CSSProperties;
 }
 
 /** Container kinds whose open tag starts a new section of the document. */
@@ -583,17 +580,4 @@ function gapHeightForLine(line: XmlLine): string {
 	if (line.depth <= 0) return EDITOR_METRICS.gapHeightTop;
 	if (line.depth === 1) return EDITOR_METRICS.gapHeightSub;
 	return EDITOR_METRICS.gapHeightBase;
-}
-
-/**
- * The blank separator row the renderer emits between sibling blocks. It carries
- * NO interactive UI: blocks are created by typing, and a hover pill plus a
- * hairline on every seam made the surface twitch. The row still exists and
- * still occupies real height — it is real rendered text (Raw shows the same
- * blank line), it keeps the line-number grid honest, and drag reads boundary
- * positions from row rects that this row's height determines. Its height
- * grades with the following block's tier (see gapHeightForLine).
- */
-function GapRow({ height }: { height: string }) {
-	return <div style={{ height }} />;
 }

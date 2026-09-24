@@ -86,3 +86,22 @@ export function resolveAutoformat(
 	if (previous.length >= match.markerLength) return null;
 	return match;
 }
+
+/** Recognize a marker being completed at the start of the caret's logical line. */
+export function resolveLineAutoformat(previous: string, next: string, caret: number): {start: number; end: number} | null {
+	const start = next.lastIndexOf("\n", Math.max(0, caret - 1)) + 1;
+	const newline = next.indexOf("\n", caret);
+	const end = newline < 0 ? next.length : newline;
+	const marker = matchAutoformatMarker(next.slice(start, end));
+	if (!marker || (marker.target !== "bulletList" && marker.target !== "orderedList")) return null;
+	if (caret !== start + marker.markerLength) return null;
+	// Only inserted characters complete a marker. Deleting or replacing prose
+	// must not unexpectedly change the block type.
+	let prefix = 0;
+	while (prefix < previous.length && previous[prefix] === next[prefix]) prefix++;
+	const added = next.length - previous.length;
+	if (added <= 0 || prefix < start || prefix >= caret) return null;
+	if (next.slice(prefix + added) !== previous.slice(prefix)) return null;
+	const oldLine = previous.slice(start, end - added);
+	return matchAutoformatMarker(oldLine) ? null : {start, end};
+}
