@@ -220,7 +220,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The invariant that joined rows equal the rendered string is why the editor's\nline-number gutter matches the read-only view line for line, and why any\nrenderer layout change must be mirrored by the projection in lockstep."
+          "insert": "The invariant that joined rows equal the rendered string is why the editor's\nrows match the read-only view line for line, and why any\nrenderer layout change must be mirrored by the projection in lockstep."
         }
       ],
       "children": []

@@ -27,20 +27,26 @@
         "b-30-presentation-variable-contract-6",
         "b-30-presentation-a-host-may-set-any-pr-7",
         "b-30-presentation-metrics-8",
+        "b-30-presentation-metrics-lead-24",
         "b-30-presentation-token-default-driv-9",
-        "b-30-presentation-visibility-10",
-        "b-30-presentation-token-values-effec-11",
-        "b-30-presentation-line-numbers-default-off-12",
+        "b-30-presentation-indent-geometry-has-two-15",
         "b-30-presentation-color-13",
         "b-30-presentation-colors-come-in-two-forms-14",
-        "b-30-presentation-indent-geometry-has-two-15",
+        "b-30-presentation-color-theme-25",
+        "b-30-presentation-tag-ink-26",
         "b-30-presentation-style-settings-16",
         "b-30-presentation-the-host-facing-settings-17",
-        "b-30-presentation-setting-concept-beha-18",
+        "b-30-presentation-storage-lead-27",
+        "b-30-presentation-stored-settings-28",
+        "b-30-presentation-stored-differs-29",
+        "b-30-presentation-loader-30",
+        "b-30-presentation-best-effort-31",
+        "b-30-presentation-tab-sync-32",
         "b-30-presentation-projecting-settings-yiel-19",
         "b-30-presentation-host-wiring-20",
         "b-30-presentation-the-host-owns-the-settin-21",
-        "b-30-presentation-the-read-only-prompt-vie-22"
+        "b-30-presentation-the-read-only-prompt-vie-22",
+        "b-30-presentation-style-rail-33"
       ]
     },
     "b-30-presentation-presentation-is-a-set-of-2": {
@@ -79,7 +85,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Nothing in this contract touches the document. Style settings change no node,\nno rendered string, and no content hash; they are not persisted with the\nprompt and they are not part of a save. Row shading, guides, and line numbers\nare painted with zero-layout-cost backgrounds and visibility multipliers, so\ntoggling them never changes row geometry either."
+          "insert": "Nothing in this contract touches the document. Style settings change no node, no rendered string, and no content hash. They are not persisted with the prompt and they are not part of a save. Indent guides are painted as background stripes in the read-only view and as positioned overlays in the editor, so toggling them never changes row geometry."
         }
       ],
       "children": []
@@ -112,7 +118,29 @@
           }
         },
         {
-          "insert": " property on the surface element or one\nof its ancestors. Every token has a literal fallback, so the components render\ncorrectly with no host variables set at all. A stable root class marks the\nscoped element, so descendants can observe style changes on it."
+          "insert": " property on the surface element or one of its ancestors. Every token has a literal fallback, so the components render correctly with no host variables set at all. A stable root class, "
+        },
+        {
+          "insert": "prompt-editor-surface",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", marks the scoped element, so descendants can observe style changes on it. "
+        },
+        {
+          "insert": "packages/prompt-kit/src/ui/surface/editor-surface.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/prompt-kit/src/ui/surface/editor-surface.ts"
+            }
+          }
+        },
+        {
+          "insert": " defines the tokens and their fallbacks."
         }
       ],
       "children": []
@@ -130,143 +158,405 @@
       ],
       "children": []
     },
+    "b-30-presentation-metrics-lead-24": {
+      "id": "b-30-presentation-metrics-lead-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The table maps each metric token to the style setting that projects it. The default is the application default of that setting. None marks a token with no setting or a setting with no token."
+        }
+      ],
+      "children": []
+    },
     "b-30-presentation-token-default-driv-9": {
       "id": "b-30-presentation-token-default-driv-9",
       "type": "structured-table",
       "props": {
         "columns": [
-          "Token",
+          "Setting",
+          "CSS variable",
           "Default",
-          "Drives"
+          "Notes"
         ],
         "rows": [
           [
-            "--prompt-editor-font-family",
-            "System mono stack",
+            [
+              {
+                "insert": "fontFamily",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-font-family",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "System sans stack",
+            "Row and editor type. Code blocks and raw blocks always use the system mono stack."
+          ],
+          [
+            [
+              {
+                "insert": "fontSize",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-font-size",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "15px",
             "Row and editor type"
           ],
           [
-            "--prompt-editor-font-size",
-            "13px",
-            "Row and editor type"
+            [
+              {
+                "insert": "lineHeight",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-line-height",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "26px",
+            "Row pitch and the height of an ordinary blank line"
           ],
           [
-            "--prompt-editor-line-height",
-            "22px",
-            "Row pitch, rule spacing, editor minimum height"
-          ],
-          [
-            "--prompt-editor-letter-spacing",
+            [
+              {
+                "insert": "letterSpacing",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-letter-spacing",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
             "0em",
             "Row and editor tracking"
           ],
           [
-            "--prompt-editor-indent-width",
-            "2ch",
-            "Visual width of one renderer indent unit"
+            [
+              {
+                "insert": "indentWidth",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-indent-width",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "20px",
+            "Visual width of two rendered spaces. Components fall back to 2ch when no host sets the token."
           ],
           [
-            "--prompt-editor-content-width",
-            "136ch",
-            "Measure of the buffer column"
+            [
+              {
+                "insert": "contentWidth",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-content-width",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "88ch",
+            "Measure of the document column"
           ],
           [
-            "--prompt-editor-gutter-width",
-            "36px (collapsed)",
-            "Gutter width; hosts widen it when line numbers are on"
+            [
+              {
+                "insert": "marginLeft",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-margin-left",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "48px",
+            "Gap between the region's left edge and the document column"
           ],
           [
-            "--prompt-editor-grip-size",
+            [
+              {
+                "insert": "marginTop",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-margin-top",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "24px",
+            "Space above the document's first line"
+          ],
+          [
+            [
+              {
+                "insert": "panelInset",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-panel-right",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "24px",
+            "Gap between the glass panel and the region's right edge"
+          ],
+          [
+            [
+              {
+                "insert": "panelTopInset",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "None",
+            "12px",
+            "Gap between the glass panel and the region's top. The lab passes it to the panel as a prop."
+          ],
+          [
+            [
+              {
+                "insert": "composerWidth",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-composer-width",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "640px",
+            "Width of the inline composer, capped at the width of its container"
+          ],
+          [
+            [
+              {
+                "insert": "landmarkFontScale",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-landmark-font-scale",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "1.08",
+            "Type scale of a top-level open tag"
+          ],
+          [
+            [
+              {
+                "insert": "gapRamp",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-gap-height-sub",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "--prompt-editor-gap-height-top",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "--prompt-editor-landmark-pad",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "0.5",
+            "Scales the extra blank-line height before a section. At ramp 1 that is 64px before a top-level section and 32px before a depth-one section. At ramp 0 every gap is one line high. The ramp also scales the 8px band padding around a top-level open tag."
+          ],
+          [
+            [
+              {
+                "insert": "showGuides",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-show-guides",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "--prompt-editor-guides-display",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "true",
+            "Indent guides. The first token is 1 or 0 and the second is block or none."
+          ],
+          [
+            [
+              {
+                "insert": "gripSize",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-grip-size",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
             "20px",
             "Block drag-handle glyph size"
           ],
           [
-            "--prompt-editor-item-grip-size",
+            "None",
+            [
+              {
+                "insert": "--prompt-editor-item-grip-size",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
             "14px",
-            "List-item drag-handle glyph size (smaller = item, larger = block)"
+            "List-item drag-handle glyph size. The smaller glyph marks an item and the larger one a block."
           ],
           [
-            "--prompt-editor-drop-line-width",
+            [
+              {
+                "insert": "dropIndicatorWidth",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "--prompt-editor-drop-line-width",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
             "2px",
             "Drop-indicator thickness"
+          ],
+          [
+            "None",
+            [
+              {
+                "insert": "--prompt-editor-gutter-width",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "36px",
+            "Gutter width. Projection always emits 36px, the strip the block handle and menu need."
           ]
         ]
       },
       "children": []
     },
-    "b-30-presentation-visibility-10": {
-      "id": "b-30-presentation-visibility-10",
-      "type": "heading",
-      "props": {
-        "level": 3
-      },
-      "text": [
-        {
-          "insert": "Visibility"
-        }
-      ],
-      "children": []
-    },
-    "b-30-presentation-token-values-effec-11": {
-      "id": "b-30-presentation-token-values-effec-11",
-      "type": "structured-table",
-      "props": {
-        "columns": [
-          "Token",
-          "Values",
-          "Effect"
-        ],
-        "rows": [
-          [
-            "--prompt-editor-show-rules",
-            "0 / 1",
-            "Ruled-paper hairline intensity"
-          ],
-          [
-            "--prompt-editor-show-zebra",
-            "0 / 1",
-            "Alternating row tint intensity"
-          ],
-          [
-            "--prompt-editor-show-guides",
-            "0 / 1",
-            "Indent-guide visibility"
-          ],
-          [
-            "--prompt-editor-guides-display",
-            "block / none",
-            "Indent-guide display"
-          ],
-          [
-            "--prompt-editor-show-line-numbers",
-            "0 / 1",
-            "Gutter number visibility"
-          ],
-          [
-            "--prompt-editor-line-numbers-display",
-            "block / none",
-            "Gutter number display"
-          ]
-        ]
-      },
-      "children": []
-    },
-    "b-30-presentation-line-numbers-default-off-12": {
-      "id": "b-30-presentation-line-numbers-default-off-12",
+    "b-30-presentation-indent-geometry-has-two-15": {
+      "id": "b-30-presentation-indent-geometry-has-two-15",
       "type": "paragraph",
       "props": {},
       "text": [
         {
-          "insert": "Line numbers default off: the flow renders a structured document whose address\nsystem is node ids and targeting rings, not source lines. The \"Line numbers\"\ntoggle (and the "
-        },
-        {
-          "insert": "classic",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " preset) restores the numbered gutter, which then\ntracks the raw view line for line. With numbers off the gutter collapses to\nthe width the drag affordances need."
+          "insert": "Indent geometry has two forms. Rows and the highlighter measure the leading spaces they rendered. Guide and drop-indicator overlays start from a node's depth without reading its text. Both resolve to the same visual width: one nesting level is four rendered spaces, which is two indent widths."
         }
       ],
       "children": []
@@ -290,7 +580,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Colors come in two forms. Semantic tokens such as "
+          "insert": "Color tokens come in two groups. Semantic tokens such as "
         },
         {
           "insert": "--prompt-editor-bg",
@@ -299,7 +589,7 @@
           }
         },
         {
-          "insert": ",\n"
+          "insert": ", "
         },
         {
           "insert": "--prompt-editor-fg",
@@ -320,15 +610,6 @@
           "insert": ", "
         },
         {
-          "insert": "--prompt-editor-rule",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ",\n"
-        },
-        {
           "insert": "--prompt-editor-landmark",
           "attributes": {
             "code": true
@@ -344,7 +625,7 @@
           }
         },
         {
-          "insert": ",\n"
+          "insert": ", "
         },
         {
           "insert": "--prompt-editor-active-line-bg",
@@ -362,7 +643,7 @@
           }
         },
         {
-          "insert": " are consumed\ndirectly by the components. Syntax tokens, "
+          "insert": " are consumed directly by the components. Syntax tokens, "
         },
         {
           "insert": "--prompt-editor-syntax-punctuation",
@@ -398,7 +679,7 @@
           }
         },
         {
-          "insert": ",\n"
+          "insert": ", "
         },
         {
           "insert": "-variable",
@@ -416,7 +697,7 @@
           }
         },
         {
-          "insert": ", "
+          "insert": ", and "
         },
         {
           "insert": "-list-marker",
@@ -425,7 +706,16 @@
           }
         },
         {
-          "insert": ", drive the shared XML highlighter.\nSeveral semantic tokens are additionally published in split\n"
+          "insert": ", plus "
+        },
+        {
+          "insert": "--prompt-editor-inline-code",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", drive the shared XML highlighter. The guide, landmark, selection, active-line, and hover tokens are also published in split "
         },
         {
           "insert": "*-color",
@@ -434,7 +724,7 @@
           }
         },
         {
-          "insert": " / "
+          "insert": " and "
         },
         {
           "insert": "*-opacity",
@@ -443,7 +733,27 @@
           }
         },
         {
-          "insert": " form so a host UI can bind a picker and a slider\nindependently. The semantic tokens also accept a legacy "
+          "insert": " form so a host UI can bind a picker and a slider independently."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-color-theme-25": {
+      "id": "b-30-presentation-color-theme-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every color token resolves in order: the "
+        },
+        {
+          "insert": "--prompt-editor-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " value, then a host theme "
         },
         {
           "insert": "--editor-*",
@@ -452,18 +762,63 @@
           }
         },
         {
-          "insert": " fallback\nlayer for hosts that predate the style rail."
+          "insert": " token, then a dark literal. Projection emits a color that equals its default as a reference to the host theme token, so an untouched palette follows the host theme. A customized color is emitted as a literal and overrides the host theme. With the follow-theme option, projection references the host theme for every color. The saved colors stay stored, and the opacity and layout settings still apply."
         }
       ],
       "children": []
     },
-    "b-30-presentation-indent-geometry-has-two-15": {
-      "id": "b-30-presentation-indent-geometry-has-two-15",
+    "b-30-presentation-tag-ink-26": {
+      "id": "b-30-presentation-tag-ink-26",
       "type": "paragraph",
       "props": {},
       "text": [
         {
-          "insert": "Indent geometry has two behavioral forms because rows measure the indent they\nactually rendered, while overlays (indent guides, the drop indicator) know a\nnode's depth without reading its text; both resolve to the same visual width."
+          "insert": "Tag rows set their own ink. An open or close tag at depth 0 takes "
+        },
+        {
+          "insert": "--prompt-editor-syntax-tag-landmark",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and one at depth 1 takes "
+        },
+        {
+          "insert": "--prompt-editor-syntax-tag-sublandmark",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The highlighter reads tag weight from "
+        },
+        {
+          "insert": "--prompt-editor-tag-weight",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", 500 by default. Editor rows set it to 700 on an open tag and 600 on a close tag. A host overrides those two weights through "
+        },
+        {
+          "insert": "--prompt-editor-open-tag-weight",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "--prompt-editor-close-tag-weight",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -487,38 +842,333 @@
       "props": {},
       "text": [
         {
-          "insert": "The host-facing settings object is a flat record of metrics, toggles, and\ncolors, normalized on every read and write: numbers clamp, enums validate, and\nmissing values fall back."
+          "insert": "The host-facing settings object is a flat record of metrics, one guide toggle, and colors. Every read and write normalizes it: numbers clamp to their range, the font choice validates against the named set, colors canonicalize to uppercase "
+        },
+        {
+          "insert": "#RRGGBB",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and a missing or invalid value falls back to its default."
         }
       ],
       "children": []
     },
-    "b-30-presentation-setting-concept-beha-18": {
-      "id": "b-30-presentation-setting-concept-beha-18",
-      "type": "structured-table",
+    "b-30-presentation-storage-lead-27": {
+      "id": "b-30-presentation-storage-lead-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Local storage holds the settings as one JSON value under the key "
+        },
+        {
+          "insert": "agentKernel.promptEditorStyle.v2",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-stored-settings-28": {
+      "id": "b-30-presentation-stored-settings-28",
+      "type": "state-shape",
       "props": {
-        "columns": [
-          "Setting concept",
-          "Behavior"
+        "description": "The JSON value saved to local storage. The settings field holds a complete PromptStyleSettings value.",
+        "example": "{\n  \"version\": 3,\n  \"settings\": {\n    \"fontFamily\": \"jetbrains-mono\",\n    \"fontSize\": 14,\n    \"lineHeight\": 26,\n    \"letterSpacing\": 0,\n    \"indentWidth\": 20,\n    \"contentWidth\": 96,\n    \"marginLeft\": 48,\n    \"marginTop\": 24,\n    \"panelInset\": 24,\n    \"panelTopInset\": 12,\n    \"composerWidth\": 640,\n    \"landmarkFontScale\": 1.08,\n    \"gapRamp\": 0.5,\n    \"showGuides\": true,\n    \"surfaceColor\": \"#1E1E1E\",\n    \"foregroundColor\": \"#D4D6D3\",\n    \"gutterColor\": \"#1E1E1E\",\n    \"lineNumberColor\": \"#5F6672\",\n    \"activeLineNumberColor\": \"#C6CCD2\",\n    \"tagPunctuationColor\": \"#6E7681\",\n    \"tagNameColor\": \"#9A7CAC\",\n    \"tagLandmarkColor\": \"#CBA6DE\",\n    \"tagSublandmarkColor\": \"#B48EC7\",\n    \"attributeNameColor\": \"#85AECB\",\n    \"attributeValueColor\": \"#C09A78\",\n    \"variableColor\": \"#CFBC74\",\n    \"referenceColor\": \"#58A794\",\n    \"inlineCodeColor\": \"#5FBCA5\",\n    \"inlineChipOpacity\": 0.08,\n    \"listMarkerColor\": \"#6C737B\",\n    \"guideColor\": \"#FFFFFF\",\n    \"guideOpacity\": 0.18,\n    \"landmarkColor\": \"#FFFFFF\",\n    \"landmarkOpacity\": 0,\n    \"selectionColor\": \"#3D7BBF\",\n    \"selectionOpacity\": 0.16,\n    \"selectionAccentColor\": \"#4D9DE0\",\n    \"activeLineColor\": \"#FFFFFF\",\n    \"activeLineOpacity\": 0.035,\n    \"hoverColor\": \"#FFFFFF\",\n    \"hoverOpacity\": 0.05,\n    \"gripColor\": \"#8A919C\",\n    \"gripSize\": 20,\n    \"gripOpacity\": 0.5,\n    \"dropIndicatorColor\": \"#4D9DE0\",\n    \"dropIndicatorWidth\": 2,\n    \"dropIndicatorOpacity\": 0.95\n  }\n}",
+        "fields": [
+          {
+            "name": "version",
+            "type": "number",
+            "description": "Payload version. The writer emits 3. The loader accepts 2 and 3."
+          },
+          {
+            "name": "settings",
+            "type": "object",
+            "description": "A complete normalized value, never a patch.",
+            "fields": [
+              {
+                "name": "fontFamily",
+                "type": "\"sans\" | \"system\" | \"sf-mono\" | \"jetbrains-mono\" | \"ibm-plex-mono\""
+              },
+              {
+                "name": "fontSize",
+                "type": "number",
+                "description": "Pixels, 10 to 24."
+              },
+              {
+                "name": "lineHeight",
+                "type": "number",
+                "description": "Pixels, 14 to 40."
+              },
+              {
+                "name": "letterSpacing",
+                "type": "number",
+                "description": "Em, -0.05 to 0.15."
+              },
+              {
+                "name": "indentWidth",
+                "type": "integer",
+                "description": "Pixels, 12 to 48."
+              },
+              {
+                "name": "contentWidth",
+                "type": "integer",
+                "description": "Characters, 60 to 180."
+              },
+              {
+                "name": "marginLeft",
+                "type": "integer",
+                "description": "Pixels, 0 to 240."
+              },
+              {
+                "name": "marginTop",
+                "type": "integer",
+                "description": "Pixels, 0 to 160."
+              },
+              {
+                "name": "panelInset",
+                "type": "integer",
+                "description": "Pixels, 8 to 96."
+              },
+              {
+                "name": "panelTopInset",
+                "type": "integer",
+                "description": "Pixels, 0 to 120."
+              },
+              {
+                "name": "composerWidth",
+                "type": "integer",
+                "description": "Pixels, 320 to 1600."
+              },
+              {
+                "name": "landmarkFontScale",
+                "type": "number",
+                "description": "1 to 1.2."
+              },
+              {
+                "name": "gapRamp",
+                "type": "number",
+                "description": "0 to 1."
+              },
+              {
+                "name": "showGuides",
+                "type": "boolean"
+              },
+              {
+                "name": "surfaceColor",
+                "type": "string",
+                "description": "Every color is uppercase #RRGGBB. Alpha lives in the separate opacity fields."
+              },
+              {
+                "name": "foregroundColor",
+                "type": "string"
+              },
+              {
+                "name": "gutterColor",
+                "type": "string"
+              },
+              {
+                "name": "lineNumberColor",
+                "type": "string",
+                "description": "Muted ink for secondary labels and icon buttons."
+              },
+              {
+                "name": "activeLineNumberColor",
+                "type": "string",
+                "description": "Stronger muted ink for secondary labels and button text."
+              },
+              {
+                "name": "tagPunctuationColor",
+                "type": "string"
+              },
+              {
+                "name": "tagNameColor",
+                "type": "string"
+              },
+              {
+                "name": "tagLandmarkColor",
+                "type": "string",
+                "description": "Tags at depth 0."
+              },
+              {
+                "name": "tagSublandmarkColor",
+                "type": "string",
+                "description": "Tags at depth 1."
+              },
+              {
+                "name": "attributeNameColor",
+                "type": "string"
+              },
+              {
+                "name": "attributeValueColor",
+                "type": "string"
+              },
+              {
+                "name": "variableColor",
+                "type": "string"
+              },
+              {
+                "name": "referenceColor",
+                "type": "string"
+              },
+              {
+                "name": "inlineCodeColor",
+                "type": "string"
+              },
+              {
+                "name": "inlineChipOpacity",
+                "type": "number",
+                "description": "0 to 0.3."
+              },
+              {
+                "name": "listMarkerColor",
+                "type": "string"
+              },
+              {
+                "name": "guideColor",
+                "type": "string"
+              },
+              {
+                "name": "guideOpacity",
+                "type": "number",
+                "description": "0 to 1."
+              },
+              {
+                "name": "landmarkColor",
+                "type": "string"
+              },
+              {
+                "name": "landmarkOpacity",
+                "type": "number",
+                "description": "0 to 1. The default 0 turns the landmark wash off."
+              },
+              {
+                "name": "selectionColor",
+                "type": "string"
+              },
+              {
+                "name": "selectionOpacity",
+                "type": "number",
+                "description": "0 to 1."
+              },
+              {
+                "name": "selectionAccentColor",
+                "type": "string"
+              },
+              {
+                "name": "activeLineColor",
+                "type": "string"
+              },
+              {
+                "name": "activeLineOpacity",
+                "type": "number",
+                "description": "0 to 1."
+              },
+              {
+                "name": "hoverColor",
+                "type": "string"
+              },
+              {
+                "name": "hoverOpacity",
+                "type": "number",
+                "description": "0 to 1."
+              },
+              {
+                "name": "gripColor",
+                "type": "string"
+              },
+              {
+                "name": "gripSize",
+                "type": "integer",
+                "description": "Pixels, 8 to 32."
+              },
+              {
+                "name": "gripOpacity",
+                "type": "number",
+                "description": "0 to 1."
+              },
+              {
+                "name": "dropIndicatorColor",
+                "type": "string"
+              },
+              {
+                "name": "dropIndicatorWidth",
+                "type": "integer",
+                "description": "Pixels, 1 to 6."
+              },
+              {
+                "name": "dropIndicatorOpacity",
+                "type": "number",
+                "description": "0 to 1."
+              }
+            ]
+          }
         ],
-        "rows": [
-          [
-            "Row shading",
-            "One three-way choice, none, rules, or zebra, because rules and zebra are alternative answers to the same question; the choice maps onto the two visibility multipliers"
-          ],
-          [
-            "Mono font",
-            "A named font choice from a small vetted set"
-          ],
-          [
-            "Presets",
-            "Named bundles (dense, balanced, reading); balanced is the default"
-          ],
-          [
-            "Persistence",
-            "Settings round-trip through local storage under a versioned key; open tabs stay in sync by observing storage events"
-          ]
-        ]
+        "name": "Stored Style Settings",
+        "source": {
+          "path": "packages/prompt-kit/src/ui/style/prompt-style-settings.ts",
+          "symbol": "PromptStyleSettings"
+        }
       },
+      "children": []
+    },
+    "b-30-presentation-stored-differs-29": {
+      "id": "b-30-presentation-stored-differs-29",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A stored value always differs from the defaults. Saving settings equal to the defaults removes the entry, so a reset leaves the application defaults as the source of truth."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-loader-30": {
+      "id": "b-30-presentation-loader-30",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A missing entry, an unknown payload version, malformed JSON, or unavailable storage yields the defaults."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-best-effort-31": {
+      "id": "b-30-presentation-best-effort-31",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Writes are best effort. If storage rejects a write, the settings still apply for the session."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-tab-sync-32": {
+      "id": "b-30-presentation-tab-sync-32",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Open tabs stay in sync. The settings hook reloads the stored value when a storage event names the key."
+        }
+      ],
       "children": []
     },
     "b-30-presentation-projecting-settings-yiel-19": {
@@ -527,7 +1177,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Projecting settings yields the full "
+          "insert": "Projecting settings yields a record of "
         },
         {
           "insert": "--prompt-editor-*",
@@ -536,7 +1186,7 @@
           }
         },
         {
-          "insert": " record, ready to apply\nas inline custom properties."
+          "insert": " values, ready to apply as inline custom properties."
         }
       ],
       "children": []
@@ -560,7 +1210,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The host owns the settings and the sidebar that edits them. The lab shell\ntakes a settings prop, projects it, and applies the result on its root; when\nthe prop is omitted it reads the persisted settings once on mount."
+          "insert": "The host owns the settings and mounts the sidebar that edits them. The lab shell takes a settings prop, projects it, and applies the result on its root. When the prop is omitted, the lab reads the persisted settings once on mount. The lab also takes a follow-theme prop, which makes projection reference the host theme for every color."
         }
       ],
       "children": []
@@ -572,6 +1222,62 @@
       "text": [
         {
           "insert": "The read-only prompt view takes an inherit-style flag for exactly this case: a\nhost that already projects live variables passes it so rail changes apply\nwithout a remount, instead of the view applying persisted settings locally."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-style-rail-33": {
+      "id": "b-30-presentation-style-rail-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The style rail is a controlled component. It receives the settings and reports each change, reset, and close to the host. Its controls sit in five foldout sections: "
+        },
+        {
+          "insert": "Type",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "Layout",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "Syntax colors",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "Marks",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "Interaction",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ". The sidebar wraps the rail in a resizable panel that either docks in the host layout or floats over a scrim."
         }
       ],
       "children": []
