@@ -34,6 +34,9 @@
         "b-60-application-shell-one-element-two-tabs-t-9",
         "b-60-application-shell-tab-size-contents-10",
         "b-60-application-shell-the-corner-is-pinned-th-11",
+        "shell-compact-tree-zones",
+        "shell-compact-tree-zones-lead",
+        "shell-compact-tree-zones-table",
         "shell-glass-treatment",
         "shell-glass-treatment-body",
         "shell-scroll-treatment",
@@ -48,6 +51,7 @@
         "shell-motion-accessibility",
         "b-60-application-shell-views-12",
         "b-60-application-shell-the-shell-has-three-view-13",
+        "shell-views-single-surface",
         "shell-icon-meaning",
         "shell-icon-decisions",
         "shell-icon-rationale",
@@ -221,6 +225,69 @@
           "insert": "The panel is anchored to the lab region's top-right corner using the configured insets. It expands left while the icon rail stays anchored. The content header and rail header share a 40px height, so their horizontal dividers align. Available region dimensions cap the panel's width and height."
         }
       ],
+      "children": []
+    },
+    "shell-compact-tree-zones": {
+      "id": "shell-compact-tree-zones",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Compact Tree Zones"
+        }
+      ],
+      "children": []
+    },
+    "shell-compact-tree-zones-lead": {
+      "id": "shell-compact-tree-zones-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The compact tree stacks host-fed zones under the view header, top to bottom. A zone renders only when its condition holds."
+        }
+      ],
+      "children": []
+    },
+    "shell-compact-tree-zones-table": {
+      "id": "shell-compact-tree-zones-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Zone",
+          "Shown when",
+          "Contents"
+        ],
+        "rows": [
+          [
+            "Preview",
+            "The host passes at least one context fixture",
+            "A picker for the named context fixture the host previews."
+          ],
+          [
+            "Config",
+            "The host passes a config zone",
+            "The agent configuration the host supplies."
+          ],
+          [
+            "Fixture",
+            "State view, when the host passes a state zone",
+            "The state fixture list; the selection picks the snapshot the State view renders."
+          ],
+          [
+            "Outline",
+            "The view's document has sections, or the system view has revisions",
+            "The section outline. In the system view its history icon swaps the body for the host's revisions."
+          ],
+          [
+            "Details",
+            "System view, while a node is selected or the caret sits in one",
+            "The selected node's details."
+          ]
+        ]
+      },
       "children": []
     },
     "shell-glass-treatment": {
@@ -414,6 +481,17 @@
       "text": [
         {
           "insert": "Prompt selects the system editing view. Context shows the assembled context as a read-only document. State and Tools appear when the host supplies their zones. State shows the selected fixture, and Tools shows the rendered tool definitions. Undo, redo, and save operate only in the system view. Selecting any view icon opens its compact tree."
+        }
+      ],
+      "children": []
+    },
+    "shell-views-single-surface": {
+      "id": "shell-views-single-surface",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The lab has no Raw or Sections view. The Prompt view already shows the XML-tagged Markdown the agent receives, and block editing works on that view rather than on an alternative document."
         }
       ],
       "children": []

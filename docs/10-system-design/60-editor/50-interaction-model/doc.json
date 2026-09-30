@@ -44,6 +44,7 @@
         "b-50-interaction-model-the-block-handle-doubles-20",
         "b-50-interaction-model-drag-only-glyph-sizes-e-21",
         "b-50-interaction-model-the-ghost-is-a-compact-t-22",
+        "interaction-pointer-drag",
         "b-50-interaction-model-item-reorders-and-block-23",
         "b-50-interaction-model-structural-selection-24",
         "b-50-interaction-model-a-covered-row-band-a-pl-25",
@@ -357,7 +358,7 @@
       },
       "text": [
         {
-          "insert": "The block handle doubles as the block-menu trigger; item handles are"
+          "insert": "A motionless click on a handle opens its menu: the block handle opens the block menu, and an item handle opens the item menu (Duplicate, Indent, Outdent, Delete). Indent and Outdent stay visible but disabled where the move would decline."
         }
       ],
       "children": []
@@ -368,7 +369,7 @@
       "props": {},
       "text": [
         {
-          "insert": "  drag-only. Glyph sizes encode the hierarchy (block larger, item smaller)."
+          "insert": "  Glyph sizes encode the hierarchy (block larger, item smaller)."
         }
       ],
       "children": []
@@ -380,6 +381,17 @@
       "text": [
         {
           "insert": "The ghost is a compact token, not a copy of the block: the unit's first\nrendered line, DOM-faithful (entities decoded exactly as displayed), plus a\nmuted \"+N more\" for multi-line drags. The thin drop indicator and the dimmed\nsource rows are the placement feedback."
+        }
+      ],
+      "children": []
+    },
+    "interaction-pointer-drag": {
+      "id": "interaction-pointer-drag",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Dragging runs on pointer events, not native HTML5 drag-and-drop, because native drag cannot restyle its ghost after lift and does not report reliable pointer coordinates on every platform. Pressing a handle arms the drag; 4px of travel lifts it, and a release before that is the click that opens the handle's menu. After a committed drop, the whole object that landed flashes briefly: the moved block, or every item of the moved run."
         }
       ],
       "children": []
