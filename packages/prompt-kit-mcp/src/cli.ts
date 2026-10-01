@@ -8,6 +8,9 @@ import { startMcp } from "./mcp";
 import { createInteractionService } from "./service";
 import { loadGuidance, generateSkillReferences } from "./guidance";
 import { createDevelopmentSnapshot } from "./snapshot";
+import { loadCodecaineEnv } from "./codecaine-env";
+// Background and client-launched processes do not inherit the shell. See codecaine-env.ts.
+loadCodecaineEnv();
 
 const args = process.argv.slice(2);
 const command = args.shift() ?? "help";
