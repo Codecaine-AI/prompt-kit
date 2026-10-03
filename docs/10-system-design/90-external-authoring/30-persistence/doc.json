@@ -29,7 +29,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The filesystem store is the shared write authority for external MCP tools and Kernel catalog saves. Canonical JSON owns the prompt; production Markdown is a derived file with a recoverable update sequence."
+          "insert": "The filesystem store is the shared write authority for external MCP tools and Kernel catalog saves. Canonical JSON owns the prompt. Production Markdown is a derived file with a recoverable update sequence."
         }
       ],
       "children": []
@@ -106,7 +106,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The two output files do not form one atomic filesystem transaction. The durable journal records before and after revisions and recovery status. A failure after canonical commit reports that the prompt has been committed; the next mutation repairs the derived render before accepting another edit."
+          "insert": "The two output files do not form one atomic filesystem transaction. The durable journal records before and after revisions and recovery status. A failure after canonical commit reports that the prompt has been committed. The next mutation repairs the derived render before accepting another edit."
         }
       ],
       "children": []

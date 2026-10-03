@@ -75,7 +75,7 @@
           }
         },
         {
-          "insert": " owns public task behavior; "
+          "insert": " owns public task behavior. "
         },
         {
           "insert": "Prompt Edit Transaction Guide",
@@ -111,7 +111,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Decision: transport and client installation remain in the MCP package. The shared filesystem server and pure library do not depend on MCP or Agent Kernel. Runtime state belongs to an authenticated local daemon; source documents remain on disk."
+          "insert": "Decision: transport and client installation remain in the MCP package. The shared filesystem server and pure library do not depend on MCP or Agent Kernel. Runtime state belongs to an authenticated local daemon. Source documents remain on disk."
         }
       ],
       "children": []
@@ -187,7 +187,7 @@
       "props": {},
       "text": [
         {
-          "insert": "These paths are relative to packages/prompt-kit-mcp. The installed connection is named codecaine-prompts; it is separate from codecaine-docs."
+          "insert": "These paths are relative to packages/prompt-kit-mcp. The installed connection is named codecaine-prompts. The installed connection is separate from codecaine-docs."
         }
       ],
       "children": []

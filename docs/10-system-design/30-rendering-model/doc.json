@@ -290,7 +290,7 @@
           }
         },
         {
-          "insert": " property is never rendered; the open tag is\ncomposed from "
+          "insert": " property is never rendered. The open tag is composed from "
         },
         {
           "insert": "tag",
@@ -308,7 +308,7 @@
           }
         },
         {
-          "insert": " only. The one consumer of a title is the\n"
+          "insert": " only. The one consumer of a title is the "
         },
         {
           "insert": "example",
@@ -341,7 +341,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Alongside the rendered string, the render module projects a document into a\nline model: one record per rendered line, each carrying its source node, its\ndepth, and a role (open tag, close tag, content, list item, fence, gap). The\ninvariant is that joining the projected lines equals the rendered string\nexactly, same indentation, same blank lines, same framing. This is what lets\nan editing surface address rendered lines while mutating only the document;\nthe editor built on it is specified in\n"
+          "insert": "Alongside the rendered string, the render module projects a document into a line model: one record per rendered line, each carrying its source node, its depth, and a role (open tag, close tag, content, list item, fence, gap). The invariant is that joining the projected lines equals the rendered string exactly, same indentation, same blank lines, same framing. This is what lets an editing surface address rendered lines while mutating only the document. The editor built on it is specified in "
         },
         {
           "insert": "Editing Model",

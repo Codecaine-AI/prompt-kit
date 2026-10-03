@@ -80,7 +80,7 @@
       "props": {},
       "text": [
         {
-          "insert": "An agent prompt defines the behavior of a system that works across multiple\nmodel calls. External code owns the loop and re-renders live state; the system\nprompt tells the agent what it does and how it operates within that loop."
+          "insert": "An agent prompt defines the behavior of a system that works across multiple model calls. External code owns the loop and re-renders live state. The system prompt tells the agent what it does and how it operates within that loop."
         }
       ],
       "children": []
@@ -379,7 +379,7 @@
           }
         },
         {
-          "insert": " is\nuseful because a phase can continue while it contains unresolved entries;\n"
+          "insert": " is useful because a phase can continue while it contains unresolved entries. "
         },
         {
           "insert": "misc_data",

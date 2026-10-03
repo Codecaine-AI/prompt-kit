@@ -70,7 +70,7 @@
           }
         },
         {
-          "insert": ". The XML text on screen is a rendered\nprojection of that document, and every keystroke that changes structure or\ntext is committed as a step through a transaction log."
+          "insert": ". The XML text on screen is a rendered projection of that document. Every keystroke that changes structure or text is committed as a step through a transaction log."
         }
       ],
       "children": []
@@ -100,7 +100,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The surface never parses the rendered string back into nodes. A row knows\nwhich node it came from, an editor knows which property of that node it edits,\nand a commit writes that property back into the document."
+          "insert": "The surface never parses the rendered string back into nodes. A row knows which node it came from. An editor knows which property of that node it edits, and a commit writes that property back into the document."
         }
       ],
       "children": []
@@ -220,7 +220,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The invariant that joined rows equal the rendered string is why the editor's\nrows match the read-only view line for line, and why any\nrenderer layout change must be mirrored by the projection in lockstep."
+          "insert": "The invariant that joined rows equal the rendered string is why the editor's rows match the read-only view line for line. The invariant is also why any renderer layout change must be mirrored by the projection in lockstep."
         }
       ],
       "children": []
@@ -240,7 +240,7 @@
           }
         },
         {
-          "insert": " the section's name; the\nangle brackets are drawn as non-editable trim around the editor. An "
+          "insert": " the section's name. The angle brackets are drawn as non-editable trim around the editor. An "
         },
         {
           "insert": "example",
@@ -249,7 +249,7 @@
           }
         },
         {
-          "insert": "\nor "
+          "insert": " or "
         },
         {
           "insert": "contextUsage",
@@ -258,7 +258,7 @@
           }
         },
         {
-          "insert": " open tag derives its text from other fields, and an\nattributed tag renders more than a name, so both stay structural."
+          "insert": " open tag derives its text from other fields, and an attributed tag renders more than a name, so both stay structural."
         }
       ],
       "children": []
@@ -520,7 +520,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The surface stores one edit target: a node id, an optional item index, and a\ncaret. A caret is a numeric offset, "
+          "insert": "The surface stores one edit target: a node id, an optional item index, and a caret. A caret is a numeric offset, "
         },
         {
           "insert": "\"end\"",
@@ -538,7 +538,7 @@
           }
         },
         {
-          "insert": " pair; a\nnumber is clamped to the value's length, "
+          "insert": " pair. A number is clamped to the value's length, and "
         },
         {
           "insert": "\"end\"",
@@ -547,7 +547,7 @@
           }
         },
         {
-          "insert": " resolves to the end, and a\npair seats a selection so the next keystroke types over it."
+          "insert": " resolves to the end. A pair seats a selection so the next keystroke types over it."
         }
       ],
       "children": []
@@ -558,7 +558,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Structural gestures land the caret in the block they moved, at the same offset\nwhere possible, so a level change is never a reason to stop typing. Every\ncaret move re-seats the editor deliberately, a split, merge, arrow step,\nclick, or conversion each places the caret exactly once, and a stale blur\nfrom the editor being replaced can never cancel the new edit."
+          "insert": "Structural gestures land the caret in the block they moved, at the same offset where possible, so a level change is never a reason to stop typing. Every caret move re-seats the editor deliberately. A split, merge, arrow step, click, or conversion each places the caret exactly once, and a stale blur from the editor being replaced can never cancel the new edit."
         }
       ],
       "children": []
@@ -569,7 +569,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Exactly one row of a node may host the editor at a time. A code block draws\ntwo fences, a section draws two tags, and a list draws a row per item; the\nsurface resolves which row owns the caret from the row's role, item index, and\ncontent line index. Two editors sharing a target would fight for focus."
+          "insert": "Exactly one row of a node may host the editor at a time. A code block draws two fences, a section draws two tags, and a list draws a row per item. The surface resolves which row owns the caret from the row's role, item index, and content line index. Two editors sharing a target would fight for focus."
         }
       ],
       "children": []

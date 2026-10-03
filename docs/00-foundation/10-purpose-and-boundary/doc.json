@@ -44,7 +44,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The Prompt Kit library owns typed, composable prompt documents. The workspace adds a filesystem authoring server and external MCP adapter, while Agent Kernel retains model execution, runtime tool registration, sessions, and traces."
+          "insert": "The Prompt Kit library owns typed, composable prompt documents. The workspace adds a filesystem authoring server and external MCP adapter, while Agent Kernel keeps model execution, runtime tool registration, sessions, and traces."
         }
       ],
       "children": []
@@ -85,7 +85,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Prompt-kit sits between those poles. Prompts are authored as structured\ndocuments, in code, as JSON documents, or through the editor UI, and\nconsumers can render them to linear text, inspect the tree, replace pieces,\nvalidate integrity, and drive editing surfaces from the same object. The\nmechanics of that object and its operations live in\n"
+          "insert": "Prompt-kit sits between those poles. Prompts are authored as structured documents, in code, as JSON documents, or through the editor UI. Consumers can render them to linear text, inspect the tree, replace pieces, validate integrity, and drive editing surfaces from the same object. The mechanics of that object and its operations live in "
         },
         {
           "insert": "System Design",
@@ -300,7 +300,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Humans and external agents should work on one canonical prompt with the same persistence guarantees. Direct edits need current writing guidance, a visible production render, revision checks, and recoverable history; they do not require a second model to mediate every save."
+          "insert": "Humans and external agents should work on one canonical prompt with the same persistence guarantees. Direct edits need current writing guidance, a visible production render, revision checks, and recoverable history. Direct edits do not require a second model to mediate every save."
         }
       ],
       "children": []

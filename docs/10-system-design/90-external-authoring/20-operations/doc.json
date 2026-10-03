@@ -54,7 +54,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Use the editing address map to select block IDs. It is separate from the production render, which is the actual model-facing text. Block nodes nested beneath list items are addressable; list items themselves are edited through their owning list block."
+          "insert": "Use the editing address map to select block IDs. It is separate from the production render, which is the actual model-facing text. Block nodes nested beneath list items are addressable. List items themselves are edited through their owning list block."
         }
       ],
       "children": []
@@ -192,7 +192,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Errors identify the offending operation. Read unknown targets again, repair invalid fields or container choices, and retry the complete batch with the current prompt hash. A stale revision requires reconciling the new document before retrying; a task ID never overrides that conflict."
+          "insert": "Errors identify the offending operation. Read unknown targets again, repair invalid fields or container choices, and retry the complete batch with the current prompt hash. A stale revision requires reconciling the new document before retrying. A task ID never overrides that conflict."
         }
       ],
       "children": []

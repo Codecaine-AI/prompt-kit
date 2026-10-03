@@ -94,7 +94,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Techniques are available context, not a required checklist. They help when a\nprompt has a specific, observable failure risk; they add noise when included\nonly because a technique sounds sophisticated."
+          "insert": "Techniques are available context, not a required checklist. They help when a prompt has a specific, observable failure risk. Techniques add noise when included only because a technique sounds sophisticated."
         }
       ],
       "children": []
@@ -451,7 +451,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The critique and revision belong in workflow steps. They do not need their own\ntop-level sections, and the private draft does not belong in the requested\noutput unless the output format explicitly asks for it."
+          "insert": "The critique and revision belong in workflow steps. They do not need their own top-level sections. The private draft does not belong in the requested output unless the output format explicitly asks for it."
         }
       ],
       "children": []
@@ -504,7 +504,7 @@
           }
         },
         {
-          "insert": "\nfor single-output prompts; both sections come last in their respective\ncanonical orders. Keep situational prohibitions with the relevant workflow\nphase instead of inflating the global list."
+          "insert": " for single-output prompts. Both sections come last in their respective canonical orders. Keep situational prohibitions with the relevant workflow phase instead of inflating the global list."
         }
       ],
       "children": []
@@ -576,7 +576,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Use tags whose names describe the content's job. In canonical prompts, use the\ndefined section and workflow field names rather than inventing tags for every\nidea. XML provides boundaries; prose and lists carry the substance."
+          "insert": "Use tags whose names describe the content's job. In canonical prompts, use the defined section and workflow field names rather than inventing tags for every idea. XML provides boundaries. Prose and lists carry the substance."
         }
       ],
       "children": []
@@ -699,7 +699,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Thinking frameworks change how the model approaches a problem. Most prompts\nneed zero; use one, or occasionally two, only when a named reasoning failure\njustifies the added structure."
+          "insert": "Thinking frameworks change how the model approaches a problem. Most prompts need zero. Use one, or occasionally two, only when a named reasoning failure justifies the added structure."
         }
       ],
       "children": []
@@ -964,7 +964,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Technique restraint is also context restraint. Cut instructions the model\nalready follows, merge overlapping constraints, and use semantic boundaries\nthat clarify content without restating it. Prefer one strong contrastive\nexample over several weak ones, and state token or length priorities only when\nthe output has a real budget."
+          "insert": "Technique restraint is also context restraint. Cut instructions the model already follows, merge overlapping constraints, and use semantic boundaries that clarify content without restating it. Prefer one strong contrastive example over several weak ones. State token or length priorities only when the output has a real budget."
         }
       ],
       "children": []

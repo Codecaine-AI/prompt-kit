@@ -42,7 +42,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Prompt-kit composition happens on the AST. Stable ids let callers replace or\ninsert prompt sections without parsing rendered Markdown."
+          "insert": "Prompt-kit composition occurs on the AST. Stable ids let callers replace or\ninsert prompt sections without parsing rendered Markdown."
         }
       ],
       "children": []

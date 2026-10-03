@@ -92,7 +92,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The editing surface is mounted inside a lab shell. The shell owns the document\nhistory, the save lifecycle, the annotation queue, and the panel; the surface\nowns only editing. The shell never fetches: persistence, manifest data,\nrevision history, context previews, and the prompt-edit session all arrive as\nprops or callbacks."
+          "insert": "The editing surface is mounted inside a lab shell. The shell owns the document history, the save lifecycle, the annotation queue, and the panel. The surface owns only editing. The shell never fetches: persistence, manifest data, revision history, context previews, and the prompt-edit session all arrive as props or callbacks."
         }
       ],
       "children": []
@@ -309,7 +309,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The rail and expanded panel use the same translucent glass, subtle border, and shadow. The collapsed rail retains its shadow so it reads as floating above the document. The background mixes 88% of the host glass color with transparency. Backdrop blur is 20px with saturation 1.3. Host glass, border, and shadow tokens remain authoritative."
+          "insert": "The rail and expanded panel use the same translucent glass, subtle border, and shadow. The collapsed rail keeps its shadow so it reads as floating above the document. The background mixes 88% of the host glass color with transparency. Backdrop blur is 20px with saturation 1.3. Host glass, border, and shadow tokens remain authoritative."
         }
       ],
       "children": []
@@ -355,7 +355,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Outline rows are 25px tall with 12px of indentation per depth level. Section labels jump to their document anchors, and separate chevrons fold child branches. One continuous hairline runs down the left edge of the list and jogs inward around the children of every expanded parent, so hierarchy is visible whether or not a branch is active. The active block, the current row's top-level section and its visible children, draws its part of that hairline in the selection accent, and a dot on the line marks the current row. A folded parent that contains the current section takes the dot itself. Folded branches survive view and AI changes within the mounted lab."
+          "insert": "Outline rows are 25px tall with 12px of indentation per depth level. Section labels jump to their document anchors, and separate chevrons fold child branches. One continuous hairline runs down the left edge of the list and jogs inward around the children of every expanded parent, so hierarchy is visible whether or not a branch is active. The active block, the current row's top-level section and its visible children, draws its part of that hairline in the selection accent. A dot on the line marks the current row. A folded parent that contains the current section takes the dot itself. Folded branches survive view and AI changes within the mounted lab."
         }
       ],
       "children": []
@@ -401,7 +401,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The accent segment and dot slide along the hairline, through the curves, rather than jumping between rows. Clicking a label pins the outline to that row for the whole smooth scroll; scroll tracking resumes once the scroller has been quiet for 120ms, or immediately on a scroll-end event. Folding or unfolding a branch changes the hairline's shape, so the accent and dot snap to their new positions instead of animating across the list."
+          "insert": "The accent segment and dot slide along the hairline, through the curves, rather than jumping between rows. Clicking a label pins the outline to that row for the whole smooth scroll. Scroll tracking resumes once the scroller has been quiet for 120ms, or immediately on a scroll-end event. Folding or unfolding a branch changes the hairline's shape, so the accent and dot snap to their new positions instead of animating across the list."
         }
       ],
       "children": []
@@ -491,7 +491,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The lab has no Raw or Sections view. The Prompt view already shows the XML-tagged Markdown the agent receives, and block editing works on that view rather than on an alternative document."
+          "insert": "The lab has no Raw or Sections view. The Prompt view already shows the XML-tagged Markdown the agent receives. Block editing works on that view rather than on an alternative document."
         }
       ],
       "children": []
@@ -729,7 +729,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Everything queues; nothing runs until Apply."
+          "insert": "Everything queues. Nothing runs until Apply."
         }
       ],
       "children": []
@@ -843,7 +843,7 @@
       "props": {},
       "text": [
         {
-          "insert": "  violet tick down commented rows, and a hover wash linking queue row to\n  target block. Clicking a bubble reopens the inline composer prefilled with\n  the note; saving refiles (same target and disposition, fresh id) and\n  dismisses the original."
+          "insert": "violet tick down commented rows, and a hover wash linking queue row to target block. Clicking a bubble reopens the inline composer prefilled with the note. Saving refiles (same target and disposition, fresh id) and dismisses the original."
         }
       ],
       "children": []
@@ -942,7 +942,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Two edit channels share one undo stack. Block edits arrive as steps and go to\nthe inner transaction log. Document-metadata edits, title and description, live in an overlay with their own before/after entries; the unified stack\ninterleaves both kinds. Marking a save moves only the dirty baseline, so undo\nkeeps working across a save. Dirtiness compares the canonical serialization of\nthe current document against the saved canonical string. The inner log's\ncontent hash is a cheap local prefix; authoritative hashes come from the save\nAPI."
+          "insert": "Two edit channels share one undo stack. Block edits arrive as steps and go to the inner transaction log. Document-metadata edits, title and description, live in an overlay with their own before/after entries. The unified stack interleaves both kinds. Marking a save moves only the dirty baseline, so undo keeps working across a save. Dirtiness compares the canonical serialization of the current document against the saved canonical string. The inner log's content hash is a cheap local prefix. Authoritative hashes come from the save API."
         }
       ],
       "children": []

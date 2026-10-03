@@ -85,7 +85,7 @@
           }
         },
         {
-          "insert": "; this page defines its Prompt Kit behavior."
+          "insert": ". This page defines its Prompt Kit behavior."
         }
       ],
       "children": []
@@ -96,7 +96,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The surface renders a structured document, and every pointer gesture acts on\nstructure. The address system is node ids, rings, and runs, not lines or\ncharacters, and ONE BOUNDARY splits the vocabulary, Notion-style, with no\nmodifier: plain gestures within a unit edit text, and the same gestures\ncrossing unit boundaries act on structure. Command is annotate mode's modifier\nonly, in edit mode Cmd+click is a plain click."
+          "insert": "The surface renders a structured document, and every pointer gesture acts on structure. The address system is node ids, rings, and runs, not lines or characters. ONE BOUNDARY splits the vocabulary, Notion-style, with no modifier: plain gestures within a unit edit text, and the same gestures crossing unit boundaries act on structure. Command is annotate mode's modifier only, in edit mode Cmd+click is a plain click."
         }
       ],
       "children": []
@@ -195,7 +195,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Clicking or typing in text is a CARET gesture, Notion-style: the caret plus\nthe unit-scoped edit wash (hover strength) is the entire treatment, no\nselection fill, no accent rail, no gutter tint. Placing the caret never\nselects the block it lands in; if a block selection exists when the caret\nlands (click, arrow-key caret hop, typing on a selected block), the selection\nis CLEARED, not retargeted. Commits made while an edit session is live also\nsuppress the change callback's selection echo, so hosts cannot re-select the\nedited block on a keystroke."
+          "insert": "Clicking or typing in text is a CARET gesture, Notion-style: the caret plus the unit-scoped edit wash (hover strength) is the entire treatment, no selection fill, no accent rail, no gutter tint. Placing the caret never selects the block it lands in. If a block selection exists when the caret lands (click, arrow-key caret hop, typing on a selected block), the selection is CLEARED, not retargeted. Commits made while an edit session is live also suppress the change callback's selection echo, so hosts cannot re-select the edited block on a keystroke."
         }
       ],
       "children": []
@@ -380,7 +380,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The ghost is a compact token, not a copy of the block: the unit's first\nrendered line, DOM-faithful (entities decoded exactly as displayed), plus a\nmuted \"+N more\" for multi-line drags. The thin drop indicator and the dimmed\nsource rows are the placement feedback."
+          "insert": "The ghost is a compact token, not a copy of the block. The ghost shows the unit's first rendered line, DOM-faithful (entities decoded exactly as displayed), plus a muted \"+N more\" for multi-line drags. The thin drop indicator and the dimmed source rows are the placement feedback."
         }
       ],
       "children": []
@@ -452,7 +452,7 @@
       },
       "text": [
         {
-          "insert": "The selection paints as ONE ring overlay, not per-row washes; hover washes,"
+          "insert": "The selection paints as ONE ring overlay, not per-row washes. Hover washes,"
         }
       ],
       "children": []
@@ -487,7 +487,7 @@
       "props": {},
       "text": [
         {
-          "insert": "  by grabbing any handle inside it, both are the same group drag. Backspace\n  or Delete removes it. Both are single transactions; one undo restores."
+          "insert": "by grabbing any handle inside it, both are the same group drag. Backspace or Delete removes it. Both are single transactions. One undo restores."
         }
       ],
       "children": []
@@ -601,7 +601,7 @@
       },
       "text": [
         {
-          "insert": "Inline XML-ish tokens in prose take the tag palette; backtick spans render"
+          "insert": "Inline XML-ish tokens in prose take the tag palette. Backtick spans render"
         }
       ],
       "children": []

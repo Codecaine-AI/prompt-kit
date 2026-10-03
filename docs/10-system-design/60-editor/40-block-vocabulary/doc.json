@@ -208,7 +208,7 @@
           }
         },
         {
-          "insert": " are part of the model and are\nfully supported by the surface, they render into rows, they are\ninline-editable where they have an editable value, they can be selected,\nmoved, duplicated, and deleted, and the details inspector edits their\nproperties. They are simply not offered as things to create from this UI."
+          "insert": " are part of the model, and the surface fully supports them. They render into rows, they are inline-editable where they have an editable value, they can be selected, moved, duplicated, and deleted, and the details inspector edits their properties. They are simply not offered as things to create from this UI."
         }
       ],
       "children": []
@@ -286,7 +286,7 @@
           }
         },
         {
-          "insert": " are the container blocks;\nonly those offer an add-child action."
+          "insert": " are the container blocks. Only those container blocks offer an add-child action."
         }
       ],
       "children": []
@@ -387,7 +387,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Tag sanitization keeps a typed tag renderable: whitespace becomes "
+          "insert": "Tag sanitization keeps a typed tag renderable. Whitespace becomes "
         },
         {
           "insert": "_",
@@ -396,7 +396,7 @@
           }
         },
         {
-          "insert": ", and the\ncharacters that would break the tag out of its own brackets are dropped.\nAnything else is left exactly as typed, so an invalid name still reaches\nvalidation, which reports it and blocks the save, rather than being silently\nrewritten under the caret. Attribute keys get the parallel treatment."
+          "insert": ", and the characters that would break the tag out of its own brackets are dropped. Anything else is left exactly as typed, so an invalid name still reaches validation, which reports it and blocks the save, rather than being silently rewritten under the caret. Attribute keys get the parallel treatment."
         }
       ],
       "children": []

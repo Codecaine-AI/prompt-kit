@@ -283,7 +283,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Viewer systems can import prompt-kit UI helpers such as\n"
+          "insert": "Viewer systems can import prompt-kit UI helpers such as "
         },
         {
           "insert": "createPromptEditorModel",
@@ -292,7 +292,7 @@
           }
         },
         {
-          "insert": ", a headless model that returns the prompt with\nstable ids, its flattened tree, rendered output, and validation result. The\nReact-facing surfaces, the editing surface, the lab shell, the style\nsettings, and the read-only prompt view, sit behind dedicated UI entry\npoints; their behavior is specified in\n"
+          "insert": ", a headless model that returns the prompt with stable ids, its flattened tree, rendered output, and validation result. The React-facing surfaces, the editing surface, the lab shell, the style settings, and the read-only prompt view, sit behind dedicated UI entry points. Their behavior is specified in "
         },
         {
           "insert": "Prompt Editor",
@@ -304,7 +304,7 @@
           }
         },
         {
-          "insert": ". None of this defines a\nfull UI framework or host app shell."
+          "insert": ". None of this defines a full UI framework or host app shell."
         }
       ],
       "children": []
@@ -415,7 +415,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The pure Prompt Kit library does not register runtime tools. The separate MCP adapter exposes prompt-authoring operations, and the shared filesystem store coordinates those writes with Kernel catalog saves. Runtime tool execution, sessions, database ownership, and model invocation remain Kernel responsibilities."
+          "insert": "The pure Prompt Kit library does not register runtime tools. The separate MCP adapter exposes prompt-authoring operations. The shared filesystem store coordinates those writes with Kernel catalog saves. Runtime tool execution, sessions, database ownership, and model invocation remain Kernel responsibilities."
         }
       ],
       "children": []
@@ -426,7 +426,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Kernel refreshes its registry and records committed revisions after saves. New runs synchronize disk changes before freezing their prompt; existing runs keep their frozen prompt. See "
+          "insert": "Kernel refreshes its registry and records committed revisions after saves. New runs synchronize disk changes before freezing their prompt. Existing runs keep their frozen prompt. See "
         },
         {
           "insert": "Persistence and Recovery",

@@ -42,7 +42,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Prompt-kit treats prompts as structured documents first and rendered text\nsecond. The structure stays flexible enough for prompt authors while giving\nkernels and editors a stable object to inspect and manipulate. This page holds\nthe reasoning behind that stance; the mechanics live in\n"
+          "insert": "Prompt-kit treats prompts as structured documents first and rendered text second. The structure stays flexible enough for prompt authors while giving kernels and editors a stable object to inspect and manipulate. This page holds the reasoning behind that stance. The mechanics live in "
         },
         {
           "insert": "System Design",

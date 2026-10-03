@@ -251,7 +251,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Native Docs bundles under /docs are the maintained documentation. Read and update them through Docs tools. Prompt-writing standards feed both the external MCP and internal prompt editor; generated skill references are derived outputs, not a second authored corpus."
+          "insert": "Native Docs bundles under /docs are the maintained documentation. Read and update them through Docs tools. Prompt-writing standards feed both the external MCP and internal prompt editor. Generated skill references are derived outputs, not a second authored corpus."
         }
       ],
       "children": []

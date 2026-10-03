@@ -29,7 +29,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The prompt-editor turns a human annotation queue into structured proposals against a target PromptDocument. A human accepts or rejects each staged change; direct external MCP saves use a separate lifecycle."
+          "insert": "The prompt-editor turns a human annotation queue into structured proposals against a target PromptDocument. A human accepts or rejects each staged change. Direct external MCP saves use a separate lifecycle."
         }
       ],
       "children": []
@@ -90,7 +90,7 @@
           }
         },
         {
-          "insert": ". Its system.md file is generated output; changes belong in the structured prompt."
+          "insert": ". Its system.md file is generated output. Changes belong in the structured prompt."
         }
       ],
       "children": []
@@ -114,7 +114,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The context sidecar assembles prompt_kit_authoring from current native Docs standards through the shared guidance renderer. Local tool_guide and state_reference blocks retain internal tool semantics. The context is session-invariant; it does not read the live request queue."
+          "insert": "The context sidecar assembles prompt_kit_authoring from current native Docs standards through the shared guidance renderer. Local tool_guide and state_reference blocks keep internal tool semantics. The context is session-invariant. The context does not read the live request queue."
         }
       ],
       "children": []
@@ -149,7 +149,7 @@
           }
         },
         {
-          "insert": "; live state is defined by "
+          "insert": ". Live state is defined by "
         },
         {
           "insert": "packages/prompt-kit-agent/catalog/prompt-editor/state/index.ts",
@@ -219,7 +219,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The session service binds these tools per spawn. A proposal does not save merely because compilation succeeds. Acceptance uses the shared store; a stale base must be reconciled, and accepted changes retain the internal review and undo behavior."
+          "insert": "The session service binds these tools per spawn. A proposal does not save merely because compilation succeeds. Acceptance uses the shared store. A stale base must be reconciled, and accepted changes keep the internal review and undo behavior."
         }
       ],
       "children": []
@@ -230,7 +230,7 @@
       "props": {},
       "text": [
         {
-          "insert": "State fixtures under state/fixtures contain data-only envelopes with an optional label and a state sample of PromptEditorState. The lab passes the state sample to render() for section ③; fixtures are not context sessionData and real spawns seed state from the session service instead."
+          "insert": "State fixtures under state/fixtures contain data-only envelopes with an optional label and a state sample of PromptEditorState. The lab passes the state sample to render() for section ③. Fixtures are not context sessionData and real spawns seed state from the session service instead."
         }
       ],
       "children": []

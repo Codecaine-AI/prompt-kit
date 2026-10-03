@@ -336,7 +336,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Every mutation requires a task in the same workspace and project plus a current prompt hash. Guidance is pinned within a task; new tasks observe updated canonical standards. Configuration and runtime/tool fingerprints reject writes when their contract changes."
+          "insert": "Every mutation requires a task in the same workspace and project plus a current prompt hash. Guidance is pinned within a task. New tasks observe updated canonical standards. Configuration and runtime/tool fingerprints reject writes when their contract changes."
         }
       ],
       "children": []

@@ -415,7 +415,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The prompt editor is the interactive authoring surface. It presents the\ndocument as editable XML-tagged Markdown, commits every gesture as a\nstructural step, and never treats the rendered text as a source of truth. Its\nbehavior is specified in "
+          "insert": "The prompt editor is the interactive authoring surface. It presents the document as editable XML-tagged Markdown and commits every gesture as a structural step. The prompt editor never treats the rendered text as a source of truth. Its behavior is specified in "
         },
         {
           "insert": "Prompt Editor",
@@ -466,7 +466,7 @@
           }
         },
         {
-          "insert": "\nmarks a bounded-completion prompt and "
+          "insert": " marks a bounded-completion prompt and "
         },
         {
           "insert": "\"workflow\"",
@@ -475,7 +475,7 @@
           }
         },
         {
-          "insert": " marks a multi-step or\nprocess prompt, but the type is deliberately open, any string is valid, so\nnew prompt families do not require a schema change. Tooling may use the\narchetype to pick defaults or grouping; nothing in rendering or validation\ndepends on it."
+          "insert": " marks a multi-step or process prompt, but the type is deliberately open, any string is valid, so new prompt families do not require a schema change. Tooling may use the archetype to pick defaults or grouping. Nothing in rendering or validation depends on it."
         }
       ],
       "children": []
@@ -798,7 +798,7 @@
           }
         },
         {
-          "insert": " nodes are the parallel inline form for non-variable\nplaceholders such as tools; they carry a "
+          "insert": " nodes are the parallel inline form for non-variable placeholders such as tools. These nodes carry a "
         },
         {
           "insert": "kind",
@@ -816,7 +816,7 @@
           }
         },
         {
-          "insert": " and render as\nplaceholders for consumers that resolve them later."
+          "insert": " and render as placeholders for consumers that resolve them later."
         }
       ],
       "children": []
@@ -909,7 +909,7 @@
           }
         },
         {
-          "insert": " to read current standards and apply ID-relative operations. The service edits existing registered JSON prompts and saves valid batches immediately. Writing profiles are explicit authoring rules; an AST archetype does not implicitly select a profile."
+          "insert": " to read current standards and apply ID-relative operations. The service edits existing registered JSON prompts and saves valid batches immediately. Writing profiles are explicit authoring rules. An AST archetype does not implicitly select a profile."
         }
       ],
       "children": []

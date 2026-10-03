@@ -107,7 +107,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The headless authoring entry is @codecaine-ai/prompt-kit/authoring. React consumers use the UI subpath matching their surface. Hosts supply Tailwind layers and semantic token variables; the library does not impose an application shell."
+          "insert": "The headless authoring entry is @codecaine-ai/prompt-kit/authoring. React consumers use the UI subpath matching their surface. Hosts supply Tailwind layers and semantic token variables. The library does not impose an application shell."
         }
       ],
       "children": []
@@ -144,7 +144,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The host listens on http://127.0.0.1:4850 and keeps trace.db, kernel.json, edit sessions, and transcripts under packages/prompt-kit-agent/.agent-kernel. PROMPT_KIT_KERNEL_PORT overrides the port; PROMPT_KIT_KERNEL_PROMPT_EDITOR_MODEL overrides the model alias; PROMPT_KIT_KERNEL_PI_AGENT_DIR selects model configuration instead of the package .pi-agent directory."
+          "insert": "The host listens on http://127.0.0.1:4850 and keeps trace.db, kernel.json, edit sessions, and transcripts under packages/prompt-kit-agent/.agent-kernel. PROMPT_KIT_KERNEL_PORT overrides the port. PROMPT_KIT_KERNEL_PROMPT_EDITOR_MODEL overrides the model alias. PROMPT_KIT_KERNEL_PI_AGENT_DIR selects model configuration instead of the package .pi-agent directory."
         }
       ],
       "children": []
@@ -155,7 +155,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The internal host mounts only its catalog and intentionally supports editing prompt-editor itself. Health is at /health; catalog, annotations, edit sessions, and trace reads use /kernel."
+          "insert": "The internal host mounts only its catalog and intentionally supports editing prompt-editor itself. Health is at /health. Catalog, annotations, edit sessions, and trace reads use /kernel."
         }
       ],
       "children": []
@@ -179,7 +179,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Start Observatory from the Core workspace and select Projects → Prompt Kit → Agents for prompt inspection or Traces for recorded runs. Canvas also hosts the Prompt Lab on its /config surface. Viewers consume the same canonical prompt and render; their unsaved editor state remains local."
+          "insert": "Start Observatory from the Core workspace and select Projects → Prompt Kit → Agents for prompt inspection or Traces for recorded runs. Canvas also hosts the Prompt Lab on its /config surface. Viewers consume the same canonical prompt and render. Their unsaved editor state remains local."
         }
       ],
       "children": []
@@ -216,7 +216,7 @@
       "props": {},
       "text": [
         {
-          "insert": "These checks use disposable mutation fixtures and read the actual catalog. Restart clients after installation; protocol tests do not refresh a currently open client tool list."
+          "insert": "These checks use disposable mutation fixtures and read the actual catalog. Restart clients after installation. Protocol tests do not refresh a currently open client tool list."
         }
       ],
       "children": []

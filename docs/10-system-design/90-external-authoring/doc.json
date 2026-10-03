@@ -28,7 +28,7 @@
       "props": {},
       "text": [
         {
-          "insert": "External agents edit existing Prompt Kit documents through one local MCP connection. Tasks supply current writing standards; valid edits save immediately with revision checks and guarded undo."
+          "insert": "External agents edit existing Prompt Kit documents through one local MCP connection. Tasks supply current writing standards. Valid edits save immediately with revision checks and guarded undo."
         }
       ],
       "children": []

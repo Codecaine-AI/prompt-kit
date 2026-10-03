@@ -196,7 +196,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Decision: accepted proposals save through the Kernel catalog adapter into the shared authoring store. Kernel retains registry refresh, database provenance, and next-run prompt freezing. Why: direct external writes and staged internal review need the same file-level conflict and recovery behavior without sharing a model lifecycle."
+          "insert": "Decision: accepted proposals save through the Kernel catalog adapter into the shared authoring store. Kernel keeps registry refresh, database provenance, and next-run prompt freezing. Why: direct external writes and staged internal review need the same file-level conflict and recovery behavior without sharing a model lifecycle."
         }
       ],
       "children": []
@@ -249,7 +249,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Catalog assembly and prompt-edit contract tests live beside the catalog. Harness tests live in test/. The package test command runs both roots; new catalog contracts follow this layout."
+          "insert": "Catalog assembly and prompt-edit contract tests live beside the catalog. Harness tests live in test/. The package test command runs both roots. New catalog contracts follow this layout."
         }
       ],
       "children": []

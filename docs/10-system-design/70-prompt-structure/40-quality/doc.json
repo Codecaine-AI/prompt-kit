@@ -125,7 +125,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The dimensions below make that judgment explicit. Scoring them is optional;\nreviewing all six is not."
+          "insert": "The dimensions below make that judgment explicit. Scoring them is optional. Reviewing all six is not."
         }
       ],
       "children": []
@@ -179,7 +179,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Token efficiency is not brevity at any cost. A boundary or priority that\nprevents a recurring failure earns its space; a shorter paraphrase of another\nsection does not."
+          "insert": "Token efficiency is not brevity at any cost. A boundary or priority that prevents a recurring failure earns its space. A shorter paraphrase of another section does not."
         }
       ],
       "children": []
@@ -284,7 +284,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Robustness comes from explicit priorities and observable conditions, not from\ntrying to enumerate every possible exception. State-navigated agents should\nrecover their position from named state fields; single-output prompts should\nsay how to treat ambiguous or malformed input when that choice affects the\nanswer."
+          "insert": "Robustness comes from explicit priorities and observable conditions, not from trying to enumerate every possible exception. State-navigated agents should recover their position from named state fields. Single-output prompts should say how to treat ambiguous or malformed input when that choice affects the answer."
         }
       ],
       "children": []
@@ -442,7 +442,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Authors shape rendered XML-tagged Markdown through the prompt document; the\nrenderer only expresses those choices. Review the final model-facing text\nbecause a valid document can still produce a prompt that reads poorly."
+          "insert": "Authors shape rendered XML-tagged Markdown through the prompt document. The renderer only expresses those choices. Review the final model-facing text because a valid document can still produce a prompt that reads poorly."
         }
       ],
       "children": []
@@ -540,7 +540,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Tags delineate regions; they do not replace prose. Inside workflow fields,\nuse ordinary sentences and lists instead of inventing tags for every branch,\ncondition, or task."
+          "insert": "Tags delineate regions. Tags do not replace prose. Inside workflow fields, use ordinary sentences and lists instead of inventing tags for every branch, condition, or task."
         }
       ],
       "children": []
@@ -653,7 +653,7 @@
           }
         },
         {
-          "insert": " is last for the same recency reason. Examples are not a prompt\nsection; when they are necessary, they arrive as a self-describing context\nblock."
+          "insert": " is last for the same recency reason. Examples are not a prompt section. When examples are necessary, they arrive as a self-describing context block."
         }
       ],
       "children": []
@@ -697,7 +697,7 @@
       "props": {},
       "text": [
         {
-          "insert": "This separation makes authority and freshness visible. A current document,\ntool result, or user-provided payload can contain imperative-looking text; its\nplacement should still make clear that it is data to evaluate rather than a\nstanding instruction to obey."
+          "insert": "This separation makes authority and freshness visible. A current document, tool result, or user-provided payload can contain imperative-looking text. Its placement should still make clear that it is data to evaluate rather than a standing instruction to obey."
         }
       ],
       "children": []
@@ -765,7 +765,7 @@
       "props": {},
       "text": [
         {
-          "insert": "For authored prompt content, list items within prompt documents, prefer\nnested sub-bullets to inline em-dash or colon explanations. The parent list\nitem's lead line contains the term or label alone; move the explanation into a\nchild list item."
+          "insert": "For authored prompt content, list items within prompt documents, prefer nested sub-bullets to inline em-dash or colon explanations. The parent list item's lead line contains the term or label alone. Move the explanation into a child list item."
         }
       ],
       "children": []
@@ -1252,7 +1252,7 @@
       "props": {},
       "text": [
         {
-          "insert": "   remain on their separate faces; declare dynamic values as variables."
+          "insert": "remain on their separate faces. Declare dynamic values as variables."
         }
       ],
       "children": []

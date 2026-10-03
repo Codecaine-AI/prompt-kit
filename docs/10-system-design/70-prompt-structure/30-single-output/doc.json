@@ -262,7 +262,7 @@
           }
         },
         {
-          "insert": " supplies the input and explains how to handle it. Keep runtime\ninput visibly separate from the surrounding directions so that data does not\nread like an instruction: a declared variable or another explicit runtime\nboundary carries the input rather than prose pasted into the standing prompt."
+          "insert": " supplies the input and explains how to handle it. Keep runtime input visibly separate from the surrounding directions so that data does not read like an instruction. A declared variable or another explicit runtime boundary carries the input rather than prose pasted into the standing prompt."
         }
       ],
       "children": []
@@ -427,7 +427,7 @@
           }
         },
         {
-          "insert": " is not part of the single-output prompt. When examples are needed\nto disambiguate a subtle format or edge case, provide them as a self-describing\ncontext block that explains what it demonstrates and when to consult it. This\nkeeps stable behavior in the prompt while allowing reference material to change\nwithout changing the agent or task definition."
+          "insert": " is not part of the single-output prompt. When examples are needed\nto disambiguate a subtle format or edge case, provide them as a self-describing\ncontext block that explains what it shows and when to consult it. This\nkeeps stable behavior in the prompt while allowing reference material to change\nwithout changing the agent or task definition."
         }
       ],
       "children": []
@@ -473,7 +473,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Small does not mean underspecified. Preserve the distinctions that determine\nthe result: the requested outcome, input boundary, necessary handling rules,\nliteral output shape, and hard requirements."
+          "insert": "Small does not mean underspecified. Preserve the distinctions that determine the result. The distinctions are the requested outcome, input boundary, necessary handling rules, literal output shape, and hard requirements."
         }
       ],
       "children": []

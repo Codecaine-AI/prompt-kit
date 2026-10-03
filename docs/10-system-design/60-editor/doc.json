@@ -125,7 +125,7 @@
       "props": {},
       "text": [
         {
-          "insert": "  property it edits; commits write that property back into the document."
+          "insert": "property it edits. Commits write that property back into the document."
         }
       ],
       "children": []
@@ -185,7 +185,7 @@
       "props": {},
       "text": [
         {
-          "insert": "  block selection; explicit selection has its own gestures."
+          "insert": "block selection. Explicit selection has its own gestures."
         }
       ],
       "children": []

@@ -308,7 +308,7 @@
           }
         },
         {
-          "insert": " New editor logic lands headless-first; a React module may wrap\nit, never contain it."
+          "insert": " New editor logic lands headless-first. A React module may wrap it, never contain it."
         }
       ],
       "children": []
@@ -475,7 +475,7 @@
           }
         },
         {
-          "insert": " Id preservation keeps the canonical content hash stable across\nnesting-only moves and keeps the caret in the moved block; one transaction per\ngesture keeps undo aligned with user intent."
+          "insert": " Id preservation keeps the canonical content hash stable across nesting-only moves and keeps the caret in the moved block. One transaction per gesture keeps undo aligned with user intent."
         }
       ],
       "children": []
@@ -492,7 +492,7 @@
           }
         },
         {
-          "insert": " Every new move or reparent gesture reuses the shared helpers\nand commits atomically; a move that recreates nodes with fresh ids is a bug."
+          "insert": " Every new move or reparent gesture reuses the shared helpers and commits atomically. A move that recreates nodes with fresh ids is a bug."
         }
       ],
       "children": []
@@ -616,7 +616,7 @@
           }
         },
         {
-          "insert": ", including future navigation controls, retain the stable document footprint and reduced-motion handling. "
+          "insert": ", including future navigation controls, keep the stable document footprint and reduced-motion handling. "
         },
         {
           "insert": "lab/glass/zones.tsx",
@@ -903,7 +903,7 @@
           }
         },
         {
-          "insert": " The accent and dot elements are keyed on the visible-row signature, so a fold or unfold remounts them and snaps rather than sliding across a reshaped path; scroll-spy changes keep the same elements and animate. A "
+          "insert": " The accent and dot elements are keyed on the visible-row signature, so a fold or unfold remounts them and snaps rather than sliding across a reshaped path. Scroll-spy changes keep the same elements and animate. A "
         },
         {
           "insert": "matchMedia",

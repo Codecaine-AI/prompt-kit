@@ -300,7 +300,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Decision. The package exposes seven entry points. The root export owns headless document APIs; ./annotations owns annotation state; ./authoring owns pure ID-relative compilation, address maps, schemas, and profile lints. ./ui owns headless editor models, while ./ui/lab, ./ui/style, and ./ui/surface own React surfaces."
+          "insert": "Decision. The package exposes seven entry points. The root export owns headless document APIs. ./annotations owns annotation state. ./authoring owns pure ID-relative compilation, address maps, schemas, and profile lints. ./ui owns headless editor models, while ./ui/lab, ./ui/style, and ./ui/surface own React surfaces."
         }
       ],
       "children": []
@@ -434,7 +434,7 @@
           }
         },
         {
-          "insert": " New dependencies on React stay peer-side and optional; headless\nentries never require them at runtime."
+          "insert": " New dependencies on React stay peer-side and optional. Headless entries never require them at runtime."
         }
       ],
       "children": []
@@ -639,7 +639,7 @@
           }
         },
         {
-          "insert": " The document model stays headless and extractable; nothing above it\ncan leak into it."
+          "insert": " The document model stays headless and extractable. Nothing above it can leak into it."
         }
       ],
       "children": []

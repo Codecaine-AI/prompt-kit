@@ -70,7 +70,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Review the preview before writing. Store the resulting report in a private durable location: it records the backup paths needed for restoration. The default clients are Codex, Claude Code, and pi; pass --clients codex,claude,pi with the desired subset."
+          "insert": "Review the preview before writing. Store the resulting report in a private durable location: it records the backup paths needed for restoration. The default clients are Codex, Claude Code, and pi. Pass --clients codex,claude,pi with the desired subset."
         }
       ],
       "children": []
@@ -134,7 +134,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Add codecaine.prompts.json at the project root. Catalog roots and standalone prompt paths are relative to that root; omitted collections are allowed."
+          "insert": "Add codecaine.prompts.json at the project root. Catalog roots and standalone prompt paths are relative to that root. Omitted collections are allowed."
         }
       ],
       "children": []
@@ -197,7 +197,7 @@
       "props": {},
       "text": [
         {
-          "insert": "This repository registers packages/prompt-kit-agent/catalog. Use the project and prompt IDs returned by prompts_discover and prompts_list; the prompt document ID can differ from the catalog agent name."
+          "insert": "This repository registers packages/prompt-kit-agent/catalog. Use the project and prompt IDs returned by prompts_discover and prompts_list. The prompt document ID can differ from the catalog agent name."
         }
       ],
       "children": []

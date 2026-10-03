@@ -87,7 +87,7 @@
       "props": {},
       "text": [
         {
-          "insert": "A key reaches four consumers in order; the first to claim it wins."
+          "insert": "A key reaches four consumers in order. The first to claim it wins."
         }
       ],
       "children": []
@@ -538,7 +538,7 @@
           }
         },
         {
-          "insert": " heading rule: the surface has no headings, and a\nsection is a wrapper the author names rather than a rank."
+          "insert": " heading rule. The surface has no headings, and a section is a wrapper the author names rather than a rank."
         }
       ],
       "children": []

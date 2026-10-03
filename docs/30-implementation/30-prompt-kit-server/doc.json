@@ -110,7 +110,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Decision: Kernel catalog saves and MCP writes call createPromptStore; they do not maintain separate prompt writers. The implementation in "
+          "insert": "Decision: Kernel catalog saves and MCP writes call createPromptStore. They do not maintain separate prompt writers. The implementation in "
         },
         {
           "insert": "packages/prompt-kit-server/src/store.ts",
@@ -134,7 +134,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Why: a lock keyed by canonical prompt path coordinates independent processes even when discovery roots differ. A single OS-held lease fails safely on port collisions; choosing another port would weaken serialization. Applies to all future prompt persistence adapters."
+          "insert": "Why: a lock keyed by canonical prompt path coordinates independent processes even when discovery roots differ. A single OS-held lease fails safely on port collisions. Choosing another port would weaken serialization. Applies to all future prompt persistence adapters."
         }
       ],
       "children": []
@@ -171,7 +171,7 @@
           }
         },
         {
-          "insert": " validates native Docs bundles and projects them through the shared Docs model renderer. The maintained manifest selects standards and profile essentials; generated references are portable derived artifacts."
+          "insert": " validates native Docs bundles and projects them through the shared Docs model renderer. The maintained manifest selects standards and profile essentials. Generated references are portable derived artifacts."
         }
       ],
       "children": []
@@ -182,7 +182,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Why: external clients and the internal prompt editor consume the same normative content. An incomplete checkout fails visibly; only a packaged installation with no canonical sources uses the bundled snapshot. Applies to guidance consumers, tests, and installation generation."
+          "insert": "Why: external clients and the internal prompt editor consume the same normative content. An incomplete checkout fails visibly. Only a packaged installation with no canonical sources uses the bundled snapshot. Applies to guidance consumers, tests, and installation generation."
         }
       ],
       "children": []

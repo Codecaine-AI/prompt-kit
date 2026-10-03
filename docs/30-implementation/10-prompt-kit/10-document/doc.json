@@ -291,7 +291,7 @@
           }
         },
         {
-          "insert": " A new prompt convention is expressed with existing nodes\nfirst; a vocabulary extension needs a structure the current nodes cannot\nrepresent."
+          "insert": " A new prompt convention is expressed with existing nodes first. A vocabulary extension needs a structure the current nodes cannot represent."
         }
       ],
       "children": []
@@ -391,7 +391,7 @@
           }
         },
         {
-          "insert": "\nnode; adding placeholder syntax inside text content is a restructure, not an\nextension."
+          "insert": " node. Adding placeholder syntax inside text content is a restructure, not an extension."
         }
       ],
       "children": []
@@ -421,7 +421,7 @@
           }
         },
         {
-          "insert": " Transforms are immutable and id-targeted, insert, replace, and\nomit address nodes by id and return new documents. They operate at block\nscope only; inline transforms build on "
+          "insert": " Transforms are immutable and id-targeted, insert, replace, and omit address nodes by id and return new documents. They operate at block scope only. Inline transforms build on "
         },
         {
           "insert": "visitPrompt",
@@ -537,7 +537,7 @@
           }
         },
         {
-          "insert": " New validation rules that need host knowledge take it as an\noption; a host import in "
+          "insert": " New validation rules that need host knowledge take it as an option. A host import in "
         },
         {
           "insert": "src/document",

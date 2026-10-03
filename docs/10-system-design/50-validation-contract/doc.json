@@ -388,7 +388,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Prompt-kit can validate the static prompt object. It cannot prove that a runtime\ncontext loader will succeed, that a tool exists in a host registry, or that a\nconversation packet is available. Those failures should be surfaced by the host\nruntime through its own diagnostics or trace events."
+          "insert": "Prompt-kit can validate the static prompt object. Prompt-kit cannot prove that a runtime context loader will succeed, that a tool exists in a host registry, or that a conversation packet is available. The host runtime should surface those failures through its own diagnostics or trace events."
         }
       ],
       "children": []
@@ -447,7 +447,7 @@
       "props": {},
       "text": [
         {
-          "insert": "MCP mutation reloads authoritative variable declarations under the save lock and checks structured variable nodes plus raw rendered placeholders. Unknown standalone declarations block mutation and successful completion; an explicit empty declaration means no variables. See "
+          "insert": "MCP mutation reloads authoritative variable declarations under the save lock and checks structured variable nodes plus raw rendered placeholders. Unknown standalone declarations block mutation and successful completion. An explicit empty declaration means no variables. See "
         },
         {
           "insert": "MCP Protocol",

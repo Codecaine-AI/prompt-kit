@@ -182,7 +182,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Phases are always present. A steps-only workflow hides the positions an agent\nmust recognize across calls and gives state navigation nothing stable to name.\nUse as few phases as the process honestly has; there is no phase-count cap."
+          "insert": "Phases are always present. A steps-only workflow hides the positions an agent must recognize across calls and gives state navigation nothing stable to name. Use as few phases as the process honestly has. There is no phase-count cap."
         }
       ],
       "children": []
@@ -293,7 +293,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The condition must be observable in state. \"Loop until the work seems done\" is\nnot navigable; \"Loop to step 2 until "
+          "insert": "The condition must be observable in state. \"Loop until the work seems done\" is not navigable. \"Loop to step 2 until "
         },
         {
           "insert": "open_queue",
@@ -302,7 +302,7 @@
           }
         },
         {
-          "insert": " is empty\" is."
+          "insert": " is empty\" is navigable."
         }
       ],
       "children": []
@@ -577,7 +577,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Workflow structure is expressed entirely through the existing vocabulary of the\n"
+          "insert": "Workflow structure is expressed entirely through the existing vocabulary of the "
         },
         {
           "insert": "canonical prompt object",
@@ -589,7 +589,7 @@
           }
         },
         {
-          "insert": "; it introduces no\nworkflow-specific structure of its own."
+          "insert": ". Workflow structure introduces no workflow-specific structure of its own."
         }
       ],
       "children": []
