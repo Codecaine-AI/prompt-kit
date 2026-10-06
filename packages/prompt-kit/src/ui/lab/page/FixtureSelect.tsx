@@ -11,10 +11,10 @@ export interface LabContextFixtures {
 
 export function FixtureSelect({ fixtures, activeFixtureId, onFixtureSelect }: LabContextFixtures) {
 	const id = useId();
-	return <div className="grid gap-1.5 text-[12px]">
+	return <div className="grid gap-1.5 text-[length:var(--ds-font-size-ui-xs)]">
 		<label htmlFor={id} className="text-muted-foreground">Context fixture</label>
 		<select id={id} value={activeFixtureId ?? ""} onChange={event => onFixtureSelect(event.target.value)}
-			className="w-full min-w-0 rounded-[3px] border border-border bg-background px-2 py-1 text-foreground outline-none focus:border-foreground/40">
+			className="w-full min-w-0 rounded-[var(--ds-radius-base)] border border-border bg-background px-2 py-1 text-foreground outline-none focus:border-foreground/40">
 			{activeFixtureId === null && <option value="" disabled>Select a fixture</option>}
 			{fixtures.map(fixture => <option key={fixture.id} value={fixture.id}>{fixture.label}</option>)}
 		</select>

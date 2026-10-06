@@ -45,12 +45,12 @@ export function ItemMenu({
 
 	return (
 		<div
-			className="absolute left-0 top-full z-30 mt-1 w-48 rounded-[4px] border border-border bg-card p-1 shadow-lg"
+			className="absolute left-0 top-full z-30 mt-1 w-48 rounded-[var(--ds-radius-base)] border border-border bg-card p-1 shadow-[shadow:var(--ds-shadow-glass)]"
 			onClick={(event) => event.stopPropagation()}
 		>
 			{/* Unit name as header, matching BlockMenu's type-name header. */}
 			<div className="flex items-center gap-1.5 border-b border-border/70 px-1.5 pb-1.5 pt-1">
-				<span className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+				<span className="text-[length:var(--ds-font-size-ui-2xs)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 					list item
 				</span>
 			</div>

@@ -184,12 +184,14 @@ export function usePromptFlowInteractions({
 export function DropLines({
 	dropBefore,
 	dropAfter,
-	leftClassName = "left-[4.5rem]",
+	leftClassName,
 }: {
 	dropBefore: boolean;
 	dropAfter: boolean;
 	leftClassName?: string;
 }) {
+	// Default inset when the caller passes no left class.
+	const leftStyle = leftClassName ? undefined : { left: "4.5rem" };
 	return (
 		<>
 			<div
@@ -198,6 +200,7 @@ export function DropLines({
 					leftClassName,
 					dropBefore && "opacity-100",
 				)}
+				style={leftStyle}
 			/>
 			<div
 				className={cn(
@@ -205,6 +208,7 @@ export function DropLines({
 					leftClassName,
 					dropAfter && "opacity-100",
 				)}
+				style={leftStyle}
 			/>
 		</>
 	);
@@ -220,9 +224,9 @@ export function InsertPalette({
 	onInsertChild: (type: PromptBlockNodeType) => void;
 }) {
 	return (
-		<div className="w-fit max-w-full rounded-[4px] border border-border bg-card p-2 shadow-lg">
+		<div className="w-fit max-w-full rounded-[var(--ds-radius-base)] border border-border bg-card p-2 shadow-[shadow:var(--ds-shadow-glass)]">
 			<div className="flex flex-wrap items-center gap-1">
-				<span className="mr-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+				<span className="mr-1 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground">
 					Add
 				</span>
 				{INSERT_OPTIONS.map((option) => (
@@ -236,7 +240,7 @@ export function InsertPalette({
 			</div>
 			{canInsertChild && (
 				<div className="mt-1.5 flex flex-wrap items-center gap-1 border-t border-border/70 pt-1.5">
-					<span className="mr-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+					<span className="mr-1 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground">
 						Inside
 					</span>
 					{INSERT_OPTIONS.map((option) => (
@@ -255,8 +259,8 @@ export function InsertPalette({
 
 export function EmptyFlow({ onInsert }: { onInsert: (type: PromptBlockNodeType) => void }) {
 	return (
-		<div className="rounded-[4px] border border-dashed border-border bg-card/70 p-5">
-			<p className="mb-3 text-[13px] text-muted-foreground">Start with a block.</p>
+		<div className="rounded-[var(--ds-radius-base)] border border-dashed border-border bg-card/70 p-5">
+			<p className="mb-3 text-[length:var(--ds-font-size-ui-sm)] text-muted-foreground">Start with a block.</p>
 			<InsertPalette canInsertChild={false} onInsert={onInsert} onInsertChild={onInsert} />
 		</div>
 	);
@@ -282,7 +286,7 @@ export function PlainTextArea({
 			placeholder={placeholder}
 			rows={estimateWrappedRows(value)}
 			className={cn(
-				"min-h-8 w-full resize-none border-0 bg-transparent p-0 text-[13px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/35",
+				"min-h-8 w-full resize-none border-0 bg-transparent p-0 text-[length:var(--ds-font-size-ui-sm)] leading-[var(--ds-line-height-reading)] text-foreground outline-none placeholder:text-muted-foreground/35",
 				className,
 			)}
 			spellCheck={spellCheck}
@@ -344,7 +348,7 @@ function PaletteButton({
 		<button
 			type="button"
 			onClick={onClick}
-			className="flex h-7 items-center gap-1.5 rounded-[2px] px-2 text-[12px] text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+			className="flex h-7 items-center gap-1.5 rounded-[var(--ds-radius-base)] px-2 text-[length:var(--ds-font-size-ui-xs)] text-muted-foreground hover:bg-muted/50 hover:text-foreground"
 		>
 			<Icon size={13} />
 			{label}

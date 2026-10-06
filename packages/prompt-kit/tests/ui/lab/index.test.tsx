@@ -1606,14 +1606,20 @@ describe("PromptInlineLab comment ticks", () => {
     // The AI state marks the commented block's rows; no wash before hover.
     fireEvent.click(screen.getByRole("button", { name: "AI" }));
     expect(ticks()).toContain('[data-row-index="0"]');
-    expect(ticks()).not.toContain("background: rgb(138 122 176 / 0.14)");
+    expect(ticks()).not.toContain(
+      "background: color-mix(in srgb, var(--prompt-annotate-accent, #8A7AB0) 14%, transparent)",
+    );
 
     // Hovering the queue card washes the block; leaving drops it.
     const card = document.querySelector('[data-prompt-session-card="R1"]')!;
     fireEvent.mouseEnter(card);
-    expect(ticks()).toContain("background: rgb(138 122 176 / 0.14)");
+    expect(ticks()).toContain(
+      "background: color-mix(in srgb, var(--prompt-annotate-accent, #8A7AB0) 14%, transparent)",
+    );
     fireEvent.mouseLeave(card);
-    expect(ticks()).not.toContain("background: rgb(138 122 176 / 0.14)");
+    expect(ticks()).not.toContain(
+      "background: color-mix(in srgb, var(--prompt-annotate-accent, #8A7AB0) 14%, transparent)",
+    );
   });
 });
 

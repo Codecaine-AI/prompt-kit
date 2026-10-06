@@ -13,8 +13,8 @@ export const PROMPT_EDITOR_ROOT_CLASS = "prompt-editor-surface";
 export const EDITOR_FONT_PX = 15;
 export const LINE_HEIGHT_PX = 26;
 
-export const PROMPT_CODE_FONT_FAMILY =
-	'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
+/** Code rows read the design-system mono (IBM Plex Mono, loaded by fonts.css). */
+export const PROMPT_CODE_FONT_FAMILY = "var(--ds-font-family-mono)";
 
 /**
  * Gutter width when line numbers are off — the surface's default. The prompt
@@ -29,10 +29,10 @@ export const PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH = "36px";
 
 /** Runtime type/layout metrics. Values are CSS expressions, not frozen pixels. */
 export const EDITOR_METRICS = {
-	fontFamily: "var(--prompt-editor-font-family, ui-sans-serif, system-ui, sans-serif)",
+	fontFamily: "var(--prompt-editor-font-family, var(--ds-font-family-sans))",
 	fontSize: `var(--prompt-editor-font-size, ${EDITOR_FONT_PX}px)`,
 	lineHeight: `var(--prompt-editor-line-height, ${LINE_HEIGHT_PX}px)`,
-	letterSpacing: "var(--prompt-editor-letter-spacing, 0em)",
+	letterSpacing: "var(--prompt-editor-letter-spacing, var(--ds-letter-spacing-normal))",
 	indentWidth: "var(--prompt-editor-indent-width, 2ch)",
 	contentWidth: "var(--prompt-editor-content-width, 88ch)",
 	gutterWidth: `var(--prompt-editor-gutter-width, ${PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH})`,

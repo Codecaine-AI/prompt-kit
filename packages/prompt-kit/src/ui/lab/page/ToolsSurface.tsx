@@ -104,7 +104,7 @@ export function ToolsSurface({
 					style={{
 						paddingRight: "var(--prompt-editor-reserved-right, 0px)",
 						transition:
-							"padding-right 260ms cubic-bezier(0.32, 0.72, 0, 1)",
+							"padding-right var(--ds-motion-duration-slow) var(--ds-motion-easing-emphasized)",
 					}}
 				>
 					<div
@@ -122,7 +122,7 @@ export function ToolsSurface({
 				</div>
 			) : (
 				<div className="flex min-h-0 flex-1 items-center justify-center p-6">
-					<p className="max-w-64 text-center text-[12px] leading-relaxed text-muted-foreground/70">
+					<p className="max-w-64 text-center text-[length:var(--ds-font-size-ui-xs)] leading-[var(--ds-line-height-reading)] text-muted-foreground/70">
 						No tool preview for this agent.
 					</p>
 				</div>

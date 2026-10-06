@@ -4,7 +4,7 @@
 
 import cn from "classnames";
 import { Plus, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import type { PromptDocument, SectionNode } from "../../../index";
 import type {
 	PromptEditorTreeEntry,
@@ -81,7 +81,7 @@ export function SectionAttributesField({
 
 	return (
 		<div className="flex flex-col gap-1.5">
-			<span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+			<span className="text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground">
 				attributes
 			</span>
 
@@ -93,7 +93,8 @@ export function SectionAttributesField({
 								value={row.key}
 								placeholder="name"
 								invalid={duplicates.has(index)}
-								className="w-[38%] shrink-0"
+								className="shrink-0"
+								style={{ width: "38%" }}
 								onChange={(key) =>
 									commit(replaceRow(rows, index, { key: sanitizeAttributeKey(key) }))
 								}
@@ -120,7 +121,7 @@ export function SectionAttributesField({
 			)}
 
 			{duplicates.size > 0 && (
-				<p className="text-[11px] leading-relaxed text-status-warning">
+				<p className="text-[length:var(--ds-font-size-ui-2xs)] leading-[var(--ds-line-height-reading)] text-status-warning">
 					Repeated name — not saved.
 				</p>
 			)}
@@ -130,7 +131,7 @@ export function SectionAttributesField({
 				onClick={() =>
 					commit([...rows, { id: nextId.current++, key: "", value: "" }])
 				}
-				className="flex items-center gap-1 self-start text-[11px] text-muted-foreground outline-none hover:text-foreground focus-visible:text-foreground"
+				className="flex items-center gap-1 self-start text-[length:var(--ds-font-size-ui-2xs)] text-muted-foreground outline-none hover:text-foreground focus-visible:text-foreground"
 			>
 				<Plus className="h-3 w-3" />
 				Add attribute
@@ -143,12 +144,14 @@ function RowInput({
 	value,
 	placeholder,
 	className,
+	style,
 	invalid,
 	onChange,
 }: {
 	value: string;
 	placeholder: string;
 	className?: string;
+	style?: CSSProperties;
 	invalid?: boolean;
 	onChange: (value: string) => void;
 }) {
@@ -159,8 +162,9 @@ function RowInput({
 			spellCheck={false}
 			aria-invalid={invalid || undefined}
 			onChange={(event) => onChange(event.target.value)}
+			style={style}
 			className={cn(
-				"h-7 rounded-[2px] border bg-background px-2 text-[12px] text-foreground outline-none placeholder:text-muted-foreground/40",
+				"h-7 rounded-[var(--ds-radius-base)] border bg-background px-2 text-[length:var(--ds-font-size-ui-xs)] text-foreground outline-none placeholder:text-muted-foreground/40",
 				// The warning outranks the focus ring: a duplicate is flagged while
 				// it is being typed, which is exactly when the flag is useful.
 				invalid

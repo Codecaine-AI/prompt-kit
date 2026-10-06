@@ -104,18 +104,18 @@ export function GlassPanel({
       {...(ai ? { "data-lab-annotate-panel": "" } : {})}
       role="complementary"
       aria-label={ai ? "AI workspace" : "Prompt navigation"}
-      className="absolute z-30 flex overflow-hidden rounded-lg border"
+      className="absolute z-[var(--ds-z-panel)] flex overflow-hidden rounded-[var(--ds-radius-base)] border"
       style={{
         top: topInset,
         right: "var(--prompt-editor-panel-right, 24px)",
         width,
         height: cap === null ? naturalHeight : Math.min(naturalHeight, cap),
-        maxWidth: "calc(100% - var(--prompt-editor-panel-right, 24px) - 8px)",
+        maxWidth: "calc(100% - var(--prompt-editor-panel-right, 24px) - var(--ds-space-2))",
         maxHeight: `calc(100% - ${topInset + PANEL_BOTTOM_GAP}px)`,
         transition: "width 340ms cubic-bezier(0.2, 0.7, 0.2, 1), height 340ms cubic-bezier(0.2, 0.7, 0.2, 1)",
         background: `color-mix(in srgb, var(--prompt-editor-glass-bg, ${EDITOR_COLORS.bg}) 88%, transparent)`,
-        backdropFilter: "blur(20px) saturate(1.3)",
-        WebkitBackdropFilter: "blur(20px) saturate(1.3)",
+        backdropFilter: "blur(var(--ds-blur-glass)) saturate(1.3)",
+        WebkitBackdropFilter: "blur(var(--ds-blur-glass)) saturate(1.3)",
         borderColor: ai ? ANNOTATE_COLORS.line : "var(--prompt-editor-panel-border, rgb(128 128 128 / 0.22))",
         boxShadow: "var(--prompt-editor-panel-shadow, 0 8px 28px rgb(0 0 0 / 0.24), 0 2px 6px rgb(0 0 0 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.07))",
       }}
@@ -136,9 +136,9 @@ export function GlassPanel({
         }}
       >
         <header data-lab-annotate-panel-header="" className="flex shrink-0 items-center gap-2 border-b px-3" style={{ height: PANEL_HEADER_HEIGHT, borderColor: EDITOR_COLORS.guide }}>
-          {ai && <RailButton type="button" data-lab-panel-tab="edit" aria-label="Edit" tip="Return to navigation" onClick={() => onTabSelect("edit")} className="rounded p-1 text-muted-foreground hover:bg-foreground/5"><ArrowLeft size={14} aria-hidden /></RailButton>}
-          <span className="min-w-0 truncate text-[12px] font-medium">{ai ? "Annotations" : VIEW_LABELS[activeView]}</span>
-          {!ai && <span className="ml-auto text-[10px] tabular-nums text-muted-foreground" title={`Estimated tokens in the ${activeView} view`}>{active?.tokens.toLocaleString()} tok</span>}
+          {ai && <RailButton type="button" data-lab-panel-tab="edit" aria-label="Edit" tip="Return to navigation" onClick={() => onTabSelect("edit")} className="rounded-[var(--ds-radius-base)] p-1 text-muted-foreground hover:bg-foreground/5"><ArrowLeft size={14} aria-hidden /></RailButton>}
+          <span className="min-w-0 truncate text-[length:var(--ds-font-size-ui-xs)] font-medium">{ai ? "Annotations" : VIEW_LABELS[activeView]}</span>
+          {!ai && <span className="ml-auto text-[length:var(--ds-font-size-micro)] tabular-nums text-muted-foreground" title={`Estimated tokens in the ${activeView} view`}>{active?.tokens.toLocaleString()} tok</span>}
         </header>
         <div data-lab-panel-scroll="" className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-2.5 pb-2 pt-1">
           <div ref={viewContentRef} data-lab-view-content="" className={ai ? "h-full" : undefined}>{children}</div>
@@ -148,7 +148,7 @@ export function GlassPanel({
         aria-label="Prompt views"
         data-lab-persistent-rail=""
         className="absolute inset-y-0 right-0 flex flex-col overflow-y-auto overflow-x-hidden overscroll-contain"
-        style={{ width: 42, borderLeft: `1px solid ${open ? EDITOR_COLORS.guide : "transparent"}`, transition: "border-color 180ms ease" }}
+        style={{ width: 42, borderLeft: `var(--ds-border-width-hairline) solid ${open ? EDITOR_COLORS.guide : "transparent"}`, transition: "border-color 180ms ease" }}
       >
         <div data-lab-rail-header="" className="flex shrink-0 items-center justify-center border-b" style={{ height: PANEL_HEADER_HEIGHT, borderColor: EDITOR_COLORS.guide }}>
         <RailButton ref={toggleRef} type="button" data-lab-rail-toggle="" aria-label={open ? "Collapse outline" : "Expand outline"} aria-expanded={open} aria-controls={contentId} tip={open ? "Collapse outline" : "Expand outline"} onClick={toggle} className="lab-rail-button">
@@ -168,7 +168,7 @@ export function GlassPanel({
             onClick={() => { onViewSelect(entry.id); onExpandedChange(true); }}
             className="lab-rail-button relative"
             style={current ? { color: EDITOR_COLORS.selectionAccent, background: EDITOR_COLORS.hoverBg } : undefined}
-          ><Icon size={16} aria-hidden />{status && <span data-lab-save-indicator="" aria-hidden className="absolute right-1 top-1 h-1 w-1 rounded-full bg-amber-400" />}</RailButton>;
+          ><Icon size={16} aria-hidden />{status && <span data-lab-save-indicator="" aria-hidden className="absolute right-1 top-1 h-1 w-1 rounded-full bg-[color:var(--ds-color-status-warning-solid)]" />}</RailButton>;
         })}
         <span aria-hidden className="my-1 h-px w-5 shrink-0" style={{ background: EDITOR_COLORS.guide }} />
         <RailButton type="button" data-lab-panel-tab="ai" aria-label="AI" aria-pressed={ai} tip={ai ? "Return to navigation" : "AI workspace"} onClick={() => onTabSelect(ai ? "edit" : "ai")} className="lab-rail-button relative mt-auto" style={{ color: ANNOTATE_COLORS.accentLit, background: ai ? ANNOTATE_COLORS.fill : undefined }}>
@@ -180,9 +180,9 @@ export function GlassPanel({
       <style>{`
         [data-lab-persistent-rail], [data-lab-panel-scroll] { scrollbar-width:none; }
         [data-lab-persistent-rail]::-webkit-scrollbar, [data-lab-panel-scroll]::-webkit-scrollbar { display:none; }
-        [data-lab-dock] .lab-rail-button { display:flex; align-items:center; justify-content:center; width:32px; height:32px; flex-shrink:0; border-radius:4px; color:var(--prompt-editor-muted, #989FA9); transition:background-color 160ms ease, color 160ms ease; }
+        [data-lab-dock] .lab-rail-button { display:flex; align-items:center; justify-content:center; width:var(--ds-space-8); height:var(--ds-space-8); flex-shrink:0; border-radius:var(--ds-radius-base); color:var(--prompt-editor-muted, #989FA9); transition:background-color 160ms ease, color 160ms ease; }
         [data-lab-dock] .lab-rail-button:hover { background:var(--prompt-editor-hover-bg, rgb(255 255 255 / 0.04)); }
-        [data-lab-dock] button:focus-visible { outline:2px solid var(--prompt-editor-selection-accent, #6E9ECF); outline-offset:-2px; }
+        [data-lab-dock] button:focus-visible { outline:var(--ds-border-width-focus) solid var(--prompt-editor-selection-accent, #6E9ECF); outline-offset:calc(var(--ds-border-width-focus) * -1); }
         @media (prefers-reduced-motion: reduce) { [data-lab-dock], [data-lab-dock] * { transition:none !important; } }
       `}</style>
     </div>

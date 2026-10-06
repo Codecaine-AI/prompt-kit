@@ -43,7 +43,7 @@ export function BlockMenu({
 
 	return (
 		<div
-			className="absolute left-0 top-full z-30 mt-1 w-48 rounded-[4px] border border-border bg-card p-1 shadow-lg"
+			className="absolute left-0 top-full z-30 mt-1 w-48 rounded-[var(--ds-radius-base)] border border-border bg-card p-1 shadow-[shadow:var(--ds-shadow-glass)]"
 			onClick={(event) => event.stopPropagation()}
 		>
 			{/* Type name as header — editable (rename tag) for sections. */}
@@ -63,12 +63,12 @@ export function BlockMenu({
 							if (event.key === "Escape") onClose();
 						}}
 						spellCheck={false}
-						className="w-full rounded-[2px] border border-border bg-background px-1 py-0.5 text-[11px] text-foreground outline-none focus:border-status-success"
+						className="w-full rounded-[var(--ds-radius-base)] border border-border bg-background px-1 py-0.5 text-[length:var(--ds-font-size-ui-2xs)] text-foreground outline-none focus:border-status-success"
 						// Autofocus so the header reads as "rename here".
 						autoFocus
 					/>
 				) : (
-					<span className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+					<span className="text-[length:var(--ds-font-size-ui-2xs)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 						{node.type}
 					</span>
 				)}
@@ -139,7 +139,7 @@ export function MenuItem({
 				onClick();
 			}}
 			className={cn(
-				"flex w-full items-center gap-2 rounded-[2px] px-1.5 py-1 text-left text-[12px]",
+				"flex w-full items-center gap-2 rounded-[var(--ds-radius-base)] px-1.5 py-1 text-left text-[length:var(--ds-font-size-ui-xs)]",
 				disabled
 					? "cursor-default text-muted-foreground/40"
 					: destructive

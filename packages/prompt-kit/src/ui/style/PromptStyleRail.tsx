@@ -4,9 +4,19 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
-import { useCallback, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
-import type { PromptStyleSettings } from "./prompt-style-settings";
+import {
+  PROMPT_STYLE_COLOR_TOKENS,
+  SHOW_COLOR_CONTROLS,
+  type PromptStyleSettings,
+} from "./prompt-style-settings";
 
 export interface PromptStyleRailProps {
   settings: PromptStyleSettings;
@@ -20,11 +30,9 @@ const FONT_OPTIONS: Array<{
   value: PromptStyleSettings["fontFamily"];
   label: string;
 }> = [
-  { value: "sans", label: "System sans (Docs)" },
+  { value: "sans", label: "Sans (Docs)" },
+  { value: "ibm-plex-mono", label: "Mono" },
   { value: "system", label: "System mono" },
-  { value: "sf-mono", label: "SF Mono" },
-  { value: "jetbrains-mono", label: "JetBrains Mono" },
-  { value: "ibm-plex-mono", label: "IBM Plex Mono" },
 ];
 
 /**
@@ -61,14 +69,14 @@ export function PromptStyleRail({
           className="text-muted-foreground"
           size={15}
         />
-        <h2 className="text-[11px] font-medium uppercase tracking-[0.16em]">
+        <h2 className="text-[length:var(--ds-font-size-ui-2xs)] font-medium uppercase tracking-[var(--ds-letter-spacing-micro-wide)]">
           Style
         </h2>
         <span className="flex-1" />
         <button
           type="button"
           onClick={onReset}
-          className="inline-flex h-7 items-center gap-1.5 rounded px-2 text-[11px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-info-border"
+          className="inline-flex h-7 items-center gap-1.5 rounded-[var(--ds-radius-base)] px-2 text-[length:var(--ds-font-size-ui-2xs)] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-info-border"
           title="Reset to defaults"
           aria-label="Reset to defaults"
         >
@@ -78,7 +86,7 @@ export function PromptStyleRail({
         <button
           type="button"
           onClick={onClose}
-          className="grid h-7 w-7 place-items-center rounded text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-info-border"
+          className="grid h-7 w-7 place-items-center rounded-[var(--ds-radius-base)] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-info-border"
           title="Close style sidebar"
           aria-label="Close style sidebar"
         >
@@ -89,14 +97,14 @@ export function PromptStyleRail({
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-3 py-3">
         {/* ONE global theme (2026-08-04 audit): presets retired — these
             controls adjust the shared baseline directly. */}
-        <p className="text-[11px] leading-4 text-muted-foreground">
+        <p className="text-[length:var(--ds-font-size-ui-2xs)] leading-[var(--ds-space-4)] text-muted-foreground">
           Appearance only — prompt content, hashes, and revisions never
           change.
         </p>
 
         <RailSection title="Type" defaultOpen>
           <label className="grid gap-1.5">
-            <span className="text-xs text-foreground">Font family</span>
+            <span className="text-[length:var(--ds-font-size-ui-xs)] text-foreground">Font family</span>
             <select
               value={settings.fontFamily}
               onChange={(event) =>
@@ -235,79 +243,96 @@ export function PromptStyleRail({
           />
         </RailSection>
 
+        {SHOW_COLOR_CONTROLS && (
         <RailSection title="Syntax colors">
           <div className="space-y-1">
             <ColorField
               label="Surface"
               value={settings.surfaceColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.surfaceColor}
               onChange={(value) => update("surfaceColor", value)}
             />
             <ColorField
               label="Text"
               value={settings.foregroundColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.foregroundColor}
               onChange={(value) => update("foregroundColor", value)}
             />
             <ColorField
               label="Tag marks"
               value={settings.tagPunctuationColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.tagPunctuationColor}
               onChange={(value) => update("tagPunctuationColor", value)}
             />
             <ColorField
               label="Tag name"
               value={settings.tagNameColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.tagNameColor}
               onChange={(value) => update("tagNameColor", value)}
             />
             <ColorField
               label="Landmark tag"
               value={settings.tagLandmarkColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.tagLandmarkColor}
               onChange={(value) => update("tagLandmarkColor", value)}
             />
             <ColorField
               label="Sub-landmark tag"
               value={settings.tagSublandmarkColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.tagSublandmarkColor}
               onChange={(value) => update("tagSublandmarkColor", value)}
             />
             <ColorField
               label="Attribute"
               value={settings.attributeNameColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.attributeNameColor}
               onChange={(value) => update("attributeNameColor", value)}
             />
             <ColorField
               label="Attr value"
               value={settings.attributeValueColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.attributeValueColor}
               onChange={(value) => update("attributeValueColor", value)}
             />
             <ColorField
               label="Variable"
               value={settings.variableColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.variableColor}
               onChange={(value) => update("variableColor", value)}
             />
             <ColorField
               label="Reference"
               value={settings.referenceColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.referenceColor}
               onChange={(value) => update("referenceColor", value)}
             />
             <ColorField
               label="Inline code"
               value={settings.inlineCodeColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.inlineCodeColor}
               onChange={(value) => update("inlineCodeColor", value)}
             />
             <ColorField
               label="List marker"
               value={settings.listMarkerColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.listMarkerColor}
               onChange={(value) => update("listMarkerColor", value)}
             />
           </div>
         </RailSection>
+        )}
 
         <RailSection title="Marks">
+          {SHOW_COLOR_CONTROLS && (
           <div className="space-y-1">
             <ColorField
               label="Guide"
               value={settings.guideColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.guideColor}
               onChange={(value) => update("guideColor", value)}
             />
           </div>
+          )}
           <RangeField
             label="Guide opacity"
             value={settings.guideOpacity}
@@ -326,13 +351,16 @@ export function PromptStyleRail({
             percent
             onChange={(value) => update("inlineChipOpacity", value)}
           />
+          {SHOW_COLOR_CONTROLS && (
           <div className="space-y-1">
             <ColorField
               label="Landmark"
               value={settings.landmarkColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.landmarkColor}
               onChange={(value) => update("landmarkColor", value)}
             />
           </div>
+          )}
           <RangeField
             label="Landmark opacity"
             value={settings.landmarkOpacity}
@@ -342,33 +370,41 @@ export function PromptStyleRail({
             percent
             onChange={(value) => update("landmarkOpacity", value)}
           />
+          {SHOW_COLOR_CONTROLS && (
           <div className="space-y-1">
             <ColorField
               label="Gutter"
               value={settings.gutterColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.gutterColor}
               onChange={(value) => update("gutterColor", value)}
             />
             <ColorField
               label="Line number"
               value={settings.lineNumberColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.lineNumberColor}
               onChange={(value) => update("lineNumberColor", value)}
             />
             <ColorField
               label="Active number"
               value={settings.activeLineNumberColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.activeLineNumberColor}
               onChange={(value) => update("activeLineNumberColor", value)}
             />
           </div>
+          )}
         </RailSection>
 
         <RailSection title="Interaction">
+          {SHOW_COLOR_CONTROLS && (
           <div className="space-y-1">
             <ColorField
               label="Selection"
               value={settings.selectionColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.selectionColor}
               onChange={(value) => update("selectionColor", value)}
             />
           </div>
+          )}
           <RangeField
             label="Selection opacity"
             value={settings.selectionOpacity}
@@ -378,18 +414,22 @@ export function PromptStyleRail({
             percent
             onChange={(value) => update("selectionOpacity", value)}
           />
+          {SHOW_COLOR_CONTROLS && (
           <div className="space-y-1">
             <ColorField
               label="Selection accent"
               value={settings.selectionAccentColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.selectionAccentColor}
               onChange={(value) => update("selectionAccentColor", value)}
             />
             <ColorField
               label="Active line"
               value={settings.activeLineColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.activeLineColor}
               onChange={(value) => update("activeLineColor", value)}
             />
           </div>
+          )}
           <RangeField
             label="Active line opacity"
             value={settings.activeLineOpacity}
@@ -399,13 +439,16 @@ export function PromptStyleRail({
             percent
             onChange={(value) => update("activeLineOpacity", value)}
           />
+          {SHOW_COLOR_CONTROLS && (
           <div className="space-y-1">
             <ColorField
               label="Hover"
               value={settings.hoverColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.hoverColor}
               onChange={(value) => update("hoverColor", value)}
             />
           </div>
+          )}
           <RangeField
             label="Hover opacity"
             value={settings.hoverOpacity}
@@ -415,13 +458,16 @@ export function PromptStyleRail({
             percent
             onChange={(value) => update("hoverOpacity", value)}
           />
+          {SHOW_COLOR_CONTROLS && (
           <div className="space-y-1">
             <ColorField
               label="Grip"
               value={settings.gripColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.gripColor}
               onChange={(value) => update("gripColor", value)}
             />
           </div>
+          )}
           <RangeField
             label="Grip size"
             value={settings.gripSize}
@@ -440,13 +486,16 @@ export function PromptStyleRail({
             percent
             onChange={(value) => update("gripOpacity", value)}
           />
+          {SHOW_COLOR_CONTROLS && (
           <div className="space-y-1">
             <ColorField
               label="Drop line"
               value={settings.dropIndicatorColor}
+              themeColor={PROMPT_STYLE_COLOR_TOKENS.dropIndicatorColor}
               onChange={(value) => update("dropIndicatorColor", value)}
             />
           </div>
+          )}
           <RangeField
             label="Drop line width"
             value={settings.dropIndicatorWidth}
@@ -531,10 +580,10 @@ function RailSection({
         <ChevronRight
           aria-hidden
           size={11}
-          className="shrink-0 text-muted-foreground transition-transform duration-150"
+          className="shrink-0 text-muted-foreground transition-transform duration-[var(--ds-motion-duration-base)]"
           style={{ transform: open ? "rotate(90deg)" : undefined }}
         />
-        <h3 className="shrink-0 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+        <h3 className="shrink-0 text-[length:var(--ds-font-size-micro)] font-medium uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground">
           {title}
         </h3>
         <span aria-hidden className="h-px flex-1 bg-border" />
@@ -572,8 +621,8 @@ function RangeField({
   return (
     <label className="grid gap-1">
       <span className="flex items-baseline justify-between gap-3">
-        <span className="text-xs text-foreground">{label}</span>
-        <span className="text-xs tabular-nums text-muted-foreground">
+        <span className="text-[length:var(--ds-font-size-ui-xs)] text-foreground">{label}</span>
+        <span className="text-[length:var(--ds-font-size-ui-xs)] tabular-nums text-muted-foreground">
           {displayedValue}
         </span>
       </span>
@@ -596,35 +645,71 @@ function RangeField({
 function ColorField({
   label,
   value,
+  themeColor,
   onChange,
 }: {
   label: string;
+  /** "" follows the theme; "#RRGGBB" is a saved pick. */
   value: string;
+  /** The theme value this setting falls back to (PROMPT_STYLE_COLOR_TOKENS). */
+  themeColor: string;
   onChange: (value: string) => void;
 }) {
+  // A color input needs a hex value: while the setting follows the theme,
+  // show the theme color the swatch resolves to ("" until it resolves).
+  const swatchRef = useRef<HTMLSpanElement | null>(null);
+  const [resolved, setResolved] = useState("");
+  useEffect(() => {
+    if (value || !swatchRef.current) return;
+    setResolved(cssColorToHex(getComputedStyle(swatchRef.current).backgroundColor));
+  }, [value, themeColor]);
+
   return (
-    <label className="flex min-h-8 cursor-pointer items-center gap-2 rounded px-1 transition-colors hover:bg-muted/35 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-status-info-border">
+    <label className="flex min-h-8 cursor-pointer items-center gap-2 rounded-[var(--ds-radius-base)] px-1 transition-colors hover:bg-muted/35 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-inset has-[:focus-visible]:ring-status-info-border">
       <span
-        className="relative h-[22px] w-[22px] shrink-0 overflow-hidden rounded border border-border"
-        style={{ backgroundColor: value }}
+        ref={swatchRef}
+        className="relative shrink-0 overflow-hidden rounded-[var(--ds-radius-base)] border border-border"
+        // 22px swatch: kept geometry (no equal token).
+        style={{ width: 22, height: 22, backgroundColor: value || themeColor }}
       >
         <input
           type="color"
           aria-label={label}
           title={`Choose ${label.toLowerCase()} color`}
-          value={value}
+          value={value || resolved}
           onChange={(event) => onChange(event.currentTarget.value)}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0 focus-visible:outline-none"
         />
       </span>
-      <span className="min-w-0 flex-1 truncate text-xs text-foreground">
+      <span className="min-w-0 flex-1 truncate text-[length:var(--ds-font-size-ui-xs)] text-foreground">
         {label}
       </span>
-      <span className="shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
-        {value.toUpperCase()}
+      <span className="shrink-0 text-right text-[length:var(--ds-font-size-ui-2xs)] tabular-nums text-muted-foreground">
+        {value ? value.toUpperCase() : "Theme"}
       </span>
     </label>
   );
+}
+
+/**
+ * A computed color (`rgb(r, g, b)`, `rgba(…)`, or `color(srgb r g b / a)` for
+ * a color-mix() token) to #RRGGBB ("" when unreadable).
+ */
+function cssColorToHex(color: string): string {
+  const scale = color.trim().startsWith("color(srgb") ? 255 : 1;
+  const channels =
+    color
+      .replace(/^color\(srgb/, "")
+      .match(/[\d.]+/g)
+      ?.slice(0, 3)
+      .map((channel) => Number(channel) * scale) ?? [];
+  if (channels.length < 3 || channels.some((channel) => !Number.isFinite(channel))) {
+    return "";
+  }
+  return `#${channels
+    .map((channel) => Math.round(channel).toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase()}`;
 }
 
 function ToggleField({
@@ -642,19 +727,21 @@ function ToggleField({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className="flex min-h-8 w-full items-center justify-between gap-3 rounded px-1 text-left text-xs transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-status-info-border"
+      className="flex min-h-8 w-full items-center justify-between gap-3 rounded-[var(--ds-radius-base)] px-1 text-left text-[length:var(--ds-font-size-ui-xs)] transition-colors hover:bg-muted/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-status-info-border"
     >
       <span>{label}</span>
       <span
         aria-hidden
         className={[
-          "relative h-[18px] w-8 shrink-0 rounded-full transition-colors",
+          "relative w-8 shrink-0 rounded-full transition-colors",
           checked ? "bg-status-info" : "bg-muted-foreground/35",
         ].join(" ")}
+        // 18px track: kept geometry (no equal token).
+        style={{ height: 18 }}
       >
         <span
           className={[
-            "absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-background shadow-sm transition-transform",
+            "absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full bg-background transition-transform",
             checked ? "translate-x-3.5" : "translate-x-0",
           ].join(" ")}
         />
@@ -664,4 +751,4 @@ function ToggleField({
 }
 
 const selectClassName =
-  "h-9 w-full rounded border border-border bg-background/60 px-2 text-xs text-foreground outline-none transition-colors hover:border-muted-foreground/60 focus-visible:border-status-info-border focus-visible:ring-2 focus-visible:ring-status-info-border";
+  "h-9 w-full rounded-[var(--ds-radius-base)] border border-border bg-background/60 px-2 text-[length:var(--ds-font-size-ui-xs)] text-foreground outline-none transition-colors hover:border-muted-foreground/60 focus-visible:border-status-info-border focus-visible:ring-2 focus-visible:ring-status-info-border";

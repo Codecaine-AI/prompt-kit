@@ -35,10 +35,11 @@ describe("prompt editor surface contract", () => {
 		expect(LINE_HEIGHT_PX).toBe(26);
 		expect(EDITOR_METRICS).toEqual({
 			fontFamily:
-				'var(--prompt-editor-font-family, ui-sans-serif, system-ui, sans-serif)',
+				"var(--prompt-editor-font-family, var(--ds-font-family-sans))",
 			fontSize: "var(--prompt-editor-font-size, 15px)",
 			lineHeight: "var(--prompt-editor-line-height, 26px)",
-			letterSpacing: "var(--prompt-editor-letter-spacing, 0em)",
+			letterSpacing:
+				"var(--prompt-editor-letter-spacing, var(--ds-letter-spacing-normal))",
 			indentWidth: "var(--prompt-editor-indent-width, 2ch)",
 			contentWidth: "var(--prompt-editor-content-width, 88ch)",
 			gutterWidth: "var(--prompt-editor-gutter-width, 36px)",

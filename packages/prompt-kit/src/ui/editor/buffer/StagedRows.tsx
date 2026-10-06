@@ -64,12 +64,12 @@ export function InlineInsertSlot({
 					? {
 							marginLeft: `calc(${gutterWidth} - 3px)`,
 							marginRight: "-3px",
-							marginBlock: "4px",
+							marginBlock: "var(--ds-space-1)",
 						}
 					: {
 							paddingLeft: `calc(${gutterWidth} + 0.75rem)`,
 							paddingRight: "1rem",
-							marginBlock: "4px",
+							marginBlock: "var(--ds-space-1)",
 						}
 			}
 		>
@@ -94,7 +94,7 @@ export function StagedRegionView({
 					style={{
 						paddingLeft: `calc(${gutterWidth} + 0.75rem)`,
 						paddingRight: "1rem",
-						marginBlock: "4px",
+						marginBlock: "var(--ds-space-1)",
 					}}
 				>
 					{region.bar}

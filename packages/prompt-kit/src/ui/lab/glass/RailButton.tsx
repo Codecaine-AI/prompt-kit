@@ -78,18 +78,18 @@ export const RailButton = forwardRef<HTMLButtonElement, RailButtonProps>(functio
         onMouseEnter={clearTimer}
         onMouseLeave={scheduleClose}
         style={{
-          position: "fixed", zIndex: 1000,
+          position: "fixed", zIndex: "var(--ds-z-overlay)",
           ...(position.right ? { left: position.x } : { right: position.x }),
           top: position.y, transform: "translateY(-50%)",
-          width: "max-content", maxWidth: "min(220px, calc(100vw - 20px))",
-          padding: "5px 8px", borderRadius: 6,
-          background: "rgb(25 27 31 / 0.97)", color: "#F4F4F5",
-          border: "1px solid rgb(255 255 255 / 0.12)",
-          boxShadow: "0 6px 20px rgb(0 0 0 / 0.24)",
-          fontFamily: position.font, fontSize: 12, lineHeight: 1.5,
+          width: "max-content", maxWidth: "min(220px, calc(100vw - var(--ds-space-5)))",
+          padding: "5px var(--ds-space-2)", borderRadius: "var(--ds-radius-base)",
+          background: "var(--ds-color-text-ink)", color: "var(--ds-color-surface-page)",
+          border: "var(--ds-border-width-hairline) solid transparent",
+          boxShadow: "var(--ds-shadow-glass)",
+          fontFamily: position.font, fontSize: "var(--ds-font-size-ui-xs)", lineHeight: "var(--ds-line-height-ui)",
         }}
       >
-        <div style={{ fontWeight: 500 }}>{tip}</div>
+        <div style={{ fontWeight: "var(--ds-font-weight-medium)" }}>{tip}</div>
       </div>, document.body,
     )}
   </>;

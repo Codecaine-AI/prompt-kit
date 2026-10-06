@@ -60,10 +60,10 @@ ${
 	rowSelector
 		? `  ${rowSelector} {
     background-image: linear-gradient(100deg,
-      rgb(138 122 176 / 0) 22%,
-      rgb(138 122 176 / 0.19) 46%,
-      rgb(138 122 176 / 0.05) 58%,
-      rgb(138 122 176 / 0) 76%) !important;
+      color-mix(in srgb, ${ANNOTATE_COLORS.accent} 0%, transparent) 22%,
+      color-mix(in srgb, ${ANNOTATE_COLORS.accent} 19%, transparent) 46%,
+      color-mix(in srgb, ${ANNOTATE_COLORS.accent} 5%, transparent) 58%,
+      color-mix(in srgb, ${ANNOTATE_COLORS.accent} 0%, transparent) 76%) !important;
     background-size: 230% 100% !important;
     background-repeat: no-repeat !important;
     animation: prompt-annotate-shimmer 1.6s linear infinite !important;

@@ -1784,7 +1784,7 @@ export function PromptFlowXml({
 					// padding on the scroll container keeps its scrollbar at the far
 					// right edge, right of the glass, not mid-screen.
 					paddingRight: "var(--prompt-editor-reserved-right, 0px)",
-					transition: "padding-right 260ms cubic-bezier(0.32, 0.72, 0, 1)",
+					transition: "padding-right var(--ds-motion-duration-slow) var(--ds-motion-easing-emphasized)",
 					// Rows carry their own type; the scroller repeats the font so the
 					// `ch`-based max width below resolves in editor characters rather
 					// than the shell's.
@@ -1890,12 +1890,12 @@ export function PromptFlowXml({
 								return (
 									<div
 										data-prompt-selection-ring={`${paintedGroupRange.start}-${paintedGroupRange.end}`}
-										className="pointer-events-none absolute inset-x-0 z-0 rounded-[4px]"
+										className="pointer-events-none absolute inset-x-0 z-0 rounded-[var(--ds-radius-base)]"
 										style={{
 											top,
 											height: Math.max(bottom - top, 0),
 											background: EDITOR_COLORS.selectionBg,
-											border: `1px solid ${EDITOR_COLORS.selectionAccent}`,
+											border: `var(--ds-border-width-hairline) solid ${EDITOR_COLORS.selectionAccent}`,
 										}}
 									/>
 								);

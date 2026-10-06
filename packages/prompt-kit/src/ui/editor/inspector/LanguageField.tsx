@@ -33,7 +33,7 @@ export function LanguageField({
 		<div className="flex flex-col gap-1.5">
 			<label
 				htmlFor="prompt-code-language"
-				className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground"
+				className="text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground"
 			>
 				language
 			</label>
@@ -51,14 +51,14 @@ export function LanguageField({
 							: current,
 					);
 				}}
-				className="h-8 rounded-[2px] border border-border bg-background px-2 text-[12px] text-foreground outline-none placeholder:text-muted-foreground/40 focus:border-status-success"
+				className="h-8 rounded-[var(--ds-radius-base)] border border-border bg-background px-2 text-[length:var(--ds-font-size-ui-xs)] text-foreground outline-none placeholder:text-muted-foreground/40 focus:border-status-success"
 			/>
 			<datalist id={LANGUAGE_LIST_ID}>
 				{CODE_LANGUAGES.map((language) => (
 					<option key={language} value={language} />
 				))}
 			</datalist>
-			<p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
+			<p className="font-mono text-[length:var(--ds-font-size-ui-2xs)] leading-[var(--ds-line-height-reading)] text-muted-foreground">
 				{fenceHint(node.language)}
 			</p>
 		</div>

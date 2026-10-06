@@ -73,7 +73,7 @@ export function RightMarginRail({
 					<div
 						key={group.nodeId}
 						data-lab-comment-indicator={group.nodeId}
-						className="absolute z-20"
+						className="absolute z-[var(--ds-z-raised)]"
 						// The content column's free right margin — the rows container
 						// caps at the content width, so a negative right offset sits
 						// the bubble past the column's edge, CLEAR of the targeting
@@ -94,7 +94,7 @@ export function RightMarginRail({
 							type="button"
 							aria-label={`${count} ${count === 1 ? "comment" : "comments"} on ${group.nodeId}`}
 							onClick={() => onSelect(group.nodeId, group.threads[0]!.key)}
-							className="flex items-center gap-1 rounded-full border border-border/50 bg-card/80 px-1.5 py-0.5 text-[10px] tabular-nums text-muted-foreground/60 transition-colors hover:border-border hover:text-foreground"
+							className="flex items-center gap-1 rounded-full border border-border/50 bg-card/80 px-1.5 py-0.5 text-[length:var(--ds-font-size-micro)] tabular-nums text-muted-foreground/60 transition-colors hover:border-border hover:text-foreground"
 						>
 							<MessageSquare size={11} aria-hidden />
 							{count}
@@ -102,12 +102,12 @@ export function RightMarginRail({
 						{hoverNodeId === group.nodeId && (
 							<div
 								data-lab-comment-popover={group.nodeId}
-								className="absolute right-0 top-full z-30 mt-1 flex w-60 flex-col gap-1 rounded-md border border-border bg-card p-2 shadow-lg"
+								className="absolute right-0 top-full z-30 mt-1 flex w-60 flex-col gap-1 rounded-[var(--ds-radius-base)] border border-border bg-card p-2 shadow-[shadow:var(--ds-shadow-glass)]"
 							>
 								{group.threads.map((thread) => (
 									<p
 										key={thread.key}
-										className="flex items-baseline gap-1.5 text-[11px] leading-relaxed text-muted-foreground"
+										className="flex items-baseline gap-1.5 text-[length:var(--ds-font-size-ui-2xs)] leading-[var(--ds-line-height-ui)] text-muted-foreground"
 									>
 										{thread.agent ? (
 											<Pencil size={10} aria-hidden className="shrink-0 translate-y-px" />

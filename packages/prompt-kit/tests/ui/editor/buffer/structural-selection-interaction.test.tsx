@@ -640,7 +640,7 @@ describe("PromptFlowXml structural selection paints as ONE object", () => {
 		const row = nodeRow("para-y");
 		expect(row.hasAttribute("data-prompt-row-selected")).toBe(true);
 		expect(row.querySelector(".absolute.inset-0")).toBeNull();
-		expect(row.querySelector('[class*="w-[2px]"]')).toBeNull();
+		expect(row.querySelector('[class*="w-0.5"]')).toBeNull();
 		expect(row.className).toContain("cursor-grab");
 		// Rows outside the zone carry no grab affordance.
 		expect(nodeRow("para-w").className).not.toContain("cursor-grab");

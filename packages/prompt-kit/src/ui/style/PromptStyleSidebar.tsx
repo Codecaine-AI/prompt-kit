@@ -126,7 +126,7 @@ export function PromptStyleSidebar({
       className={
         docked
           ? "relative h-full shrink-0 border-l border-border bg-card"
-          : "fixed inset-y-0 right-0 z-50 border-l border-border bg-card shadow-2xl"
+          : "fixed inset-y-0 right-0 z-[var(--ds-z-popover)] border-l border-border bg-card shadow-[shadow:var(--ds-shadow-dialog)]"
       }
       style={{ width: docked ? width : `min(${width}px, 90vw)` }}
     >
@@ -136,7 +136,9 @@ export function PromptStyleSidebar({
         aria-valuemax={PROMPT_STYLE_SIDEBAR_MAX_WIDTH}
         aria-valuemin={PROMPT_STYLE_SIDEBAR_MIN_WIDTH}
         aria-valuenow={width}
-        className="absolute inset-y-0 left-0 z-10 w-[5px] -translate-x-1/2 cursor-col-resize touch-none"
+        className="absolute inset-y-0 left-0 z-10 -translate-x-1/2 cursor-col-resize touch-none"
+        // 5px hit strip: kept geometry (no equal token).
+        style={{ width: 5 }}
         onDoubleClick={() =>
           onWidthChange(PROMPT_STYLE_SIDEBAR_DEFAULT_WIDTH)
         }
@@ -166,7 +168,7 @@ export function PromptStyleSidebar({
     <>
       <button
         aria-label="Close style sidebar"
-        className="fixed inset-0 z-40 cursor-default bg-black/45"
+        className="fixed inset-0 z-[var(--ds-z-overlay)] cursor-default bg-[color:var(--ds-color-backdrop)]"
         onClick={onClose}
         type="button"
       />

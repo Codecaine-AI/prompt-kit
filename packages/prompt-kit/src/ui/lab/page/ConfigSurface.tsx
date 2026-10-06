@@ -20,7 +20,7 @@ export interface LabConfigZone {
 export function ConfigSurface({ configZone }: { configZone: LabConfigZone }) {
 	const id = useId();
 	return (
-		<div className="grid gap-3 text-[12px]">
+		<div className="grid gap-3 text-[length:var(--ds-font-size-ui-xs)]">
 			{([
 				{ key: "model", label: "Model", value: configZone.model, options: configZone.modelOptions, onChange: configZone.onModelChange },
 				...(configZone.thinking !== undefined ? [{ key: "thinking", label: "Default thinking", value: configZone.thinking, options: configZone.thinkingOptions, onChange: configZone.onThinkingChange }] : []),
@@ -30,7 +30,7 @@ export function ConfigSurface({ configZone }: { configZone: LabConfigZone }) {
 					{options?.length && onChange ? (
 						<select id={`${id}-${key}`} value={value ?? ""} disabled={configZone.disabled}
 							onChange={(event) => onChange(event.target.value)}
-							className="w-full min-w-0 rounded-[3px] border border-border bg-background px-2 py-1 text-foreground outline-none focus:border-foreground/40 disabled:opacity-50">
+							className="w-full min-w-0 rounded-[var(--ds-radius-base)] border border-border bg-background px-2 py-1 text-foreground outline-none focus:border-foreground/40 disabled:opacity-50">
 							{!options.includes(value ?? "") && <option value={value ?? ""} disabled>{value ?? "Select a value"}</option>}
 							{options.map((option) => <option key={option} value={option}>{option}</option>)}
 						</select>

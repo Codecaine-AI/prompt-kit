@@ -17,15 +17,18 @@
 // STYLING CONTRACT — the host app supplies the presentation layer:
 //
 //   1. Tailwind utilities. These components use Tailwind class names
-//      (`flex`, `text-sm`, `rounded-[3px]`, …). prompt-kit deliberately ships
-//      no Tailwind config, no build step, and no CSS bundle: a consumer that
-//      already runs Tailwind would otherwise end up with two copies of the
-//      utility layer. The host's Tailwind must have prompt-kit's source on its
-//      content/source paths so the classes are generated.
-//   2. Semantic CSS custom properties. Colours resolve through the host's
-//      token layer (`--background`, `--foreground`, `--muted-foreground`,
-//      `--border`, `--accent`, …) so the editor inherits the surrounding app's
-//      theme rather than imposing one.
+//      (`flex`, `rounded-[var(--ds-radius-base)]`,
+//      `text-[length:var(--ds-font-size-ui-xs)]`, …). prompt-kit deliberately
+//      ships no Tailwind config, no build step, and no CSS bundle: a consumer
+//      that already runs Tailwind would otherwise end up with two copies of the
+//      utility layer. The host's Tailwind (3.4 or 4) must have prompt-kit's
+//      source on its content/source paths so the classes are generated.
+//   2. Design-system tokens. Sizes, radii, type, shadows, motion and layers
+//      read `--ds-*` from @codecaine-ai/design-system's tokens.css, and colours
+//      resolve through its host-contract.css (`--background`, `--foreground`,
+//      `--muted-foreground`, `--border`, `--editor-*`, …), so the editor
+//      follows the surrounding app's theme rather than imposing one. A host
+//      loads both sheets.
 //   3. The `.prompt-editor-surface` rules — row zebra/rule striping and
 //      caret behaviour — which ship with the host's stylesheet. In this repo's
 //      consumers that is `@agent-kernel/viewer-ui/styles`.
@@ -1280,9 +1283,9 @@ export function PromptInlineLab({
     // !important on background: XmlRow paints its zebra tint through the
     // inline background SHORTHAND, which would otherwise win.
     return [
-      `${tick.join(",\n")} { box-shadow: inset 2px 0 0 rgb(138 122 176 / 0.55); }`,
+      `${tick.join(",\n")} { box-shadow: inset 2px 0 0 color-mix(in srgb, ${ANNOTATE_COLORS.accent} 55%, transparent); }`,
       lit.length > 0
-        ? `${lit.join(",\n")} { background: rgb(138 122 176 / 0.14) !important; box-shadow: inset 2px 0 0 var(--prompt-annotate-accent-lit, #AD9DD0); }`
+        ? `${lit.join(",\n")} { background: color-mix(in srgb, ${ANNOTATE_COLORS.accent} 14%, transparent) !important; box-shadow: inset 2px 0 0 var(--prompt-annotate-accent-lit, #AD9DD0); }`
         : "",
     ].join("\n");
   }, [commentRowRanges, litCommentNodeId]);
@@ -1777,7 +1780,7 @@ export function PromptInlineLab({
               {saveErrors.map((message, index) => (
                 <p
                   key={`save:${index}`}
-                  className="break-words text-[11px] leading-snug text-destructive"
+                  className="break-words text-[length:var(--ds-font-size-ui-2xs)] leading-[var(--ds-line-height-ui)] text-destructive"
                 >
                   {message}
                 </p>
@@ -1792,9 +1795,9 @@ export function PromptInlineLab({
             promptEditSession.proposals.length > 0 && (
               <div
                 data-prompt-draft-banner=""
-                className="flex shrink-0 items-center gap-3 border-b border-sky-500/40 bg-sky-500/10 px-3 py-1.5"
+                className="flex shrink-0 items-center gap-3 border-b border-status-info-border bg-status-info-fill px-3 py-1.5"
               >
-                <span className="flex-1 text-[12px] text-sky-400">
+                <span className="flex-1 text-[length:var(--ds-font-size-ui-xs)] text-status-info">
                   {promptEditSession.proposals.length}{" "}
                   {promptEditSession.proposals.length === 1
                     ? "change"
@@ -1804,7 +1807,7 @@ export function PromptInlineLab({
                 <button
                   type="button"
                   aria-label="Accept all"
-                  className="rounded-md bg-green-500 px-3 py-0.5 text-[12px] font-semibold text-green-950"
+                  className="rounded-[var(--ds-radius-base)] bg-[color:var(--ds-color-status-success-solid)] px-3 py-0.5 text-[length:var(--ds-font-size-ui-xs)] font-semibold text-[color:var(--ds-color-status-success-on-solid)]"
                   onClick={() => void promptEditSession.onAcceptAll?.()}
                 >
                   Accept all
@@ -1812,7 +1815,7 @@ export function PromptInlineLab({
                 <button
                   type="button"
                   aria-label="Discard draft"
-                  className="rounded-md border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+                  className="rounded-[var(--ds-radius-base)] border border-border px-2.5 py-0.5 text-[length:var(--ds-font-size-ui-xs)] text-muted-foreground"
                   onClick={() => void promptEditSession.onDiscardDraft?.()}
                 >
                   Discard
@@ -2055,7 +2058,7 @@ export function PromptInlineLab({
                   tip={panelHistory ? "Back to outline" : "History"}
                   onClick={() => setPanelHistory((open) => !open)}
                   className={cn(
-                    "absolute right-0 top-2 z-10 rounded p-1.5 transition-colors",
+                    "absolute right-0 top-2 z-10 rounded-[var(--ds-radius-base)] p-1.5 transition-colors",
                     panelHistory
                       ? "text-foreground"
                       : "text-muted-foreground/50 hover:text-foreground",
@@ -2251,7 +2254,7 @@ function AutosaveWhisper({
       data-lab-autosave=""
       // Lives in the floating dock's header (2026-08-04 audit: the corner
       // whisper floated over prompt text; the sidebar owns status now).
-      className="pointer-events-auto select-none whitespace-nowrap text-[10px] tracking-[0.06em]"
+      className="pointer-events-auto select-none whitespace-nowrap text-[length:var(--ds-font-size-micro)] tracking-[var(--ds-letter-spacing-normal)]"
     >
       {body}
     </span>

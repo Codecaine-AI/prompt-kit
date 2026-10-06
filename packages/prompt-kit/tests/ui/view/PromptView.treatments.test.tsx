@@ -49,10 +49,10 @@ describe("PromptView structural treatments", () => {
 		const lines = PROMPT.split("\n");
 		expect(rows.length).toBe(lines.length);
 		expect(rows[1]).toContain(
-			`padding-left:calc(0.75rem + calc(${indentTimes(2)}))`,
+			`padding-left:calc(var(--ds-space-3) + calc(${indentTimes(2)}))`,
 		);
 		expect(rows[4]).toContain(
-			`padding-left:calc(0.75rem + calc(${indentTimes(4)}))`,
+			`padding-left:calc(var(--ds-space-3) + calc(${indentTimes(4)}))`,
 		);
 		expect(rows[1]).toContain("text-indent:-4ch");
 		expect(rows[4]).toContain("text-indent:-8ch");
@@ -71,7 +71,7 @@ describe("PromptView structural treatments", () => {
 			renderView(["<data>", "  {", '    "nested": true', "  }", "</data>"].join("\n")),
 		);
 		const depthOnePadding =
-			`padding-left:calc(0.75rem + calc(${indentTimes(2)}))`;
+			`padding-left:calc(var(--ds-space-3) + calc(${indentTimes(2)}))`;
 		for (const row of jsonRows.slice(1, 4)) expect(row).toContain(depthOnePadding);
 		for (const row of jsonRows.slice(1, 4)) expect(row).toContain("text-indent:-2ch");
 		expect(rowText(jsonRows[1])).toBe("  {");
@@ -85,7 +85,7 @@ describe("PromptView structural treatments", () => {
 				`--prompt-editor-syntax-tag:${EDITOR_COLORS.syntaxTagLandmark}`,
 			);
 			expect(row).toContain(
-				`font-size:calc(var(--prompt-editor-font-size, 13px) * ${EDITOR_METRICS.landmarkFontScale})`,
+				`font-size:calc(var(--prompt-editor-font-size, var(--ds-font-size-ui-sm)) * ${EDITOR_METRICS.landmarkFontScale})`,
 			);
 			// The landmark wash the editable surface paints on section starts.
 			expect(row).toContain(
@@ -180,16 +180,16 @@ describe("PromptView structural treatments", () => {
 
 	test("indented rows paint one guide stripe per enclosing container", () => {
 		// Depth-1 row: ONE stripe, under the top-level container's own column.
-		expect(rows[1]).toContain("background-position:calc(0.75rem + 0px) 0");
+		expect(rows[1]).toContain("background-position:calc(var(--ds-space-3) + 0px) 0");
 		expect(rows[1]).not.toContain(
-			`calc(0.75rem + calc(${indentTimes(2)})) 0`,
+			`calc(var(--ds-space-3) + calc(${indentTimes(2)})) 0`,
 		);
 		// Depth-2 row: a second stripe under the depth-1 container's column —
 		// never one at the row's own text column.
-		expect(rows[4]).toContain("calc(0.75rem + 0px) 0");
-		expect(rows[4]).toContain(`calc(0.75rem + calc(${indentTimes(2)})) 0`);
+		expect(rows[4]).toContain("calc(var(--ds-space-3) + 0px) 0");
+		expect(rows[4]).toContain(`calc(var(--ds-space-3) + calc(${indentTimes(2)})) 0`);
 		expect(rows[4]).not.toContain(
-			`calc(0.75rem + calc(${indentTimes(4)})) 0`,
+			`calc(var(--ds-space-3) + calc(${indentTimes(4)})) 0`,
 		);
 		// Stripes honor the rail's show-guides toggle and the guide ink.
 		expect(rows[1]).toContain("--prompt-editor-show-guides, 1");
@@ -203,20 +203,20 @@ describe("PromptView structural treatments", () => {
 			renderView(["  <outer>", "    <inner>", "      value", "    </inner>", "  </outer>"].join("\n")),
 		);
 		expect(offsetRows[2]).toContain(
-			`padding-left:calc(0.75rem + calc(${indentTimes(4)}))`,
+			`padding-left:calc(var(--ds-space-3) + calc(${indentTimes(4)}))`,
 		);
-		expect(offsetRows[2]).toContain("calc(0.75rem + 0px) 0");
-		expect(offsetRows[2]).toContain(`calc(0.75rem + calc(${indentTimes(2)})) 0`);
+		expect(offsetRows[2]).toContain("calc(var(--ds-space-3) + 0px) 0");
+		expect(offsetRows[2]).toContain(`calc(var(--ds-space-3) + calc(${indentTimes(2)})) 0`);
 		expect(offsetRows[2]).toContain("text-indent:-6ch");
 		expect(rowText(offsetRows[2])).toBe("      value");
 	});
 
 	test("guides run through gap and close rows at their stack depth", () => {
 		// Gap at depth 2 keeps both stripes; close at depth 1 keeps one.
-		expect(rows[5]).toContain("calc(0.75rem + 0px) 0");
-		expect(rows[5]).toContain(`calc(0.75rem + calc(${indentTimes(2)})) 0`);
+		expect(rows[5]).toContain("calc(var(--ds-space-3) + 0px) 0");
+		expect(rows[5]).toContain(`calc(var(--ds-space-3) + calc(${indentTimes(2)})) 0`);
 		expect(rows[7]).toContain(
-			"background-position:calc(0.75rem + 0px) 0",
+			"background-position:calc(var(--ds-space-3) + 0px) 0",
 		);
 		// Top-level close and top-level gap rows carry none.
 		expect(rows[8]).not.toContain("background-image:linear-gradient");
@@ -238,7 +238,7 @@ describe("PromptView structural treatments", () => {
 
 	test("default type and gutter fallbacks match PromptFlowXml", () => {
 		expect(markup).toContain("font-family:var(--prompt-editor-font-family");
-		expect(markup).toContain("font-size:var(--prompt-editor-font-size, 13px)");
+		expect(markup).toContain("font-size:var(--prompt-editor-font-size, var(--ds-font-size-ui-sm))");
 		expect(markup).toContain("line-height:var(--prompt-editor-line-height, 22px)");
 		expect(markup).toContain(
 			"min-width:var(--prompt-editor-gutter-width, 36px)",

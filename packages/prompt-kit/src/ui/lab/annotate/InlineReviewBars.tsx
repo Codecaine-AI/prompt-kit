@@ -27,12 +27,14 @@ export function AliasChip({
 	return (
 		<span
 			data-prompt-alias={alias}
-			className="rounded border px-1 text-[10px] font-bold"
+			className="rounded-[var(--ds-radius-base)] border px-1 text-[length:var(--ds-font-size-micro)] font-bold"
 			style={{
-				color: agent ? EDITOR_COLORS.threadAccent : EDITOR_COLORS.selectionAccent,
+				// Text takes the link role, never the accent (the light accent is
+				// under 4.5:1); the border keeps the selection accent.
+				color: agent ? EDITOR_COLORS.threadAccent : "var(--ds-color-link)",
 				borderColor: agent
-					? "rgb(210 153 34 / 0.45)"
-					: "rgb(88 166 255 / 0.4)",
+					? `color-mix(in srgb, ${EDITOR_COLORS.threadAccent} 45%, transparent)`
+					: `color-mix(in srgb, ${EDITOR_COLORS.selectionAccent} 40%, transparent)`,
 			}}
 		>
 			{alias}
@@ -64,7 +66,7 @@ export function ProposalActionBar({
 	return (
 		<div
 			data-prompt-proposal-bar={alias}
-			className="flex items-center gap-2.5 rounded-lg border px-2.5 py-1"
+			className="flex items-center gap-2.5 rounded-[var(--ds-radius-base)] border px-2.5 py-1"
 			style={{
 				maxWidth: 560,
 				background: PANEL_RAISE,
@@ -74,7 +76,7 @@ export function ProposalActionBar({
 		>
 			<AliasChip alias={alias} author={author} />
 			<span
-				className="min-w-0 flex-1 truncate text-[11px]"
+				className="min-w-0 flex-1 truncate text-[length:var(--ds-font-size-ui-2xs)]"
 				style={{ color: EDITOR_COLORS.lineNumberActive }}
 			>
 				{summary}
@@ -84,7 +86,7 @@ export function ProposalActionBar({
 				aria-label={`Reject ${alias}`}
 				disabled={rejectDisabledReason !== null}
 				title={rejectDisabledReason ?? `Reject ${alias}`}
-				className="rounded-md border px-2 py-0.5 text-[12px] disabled:cursor-not-allowed disabled:opacity-40"
+				className="rounded-[var(--ds-radius-base)] border px-2 py-0.5 text-[length:var(--ds-font-size-ui-xs)] disabled:cursor-not-allowed disabled:opacity-40"
 				style={{
 					borderColor: PANEL_BORDER,
 					color: EDITOR_COLORS.lineNumberActive,
@@ -99,8 +101,8 @@ export function ProposalActionBar({
 				aria-label={`Accept ${alias}`}
 				disabled={acceptDisabledReason !== null}
 				title={acceptDisabledReason ?? `Accept ${alias}`}
-				className="rounded-md px-3 py-0.5 text-[12px] font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-				style={{ background: EDITOR_COLORS.diffAddFg, color: "#06210D" }}
+				className="rounded-[var(--ds-radius-base)] px-3 py-0.5 text-[length:var(--ds-font-size-ui-xs)] font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+				style={{ background: EDITOR_COLORS.diffAddFg, color: "var(--ds-color-status-success-on-solid)" }}
 				onClick={onAccept}
 			>
 				Accept
@@ -135,19 +137,19 @@ export function InlineThreadBar({
 	return (
 		<div
 			data-prompt-thread-bar={alias}
-			className="flex flex-col gap-1.5 rounded-lg border py-1.5 pl-2.5 pr-2.5"
+			className="flex flex-col gap-1.5 rounded-[var(--ds-radius-base)] border py-1.5 pl-2.5 pr-2.5"
 			style={{
 				maxWidth: 560,
 				background: PANEL_RAISE,
-				borderColor: "rgb(210 153 34 / 0.45)",
-				borderLeftWidth: 3,
+				borderColor: `color-mix(in srgb, ${EDITOR_COLORS.threadAccent} 45%, transparent)`,
+				borderLeftWidth: "var(--ds-border-width-rail)",
 				fontFamily: EDITOR_METRICS.fontFamily,
 			}}
 		>
 			<div className="flex items-baseline gap-2">
 				<AliasChip alias={alias} author={author} />
 				<span
-					className="min-w-0 flex-1 text-[12px] leading-snug"
+					className="min-w-0 flex-1 text-[length:var(--ds-font-size-ui-xs)] leading-[var(--ds-line-height-ui)]"
 					style={{ color: EDITOR_COLORS.fg, whiteSpace: "normal" }}
 				>
 					{message}
@@ -158,7 +160,7 @@ export function InlineThreadBar({
 					ref={inputRef}
 					placeholder={`Reply to ${alias}…`}
 					aria-label={`Reply to ${alias}`}
-					className="min-w-0 flex-1 rounded-md border px-2 py-1 text-[12px] outline-none"
+					className="min-w-0 flex-1 rounded-[var(--ds-radius-base)] border px-2 py-1 text-[length:var(--ds-font-size-ui-xs)] outline-none"
 					style={{
 						background: "var(--prompt-editor-panel-input-bg, #141414)",
 						borderColor: PANEL_BORDER,
@@ -176,7 +178,7 @@ export function InlineThreadBar({
 				<button
 					type="button"
 					aria-label={`Send reply to ${alias}`}
-					className="rounded-md border px-2.5 py-0.5 text-[12px]"
+					className="rounded-[var(--ds-radius-base)] border px-2.5 py-0.5 text-[length:var(--ds-font-size-ui-xs)]"
 					style={{
 						borderColor: PANEL_BORDER,
 						color: EDITOR_COLORS.lineNumberActive,

@@ -932,7 +932,7 @@ export function DragGhost({ drag }: { drag: XmlDragApi }) {
 			}}
 		>
 			<div
-				className="flex items-baseline gap-2 overflow-hidden rounded-[4px] border py-1 pl-3 pr-3 shadow-xl"
+				className="flex items-baseline gap-2 overflow-hidden rounded-[var(--ds-radius-base)] border py-1 pl-3 pr-3 shadow-[shadow:var(--ds-shadow-glass)]"
 				style={{
 					background: EDITOR_COLORS.bg,
 					color: EDITOR_COLORS.fg,
@@ -944,7 +944,7 @@ export function DragGhost({ drag }: { drag: XmlDragApi }) {
 				</div>
 				{moreCount > 0 && (
 					<span
-						className="shrink-0 whitespace-nowrap text-[10px]"
+						className="shrink-0 whitespace-nowrap text-[length:var(--ds-font-size-micro)]"
 						style={{ color: EDITOR_COLORS.lineNumber ?? EDITOR_COLORS.fg, opacity: 0.7 }}
 					>
 						+{moreCount} more
@@ -972,7 +972,7 @@ export function DropIndicator({
 	return (
 		<div
 			data-prompt-drop-indicator=""
-			className="pointer-events-none fixed z-40 flex items-center"
+			className="pointer-events-none fixed z-[var(--ds-z-overlay)] flex items-center"
 			style={{
 				left: target.x,
 				width: target.width,

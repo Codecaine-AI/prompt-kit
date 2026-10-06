@@ -54,11 +54,11 @@ export function PanelZone({
 			    from one stylesheet — see AmbientWash. */}
 			<div
 				data-lab-zone-header=""
-				className="flex items-center gap-2 pb-1.5 pt-2 text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground transition-colors"
+				className="flex items-center gap-2 pb-1.5 pt-2 text-[length:var(--ds-font-size-micro)] font-medium uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground transition-colors"
 			>
 				<span>{label}</span>
 				{action && (
-					<span className="ml-auto flex items-center gap-2 normal-case tracking-normal">
+					<span className="ml-auto flex items-center gap-2 normal-case tracking-[var(--ds-letter-spacing-normal)]">
 						{action}
 					</span>
 				)}
@@ -100,7 +100,7 @@ export function PanelViewSwitcher({
 						aria-pressed={current}
 						onClick={() => onSelect(entry.id)}
 						className={cn(
-							"flex w-full items-baseline gap-2 border-l py-1 pl-3 pr-1 text-left text-[13px] tracking-[0.03em] transition-colors",
+							"flex w-full items-baseline gap-2 border-l py-1 pl-3 pr-1 text-left text-[length:var(--ds-font-size-ui-sm)] tracking-[var(--ds-letter-spacing-normal)] transition-colors",
 							current
 								? "text-foreground"
 								: "border-transparent text-muted-foreground hover:text-foreground",
@@ -113,7 +113,7 @@ export function PanelViewSwitcher({
 					>
 						<span>{entry.id}</span>
 						<span
-							className="ml-auto text-[10px] tabular-nums text-muted-foreground/50"
+							className="ml-auto text-[length:var(--ds-font-size-micro)] tabular-nums text-muted-foreground/50"
 							title={`Estimated tokens in the ${entry.id} view`}
 						>
 							{entry.tokens.toLocaleString()}
@@ -122,7 +122,7 @@ export function PanelViewSwitcher({
 					{subline && (
 						<div
 							data-lab-view-subline={entry.id}
-							className="border-l border-transparent pb-1 pl-3 text-[10px] tracking-[0.06em]"
+							className="border-l border-transparent pb-1 pl-3 text-[length:var(--ds-font-size-micro)] tracking-[var(--ds-letter-spacing-normal)]"
 						>
 							{subline}
 						</div>
@@ -360,7 +360,7 @@ export function PanelOutlineList({
             </button> : <span aria-hidden className="w-4 shrink-0" />}
             <button type="button" onClick={() => onSelect(section)} aria-current={current ? "location" : undefined}
               title={`<${section.label}>${containsActive ? " (contains current section)" : ""}`}
-              className={cn("min-w-0 flex-1 truncate rounded-sm py-1 pr-1 text-left text-[11px] leading-4 transition-colors hover:bg-foreground/5", index === displayIndex ? "text-foreground" : "text-muted-foreground hover:text-foreground")}
+              className={cn("min-w-0 flex-1 truncate rounded-[var(--ds-radius-base)] py-1 pr-1 text-left text-[length:var(--ds-font-size-ui-2xs)] leading-[var(--ds-space-4)] transition-colors hover:bg-foreground/5", index === displayIndex ? "text-foreground" : "text-muted-foreground hover:text-foreground")}
               style={prefersReducedMotion ? { transition: "none" } : { transitionDuration: `${OUTLINE_MOTION_MS}ms` }}>
               {section.label}
             </button>
@@ -386,7 +386,7 @@ export function PanelFixtureList({
 }) {
 	if (fixtures.length === 0) {
 		return (
-			<p className="pl-3 text-[11px] leading-relaxed text-muted-foreground/60">
+			<p className="pl-3 text-[length:var(--ds-font-size-ui-2xs)] leading-[var(--ds-line-height-reading)] text-muted-foreground/60">
 				No fixtures.
 			</p>
 		);
@@ -403,7 +403,7 @@ export function PanelFixtureList({
 						aria-pressed={current}
 						onClick={() => onSelect(fixture.id)}
 						className={cn(
-							"border-l py-0.5 pl-3 pr-2 text-left text-[12px] transition-colors",
+							"border-l py-0.5 pl-3 pr-2 text-left text-[length:var(--ds-font-size-ui-xs)] transition-colors",
 							current
 								? "text-foreground"
 								: "border-transparent text-muted-foreground hover:text-foreground",

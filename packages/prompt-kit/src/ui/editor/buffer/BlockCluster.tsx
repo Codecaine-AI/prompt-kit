@@ -58,7 +58,7 @@ export function BlockCluster({
 			// edit mode.
 			data-prompt-affordance="block-cluster"
 			data-prompt-handle-indent={indentCh}
-			className="absolute top-0 z-20 flex items-center justify-end"
+			className="absolute top-0 z-[var(--ds-z-raised)] flex items-center justify-end"
 			style={{
 				// The handle floats in the whitespace immediately LEFT of the
 				// block's content: the rail runs from the row's left edge to just
@@ -92,7 +92,7 @@ export function BlockCluster({
 				// a full line-height tall around the ~20px grip), with a hover wash
 				// and grab/grabbing cursors. Pointer-down still starts a drag and a
 				// motionless click still opens the block menu.
-				className="prompt-editor-grip pointer-events-auto flex w-7 cursor-grab touch-none items-center justify-center rounded-[3px] hover:bg-foreground/10 active:cursor-grabbing"
+				className="prompt-editor-grip pointer-events-auto flex w-7 cursor-grab touch-none items-center justify-center rounded-[var(--ds-radius-base)] hover:bg-foreground/10 active:cursor-grabbing"
 				style={{
 					height: EDITOR_METRICS.lineHeight,
 					color: EDITOR_COLORS.grip,

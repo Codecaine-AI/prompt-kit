@@ -27,7 +27,7 @@ import {
 export type PromptViewSize = "sm" | "md" | "lg";
 
 /** Base padding before the indent area of a content cell. */
-const CONTENT_CELL_PAD = "0.75rem";
+const CONTENT_CELL_PAD = "var(--ds-space-3)";
 
 /**
  * Guide stripe ink, gated by the same numeric show-guides token the style
@@ -58,7 +58,7 @@ function guideBackground(depth: number): React.CSSProperties | undefined {
 	return {
 		backgroundImage: images.join(", "),
 		backgroundPosition: positions.join(", "),
-		backgroundSize: "1px 100%",
+		backgroundSize: "var(--ds-border-width-hairline) 100%",
 		backgroundRepeat: "no-repeat",
 	};
 }
@@ -128,9 +128,12 @@ const PROMPT_VIEW_SIZE: Record<
 	PromptViewSize,
 	{ fontSize: string; lineHeight: string }
 > = {
-	sm: { fontSize: "13px", lineHeight: "22px" },
-	md: { fontSize: "14px", lineHeight: "20px" },
-	lg: { fontSize: "16px", lineHeight: "24px" },
+	// Standalone fallbacks under --prompt-editor-font-size/-line-height (the
+	// lab always sets both). 16px maps to the nearest size token (decision 65);
+	// the 22px line box has no equal token and stays.
+	sm: { fontSize: "var(--ds-font-size-ui-sm)", lineHeight: "22px" },
+	md: { fontSize: "var(--ds-font-size-ui-lg)", lineHeight: "var(--ds-space-5)" },
+	lg: { fontSize: "var(--ds-font-size-ui-lg)", lineHeight: "var(--ds-space-6)" },
 };
 
 export function PromptView({
@@ -184,7 +187,7 @@ export function PromptView({
 	if (!content) {
 		return (
 			<div
-				className={cn(PROMPT_EDITOR_ROOT_CLASS, "p-4 text-sm text-muted-foreground")}
+				className={cn(PROMPT_EDITOR_ROOT_CLASS, "p-4 text-[length:var(--ds-font-size-ui-lg)] text-muted-foreground")}
 				style={persistedStyleVars}
 			>
 				No {title.toLowerCase()} available
@@ -198,7 +201,7 @@ export function PromptView({
 			style={persistedStyleVars}
 		>
 			<div
-				className={cn("w-full overflow-auto", bare ? undefined : "rounded-[3px]")}
+				className={cn("w-full overflow-auto", bare ? undefined : "rounded-[var(--ds-radius-base)]")}
 				style={{
 					backgroundColor: EDITOR_COLORS.bg,
 					color: EDITOR_COLORS.fg,

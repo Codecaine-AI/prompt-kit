@@ -321,7 +321,7 @@ export function XmlRow({
 			{selected && !inStructuralSelection && (
 				<div
 					data-prompt-selection-rail=""
-					className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-[2px]"
+					className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-0.5"
 					style={{
 						background: EDITOR_COLORS.selectionAccent,
 						opacity: 1,
@@ -383,7 +383,7 @@ export function XmlRow({
 				<div
 					data-prompt-affordance="item-handle"
 					data-prompt-handle-indent={handle.indentCh}
-					className="absolute top-0 z-20 flex items-center justify-end"
+					className="absolute top-0 z-[var(--ds-z-raised)] flex items-center justify-end"
 					style={{
 						left: 0,
 						width: dragHandleRailWidth(handle.indentCh),
@@ -395,7 +395,7 @@ export function XmlRow({
 						type="button"
 						title="Drag, or click for item menu"
 						aria-label="Item handle and menu"
-						className="prompt-editor-item-grip pointer-events-auto flex w-7 cursor-grab touch-none select-none items-center justify-center rounded-[3px] hover:bg-foreground/10 active:cursor-grabbing"
+						className="prompt-editor-item-grip pointer-events-auto flex w-7 cursor-grab touch-none select-none items-center justify-center rounded-[var(--ds-radius-base)] hover:bg-foreground/10 active:cursor-grabbing"
 						style={{
 							height: EDITOR_METRICS.lineHeight,
 							color: EDITOR_COLORS.grip,
@@ -446,7 +446,10 @@ export function XmlRow({
 					isGap
 						? undefined
 						: {
-								fontWeight: isSectionTag && line.role === "open" ? 600 : undefined,
+								fontWeight:
+									isSectionTag && line.role === "open"
+										? "var(--ds-font-weight-semibold)"
+										: undefined,
 								paddingLeft: `calc(0.75rem + ${indentWidth})`,
 								textIndent: `calc(0px - ${indentWidth})`,
 								// Landmark scale on the body only — the gutter number

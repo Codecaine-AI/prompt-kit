@@ -50,7 +50,7 @@ export function NodeIdField({
 
 	return (
 		<label className="flex flex-col gap-1.5">
-			<span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+			<span className="text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground">
 				node id
 			</span>
 			<input
@@ -63,7 +63,7 @@ export function NodeIdField({
 						commitRename();
 					}
 				}}
-				className="h-8 rounded-[2px] border border-border bg-background px-2 text-[12px] text-foreground outline-none focus:border-status-success"
+				className="h-8 rounded-[var(--ds-radius-base)] border border-border bg-background px-2 text-[length:var(--ds-font-size-ui-xs)] text-foreground outline-none focus:border-status-success"
 				spellCheck={false}
 			/>
 		</label>

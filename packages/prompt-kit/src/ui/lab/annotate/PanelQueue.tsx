@@ -115,7 +115,7 @@ export function PanelQueue({
 			<div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain">
 				<GroupHeader label="Targets" />
 				{targetEntries.length === 0 ? (
-					<p className="px-1.5 py-1 text-[13px] leading-relaxed text-muted-foreground/60">
+					<p className="px-1.5 py-1 text-[length:var(--ds-font-size-ui-sm)] leading-[var(--ds-line-height-reading)] text-muted-foreground/60">
 						Nothing queued — Enter in a composer files here.
 					</p>
 				) : (
@@ -134,7 +134,7 @@ export function PanelQueue({
 								ref={docInputRef}
 								aria-label="Message the whole prompt"
 								placeholder="Note about the whole document…"
-								className="mx-1.5 mb-1.5 mt-0.5 min-w-0 rounded-md border border-border bg-background px-2 py-1.5 text-[13px] outline-none focus:border-ring"
+								className="mx-1.5 mb-1.5 mt-0.5 min-w-0 rounded-[var(--ds-radius-base)] border border-border bg-background px-2 py-1.5 text-[length:var(--ds-font-size-ui-sm)] outline-none focus:border-ring"
 								onKeyDown={(event) => {
 									if (event.key !== "Enter") return;
 									event.preventDefault();
@@ -183,13 +183,13 @@ export function PanelQueue({
 								? "The queue is running"
 								: "Nothing queued"
 					}
-					className="shrink-0 rounded-md border px-2.5 py-1 text-[12px] tracking-[0.02em] transition-colors disabled:cursor-default disabled:opacity-50"
+					className="shrink-0 rounded-[var(--ds-radius-base)] border px-2.5 py-1 text-[length:var(--ds-font-size-ui-xs)] tracking-[var(--ds-letter-spacing-normal)] transition-colors disabled:cursor-default disabled:opacity-50"
 					style={
 						queue.canApply
 							? {
 									color: ANNOTATE_COLORS.accentLit,
 									borderColor: ANNOTATE_COLORS.line,
-									background: "rgb(138 122 176 / 0.11)",
+									background: `color-mix(in srgb, ${ANNOTATE_COLORS.accent} 11%, transparent)`,
 								}
 							: { borderColor: "var(--prompt-editor-panel-border, #2B2B2B)" }
 					}
@@ -205,7 +205,7 @@ export function PanelQueue({
 /** A section's micro-header: uppercase, letterspaced, nothing else. */
 function GroupHeader({ label }: { label: string }) {
 	return (
-		<div className="px-1.5 pb-0.5 pt-2 text-[10px] uppercase tracking-[0.14em] text-muted-foreground/60 first:pt-0.5">
+		<div className="px-1.5 pb-0.5 pt-2 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground/60 first:pt-0.5">
 			{label}
 		</div>
 	);
@@ -261,7 +261,7 @@ function QueueRow({
 		<div
 			data-prompt-session-card={request.alias}
 			className={cn(
-				"group rounded-md border-l-2 px-1.5 py-1 transition-colors",
+				"group rounded-[var(--ds-radius-base)] border-l-2 px-1.5 py-1 transition-colors",
 				entry.processing || waiting
 					? "border-transparent"
 					: "border-transparent hover:bg-foreground/[0.03]",
@@ -274,7 +274,7 @@ function QueueRow({
 							background: ANNOTATE_COLORS.fill,
 						}
 					: waiting
-						? { borderLeftColor: "rgb(245 158 11 / 0.6)" }
+						? { borderLeftColor: "var(--ds-color-status-warning-line)" }
 						: undefined
 			}
 			onMouseEnter={() => {
@@ -297,7 +297,7 @@ function QueueRow({
 					title={
 						entry.disposition === "global" ? undefined : focusNodeId
 					}
-					className="min-w-0 truncate text-[12px]"
+					className="min-w-0 truncate text-[length:var(--ds-font-size-ui-xs)]"
 					style={{ color: ANNOTATE_COLORS.accentLit }}
 				>
 					{entry.disposition === "global" ? "document" : label}
@@ -305,8 +305,10 @@ function QueueRow({
 				{entry.processing && (
 					<span
 						aria-hidden
-						className="h-[5px] w-[5px] shrink-0 self-center rounded-full"
+						className="shrink-0 self-center rounded-full"
 						style={{
+							width: 5,
+							height: 5,
 							background: ANNOTATE_COLORS.accent,
 							animation:
 								"prompt-annotate-breathe 0.72s ease-in-out infinite",
@@ -315,14 +317,14 @@ function QueueRow({
 				)}
 				<span
 					data-prompt-card-state={request.alias}
-					className="ml-auto shrink-0 text-[10px] tracking-[0.04em]"
+					className="ml-auto shrink-0 text-[length:var(--ds-font-size-micro)] tracking-[var(--ds-letter-spacing-normal)]"
 					style={{
 						color: entry.staged
 							? "var(--prompt-editor-diff-add-fg, var(--editor-diff-add-fg, #3FB950))"
 							: entry.processing
 								? ANNOTATE_COLORS.accentLit
 								: waiting
-									? "rgb(245 158 11 / 0.9)"
+									? "var(--ds-color-status-warning-text)"
 									: undefined,
 					}}
 				>
@@ -336,7 +338,7 @@ function QueueRow({
 						type="button"
 						aria-label={`Dismiss ${request.alias}`}
 						title={`Dismiss ${request.alias} — removes it from the queue`}
-						className="shrink-0 text-[12px] leading-none text-muted-foreground/0 transition-colors group-hover:text-muted-foreground/60 hover:!text-[#F85149]"
+						className="shrink-0 text-[length:var(--ds-font-size-ui-xs)] leading-none text-muted-foreground/0 transition-colors group-hover:text-muted-foreground/60 hover:!text-[color:var(--ds-color-status-danger-text)]"
 						onClick={() =>
 							void session.onDismissRequest?.(requestRunId(request))
 						}
@@ -347,14 +349,14 @@ function QueueRow({
 			</div>
 			{/* The note itself, INDENTED under its target: the label names the
 			    place, the indent says "here is the comment on it". */}
-			<p className="mt-0.5 pl-4 text-[13px] leading-[1.55] text-foreground">
+			<p className="mt-0.5 pl-4 text-[length:var(--ds-font-size-ui-sm)] leading-[var(--ds-line-height-ui)] text-foreground">
 				{request.body}
 			</p>
 			{entry.conflict && (
 				<p
 					data-prompt-card-conflict={request.alias}
 					title="An accepted change touched this node after the note was filed."
-					className="mt-0.5 text-[11px] text-amber-500/90"
+					className="mt-0.5 text-[length:var(--ds-font-size-ui-2xs)] text-[color:var(--ds-color-status-warning-text)]"
 				>
 					target changed since filed
 				</p>
@@ -364,13 +366,13 @@ function QueueRow({
 					{request.thread!.map((message, index) => (
 						<p
 							key={`${request.alias}:msg:${index}`}
-							className="mb-0.5 text-[12px] leading-[1.5]"
+							className="mb-0.5 text-[length:var(--ds-font-size-ui-xs)] leading-[var(--ds-line-height-ui)]"
 						>
 							<span
 								className={cn(
-									"text-[11px]",
+									"text-[length:var(--ds-font-size-ui-2xs)]",
 									message.author === "agent"
-										? "text-teal-400"
+										? "text-[color:var(--ds-color-teal-text)]"
 										: "text-muted-foreground/70",
 								)}
 							>
@@ -387,7 +389,7 @@ function QueueRow({
 						ref={replyRef}
 						aria-label={`Reply to unblock ${request.alias}`}
 						placeholder={`Reply to unblock ${request.alias}…`}
-						className="min-w-0 flex-1 rounded-md border border-border bg-background px-2 py-1 text-[12px] outline-none focus:border-amber-500/60"
+						className="min-w-0 flex-1 rounded-[var(--ds-radius-base)] border border-border bg-background px-2 py-1 text-[length:var(--ds-font-size-ui-xs)] outline-none focus:border-[color:var(--ds-color-status-warning-line)]"
 						onKeyDown={(event) => {
 							if (event.key !== "Enter") return;
 							event.preventDefault();
@@ -397,7 +399,7 @@ function QueueRow({
 					<button
 						type="button"
 						aria-label={`Rail reply to ${request.alias}`}
-						className="rounded-md border border-border px-2 py-0.5 text-[11px] text-muted-foreground"
+						className="rounded-[var(--ds-radius-base)] border border-border px-2 py-0.5 text-[length:var(--ds-font-size-ui-2xs)] text-muted-foreground"
 						onClick={sendReply}
 					>
 						Reply
@@ -427,7 +429,7 @@ function RecordRow({
 			data-prompt-session-record={request.alias}
 			data-prompt-record-state={record.stateLabel}
 			className={cn(
-				"flex items-baseline gap-2 px-1.5 py-0.5 text-[12px] leading-[1.55] text-muted-foreground/70",
+				"flex items-baseline gap-2 px-1.5 py-0.5 text-[length:var(--ds-font-size-ui-xs)] leading-[var(--ds-line-height-ui)] text-muted-foreground/70",
 				focusNodeId && "cursor-pointer hover:text-foreground",
 			)}
 			title={request.body}
@@ -455,7 +457,7 @@ function RecordRow({
 			<span className="text-muted-foreground/40">·</span>
 			<span className="min-w-0 truncate">{record.targetLabel}</span>
 			<span className="text-muted-foreground/40">·</span>
-			<span className="text-[11px] text-muted-foreground/60">
+			<span className="text-[length:var(--ds-font-size-ui-2xs)] text-muted-foreground/60">
 				{record.stateLabel}
 			</span>
 			{request.status === "applied" && session.onUndo && (
@@ -465,7 +467,7 @@ function RecordRow({
 					disabled={undoReason !== null}
 					title={undoReason ?? `Undo ${request.alias}`}
 					data-prompt-record-undo={requestRunId(request)}
-					className="ml-auto rounded-md border border-border px-2 text-[10px] text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
+					className="ml-auto rounded-[var(--ds-radius-base)] border border-border px-2 text-[length:var(--ds-font-size-micro)] text-muted-foreground disabled:cursor-not-allowed disabled:opacity-40"
 					onClick={() => void session.onUndo?.(request.alias)}
 				>
 					Undo

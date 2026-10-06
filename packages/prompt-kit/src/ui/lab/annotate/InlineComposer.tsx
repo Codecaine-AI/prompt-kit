@@ -75,7 +75,7 @@ function ComposerTip({
 			{show && (
 				<span
 					data-lab-composer-tip=""
-					className="pointer-events-none absolute bottom-full left-1/2 z-40 mb-1.5 flex -translate-x-1/2 items-baseline gap-1.5 whitespace-nowrap rounded-md border px-2 py-1 text-[11px] shadow-lg"
+					className="pointer-events-none absolute bottom-full left-1/2 z-[var(--ds-z-overlay)] mb-1.5 flex -translate-x-1/2 items-baseline gap-1.5 whitespace-nowrap rounded-[var(--ds-radius-base)] border px-2 py-1 text-[length:var(--ds-font-size-ui-2xs)] shadow-[shadow:var(--ds-shadow-glass)]"
 					style={{
 						background: "var(--prompt-editor-panel-bg, #181818)",
 						borderColor: "var(--prompt-editor-panel-border, #2B2B2B)",
@@ -84,7 +84,7 @@ function ComposerTip({
 				>
 					{label}
 					<span
-						className="text-[10px] tracking-[0.05em]"
+						className="text-[length:var(--ds-font-size-micro)] tracking-[var(--ds-letter-spacing-normal)]"
 						style={{ color: EDITOR_COLORS.lineNumber }}
 					>
 						{keys}
@@ -134,13 +134,13 @@ export function InlineComposer({
 			// ONE box (2026-08-05, Cursor-style): the container IS the input —
 			// no inner bordered field, no footer line. × top-right cancels, the
 			// circular ↑ bottom-right queues, and the hotkeys live in tooltips.
-			className="rounded-lg border shadow-lg"
+			className="rounded-[var(--ds-radius-base)] border shadow-[shadow:var(--ds-shadow-glass)]"
 			style={{
 				background: "var(--prompt-editor-panel-bg, #181818)",
 				borderColor: "var(--prompt-editor-panel-border, #2B2B2B)",
 				fontFamily: EDITOR_METRICS.fontFamily,
-				fontSize: 13,
-				padding: "10px 12px",
+				fontSize: "var(--ds-font-size-ui-sm)",
+				padding: "10px var(--ds-space-3)",
 				// Left edge stays pinned to the targeting ring (the slot's job);
 				// the style rail's Composer width caps how far right the box
 				// reaches, never past the ring's own width.
@@ -161,8 +161,8 @@ export function InlineComposer({
 					style={{
 						color: EDITOR_COLORS.fg,
 						fontFamily: EDITOR_METRICS.fontFamily,
-						fontSize: 13,
-						lineHeight: 1.55,
+						fontSize: "var(--ds-font-size-ui-sm)",
+						lineHeight: "var(--ds-line-height-ui)",
 					}}
 					onKeyDown={(event) => {
 						if (event.key !== "Enter") return;
@@ -178,7 +178,7 @@ export function InlineComposer({
 					<button
 						type="button"
 						aria-label="Cancel"
-						className="grid h-6 w-6 shrink-0 place-items-center rounded transition-colors"
+						className="grid h-6 w-6 shrink-0 place-items-center rounded-[var(--ds-radius-base)] transition-colors"
 						style={{
 							color: closeHover
 								? EDITOR_COLORS.diffDelFg
@@ -204,7 +204,7 @@ export function InlineComposer({
 						className="grid h-6 w-6 shrink-0 place-items-center rounded-full transition-colors"
 						style={{
 							color: ANNOTATE_COLORS.accentLit,
-							background: "rgb(138 122 176 / 0.16)",
+							background: `color-mix(in srgb, ${ANNOTATE_COLORS.accent} 16%, transparent)`,
 						}}
 						onClick={() => submit(action.disposition)}
 					>

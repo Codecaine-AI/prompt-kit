@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
 
-import { PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH } from "../surface/editor-surface";
+import {
+	EDITOR_FONT_PX,
+	LINE_HEIGHT_PX,
+	PROMPT_EDITOR_COLLAPSED_GUTTER_WIDTH,
+} from "../surface/editor-surface";
 
 export type PromptMonoFontFamily =
 	| "sans"
@@ -41,6 +45,9 @@ export interface PromptStyleSettings {
 
 	showGuides: boolean;
 
+	// Colors: "" follows the host theme (the design-system token named in
+	// PROMPT_STYLE_COLOR_TOKENS); "#RRGGBB" is a saved pick. Saved picks paint
+	// only while SHOW_COLOR_CONTROLS is on.
 	surfaceColor: string;
 	foregroundColor: string;
 	gutterColor: string;
@@ -86,28 +93,138 @@ export interface PromptStyleStorage {
 	removeItem(key: string): void;
 }
 
-export const PROMPT_STYLE_STORAGE_KEY = "agentKernel.promptEditorStyle.v2";
+/**
+ * Owner decision for style engines (design-system rollout): the color pickers
+ * are hidden and saved colors stop overriding the shared look; the code stays.
+ * Off: the rail shows no color picker and promptStyleVars paints every color
+ * from the design-system tokens, ignoring saved picks. On: the pickers come
+ * back and saved picks paint again. Size, density and opacity controls are
+ * always on.
+ */
+export const SHOW_COLOR_CONTROLS = false;
+
+/** The key the settings lived under before the token migration. Read once, never written or deleted. */
+export const PROMPT_STYLE_LEGACY_STORAGE_KEY = "agentKernel.promptEditorStyle.v2";
+
+/** `key` with its trailing `.v<N>` raised by one (`.v2` appended when it has none). */
+export function promptStyleStorageKey(key: string): string {
+	const match = /^(.*)\.v(\d+)$/.exec(key);
+	return match ? `${match[1]}.v${Number(match[2]) + 1}` : `${key}.v2`;
+}
+
+/**
+ * Where settings are stored: the legacy key raised by one (`.v3`). The raise
+ * makes saved colors stop overriding the tokens; the first load without a v3
+ * entry carries the non-color settings over from the legacy key.
+ */
+export const PROMPT_STYLE_STORAGE_KEY = promptStyleStorageKey(
+	PROMPT_STYLE_LEGACY_STORAGE_KEY,
+);
 
 const STORAGE_VERSION = 3;
 
+/**
+ * Font choices read the design-system families. SF Mono and JetBrains Mono
+ * were never loaded by a host; they resolve to the platform mono and to the
+ * package mono (IBM Plex Mono) by role, and normalize to those choices.
+ */
 const FONT_STACKS: Record<PromptMonoFontFamily, string> = {
-	sans: "ui-sans-serif, system-ui, sans-serif",
-	system:
-		'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-	"sf-mono":
-		'"SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, monospace',
-	"jetbrains-mono":
-		'"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
-	"ibm-plex-mono":
-		'"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace',
+	sans: "var(--ds-font-family-sans)",
+	system: "var(--ds-font-family-mono-system)",
+	"sf-mono": "var(--ds-font-family-mono-system)",
+	"jetbrains-mono": "var(--ds-font-family-mono)",
+	"ibm-plex-mono": "var(--ds-font-family-mono)",
 };
 
+/** Retired font choices and the token-backed choice each one now reads. */
+const FONT_FAMILY_ALIASES: Partial<Record<PromptMonoFontFamily, PromptMonoFontFamily>> = {
+	"sf-mono": "system",
+	"jetbrains-mono": "ibm-plex-mono",
+};
+
+const DEFAULT_FONT_FAMILY: PromptMonoFontFamily = "sans";
+
+type ColorKey = {
+	[K in keyof PromptStyleSettings]: K extends `${string}Color` ? K : never;
+}[keyof PromptStyleSettings];
+
+/**
+ * The theme value of every color setting: the host's `--editor-*` contract
+ * name first (host-contract.css maps the ones it defines to these same
+ * roles), then the design-system token. Roles follow the code panels'
+ * syntax mapping (docs-viewer code.css): tag marks and list markers are
+ * punctuation, tag names are tags, attributes and template variables are
+ * keys, attribute values and inline code are strings, namespaced references
+ * are types. The four washes (guide, landmark, active line, hover) are the
+ * ink at the setting's opacity, the recipe of color.fill.hover.
+ */
+export const PROMPT_STYLE_COLOR_TOKENS: Readonly<Record<ColorKey, string>> = {
+	surfaceColor: "var(--editor-bg, var(--ds-color-code-gutter-bg))",
+	foregroundColor: "var(--editor-fg, var(--ds-color-code-chip-ink))",
+	gutterColor: "var(--editor-gutter-bg, var(--ds-color-code-gutter-bg))",
+	lineNumberColor: "var(--editor-line-number, var(--ds-color-code-gutter-fg))",
+	activeLineNumberColor:
+		"var(--editor-line-number-active, var(--ds-color-code-header-fg))",
+	tagPunctuationColor:
+		"var(--editor-syntax-punctuation, var(--ds-color-syntax-punctuation))",
+	tagNameColor: "var(--editor-syntax-tag, var(--ds-color-syntax-tag))",
+	tagLandmarkColor: "var(--editor-syntax-tag-landmark, var(--ds-color-syntax-tag))",
+	tagSublandmarkColor:
+		"var(--editor-syntax-tag-sublandmark, var(--ds-color-syntax-tag))",
+	attributeNameColor: "var(--editor-syntax-attribute, var(--ds-color-syntax-key))",
+	attributeValueColor: "var(--editor-syntax-value, var(--ds-color-syntax-string))",
+	variableColor: "var(--editor-syntax-variable, var(--ds-color-syntax-key))",
+	referenceColor: "var(--editor-syntax-reference, var(--ds-color-syntax-type))",
+	inlineCodeColor: "var(--editor-inline-code, var(--ds-color-syntax-string))",
+	listMarkerColor:
+		"var(--editor-syntax-list-marker, var(--ds-color-syntax-punctuation))",
+	guideColor: "var(--editor-guide-color, var(--ds-color-text-ink))",
+	landmarkColor: "var(--editor-landmark-color, var(--ds-color-text-ink))",
+	selectionColor: "var(--editor-selection-color, var(--ds-color-accent))",
+	selectionAccentColor: "var(--editor-selection-accent, var(--ds-color-accent))",
+	activeLineColor: "var(--editor-active-line-color, var(--ds-color-text-ink))",
+	hoverColor: "var(--editor-hover-color, var(--ds-color-text-ink))",
+	gripColor: "var(--editor-grip-color, var(--ds-color-text-muted))",
+	dropIndicatorColor: "var(--editor-drop-line-color, var(--ds-color-accent))",
+};
+
+const COLOR_KEYS = Object.keys(PROMPT_STYLE_COLOR_TOKENS) as ColorKey[];
+
+/**
+ * Lab chrome and staged-diff paint with no setting of its own. Every lab and
+ * PromptView root carries these, so the existing `var(--prompt-…, literal)`
+ * reads in the lab resolve to tokens and their literals stay a fallback for a
+ * surface rendered outside a root.
+ */
+const PROMPT_THEME_VARS = {
+	"--prompt-editor-panel-bg": "var(--ds-color-surface-panel)",
+	"--prompt-editor-panel-raise": "var(--ds-color-surface-panel)",
+	"--prompt-editor-panel-border": "var(--ds-color-border-default)",
+	"--prompt-editor-panel-input-bg": "var(--ds-color-surface-page)",
+	"--prompt-editor-panel-shadow": "var(--ds-shadow-glass)",
+	"--prompt-editor-muted": "var(--ds-color-text-muted)",
+	"--prompt-editor-diff-del-bg": "var(--editor-diff-del-bg, var(--ds-color-diff-del-bg))",
+	"--prompt-editor-diff-del-fg": "var(--editor-diff-del-fg, var(--ds-color-diff-del))",
+	"--prompt-editor-diff-add-bg": "var(--editor-diff-add-bg, var(--ds-color-diff-add-bg))",
+	"--prompt-editor-diff-add-fg": "var(--editor-diff-add-fg, var(--ds-color-diff-add))",
+	"--prompt-editor-thread-accent":
+		"var(--editor-thread-accent, var(--ds-color-status-warning-text))",
+	"--prompt-annotate-accent": "var(--ds-color-annotation-accent)",
+	"--prompt-annotate-accent-lit": "var(--ds-color-annotation-accent-lit)",
+	"--prompt-annotate-accent-dim": "var(--ds-color-annotation-accent-dim)",
+	"--prompt-annotate-line": "var(--ds-color-annotation-border)",
+	"--prompt-annotate-wash": "var(--ds-color-annotation-wash)",
+	"--prompt-annotate-fill": "var(--ds-color-annotation-wash)",
+} as const;
+
 // Document typography follows Docs System: sans-serif prose, larger text,
-// generous leading, and a shorter reading measure. Hosts supply theme colors.
+// generous leading, and a shorter reading measure. Colors follow the host
+// theme through PROMPT_STYLE_COLOR_TOKENS. The numbers are the rail's own
+// size, density and opacity knobs (kept as numbers: the sliders read them).
 const BASE_SETTINGS: PromptStyleSettings = {
-	fontFamily: "sans",
-	fontSize: 15,
-	lineHeight: 26,
+	fontFamily: DEFAULT_FONT_FAMILY,
+	fontSize: EDITOR_FONT_PX,
+	lineHeight: LINE_HEIGHT_PX,
 	letterSpacing: 0,
 	indentWidth: 20,
 	// Limit long lines so the eye can return to the next line comfortably.
@@ -125,46 +242,44 @@ const BASE_SETTINGS: PromptStyleSettings = {
 
 	showGuides: true,
 
-	surfaceColor: "#1E1E1E",
-	foregroundColor: "#D4D6D3",
-	gutterColor: "#1E1E1E",
-	lineNumberColor: "#5F6672",
-	activeLineNumberColor: "#C6CCD2",
+	surfaceColor: "",
+	foregroundColor: "",
+	gutterColor: "",
+	lineNumberColor: "",
+	activeLineNumberColor: "",
 
-	// The "painted landmarks" palette: one purple family for structure, with
-	// hierarchy carried by brightness.
-	tagPunctuationColor: "#6E7681",
-	tagNameColor: "#9A7CAC",
-	tagLandmarkColor: "#CBA6DE",
-	tagSublandmarkColor: "#B48EC7",
-	attributeNameColor: "#85AECB",
-	attributeValueColor: "#C09A78",
-	variableColor: "#CFBC74",
-	referenceColor: "#58A794",
-	inlineCodeColor: "#5FBCA5",
+	tagPunctuationColor: "",
+	tagNameColor: "",
+	tagLandmarkColor: "",
+	tagSublandmarkColor: "",
+	attributeNameColor: "",
+	attributeValueColor: "",
+	variableColor: "",
+	referenceColor: "",
+	inlineCodeColor: "",
 	inlineChipOpacity: 0.08,
-	listMarkerColor: "#6C737B",
+	listMarkerColor: "",
 
-	guideColor: "#FFFFFF",
+	guideColor: "",
 	guideOpacity: 0.18,
-	landmarkColor: "#FFFFFF",
+	landmarkColor: "",
 	// Off by default: landmark rows already read as landmarks from the larger
 	// tag type and band padding; the full-width wash competes with selection
 	// and hover paint. The slider keeps the wash available.
 	landmarkOpacity: 0,
 
-	selectionColor: "#3D7BBF",
+	selectionColor: "",
 	selectionOpacity: 0.16,
-	selectionAccentColor: "#4D9DE0",
-	activeLineColor: "#FFFFFF",
+	selectionAccentColor: "",
+	activeLineColor: "",
 	activeLineOpacity: 0.035,
-	hoverColor: "#FFFFFF",
+	hoverColor: "",
 	hoverOpacity: 0.05,
 
-	gripColor: "#8A919C",
+	gripColor: "",
 	gripSize: 20,
 	gripOpacity: 0.5,
-	dropIndicatorColor: "#4D9DE0",
+	dropIndicatorColor: "",
 	dropIndicatorWidth: 2,
 	dropIndicatorOpacity: 0.95,
 };
@@ -214,20 +329,25 @@ function fontFamilyOr(
 	value: unknown,
 	fallback: PromptMonoFontFamily,
 ): PromptMonoFontFamily {
-	return typeof value === "string" &&
-		FONT_FAMILIES.has(value as PromptMonoFontFamily)
-		? (value as PromptMonoFontFamily)
-		: fallback;
+	if (
+		typeof value !== "string" ||
+		!FONT_FAMILIES.has(value as PromptMonoFontFamily)
+	) {
+		return fallback;
+	}
+	const family = value as PromptMonoFontFamily;
+	return FONT_FAMILY_ALIASES[family] ?? family;
 }
 
 /**
- * Accept #RGB and #RRGGBB input and always return canonical uppercase
- * #RRGGBB. Alpha is kept in separate numeric settings so color pickers can
- * round-trip every color value.
+ * Accept "" (follow the theme), #RGB and #RRGGBB, and return "" or canonical
+ * uppercase #RRGGBB. Alpha is kept in separate numeric settings so color
+ * pickers can round-trip every color value.
  */
 function colorOr(value: unknown, fallback: string): string {
 	if (typeof value !== "string") return fallback;
 	const trimmed = value.trim();
+	if (trimmed === "") return "";
 	const match = /^#?([\da-f]{3}|[\da-f]{6})$/i.exec(trimmed);
 	if (!match) return fallback;
 	const hex = match[1]!;
@@ -445,6 +565,38 @@ function resolveStorage(
 	}
 }
 
+/**
+ * Parse one stored payload (versions 2 and 3) into raw settings, applying the
+ * version-2 reading-default migration. Null when the payload is unusable.
+ */
+function readPayload(raw: string | null): Record<string, unknown> | null {
+	if (!raw) return null;
+	const payload: unknown = JSON.parse(raw);
+	if (
+		!isRecord(payload) ||
+		(payload.version !== 2 && payload.version !== STORAGE_VERSION) ||
+		!("settings" in payload)
+	) {
+		return null;
+	}
+	// Older saves contain a full snapshot, including the former defaults.
+	// Migrate those defaults without discarding unrelated custom settings.
+	const settings = isRecord(payload.settings) ? { ...payload.settings } : {};
+	if (payload.version === 2) {
+		if (settings.fontFamily === "system") settings.fontFamily = DEFAULT_FONT_FAMILY;
+		if (settings.fontSize === 13) settings.fontSize = EDITOR_FONT_PX;
+		if (settings.lineHeight === 22) settings.lineHeight = LINE_HEIGHT_PX;
+		if (settings.contentWidth === 136) settings.contentWidth = 88;
+	}
+	return settings;
+}
+
+/**
+ * Load the saved settings. Without an entry under PROMPT_STYLE_STORAGE_KEY,
+ * the first load carries the size, density and opacity settings over from
+ * PROMPT_STYLE_LEGACY_STORAGE_KEY and drops its colors, so a saved hex never
+ * overrides the tokens. The legacy entry is never written or deleted.
+ */
 export function loadPromptStyleSettings(
 	storage?: PromptStyleStorage,
 ): PromptStyleSettings {
@@ -452,26 +604,14 @@ export function loadPromptStyleSettings(
 	if (!target) return { ...PROMPT_STYLE_DEFAULTS };
 
 	try {
-		const raw = target.getItem(PROMPT_STYLE_STORAGE_KEY);
-		if (!raw) return { ...PROMPT_STYLE_DEFAULTS };
-		const payload: unknown = JSON.parse(raw);
-		if (
-			!isRecord(payload) ||
-			(payload.version !== 2 && payload.version !== STORAGE_VERSION) ||
-			!("settings" in payload)
-		) {
-			return { ...PROMPT_STYLE_DEFAULTS };
+		const current = target.getItem(PROMPT_STYLE_STORAGE_KEY);
+		if (current) {
+			return normalizePromptStyleSettings(readPayload(current) ?? {});
 		}
-		// Older saves contain a full snapshot, including the former defaults.
-		// Migrate those defaults without discarding unrelated custom settings.
-		const settings = isRecord(payload.settings) ? { ...payload.settings } : {};
-		if (payload.version === 2) {
-			if (settings.fontFamily === "system") settings.fontFamily = "sans";
-			if (settings.fontSize === 13) settings.fontSize = 15;
-			if (settings.lineHeight === 22) settings.lineHeight = 26;
-			if (settings.contentWidth === 136) settings.contentWidth = 88;
-		}
-		return normalizePromptStyleSettings(settings);
+		const legacy = readPayload(target.getItem(PROMPT_STYLE_LEGACY_STORAGE_KEY));
+		if (!legacy) return { ...PROMPT_STYLE_DEFAULTS };
+		for (const key of COLOR_KEYS) delete legacy[key];
+		return normalizePromptStyleSettings(legacy);
 	} catch {
 		return { ...PROMPT_STYLE_DEFAULTS };
 	}
@@ -491,8 +631,17 @@ export function savePromptStyleSettings(
 			JSON.stringify(PROMPT_STYLE_DEFAULTS)
 		) {
 			// Reset removes the override so application defaults remain the
-			// source of truth.
-			target.removeItem(PROMPT_STYLE_STORAGE_KEY);
+			// source of truth. While a legacy entry exists, an empty payload
+			// stands in for the removal: without it the next load would carry
+			// the legacy settings over again and undo the reset.
+			if (target.getItem(PROMPT_STYLE_LEGACY_STORAGE_KEY) === null) {
+				target.removeItem(PROMPT_STYLE_STORAGE_KEY);
+			} else {
+				target.setItem(
+					PROMPT_STYLE_STORAGE_KEY,
+					JSON.stringify({ version: STORAGE_VERSION, settings: {} }),
+				);
+			}
 			return;
 		}
 		target.setItem(
@@ -522,29 +671,38 @@ function hexWithOpacity(color: string, opacity: number): string {
 }
 
 /**
- * Project a complete settings value onto a prompt-surface root. Defaults are
- * emitted as host-theme references with dark fallbacks. Customized colors stay
- * local to this editor and override the host theme unless followTheme is set.
- * Following the theme leaves saved colors untouched and retains layout settings.
+ * Project a complete settings value onto a prompt-surface root. Every color
+ * is emitted as its theme value (PROMPT_STYLE_COLOR_TOKENS): a host-contract
+ * `--editor-*` name, then the design-system token. While SHOW_COLOR_CONTROLS
+ * is off, saved picks never paint. With it on, a saved pick overrides the
+ * theme value unless followTheme is set; following the theme leaves saved
+ * colors untouched and retains layout settings. Opacity settings always
+ * apply: a wash is its theme color at the setting's opacity.
  */
 export function promptStyleVars(
 	settings: PromptStyleSettings,
 	options: { followTheme?: boolean } = {},
 ): CSSProperties {
 	const value = normalizePromptStyleSettings(settings);
-	const color = (key: keyof PromptStyleSettings, token: string): string =>
-		options.followTheme || value[key] === PROMPT_STYLE_DEFAULTS[key]
-			? `var(--editor-${token}, ${PROMPT_STYLE_DEFAULTS[key]})`
-			: String(value[key]);
+	const picked = (key: ColorKey): string | null =>
+		SHOW_COLOR_CONTROLS && !options.followTheme && value[key] !== ""
+			? value[key]
+			: null;
+	const color = (key: ColorKey): string =>
+		picked(key) ?? PROMPT_STYLE_COLOR_TOKENS[key];
 	const alpha = (
-		key: keyof PromptStyleSettings,
+		key: ColorKey,
 		opacityKey: keyof PromptStyleSettings,
-		token: string,
 	): string => {
-		const fallback = hexWithOpacity(String(value[key]), Number(value[opacityKey]));
-		return options.followTheme || value[key] === PROMPT_STYLE_DEFAULTS[key]
-			? `color-mix(in srgb, ${color(key, token)} ${Number(value[opacityKey]) * 100}%, transparent)`
-			: fallback;
+		const opacity = Number(value[opacityKey]);
+		// A zero-opacity wash is transparent whatever its color, also in a host
+		// that has not loaded tokens.css yet (where the mix would be invalid and
+		// the consumer's literal fallback would paint instead).
+		if (opacity === 0) return "transparent";
+		const pick = picked(key);
+		return pick === null
+			? `color-mix(in srgb, ${PROMPT_STYLE_COLOR_TOKENS[key]} ${opacity * 100}%, transparent)`
+			: hexWithOpacity(pick, opacity);
 	};
 
 	return {
@@ -566,24 +724,24 @@ export function promptStyleVars(
 		"--prompt-editor-show-guides": value.showGuides ? "1" : "0",
 		"--prompt-editor-guides-display": value.showGuides ? "block" : "none",
 
-		"--prompt-editor-bg": color("surfaceColor", "bg"),
-		"--prompt-editor-fg": color("foregroundColor", "fg"),
-		"--prompt-editor-gutter-bg": color("gutterColor", "gutter-bg"),
-		"--prompt-editor-line-number": color("lineNumberColor", "line-number"),
-		"--prompt-editor-line-number-active": color("activeLineNumberColor", "line-number-active"),
+		"--prompt-editor-bg": color("surfaceColor"),
+		"--prompt-editor-fg": color("foregroundColor"),
+		"--prompt-editor-gutter-bg": color("gutterColor"),
+		"--prompt-editor-line-number": color("lineNumberColor"),
+		"--prompt-editor-line-number-active": color("activeLineNumberColor"),
 
-		"--prompt-editor-syntax-punctuation": color("tagPunctuationColor", "syntax-punctuation"),
-		"--prompt-editor-syntax-tag": color("tagNameColor", "syntax-tag"),
-		"--prompt-editor-syntax-tag-landmark": color("tagLandmarkColor", "syntax-tag-landmark"),
-		"--prompt-editor-syntax-tag-sublandmark": color("tagSublandmarkColor", "syntax-tag-sublandmark"),
-		"--prompt-editor-syntax-attribute": color("attributeNameColor", "syntax-attribute"),
-		"--prompt-editor-syntax-value": color("attributeValueColor", "syntax-value"),
-		"--prompt-editor-syntax-variable": color("variableColor", "syntax-variable"),
-		"--prompt-editor-syntax-reference": color("referenceColor", "syntax-reference"),
-		"--prompt-editor-syntax-list-marker": color("listMarkerColor", "syntax-list-marker"),
-		"--prompt-editor-inline-code": color("inlineCodeColor", "inline-code"),
+		"--prompt-editor-syntax-punctuation": color("tagPunctuationColor"),
+		"--prompt-editor-syntax-tag": color("tagNameColor"),
+		"--prompt-editor-syntax-tag-landmark": color("tagLandmarkColor"),
+		"--prompt-editor-syntax-tag-sublandmark": color("tagSublandmarkColor"),
+		"--prompt-editor-syntax-attribute": color("attributeNameColor"),
+		"--prompt-editor-syntax-value": color("attributeValueColor"),
+		"--prompt-editor-syntax-variable": color("variableColor"),
+		"--prompt-editor-syntax-reference": color("referenceColor"),
+		"--prompt-editor-syntax-list-marker": color("listMarkerColor"),
+		"--prompt-editor-inline-code": color("inlineCodeColor"),
 		"--prompt-editor-inline-chip-opacity": String(value.inlineChipOpacity),
-		"--prompt-editor-inline-chip-bg": alpha("inlineCodeColor", "inlineChipOpacity", "inline-code"),
+		"--prompt-editor-inline-chip-bg": alpha("inlineCodeColor", "inlineChipOpacity"),
 		"--prompt-editor-landmark-font-scale": String(value.landmarkFontScale),
 		"--prompt-editor-gap-height-base": `${value.lineHeight}px`,
 		"--prompt-editor-gap-height-sub": `${gapHeight(
@@ -598,33 +756,35 @@ export function promptStyleVars(
 		)}px`,
 		"--prompt-editor-landmark-pad": `${Math.round(8 * value.gapRamp)}px`,
 
-		"--prompt-editor-guide-color": color("guideColor", "guide-color"),
+		"--prompt-editor-guide-color": color("guideColor"),
 		"--prompt-editor-guide-opacity": String(value.guideOpacity),
-		"--prompt-editor-guide": alpha("guideColor", "guideOpacity", "guide-color"),
-		"--prompt-editor-landmark-color": color("landmarkColor", "landmark-color"),
+		"--prompt-editor-guide": alpha("guideColor", "guideOpacity"),
+		"--prompt-editor-landmark-color": color("landmarkColor"),
 		"--prompt-editor-landmark-opacity": String(value.landmarkOpacity),
-		"--prompt-editor-landmark": alpha("landmarkColor", "landmarkOpacity", "landmark-color"),
+		"--prompt-editor-landmark": alpha("landmarkColor", "landmarkOpacity"),
 
-		"--prompt-editor-selection-color": color("selectionColor", "selection-color"),
+		"--prompt-editor-selection-color": color("selectionColor"),
 		"--prompt-editor-selection-opacity": String(value.selectionOpacity),
-		"--prompt-editor-selection-bg": alpha("selectionColor", "selectionOpacity", "selection-color"),
-		"--prompt-editor-selection-accent": color("selectionAccentColor", "selection-accent"),
-		"--prompt-editor-active-line-color": color("activeLineColor", "active-line-color"),
+		"--prompt-editor-selection-bg": alpha("selectionColor", "selectionOpacity"),
+		"--prompt-editor-selection-accent": color("selectionAccentColor"),
+		"--prompt-editor-active-line-color": color("activeLineColor"),
 		"--prompt-editor-active-line-opacity": String(value.activeLineOpacity),
-		"--prompt-editor-active-line-bg": alpha("activeLineColor", "activeLineOpacity", "active-line-color"),
-		"--prompt-editor-hover-color": color("hoverColor", "hover-color"),
+		"--prompt-editor-active-line-bg": alpha("activeLineColor", "activeLineOpacity"),
+		"--prompt-editor-hover-color": color("hoverColor"),
 		"--prompt-editor-hover-opacity": String(value.hoverOpacity),
-		"--prompt-editor-hover-bg": alpha("hoverColor", "hoverOpacity", "hover-color"),
+		"--prompt-editor-hover-bg": alpha("hoverColor", "hoverOpacity"),
 
-		"--prompt-editor-grip-color": color("gripColor", "grip-color"),
+		"--prompt-editor-grip-color": color("gripColor"),
 		"--prompt-editor-grip-size": `${value.gripSize}px`,
 		"--prompt-editor-grip-opacity": String(value.gripOpacity),
-		"--prompt-editor-grip": alpha("gripColor", "gripOpacity", "grip-color"),
-		"--prompt-editor-drop-line-color": color("dropIndicatorColor", "drop-line-color"),
+		"--prompt-editor-grip": alpha("gripColor", "gripOpacity"),
+		"--prompt-editor-drop-line-color": color("dropIndicatorColor"),
 		"--prompt-editor-drop-line-width": `${value.dropIndicatorWidth}px`,
 		"--prompt-editor-drop-line-opacity": String(
 			value.dropIndicatorOpacity,
 		),
-		"--prompt-editor-drop-line": alpha("dropIndicatorColor", "dropIndicatorOpacity", "drop-line-color"),
+		"--prompt-editor-drop-line": alpha("dropIndicatorColor", "dropIndicatorOpacity"),
+
+		...PROMPT_THEME_VARS,
 	} as CSSProperties;
 }

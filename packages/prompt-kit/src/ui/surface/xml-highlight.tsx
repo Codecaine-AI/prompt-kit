@@ -186,9 +186,9 @@ function highlightInlineTokens(text: string, firstKey: number): React.ReactNode[
 					style={{
 						color: EDITOR_COLORS.inlineCode,
 						background: EDITOR_COLORS.inlineChipBg,
-						borderRadius: 4,
-						padding: "1px 2px",
-						marginInline: "-2px",
+						borderRadius: "var(--ds-radius-base)",
+						padding: "1px var(--ds-space-0-5)",
+						marginInline: "calc(var(--ds-space-0-5) * -1)",
 					}}
 				>
 					<span style={{ opacity: TICK_OPACITY }}>`</span>
@@ -209,9 +209,9 @@ function highlightInlineTokens(text: string, firstKey: number): React.ReactNode[
 									// Template variables get a chip tinted from their own
 									// ink; the host dials it with one opacity token.
 									background: `color-mix(in srgb, var(--prompt-editor-syntax-variable, #D9C578) calc(var(--prompt-editor-inline-chip-opacity, 0.08) * 100%), transparent)`,
-									borderRadius: 4,
-									padding: "1px 2px",
-									marginInline: "-2px",
+									borderRadius: "var(--ds-radius-base)",
+									padding: "1px var(--ds-space-0-5)",
+									marginInline: "calc(var(--ds-space-0-5) * -1)",
 								}
 					}
 				>

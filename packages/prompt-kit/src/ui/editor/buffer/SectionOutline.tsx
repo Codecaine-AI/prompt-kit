@@ -76,7 +76,7 @@ export function SectionOutline({
 			style={
 				{
 					background: EDITOR_COLORS.bg,
-					borderLeft: `1px solid ${EDITOR_COLORS.guide}`,
+					borderLeft: `var(--ds-border-width-hairline) solid ${EDITOR_COLORS.guide}`,
 					// Matches the buffer's top padding, so outline row 1 and editor
 					// line 1 share a band.
 					paddingTop: EDITOR_METRICS.lineHeight,
@@ -97,7 +97,7 @@ export function SectionOutline({
 						onClick={() => onSelect(section)}
 						aria-current={active ? "location" : undefined}
 						className={cn(
-							"relative flex shrink-0 items-center gap-2 pr-3 text-left text-[11px] leading-none transition-colors",
+							"relative flex shrink-0 items-center gap-2 pr-3 text-left text-[length:var(--ds-font-size-ui-2xs)] leading-none transition-colors",
 							"hover:bg-[var(--prompt-outline-hover)] focus-visible:bg-[var(--prompt-outline-hover)] focus-visible:outline-none",
 							section.depth > 0 ? "pl-6" : "pl-3",
 							active
@@ -112,7 +112,7 @@ export function SectionOutline({
 							// rule turns accent for this row instead of doubling.
 							<span
 								aria-hidden
-								className="absolute inset-y-0 -left-px w-[2px]"
+								className="absolute inset-y-0 -left-px w-0.5"
 								style={{ background: EDITOR_COLORS.selectionAccent }}
 							/>
 						)}

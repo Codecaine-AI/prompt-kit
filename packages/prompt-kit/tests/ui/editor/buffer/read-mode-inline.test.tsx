@@ -149,8 +149,8 @@ describe("read-mode inline tag + code-chip treatments", () => {
 		)!;
 		expect(chip).toBeTruthy();
 		// The chip's paint-only treatment: rounded, padded (margin cancels it).
-		expect(chip.style.borderRadius).toBe("4px");
-		expect(chip.style.padding).toBe("1px 2px");
+		expect(chip.style.borderRadius).toBe("var(--ds-radius-base)");
+		expect(chip.style.padding).toBe("1px var(--ds-space-0-5)");
 		// Both ticks remain in the DOM, dimmed rather than removed.
 		const ticks = Array.from(chip.querySelectorAll("span")).filter(
 			(span) => span.textContent === "`",
@@ -165,7 +165,7 @@ describe("read-mode inline tag + code-chip treatments", () => {
 			(span) => span.textContent === "`a < b`",
 		)!;
 		expect(chip).toBeTruthy();
-		expect(chip.style.borderRadius).toBe("4px");
+		expect(chip.style.borderRadius).toBe("var(--ds-radius-base)");
 	});
 });
 

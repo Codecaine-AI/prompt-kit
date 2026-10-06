@@ -46,7 +46,7 @@ export function PromptFlowInspector({
 					</div>
 				) : (
 					<div className="flex items-center justify-center p-5">
-						<p className="max-w-52 text-center text-[12px] leading-relaxed text-muted-foreground/70">
+						<p className="max-w-52 text-center text-[length:var(--ds-font-size-ui-xs)] leading-[var(--ds-line-height-reading)] text-muted-foreground/70">
 							Select a prompt block to inspect its structure, metadata, and validation notes.
 						</p>
 					</div>
@@ -79,13 +79,13 @@ function DiagnosticList({ diagnostics }: { diagnostics: PromptDiagnostic[] }) {
 				<li
 					key={`${diagnostic.code}:${index}`}
 					className={cn(
-						"border-b border-border/60 py-2 text-[12px] leading-relaxed last:border-b-0",
+						"border-b border-border/60 py-2 text-[length:var(--ds-font-size-ui-xs)] leading-[var(--ds-line-height-ui)] last:border-b-0",
 						diagnostic.severity === "error"
 							? "text-destructive"
 							: "text-status-warning",
 					)}
 				>
-					<span className="block text-[10px] font-medium uppercase tracking-[0.12em]">
+					<span className="block text-[length:var(--ds-font-size-micro)] font-medium uppercase tracking-[var(--ds-letter-spacing-micro-wide)]">
 						{diagnostic.code}
 					</span>
 					{diagnostic.message}

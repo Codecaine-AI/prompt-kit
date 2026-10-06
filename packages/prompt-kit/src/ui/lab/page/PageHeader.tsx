@@ -81,7 +81,7 @@ export function PromptPageHeader({
 			<div className="flex min-w-0 items-baseline gap-2.5">
 				<h1
 					data-lab-page-title=""
-					className="min-w-0 truncate text-[24px] font-semibold leading-tight text-foreground"
+					className="min-w-0 truncate text-[24px] font-semibold leading-[var(--ds-line-height-tight)] text-foreground"
 					style={{ fontFamily: EDITOR_METRICS.fontFamily }}
 				>
 					{name}
@@ -92,7 +92,7 @@ export function PromptPageHeader({
 					aria-label={collapsed ? "Expand description" : "Collapse description"}
 					aria-expanded={!collapsed}
 					onClick={toggleCollapsed}
-					className="shrink-0 text-[10px] text-muted-foreground/50 transition-colors hover:text-foreground"
+					className="shrink-0 text-[length:var(--ds-font-size-micro)] text-muted-foreground/50 transition-colors hover:text-foreground"
 				>
 					{collapsed ? "▸" : "▾"}
 				</button>
@@ -123,7 +123,8 @@ export function PromptPageHeader({
 						}}
 						// Styled as the display text: transparent, borderless,
 						// auto-grown — editing is a caret, not a form control.
-						className="w-full max-w-[64ch] resize-none overflow-hidden bg-transparent p-0 text-[12px] leading-relaxed text-muted-foreground/70 caret-current outline-none"
+						className="w-full resize-none overflow-hidden bg-transparent p-0 text-[length:var(--ds-font-size-ui-xs)] leading-[var(--ds-line-height-reading)] text-muted-foreground/70 caret-current outline-none"
+						style={{ maxWidth: "64ch" }}
 					/>
 				) : (
 					<p
@@ -135,15 +136,16 @@ export function PromptPageHeader({
 							setEditingDescription(true);
 						}}
 						className={
-							"max-w-[64ch] text-[12px] leading-relaxed text-muted-foreground/70" +
+							"text-[length:var(--ds-font-size-ui-xs)] leading-[var(--ds-line-height-reading)] text-muted-foreground/70" +
 							(editable ? " cursor-text" : "")
 						}
+						style={{ maxWidth: "64ch" }}
 					>
 						{description || (editable ? "Add a description…" : "")}
 					</p>
 				))}
 
-			{error && <p className="text-[11px] text-destructive">{error}</p>}
+			{error && <p className="text-[length:var(--ds-font-size-ui-2xs)] text-destructive">{error}</p>}
 		</div>
 	);
 }
