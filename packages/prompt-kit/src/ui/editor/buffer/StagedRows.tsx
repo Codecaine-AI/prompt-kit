@@ -67,8 +67,8 @@ export function InlineInsertSlot({
 							marginBlock: "var(--ds-space-1)",
 						}
 					: {
-							paddingLeft: `calc(${gutterWidth} + 0.75rem)`,
-							paddingRight: "1rem",
+							paddingLeft: `calc(${gutterWidth} + var(--ds-space-3))`,
+							paddingRight: "var(--ds-space-4)",
 							marginBlock: "var(--ds-space-1)",
 						}
 			}
@@ -92,8 +92,8 @@ export function StagedRegionView({
 					data-annotation-ui="inline-insert"
 					data-prompt-staged-bar={region.key}
 					style={{
-						paddingLeft: `calc(${gutterWidth} + 0.75rem)`,
-						paddingRight: "1rem",
+						paddingLeft: `calc(${gutterWidth} + var(--ds-space-3))`,
+						paddingRight: "var(--ds-space-4)",
 						marginBlock: "var(--ds-space-1)",
 					}}
 				>

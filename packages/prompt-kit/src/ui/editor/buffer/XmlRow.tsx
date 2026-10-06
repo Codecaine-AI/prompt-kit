@@ -450,7 +450,7 @@ export function XmlRow({
 									isSectionTag && line.role === "open"
 										? "var(--ds-font-weight-semibold)"
 										: undefined,
-								paddingLeft: `calc(0.75rem + ${indentWidth})`,
+								paddingLeft: `calc(var(--ds-space-3) + ${indentWidth})`,
 								textIndent: `calc(0px - ${indentWidth})`,
 								// Landmark scale on the body only — the gutter number
 								// keeps the buffer's size. Line boxes stay one

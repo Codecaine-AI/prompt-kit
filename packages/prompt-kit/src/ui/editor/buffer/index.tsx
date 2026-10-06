@@ -1811,7 +1811,7 @@ export function PromptFlowXml({
 							// Flush with the TEXT, not the rows container: rows lead
 							// with the gutter cell + the text region's own padding,
 							// so the title starts exactly where depth-0 content does.
-							paddingLeft: `calc(${EDITOR_METRICS.gutterWidth} + 0.75rem)`,
+							paddingLeft: `calc(${EDITOR_METRICS.gutterWidth} + var(--ds-space-3))`,
 						}}
 					>
 						{leadContent}
@@ -2314,7 +2314,7 @@ export function PromptFlowXml({
 										// 0.75rem padding, then the container's own text
 										// indent — the guide sits exactly under its open
 										// tag's first character.
-										left: `calc(${gutterWidth} + 0.75rem + ${promptFlowIndentForDepth(
+										left: `calc(${gutterWidth} + var(--ds-space-3) + ${promptFlowIndentForDepth(
 											guide.depth,
 										)})`,
 										background: EDITOR_COLORS.guide,

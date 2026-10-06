@@ -354,6 +354,10 @@ describe("promptStyleVars", () => {
 			expect(vars[name]).toContain("var(--ds-");
 		}
 		expect(vars["--prompt-editor-font-family"]).toBe("var(--ds-font-family-sans)");
+		// Raised review bars sit one step above the editor surface, never below it.
+		expect(vars["--prompt-editor-panel-raise"]).toBe(
+			"color-mix(in srgb, var(--ds-color-text-ink) 3%, var(--prompt-editor-bg))",
+		);
 		// The landmark wash is off by default (opacity 0): plainly transparent.
 		expect(vars["--prompt-editor-landmark"]).toBe("transparent");
 	});

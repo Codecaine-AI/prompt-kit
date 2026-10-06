@@ -158,11 +158,11 @@ export function leadingIndentCh(text: string): number {
  * LEFT of the unit's first visible character — the indentation margin for a
  * nested unit, the gutter for a top-level block — and can never displace or
  * overlap text. The terms mirror the body column's own left edge: gutter +
- * the body's 0.75rem padding + the row's rendered indent, minus a 0.25ch
+ * the body's space-3 padding + the row's rendered indent, minus a 0.25ch
  * breathing gap before the text.
  */
 export function dragHandleRailWidth(indentCh: number): string {
-	return `calc(${EDITOR_METRICS.gutterWidth} + 0.75rem + ${promptEditorIndentForSpaces(
+	return `calc(${EDITOR_METRICS.gutterWidth} + var(--ds-space-3) + ${promptEditorIndentForSpaces(
 		indentCh,
 	)} - 0.25ch)`;
 }

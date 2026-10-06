@@ -198,7 +198,12 @@ const COLOR_KEYS = Object.keys(PROMPT_STYLE_COLOR_TOKENS) as ColorKey[];
  */
 const PROMPT_THEME_VARS = {
 	"--prompt-editor-panel-bg": "var(--ds-color-surface-panel)",
-	"--prompt-editor-panel-raise": "var(--ds-color-surface-panel)",
+	// Raised bars inside the editor sit one step ABOVE the editor surface (the
+	// fill.hover recipe over --prompt-editor-bg), never below it (decision 64:
+	// no inverted depth). Without tokens.css the value is invalid and the
+	// consumer's literal fallback paints.
+	"--prompt-editor-panel-raise":
+		"color-mix(in srgb, var(--ds-color-text-ink) 3%, var(--prompt-editor-bg))",
 	"--prompt-editor-panel-border": "var(--ds-color-border-default)",
 	"--prompt-editor-panel-input-bg": "var(--ds-color-surface-page)",
 	"--prompt-editor-panel-shadow": "var(--ds-shadow-glass)",

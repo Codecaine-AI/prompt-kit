@@ -986,7 +986,7 @@ export function DropIndicator({
 					// Same column math as the indent guides: gutter + body padding +
 					// the target depth's text indent, so the line starts exactly at
 					// the text column it would insert into.
-					marginLeft: `calc(${gutterWidth} + 0.75rem + ${promptFlowIndentForDepth(
+					marginLeft: `calc(${gutterWidth} + var(--ds-space-3) + ${promptFlowIndentForDepth(
 						target.depth,
 					)})`,
 					background: EDITOR_COLORS.dropLine,

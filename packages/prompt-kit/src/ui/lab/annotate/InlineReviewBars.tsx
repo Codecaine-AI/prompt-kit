@@ -102,7 +102,7 @@ export function ProposalActionBar({
 				disabled={acceptDisabledReason !== null}
 				title={acceptDisabledReason ?? `Accept ${alias}`}
 				className="rounded-[var(--ds-radius-base)] px-3 py-0.5 text-[length:var(--ds-font-size-ui-xs)] font-semibold disabled:cursor-not-allowed disabled:opacity-40"
-				style={{ background: EDITOR_COLORS.diffAddFg, color: "var(--ds-color-status-success-on-solid)" }}
+				style={{ background: "var(--ds-color-status-success-solid)", color: "var(--ds-color-status-success-on-solid)" }}
 				onClick={onAccept}
 			>
 				Accept
