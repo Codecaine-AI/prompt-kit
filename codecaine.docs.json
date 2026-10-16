@@ -1,0 +1,9 @@
+{
+  "id": "ent_01M4F6XQRCQPD8VFND1NC81EAS",
+  "name": "Prompt Kit",
+  "kind": "core",
+  "docsRoot": "docs",
+  "products": [
+    "docs"
+  ]
+}
