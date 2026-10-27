@@ -1,0 +1,14 @@
+{
+  "strictness": 2,
+  "commentTypes": [
+    "logic",
+    "syntax"
+  ],
+  "triggerOnDrafts": false,
+  "autoReview": [
+    "open",
+    "push"
+  ],
+  "ignorePatterns": "**/dist/**\n**/dist-static/**\n**/build/**\n**/coverage/**\nbun.lock\n**/package-lock.json\n**/__snapshots__/**\n**/*.snap\n**/__fixtures__/**\n**/fixtures/**\n**/*.log\ndocs/**/*.json\npackages/prompt-kit-server/guidance/**\n**/prompt/system.md\npackages/prompt-kit-agent/catalog/**/annotations.json\nartifacts/**/*.json\nexplorations/**/*.html",
+  "instructions": "Bun and TypeScript monorepo for Prompt Kit; packages live under packages/ (prompt-kit library and React lab, server, MCP, agent catalog). Docs pages (docs/**/doc.json), the generated guidance under packages/prompt-kit-server/guidance/ and rendered prompt snapshots are written by tools, not by hand. Focus on correctness, types, error handling and missing tests. Skip style nits."
+}
