@@ -80,7 +80,7 @@
           "attributes": {
             "reference": {
               "kind": "source",
-              "path": "../docs/annotate-agent-ux.md"
+              "path": "../docs/10-annotate-agent-ux/doc.json"
             }
           }
         },
