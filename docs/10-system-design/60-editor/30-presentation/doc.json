@@ -26,6 +26,7 @@
         "b-30-presentation-nothing-in-this-contract-5",
         "b-30-presentation-variable-contract-6",
         "b-30-presentation-a-host-may-set-any-pr-7",
+        "b-30-presentation-design-tokens-34",
         "b-30-presentation-metrics-8",
         "b-30-presentation-metrics-lead-24",
         "b-30-presentation-token-default-driv-9",
@@ -118,7 +119,16 @@
           }
         },
         {
-          "insert": " property on the surface element or one of its ancestors. Every token has a literal fallback, so the components render correctly with no host variables set at all. A stable root class, "
+          "insert": " property on the surface element or one of its ancestors. Each "
+        },
+        {
+          "insert": "--prompt-editor-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " property is optional. Some fall back to a literal and some to a design-system token, so the components render correctly with none set once the host loads design-system tokens. A stable root class, "
         },
         {
           "insert": "prompt-editor-surface",
@@ -141,6 +151,56 @@
         },
         {
           "insert": " defines the tokens and their fallbacks."
+        }
+      ],
+      "children": []
+    },
+    "b-30-presentation-design-tokens-34": {
+      "id": "b-30-presentation-design-tokens-34",
+      "type": "callout",
+      "props": {
+        "title": "The host must load design-system tokens",
+        "tone": "warning"
+      },
+      "text": [
+        {
+          "insert": "The components also read "
+        },
+        {
+          "insert": "var(--ds-*)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tokens with no fallback, such as "
+        },
+        {
+          "insert": "--ds-space-3",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in each row's left padding. Load "
+        },
+        {
+          "insert": "@codecaine-ai/design-system/tokens.css",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in the host. Without it, each "
+        },
+        {
+          "insert": "calc()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " that reads an unset token is invalid, and every editor row loses its indent."
         }
       ],
       "children": []
