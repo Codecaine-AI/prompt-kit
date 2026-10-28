@@ -29,17 +29,17 @@ import {
 	refreshBundlePromptSnapshot,
 	resolvePromptEntry,
 	validateVariables,
-} from "@agent-kernel/kernel/agent-registry";
+} from "@codecaine-ai/agent-kernel/agent-registry";
 import type {
 	LoadedMap,
 	SpawnContext,
-} from "@agent-kernel/kernel/context";
+} from "@codecaine-ai/agent-kernel/context";
 import {
 	DEFAULT_WINDOW,
 	normalizeRenderOutput,
 	type RenderContext,
 	type SessionEvent,
-} from "@agent-kernel/kernel/state";
+} from "@codecaine-ai/agent-kernel/state";
 
 import promptEditorContext, {
 	CONTEXT_BLOCKS,

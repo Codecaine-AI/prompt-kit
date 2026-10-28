@@ -7,8 +7,8 @@ import {
 	openKernelDatabase,
 	writeKernelManifest,
 	type KernelDatabase,
-} from "@agent-kernel/db";
-import { createKernel, type KernelInstance } from "@agent-kernel/kernel";
+} from "@codecaine-ai/agent-kernel-db";
+import { createKernel, type KernelInstance } from "@codecaine-ai/agent-kernel";
 
 import { promptEditSharedTools } from "./prompt-edit";
 

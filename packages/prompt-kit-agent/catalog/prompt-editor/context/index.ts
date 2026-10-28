@@ -12,8 +12,8 @@ import type {
 	AgentContextResolver,
 	LoadedMap,
 	SpawnContext,
-} from "@agent-kernel/kernel/context";
-import { defineContext } from "@agent-kernel/kernel/agent-definition";
+} from "@codecaine-ai/agent-kernel/context";
+import { defineContext } from "@codecaine-ai/agent-kernel/agent-definition";
 import {
 	assembleGuidanceText,
 	GUIDANCE_SOURCE_MANIFEST,

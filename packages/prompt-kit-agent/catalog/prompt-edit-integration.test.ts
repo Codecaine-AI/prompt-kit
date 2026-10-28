@@ -23,24 +23,24 @@ import {
 	PROMPT_KIT_SCHEMA_VERSION,
 	type PromptDocument,
 } from "@codecaine-ai/prompt-kit";
-import { buildRegistry, type AgentRegistry } from "@agent-kernel/kernel/agent-registry";
+import { buildRegistry, type AgentRegistry } from "@codecaine-ai/agent-kernel/agent-registry";
 import {
 	createKernelCatalogService,
 	type KernelCatalogService,
-} from "@agent-kernel/kernel";
+} from "@codecaine-ai/agent-kernel";
 import {
 	launchPromptEditSession,
 	PROMPT_EDITOR_AGENT_NAME,
 	sessionDataForPromptEditSession,
 	toolProposeTransaction,
 	type LaunchedPromptEditSession,
-} from "@agent-kernel/kernel/prompt-edit-session";
-import type { LoadedMap, SpawnContext } from "@agent-kernel/kernel/context";
+} from "@codecaine-ai/agent-kernel/prompt-edit-session";
+import type { LoadedMap, SpawnContext } from "@codecaine-ai/agent-kernel/context";
 import {
 	DEFAULT_WINDOW,
 	normalizeRenderOutput,
 	type RenderContext,
-} from "@agent-kernel/kernel/state";
+} from "@codecaine-ai/agent-kernel/state";
 
 import promptEditorContext from "./prompt-editor/context/index";
 import promptEditorState from "./prompt-editor/state/index";

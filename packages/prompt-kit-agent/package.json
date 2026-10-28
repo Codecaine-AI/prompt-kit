@@ -10,8 +10,8 @@
 		"typecheck": "bunx --bun tsc -p tsconfig.json --noEmit"
 	},
 	"dependencies": {
-		"@agent-kernel/db": "workspace:*",
-		"@agent-kernel/kernel": "workspace:*",
+		"@codecaine-ai/agent-kernel-db": "workspace:*",
+		"@codecaine-ai/agent-kernel": "workspace:*",
 		"@codecaine-ai/prompt-kit-server": "workspace:*",
 		"drizzle-orm": "^0.45.0",
 		"elysia": "^1.2.0"
