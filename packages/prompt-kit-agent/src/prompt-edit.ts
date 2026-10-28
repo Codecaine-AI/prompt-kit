@@ -10,7 +10,7 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { updateContainerStatus } from "@agent-kernel/db";
+import { updateContainerStatus } from "@codecaine-ai/agent-kernel-db";
 import {
 	createPromptEditSessionService,
 	PROMPT_EDITOR_AGENT_NAME,
@@ -18,7 +18,7 @@ import {
 	type KernelInstance,
 	type LaunchedPromptEditSession,
 	type PromptEditSessionService,
-} from "@agent-kernel/kernel";
+} from "@codecaine-ai/agent-kernel";
 
 const pendingLaunches: LaunchedPromptEditSession[] = [];
 

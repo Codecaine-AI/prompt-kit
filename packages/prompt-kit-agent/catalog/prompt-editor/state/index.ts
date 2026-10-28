@@ -24,15 +24,15 @@
  * Any missing key degrades to a labelled placeholder instead of failing the
  * spawn, so the bundle boots (and previews) without a live session.
  */
-import { defineState } from "@agent-kernel/kernel/agent-definition";
-import type { SpawnContext } from "@agent-kernel/kernel/context";
+import { defineState } from "@codecaine-ai/agent-kernel/agent-definition";
+import type { SpawnContext } from "@codecaine-ai/agent-kernel/context";
 import {
 	kernelStateMessage,
 	renderRollingWindow,
 	type RenderContext,
 	type RenderResult,
 	type SessionEvent,
-} from "@agent-kernel/kernel/state";
+} from "@codecaine-ai/agent-kernel/state";
 import { block } from "../../shared/xml";
 
 /** The prompt-editor's state `S`. Plain strings — snapshots to state.json. */

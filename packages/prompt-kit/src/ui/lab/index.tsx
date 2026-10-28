@@ -31,7 +31,7 @@
 //      loads both sheets.
 //   3. The `.prompt-editor-surface` rules — row zebra/rule striping and
 //      caret behaviour — which ship with the host's stylesheet. In this repo's
-//      consumers that is `@agent-kernel/viewer-ui/styles`.
+//      consumers that is `@codecaine-ai/agent-kernel-viewer-ui/styles`.
 //
 // Values a host may want to drive at runtime (font size, line height, gutter
 // width, row shading) are read from `--prompt-editor-*` custom properties;

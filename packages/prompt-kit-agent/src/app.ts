@@ -1,11 +1,11 @@
 import { join } from "node:path";
 
-import { createKernelCatalogApi } from "@agent-kernel/kernel/catalog-api";
+import { createKernelCatalogApi } from "@codecaine-ai/agent-kernel/catalog-api";
 import {
 	PROMPT_EDITOR_AGENT_NAME,
 	promptEditToolPreviews,
-} from "@agent-kernel/kernel/prompt-edit-session";
-import { createKernelTraceReadApi } from "@agent-kernel/kernel/read-api";
+} from "@codecaine-ai/agent-kernel/prompt-edit-session";
+import { createKernelTraceReadApi } from "@codecaine-ai/agent-kernel/read-api";
 import { sql } from "drizzle-orm";
 import { Elysia } from "elysia";
 
