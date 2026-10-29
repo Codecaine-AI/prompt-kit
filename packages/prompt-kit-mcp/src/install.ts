@@ -188,13 +188,13 @@ async function plan(options: InstallOptions) {
   if (clients.includes("codex") || clients.includes("pi")) skillRoots.add(join(home, ".agents/skills"));
   if (clients.includes("claude")) skillRoots.add(join(options.claudeDir ?? join(home, ".claude"), "skills"));
   for (const skillRoot of skillRoots) {
-    // Remove the legacy skill folder's files when it is a real directory whose skill this installer named. Backups stay.
+    // Remove the files this installer writes from a real legacy skill folder whose skill it named. Other files and backups stay.
     const legacy = join(skillRoot, LEGACY_NAME);
     const stat = await lstat(legacy).catch(() => null);
     const legacySkill = stat?.isDirectory() ? await existing(join(legacy, "SKILL.md")) : null;
     if (legacySkill?.includes(`\nname: ${LEGACY_NAME}\n`)) {
-      for (const relative of Object.keys(await collectFiles(legacy))) {
-        if (!relative.includes(".codecaine-backup-")) await add(join(legacy, relative), "skill", () => null);
+      for (const relative of Object.keys(rendered)) {
+        if (await existing(join(legacy, relative)) !== null) await add(join(legacy, relative), "skill", () => null);
       }
     }
     const destination = join(skillRoot, NAME);

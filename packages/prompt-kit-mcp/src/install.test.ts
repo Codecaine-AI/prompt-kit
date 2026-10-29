@@ -112,7 +112,8 @@ describe("client installation", () => {
     for (const dir of [".agents/skills/codecaine-prompts", ".claude/skills/codecaine-prompts"]) {
       await mkdir(join(options.homeDir, dir, "references"), { recursive: true });
       await writeFile(join(options.homeDir, dir, "SKILL.md"), legacySkill);
-      await writeFile(join(options.homeDir, dir, "references/old.md"), "Old\n");
+      await writeFile(join(options.homeDir, dir, "references/standards.md"), "Old\n");
+      await writeFile(join(options.homeDir, dir, "references/mine.md"), "Mine\n");
     }
     await mkdir(join(options.homeDir, ".pi/agent/extensions"), { recursive: true });
     const legacyBridge = join(options.homeDir, ".pi/agent/extensions/codecaine-prompts.ts");
@@ -120,6 +121,7 @@ describe("client installation", () => {
     const report = await installClients({ ...options, write: true });
     const left = [...new Bun.Glob("**/codecaine-prompts*").scanSync({ cwd: options.homeDir, onlyFiles: true })];
     expect(left.filter((path) => !path.includes(".codecaine-backup-"))).toEqual([]);
+    expect(await readFile(join(options.homeDir, ".claude/skills/codecaine-prompts/references/mine.md"), "utf8")).toBe("Mine\n");
     expect(await readFile(join(options.homeDir, ".claude/skills/prompt-kit/SKILL.md"), "utf8")).toContain("name: prompt-kit");
     expect(report.changes.filter((change) => change.action === "remove")).toHaveLength(5);
     await restoreInstallation(report, { write: true });
