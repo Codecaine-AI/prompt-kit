@@ -46,9 +46,9 @@ try {
     case "guidance": {
       const profile = option("--profile") as "agent" | "single-output" | "generic" | undefined;
       const snapshot = await loadGuidance({ profile });
-      if (args.includes("--write")) await generateSkillReferences(join(PACKAGE_ROOT, "skills", "codecaine-prompts"), snapshot);
+      if (args.includes("--write")) await generateSkillReferences(join(PACKAGE_ROOT, "skills", "prompt-kit"), snapshot);
       out({ snapshotId: snapshot.snapshotId, profile: snapshot.profile, sources: snapshot.sources }); break;
     }
-    default: console.log(`Codecaine Prompts\n\n  install [--write] [--clients codex,claude,pi]  Install connection and skills (preview by default)\n  restore REPORT [--write]                  Restore a saved installation report\n  doctor                                    Check installed bindings\n  mcp [--workspace PATH]                    Start stdio MCP bridge\n  discover [--workspace PATH]               List prompt projects\n  tools                                     List typed tools\n  call TOOL --args JSON [--workspace PATH]  Invoke a tool for testing\n  guidance [--profile PROFILE] [--write]    Inspect/regenerate skill references\n  snapshot [--out FILE]                     Record development snapshot\n  start | status | stop                     Control the shared local service`);
+    default: console.log(`Prompt Kit\n\n  install [--write] [--clients codex,claude,pi]  Install connection and skills (preview by default)\n  restore REPORT [--write]                  Restore a saved installation report\n  doctor                                    Check installed bindings\n  mcp [--workspace PATH]                    Start stdio MCP bridge\n  discover [--workspace PATH]               List prompt projects\n  tools                                     List typed tools\n  call TOOL --args JSON [--workspace PATH]  Invoke a tool for testing\n  guidance [--profile PROFILE] [--write]    Inspect/regenerate skill references\n  snapshot [--out FILE]                     Record development snapshot\n  start | status | stop                     Control the shared local service`);
   }
 } catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; }

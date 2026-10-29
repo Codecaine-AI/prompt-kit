@@ -13,8 +13,8 @@ const configFile = clientName === "claude"
   : join(process.env.CODEX_HOME ?? join(homedir(), ".codex"), "config.toml");
 const configText = await readFile(configFile, "utf8");
 const config = (clientName === "claude" ? JSON.parse(configText) : Bun.TOML.parse(configText)) as any;
-const connection = (clientName === "claude" ? config.mcpServers : config.mcp_servers)?.["codecaine-prompts"];
-assert.equal(typeof connection?.command, "string", "Installed codecaine-prompts connection is missing");
+const connection = (clientName === "claude" ? config.mcpServers : config.mcp_servers)?.["prompt-kit"];
+assert.equal(typeof connection?.command, "string", "Installed prompt-kit connection is missing");
 const fixture = await mkdtemp(join(tmpdir(), "prompt-kit-installed-smoke-"));
 const clients: Client[] = [];
 const environment = Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
@@ -78,7 +78,7 @@ try {
   assert.equal((await call(a, "prompts_check", { ...target, task_id: task.task_id })).ok, true);
   const ended = await call(a, "prompts_end", { task_id: task.task_id });
   assert.equal(ended.ok, true, JSON.stringify(ended));
-  console.log(JSON.stringify({ ok: true, client: clientName, installedConnection: "codecaine-prompts", toolCount: listedTools.tools.length, realProject: actualProject.id, realPrompt: actualList.prompts[0].id, checks: ["real catalog read", "guidance loaded", "two-client saved revision visibility", "derived render", "stale revision rejection", "completion check", "guarded undo", "task end"], verifiedAt: new Date().toISOString() }, null, 2));
+  console.log(JSON.stringify({ ok: true, client: clientName, installedConnection: "prompt-kit", toolCount: listedTools.tools.length, realProject: actualProject.id, realPrompt: actualList.prompts[0].id, checks: ["real catalog read", "guidance loaded", "two-client saved revision visibility", "derived render", "stale revision rejection", "completion check", "guarded undo", "task end"], verifiedAt: new Date().toISOString() }, null, 2));
 } finally {
   await Promise.all(clients.map(client => client.close()));
   await rm(fixture, { recursive: true, force: true });

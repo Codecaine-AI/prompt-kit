@@ -12,7 +12,7 @@ export async function startMcp(initialWorkspace: string) {
   const state = await ensureDaemon();
   let workspace = resolve(initialWorkspace);
   let rootsReady: Promise<void> = Promise.resolve();
-  const server = new Server({ name: "codecaine-prompts", version }, { capabilities: { tools: {}, resources: {} }, instructions: MCP_INSTRUCTIONS });
+  const server = new Server({ name: "prompt-kit", version }, { capabilities: { tools: {}, resources: {} }, instructions: MCP_INSTRUCTIONS });
   const call = async (name: string, args: Record<string, unknown> = {}) => {
     await rootsReady;
     const response = await daemonFetch(state, "/rpc", { workspace, name, arguments: args });

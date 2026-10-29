@@ -1,13 +1,13 @@
 ---
-name: codecaine-prompts
+name: prompt-kit
 description: Read and update Prompt Kit documents through connected prompt tools. Use when a project has a Prompt Kit catalog or the user asks to inspect, author, or revise model-facing prompts.
 metadata:
   version: "0.1.0"
   product: prompt-kit
-compatibility: Requires the Codecaine Prompts connection. Codex and Claude Code use MCP; pi Agent uses the installed bridge extension.
+compatibility: Requires the Prompt Kit connection. Codex and Claude Code use MCP; pi Agent uses the installed bridge extension.
 ---
 
-# Codecaine Prompts
+# Prompt Kit
 
 Use the connected Prompt Kit tools for reads and edits. They preserve typed structure, stable IDs, revision checks, canonical JSON, production renders, and recovery history. Do not rewrite prompt JSON or rendered Markdown directly.
 
