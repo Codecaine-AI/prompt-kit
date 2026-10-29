@@ -187,7 +187,7 @@
       "props": {},
       "text": [
         {
-          "insert": "These paths are relative to packages/prompt-kit-mcp. The installed connection is named codecaine-prompts. The installed connection is separate from codecaine-docs."
+          "insert": "These paths are relative to packages/prompt-kit-mcp. The installed connection is named prompt-kit. The installed connection is separate from codecaine-docs."
         }
       ],
       "children": []
@@ -235,7 +235,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Installer tests cover preservation of unrelated settings, unmanaged-name collisions, and rollback after a later file fails to commit. Protocol success does not establish that an already-open client UI has reloaded its tools or selected a skill."
+          "insert": "Installer tests cover preservation of unrelated settings, unmanaged-name collisions, removal of installer-owned legacy entries, and rollback after a later file fails to commit. Protocol success does not establish that an already-open client UI has reloaded its tools or selected a skill."
         }
       ],
       "children": []

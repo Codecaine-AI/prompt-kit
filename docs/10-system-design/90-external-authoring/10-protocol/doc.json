@@ -28,7 +28,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The codecaine-prompts connection exposes nine tools over MCP stdio. An authenticated loopback service owns task snapshots while prompt files remain authoritative across service restarts."
+          "insert": "The prompt-kit connection exposes nine tools over MCP stdio. An authenticated loopback service owns task snapshots while prompt files remain authoritative across service restarts."
         }
       ],
       "children": []

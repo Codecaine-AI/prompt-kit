@@ -8,7 +8,7 @@ const dirs: string[] = [];
 async function fixture() {
   const homeDir = await mkdtemp(join(tmpdir(), "docs-install-test-"));
   dirs.push(homeDir);
-  return { homeDir, packageRoot: "/checkout with spaces/prompt-kit-mcp", bunPath: "/bin/bun", skillFiles: { "SKILL.md": "---\nname: codecaine-prompts\ndescription: Read and edit docs.\n---\nUse the tools.\n", "references/standards.md": "Standards\n" } };
+  return { homeDir, packageRoot: "/checkout with spaces/prompt-kit-mcp", bunPath: "/bin/bun", skillFiles: { "SKILL.md": "---\nname: prompt-kit\ndescription: Read and edit docs.\n---\nUse the tools.\n", "references/standards.md": "Standards\n" } };
 }
 afterEach(async () => { await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))); });
 
@@ -32,17 +32,17 @@ describe("client installation", () => {
     const result = await installClients({ ...options, write: true });
     const codex = await readFile(join(options.homeDir, ".codex/config.toml"), "utf8");
     expect(codex.startsWith(originalToml)).toBe(true);
-    expect((Bun.TOML.parse(codex) as Record<string, unknown>).mcp_servers).toMatchObject({ other: { command: "other" }, "codecaine-prompts": { command: "/bin/bun" } });
+    expect((Bun.TOML.parse(codex) as Record<string, unknown>).mcp_servers).toMatchObject({ other: { command: "other" }, "prompt-kit": { command: "/bin/bun" } });
     const claude = JSON.parse(await readFile(join(options.homeDir, ".claude.json"), "utf8"));
-    expect(claude).toMatchObject({ theme: "dark", mcpServers: { other: { command: "other" }, "codecaine-prompts": { type: "stdio", command: "/bin/bun" } } });
-    expect(claude.mcpServers["codecaine-prompts"].args).not.toContain("--workspace");
+    expect(claude).toMatchObject({ theme: "dark", mcpServers: { other: { command: "other" }, "prompt-kit": { type: "stdio", command: "/bin/bun" } } });
+    expect(claude.mcpServers["prompt-kit"].args).not.toContain("--workspace");
     for (const change of result.changes.filter((entry) => entry.backup)) {
       expect(await readFile(change.backup!, "utf8")).toBe(change.path.endsWith("toml") ? originalToml : originalClaude);
     }
     const repeat = await installClients({ ...options, write: true });
     expect(repeat.changes.every((change) => change.action === "unchanged" && !change.written)).toBe(true);
     expect((await doctorClients(options)).ok).toBe(true);
-    const pi = await readFile(join(options.homeDir, ".pi/agent/extensions/codecaine-prompts.ts"), "utf8");
+    const pi = await readFile(join(options.homeDir, ".pi/agent/extensions/prompt-kit.ts"), "utf8");
     expect(pi).toContain("createPiExtension");
   });
   test("invalid existing config aborts before any install writes", async () => {
@@ -75,7 +75,7 @@ describe("client installation", () => {
     expect(result.checks.filter((check) => check.status === "outdated")).toHaveLength(1);
   });
   test("does not overwrite unmanaged or customized Codex server entries", () => {
-    expect(() => codexConfig('[mcp_servers.codecaine-prompts]\ncommand = "custom"\n', "bun", [])).toThrow("unmanaged");
+    expect(() => codexConfig('[mcp_servers.prompt-kit]\ncommand = "custom"\n', "bun", [])).toThrow("unmanaged");
     const managed = codexConfig("", "bun", []).replace("tool_timeout_sec = 120", 'tool_timeout_sec = 120\nenabled = false');
     expect(() => codexConfig(managed, "bun", [])).toThrow("custom fields");
   });
@@ -83,10 +83,58 @@ describe("client installation", () => {
     for (const entry of [
       { type: "http", url: "https://example.com/mcp" },
       { type: "stdio", command: "custom", args: [] },
-    ]) expect(() => claudeConfig(JSON.stringify({ mcpServers: { "codecaine-prompts": entry } }), "bun", ["cli.ts", "mcp"])).toThrow("unmanaged");
+    ]) expect(() => claudeConfig(JSON.stringify({ mcpServers: { "prompt-kit": entry } }), "bun", ["cli.ts", "mcp"])).toThrow("unmanaged");
     const installed = claudeConfig(null, "bun", ["cli.ts", "mcp"]);
-    expect(JSON.parse(installed).mcpServers["codecaine-prompts"].env.CODECAINE_PROMPTS_INSTALLER).toBe("prompt-kit-mcp/v1");
+    expect(JSON.parse(installed).mcpServers["prompt-kit"].env.CODECAINE_PROMPTS_INSTALLER).toBe("prompt-kit-mcp/v1");
     expect(() => claudeConfig(installed, "new-bun", ["new-cli.ts", "mcp"])).not.toThrow();
+  });
+  test("migrates the legacy Codex block and keeps unmanaged legacy entries", () => {
+    const legacy = 'model = "keep"\n\n# BEGIN CODECAINE PROMPTS MCP (managed by prompt-kit-mcp install)\n[mcp_servers.codecaine-prompts]\ncommand = "bun"\nargs = []\n# END CODECAINE PROMPTS MCP\n';
+    const migrated = codexConfig(legacy, "bun", []);
+    expect(migrated).not.toContain("CODECAINE PROMPTS");
+    expect(Object.keys((Bun.TOML.parse(migrated) as any).mcp_servers)).toEqual(["prompt-kit"]);
+    expect(codexConfig(migrated, "bun", [])).toBe(migrated);
+    const unmanaged = '[mcp_servers.codecaine-prompts]\ncommand = "custom"\n';
+    expect(Object.keys((Bun.TOML.parse(codexConfig(unmanaged, "bun", [])) as any).mcp_servers)).toEqual(["codecaine-prompts", "prompt-kit"]);
+  });
+  test("migrates only the installer-owned legacy Claude entry", () => {
+    const legacy = JSON.parse(claudeConfig(null, "bun", ["cli.ts", "mcp"]).replace('"prompt-kit"', '"codecaine-prompts"'));
+    legacy.mcpServers["codecaine-prompts"].timeout = 5;
+    const migrated = JSON.parse(claudeConfig(JSON.stringify(legacy), "bun", ["cli.ts", "mcp"]));
+    expect(Object.keys(migrated.mcpServers)).toEqual(["prompt-kit"]);
+    expect(migrated.mcpServers["prompt-kit"].timeout).toBe(5);
+    const unmanaged = { mcpServers: { "codecaine-prompts": { type: "stdio", command: "custom", args: [] } } };
+    expect(JSON.parse(claudeConfig(JSON.stringify(unmanaged), "bun", [])).mcpServers["codecaine-prompts"]).toEqual(unmanaged.mcpServers["codecaine-prompts"]);
+  });
+  test("removes legacy skill folders and pi bridge it installed, and restore brings them back", async () => {
+    const options = await fixture();
+    const legacySkill = "---\nname: codecaine-prompts\ndescription: Old.\n---\n";
+    for (const dir of [".agents/skills/codecaine-prompts", ".claude/skills/codecaine-prompts"]) {
+      await mkdir(join(options.homeDir, dir, "references"), { recursive: true });
+      await writeFile(join(options.homeDir, dir, "SKILL.md"), legacySkill);
+      await writeFile(join(options.homeDir, dir, "references/old.md"), "Old\n");
+    }
+    await mkdir(join(options.homeDir, ".pi/agent/extensions"), { recursive: true });
+    const legacyBridge = join(options.homeDir, ".pi/agent/extensions/codecaine-prompts.ts");
+    await writeFile(legacyBridge, "// Managed by Codecaine Prompts. Re-run install to update this checkout path.\n");
+    const report = await installClients({ ...options, write: true });
+    const left = [...new Bun.Glob("**/codecaine-prompts*").scanSync({ cwd: options.homeDir, onlyFiles: true })];
+    expect(left.filter((path) => !path.includes(".codecaine-backup-"))).toEqual([]);
+    expect(await readFile(join(options.homeDir, ".claude/skills/prompt-kit/SKILL.md"), "utf8")).toContain("name: prompt-kit");
+    expect(report.changes.filter((change) => change.action === "remove")).toHaveLength(5);
+    await restoreInstallation(report, { write: true });
+    expect(await readFile(join(options.homeDir, ".agents/skills/codecaine-prompts/SKILL.md"), "utf8")).toBe(legacySkill);
+    expect(await readFile(legacyBridge, "utf8")).toContain("Codecaine Prompts");
+  });
+  test("keeps unmanaged legacy-named skill folders and pi bridges", async () => {
+    const options = await fixture();
+    await mkdir(join(options.homeDir, ".agents/skills/codecaine-prompts"), { recursive: true });
+    await writeFile(join(options.homeDir, ".agents/skills/codecaine-prompts/SKILL.md"), "---\nname: something-else\n---\n");
+    await mkdir(join(options.homeDir, ".pi/agent/extensions"), { recursive: true });
+    await writeFile(join(options.homeDir, ".pi/agent/extensions/codecaine-prompts.ts"), "// mine\n");
+    const report = await installClients({ ...options, write: true });
+    expect(report.changes.some((change) => change.action === "remove")).toBe(false);
+    expect(await readFile(join(options.homeDir, ".pi/agent/extensions/codecaine-prompts.ts"), "utf8")).toBe("// mine\n");
   });
   test("rejects skill path traversal before installation", async () => {
     const options = await fixture();
@@ -107,6 +155,6 @@ describe("client installation", () => {
     await writeFile(current.path, generated);
     await restoreInstallation(report, { write: true });
     expect(await readFile(current.path, "utf8")).toBe(original);
-    expect(await readdir(join(options.homeDir, ".claude/skills/codecaine-prompts"))).not.toContain("SKILL.md");
+    expect(await readdir(join(options.homeDir, ".claude/skills/prompt-kit"))).not.toContain("SKILL.md");
   });
 });

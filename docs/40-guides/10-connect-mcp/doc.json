@@ -33,7 +33,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Install the codecaine-prompts connection from the Prompt Kit repository root. The installer adds client bindings and generated authoring skills while preserving unrelated settings."
+          "insert": "Install the prompt-kit connection from the Prompt Kit repository root. The installer adds client bindings and generated authoring skills while preserving unrelated settings."
         }
       ],
       "children": []
@@ -87,17 +87,17 @@
         "rows": [
           [
             "Codex",
-            "~/.codex/config.toml and ~/.agents/skills/codecaine-prompts",
+            "~/.codex/config.toml and ~/.agents/skills/prompt-kit",
             "Restart Codex."
           ],
           [
             "Claude Code",
-            "~/.claude.json and ~/.claude/skills/codecaine-prompts",
+            "~/.claude.json and ~/.claude/skills/prompt-kit",
             "Restart Claude Code."
           ],
           [
             "pi",
-            "~/.pi/agent/extensions/codecaine-prompts.ts and shared skill directory",
+            "~/.pi/agent/extensions/prompt-kit.ts and shared skill directory",
             "Run /reload or start a new session."
           ]
         ]
