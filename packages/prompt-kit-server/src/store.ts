@@ -705,7 +705,7 @@ async function recoverIncomplete(target: ResolvedTarget): Promise<boolean> {
   return recovered;
 }
 
-async function atomicWrite(path: string, bytes: string): Promise<void> {
+export async function atomicWrite(path: string, bytes: string): Promise<void> {
   await rejectSymlink(path, true);
   const parent = dirname(path);
   await mkdir(parent, { recursive: true });
@@ -743,7 +743,7 @@ async function rejectSymlink(path: string, allowMissing = false): Promise<void> 
   }
 }
 
-async function withPromptLock<T>(
+export async function withPromptLock<T>(
   promptFile: string,
   lockRoot: string,
   timeoutMs: number,

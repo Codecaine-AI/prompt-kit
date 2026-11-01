@@ -6,7 +6,7 @@ import { doctorClients, installClients, restoreInstallation } from "./install";
 import { daemonFetch, daemonHealthy, ensureDaemon, PACKAGE_ROOT, readDaemonState, stateDirectory, stopDaemon } from "./lifecycle";
 import { startMcp } from "./mcp";
 import { createInteractionService } from "./service";
-import { loadGuidance, generateSkillReferences } from "./guidance";
+import { loadGuidance, generateSkillFolder } from "./guidance";
 import { createDevelopmentSnapshot } from "./snapshot";
 import { loadCodecaineEnv } from "./codecaine-env";
 // Background and client-launched processes do not inherit the shell. See codecaine-env.ts.
@@ -46,7 +46,7 @@ try {
     case "guidance": {
       const profile = option("--profile") as "agent" | "single-output" | "generic" | undefined;
       const snapshot = await loadGuidance({ profile });
-      if (args.includes("--write")) await generateSkillReferences(join(PACKAGE_ROOT, "skills", "prompt-kit"), snapshot);
+      if (args.includes("--write")) await generateSkillFolder(join(PACKAGE_ROOT, "skills", "prompt-kit"), snapshot);
       out({ snapshotId: snapshot.snapshotId, profile: snapshot.profile, sources: snapshot.sources }); break;
     }
     default: console.log(`Prompt Kit\n\n  install [--write] [--clients codex,claude,pi]  Install connection and skills (preview by default)\n  restore REPORT [--write]                  Restore a saved installation report\n  doctor                                    Check installed bindings\n  mcp [--workspace PATH]                    Start stdio MCP bridge\n  discover [--workspace PATH]               List prompt projects\n  tools                                     List typed tools\n  call TOOL --args JSON [--workspace PATH]  Invoke a tool for testing\n  guidance [--profile PROFILE] [--write]    Inspect/regenerate skill references\n  snapshot [--out FILE]                     Record development snapshot\n  start | status | stop                     Control the shared local service`);

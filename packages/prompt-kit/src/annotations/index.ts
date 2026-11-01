@@ -1,5 +1,7 @@
 export {
+  parsePromptAnnotationThread,
   promptAnnotationSchema,
+  validatePromptAnnotationsDocument,
   promptNodeTargetAdapter,
   promptRangeTargetAdapter,
   promptTargetFingerprint,
@@ -16,6 +18,7 @@ export {
   type PromptAnnotationIntent,
   type PromptAnnotationsDocument,
   type PromptAnnotationStatus,
+  type PromptAnnotationThread,
   type PromptAnnotationTarget,
   type PromptNodeTarget,
   type PromptRangeTarget,
@@ -28,3 +31,9 @@ export {
   type AnnotationStoreAddInput,
   type PromptAnnotationStore,
 } from "./store";
+
+export {
+  createRemoteAnnotationStore,
+  type RemoteAnnotationStoreOptions,
+  type RemotePromptAnnotationStore,
+} from "./remote-store";

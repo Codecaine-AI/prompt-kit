@@ -106,7 +106,7 @@ export function createInteractionService(options: InteractionServiceOptions = {}
     { name: "prompts_guidance", description: "Read the task's pinned guidance or one detailed catalog reference. Without task_id, profile selects a current read-only snapshot.", inputSchema: objectSchema({ task_id: nonempty, profile: profileSchema, reference: nonempty }) },
     { name: "prompts_end", description: "End a task and report each changed prompt plus whether its current revision passed prompts_check. Saved changes remain saved.", inputSchema: objectSchema({ task_id: nonempty }, ["task_id"]) },
   ];
-  const mutationNames = new Set(["prompts_apply_ops", "prompts_undo"]);
+  const mutationNames = new Set(["prompts_apply_ops", "prompts_undo", "prompts_request_reply", "prompts_request_resolve"]);
 
   function listTools() {
     return [...metadataTools, ...tools.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }))];

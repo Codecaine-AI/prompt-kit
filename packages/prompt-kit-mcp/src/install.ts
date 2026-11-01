@@ -146,8 +146,8 @@ async function skillFiles(options: InstallOptions, root: string): Promise<Record
   const template = await collectFiles(join(root, "skills", NAME));
   const temp = await mkdtemp(join(tmpdir(), "codecaine-prompt-skills-"));
   try {
-    const { generateSkillReferences } = await import("./guidance");
-    await generateSkillReferences(temp);
+    const { generateSkillFolder } = await import("./guidance");
+    await generateSkillFolder(temp);
     return { ...template, ...await collectFiles(temp) };
   } finally {
     await rm(temp, { recursive: true, force: true });

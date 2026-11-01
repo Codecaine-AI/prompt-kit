@@ -74,8 +74,20 @@ export type PromptAnnotationTarget = PromptNodeTarget | PromptRangeTarget;
 export type PromptAnnotationIntent = "note" | "agent-request";
 export type PromptAnnotationStatus = "open" | "resolved";
 
-export type PromptAnnotation = Annotation<PromptAnnotationTarget>;
-export type PromptAnnotationsDocument = AnnotationsDocument<PromptAnnotationTarget>;
+/**
+ * The T3 Code thread that works this annotation's request. Prompt Kit's own
+ * extension until the shared `@codecaine-ai/annotations` model carries it.
+ * Optional/additive: documents without it validate unchanged.
+ */
+export type PromptAnnotationThread = { id: string; title?: string };
+
+export type PromptAnnotation = Annotation<PromptAnnotationTarget> & {
+  thread?: PromptAnnotationThread;
+};
+export type PromptAnnotationsDocument = {
+  schemaVersion: 1;
+  annotations: PromptAnnotation[];
+};
 
 export const promptNodeTargetAdapter: TargetAdapter<
   PromptNodeTarget,
@@ -295,6 +307,49 @@ export const promptAnnotationSchema =
     intents: ["note", "agent-request"],
     statuses: ["open", "resolved"],
   });
+
+/**
+ * `promptAnnotationSchema.validateDocument` plus the prompt-only `thread`
+ * field, which the shared engine does not know and would drop.
+ */
+export function validatePromptAnnotationsDocument(
+  value: unknown,
+):
+  | { ok: true; document: PromptAnnotationsDocument }
+  | { ok: false; issues: ValidationIssue[] } {
+  const base = promptAnnotationSchema.validateDocument(value);
+  if (!base.ok) return base;
+  const raw = (value as { annotations: Array<Record<string, unknown>> }).annotations;
+  const threads = new Map(raw.map((entry) => [entry.id, entry.thread]));
+  const issues: ValidationIssue[] = [];
+  const annotations = base.document.annotations.map((annotation, index) => {
+    const thread = threads.get(annotation.id);
+    if (thread === undefined) return annotation;
+    const parsed = parsePromptAnnotationThread(thread);
+    if (!parsed) {
+      issues.push({
+        path: `annotations[${index}].thread`,
+        message: "Annotation thread must be { id: non-empty string, title?: string }.",
+      });
+      return annotation;
+    }
+    return { ...annotation, thread: parsed };
+  });
+  if (issues.length > 0) return { ok: false, issues };
+  return { ok: true, document: { schemaVersion: 1, annotations } };
+}
+
+/** Parses a thread binding, or returns null when the shape is wrong. */
+export function parsePromptAnnotationThread(
+  value: unknown,
+): PromptAnnotationThread | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const { id, title, ...extra } = value as Record<string, unknown>;
+  if (typeof id !== "string" || id.trim().length === 0) return null;
+  if (title !== undefined && typeof title !== "string") return null;
+  if (Object.keys(extra).length > 0) return null;
+  return title === undefined ? { id } : { id, title };
+}
 
 export function targetForNode(
   doc: PromptDocument,
