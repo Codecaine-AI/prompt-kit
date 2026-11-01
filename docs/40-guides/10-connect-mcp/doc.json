@@ -197,7 +197,7 @@
       "props": {},
       "text": [
         {
-          "insert": "This repository registers packages/prompt-kit-agent/catalog. Use the project and prompt IDs returned by prompts_discover and prompts_list. The prompt document ID can differ from the catalog agent name."
+          "insert": "This repository registers packages/prompt-kit-mcp/catalog. Use the project and prompt IDs returned by prompts_discover and prompts_list. The prompt document ID can differ from the catalog agent name."
         }
       ],
       "children": []
