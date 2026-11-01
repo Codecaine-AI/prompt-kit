@@ -40,8 +40,43 @@ export type StudioPrompt = {
 
 type Middleware = (req: IncomingMessage, res: ServerResponse, next: () => void) => void;
 
-const PROXY_PATH = /^\/api\/(?:annotations(?:\/[^?]*)?|events)(?:\?|$)/;
+const STUDIO_PATHS = new Set(["/api/studio/prompts", "/api/studio/prompt"]);
+/** The Prompt service's annotation and event routes (annotation-routes.ts), and nothing else. */
+const PROXY_PATH = /^\/api\/(?:events|annotations(?:\/([A-Za-z0-9._~%-]+)\/(?:replies|resolve|thread))?)$/;
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
+type Route = { kind: "studio" | "proxy"; path: string; search: string };
+
+/**
+ * Reads the raw request target, before any URL parser can resolve `..` or
+ * take a host from it. Only an origin-form target (`/path?query`) passes:
+ * `//host/...` and `http://host/...` would otherwise name the upstream host.
+ * Answers "reject" for any other target under /api/, and undefined for a
+ * path that is not the studio's (Vite serves it).
+ */
+function route(target: string): Route | "reject" | undefined {
+  if (!target.startsWith("/") || target.startsWith("//")) return "reject";
+  const query = target.indexOf("?");
+  const path = query === -1 ? target : target.slice(0, query);
+  const search = query === -1 ? "" : target.slice(query);
+  if (!path.startsWith("/api/")) return undefined;
+  if (STUDIO_PATHS.has(path)) return { kind: "studio", path, search };
+  const match = PROXY_PATH.exec(path);
+  if (!match) return "reject";
+  if (match[1] !== undefined && !isPlainSegment(match[1])) return "reject";
+  return { kind: "proxy", path, search };
+}
+
+/** An annotation id that decodes to one ordinary path segment: never `.`, `..` or a slash. */
+function isPlainSegment(raw: string): boolean {
+  let id: string;
+  try {
+    id = decodeURIComponent(raw);
+  } catch {
+    return false;
+  }
+  return id !== "." && id !== ".." && !/[/\\]/.test(id);
+}
 
 export function createStudioApi(options: StudioApiOptions): Middleware {
   const service = options.service ?? ensureDaemon;
@@ -60,7 +95,8 @@ export function createStudioApi(options: StudioApiOptions): Middleware {
     })));
   }
 
-  async function handle(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
+  async function handle(req: IncomingMessage, res: ServerResponse, target: Route): Promise<void> {
+    const url = new URL(target.path + target.search, "http://studio.local");
     if (url.pathname === "/api/studio/prompts" && req.method === "GET") {
       return json(res, 200, { workspace: options.workspace, prompts: await catalog() });
     }
@@ -71,27 +107,29 @@ export function createStudioApi(options: StudioApiOptions): Middleware {
       if (!read.ok) return json(res, 422, { detail: read.detail });
       return json(res, 200, { ...entry, document: read.document, hash: read.hash });
     }
+    if (target.kind === "studio") return json(res, 405, { detail: "method not allowed" });
     // The service serves any absolute root. The studio passes on only its own catalog's roots.
     const root = url.searchParams.get("root");
     if (url.pathname !== "/api/events" && !(await catalog()).some((prompt) => prompt.root === root)) {
       return json(res, 403, { detail: "root is not a project in the studio's catalog" });
     }
-    let target: PromptService;
+    let upstream: PromptService;
     try {
-      target = await service();
+      upstream = await service();
     } catch (error) {
       return json(res, 502, { detail: `Prompt service is not available: ${error instanceof Error ? error.message : String(error)}` });
     }
-    proxy(req, res, target);
+    // The service's own origin is the only host: the request contributes just the checked path and query.
+    proxy(req, res, upstream, new URL(`${new URL(upstream.url).origin}${target.path}${target.search}`));
   }
 
   return (req, res, next) => {
-    const url = new URL(req.url ?? "/", "http://studio.local");
-    const isStudio = url.pathname.startsWith("/api/studio/");
-    if (!isStudio && !PROXY_PATH.test(url.pathname + url.search)) return next();
+    const target = route(req.url ?? "/");
+    if (target === undefined) return next();
+    if (target === "reject") return json(res, 404, { detail: "Not found" });
     // The proxy holds the token, so only the studio's own page may use it.
     if (!sameOrigin(req)) return json(res, 403, { detail: "Forbidden origin" });
-    handle(req, res, url).catch((error: unknown) => {
+    handle(req, res, target).catch((error: unknown) => {
       if (res.headersSent) res.destroy();
       else json(res, 500, { detail: error instanceof Error ? error.message : String(error) });
     });
@@ -108,8 +146,7 @@ function sameOrigin(req: IncomingMessage): boolean {
   return origin === undefined || origin === `http://${host}`;
 }
 
-function proxy(req: IncomingMessage, res: ServerResponse, service: PromptService): void {
-  const upstream = new URL(req.url ?? "/", service.url);
+function proxy(req: IncomingMessage, res: ServerResponse, service: PromptService, upstream: URL): void {
   // Forward only what the routes read: never the browser's cookies, Origin or Host.
   const headers: Record<string, string> = { authorization: `Bearer ${service.token}`, accept: req.headers.accept ?? "*/*" };
   if (req.headers["content-type"]) headers["content-type"] = req.headers["content-type"];
