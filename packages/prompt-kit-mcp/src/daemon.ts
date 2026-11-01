@@ -40,6 +40,8 @@ async function releaseDaemonLease(lease: NetServer) {
 const SERVER_NAME = "prompt-kit-mcp";
 const daemonRunId = newRunId();
 let actionLog: ActionLog | undefined;
+/** Each task's pinned guidance snapshot, from its prompts_begin result, so every later call of the task carries it. */
+const taskSnapshots = new Map<string, string>();
 
 type Identity = { runId?: string; threadId?: string | null; agent?: string | null };
 
@@ -57,12 +59,14 @@ function recordCall(body: { name: string; arguments?: any; identity?: Identity }
     const identity = body.identity ?? {};
     const args = body.arguments ?? {};
     const runId = identity.runId || daemonRunId;
+    const data = result?.structuredContent ?? {};
     if (body.name === "prompts_begin" && typeof args.thread_id === "string" && args.thread_id && !result?.isError) actionLog.bindThread(runId, args.thread_id);
-    const snapshotId = result?.structuredContent?.snapshot_id;
+    if (body.name === "prompts_begin" && !result?.isError && typeof data.task_id === "string" && typeof data.snapshot_id === "string") taskSnapshots.set(data.task_id, data.snapshot_id);
+    const snapshotId = typeof data.snapshot_id === "string" ? data.snapshot_id : typeof args.task_id === "string" ? taskSnapshots.get(args.task_id) : undefined;
     actionLog.record({
       runId, threadId: identity.threadId || null, agent: identity.agent || SERVER_NAME, tool: body.name,
       target: typeof args.prompt_id === "string" && args.prompt_id ? args.prompt_id : "-",
-      result: resultSummary(result), snapshotId: typeof snapshotId === "string" ? snapshotId : null, at: new Date(),
+      result: resultSummary(result), snapshotId: snapshotId ?? null, at: new Date(),
     });
   } catch (error) { console.error(`Action log write failed: ${error instanceof Error ? error.message : String(error)}`); }
 }

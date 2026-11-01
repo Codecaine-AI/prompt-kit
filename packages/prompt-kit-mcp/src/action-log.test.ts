@@ -41,11 +41,13 @@ test("prompts_begin with thread_id binds the run so later calls resolve to the t
   const identity = { runId: "run-b", threadId: null, agent: null };
   const found = await handleRpc(service, { workspace: root, name: "prompts_discover", arguments: {}, identity });
   const project = (found.structuredContent.projects as Array<{ id: string }>)[0]!.id;
-  await handleRpc(service, { workspace: root, name: "prompts_begin", arguments: { project, thread_id: "thread-b" }, identity });
+  const begun = await handleRpc(service, { workspace: root, name: "prompts_begin", arguments: { project, thread_id: "thread-b" }, identity });
   await handleRpc(service, { workspace: root, name: "prompts_read", arguments: { project, prompt_id: "nope" }, identity });
+  await handleRpc(service, { workspace: root, name: "prompts_end", arguments: { task_id: begun.structuredContent.task_id }, identity });
   const records = ActionLog.open({ path: logPath }).query({ threadId: "thread-b" });
-  expect(records.map(r => r.tool)).toEqual(["prompts_discover", "prompts_begin", "prompts_read"]);
+  expect(records.map(r => r.tool)).toEqual(["prompts_discover", "prompts_begin", "prompts_read", "prompts_end"]);
   expect(records[0]!.agent).toBe("prompt-kit-mcp");
   expect(records[1]!.snapshotId).toBe("snapshot:generic");
   expect(records[2]).toMatchObject({ target: "nope", result: "refused" });
+  expect(records[3]!.snapshotId).toBe("snapshot:generic");
 });
