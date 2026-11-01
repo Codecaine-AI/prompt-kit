@@ -63,7 +63,7 @@ function recordCall(body: { name: string; arguments?: any; identity?: Identity }
     const snapshotId = result?.structuredContent?.snapshot_id;
     actionLog.record({
       runId, threadId: identity.threadId || null, agent: identity.agent || SERVER_NAME, tool: body.name,
-      target: typeof args.path === "string" && args.path ? args.path : "-",
+      target: typeof args.prompt_id === "string" && args.prompt_id ? args.prompt_id : "-",
       result: resultSummary(result), snapshotId: typeof snapshotId === "string" ? snapshotId : null, at: new Date(),
     });
   } catch (error) { console.error(`Action log write failed: ${error instanceof Error ? error.message : String(error)}`); }
