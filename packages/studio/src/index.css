@@ -70,18 +70,24 @@ body {
   background: var(--prompt-editor-row-zebra, transparent);
 }
 
-.prompt-editor-surface .prompt-editor-row:hover {
-  background: var(--prompt-editor-hover-bg, var(--ds-color-fill-hover));
-}
-
 .prompt-editor-surface .prompt-editor-grip {
   color: var(--prompt-editor-grip-color, var(--editor-line-number));
   opacity: var(--prompt-editor-grip-opacity, 0.5);
 }
 
-.prompt-editor-surface .prompt-editor-grip:hover,
 .prompt-editor-surface .prompt-editor-grip:focus-visible {
   opacity: 1;
+}
+
+/* Hover only where a pointer can hover: a touch tap must not leave a row lit. */
+@media (hover: hover) {
+  .prompt-editor-surface .prompt-editor-row:hover {
+    background: var(--prompt-editor-hover-bg, var(--ds-color-fill-hover));
+  }
+
+  .prompt-editor-surface .prompt-editor-grip:hover {
+    opacity: 1;
+  }
 }
 
 /* The Lab fills the content area under the topbar. */
