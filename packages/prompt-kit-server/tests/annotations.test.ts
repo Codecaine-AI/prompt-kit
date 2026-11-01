@@ -147,4 +147,26 @@ describe("Prompt UI remote annotation store", () => {
       expect.objectContaining({ id: filed.id, body: request.body, status: "open", replies: [expect.objectContaining({ body: "Keep the scope sentence." })] }),
     ]);
   });
+
+  test("a slow load that started before a write does not erase the saved request", async () => {
+    const root = await fixture();
+    const server = serve(root);
+    let releaseGet!: () => void;
+    const getHeld = new Promise<void>((resolve) => (releaseGet = resolve));
+    const slowGet = (async (input: string, init?: RequestInit) => {
+      const response = await server.fetch(input, init);
+      if ((init?.method ?? "GET") === "GET") await getHeld;
+      return response;
+    }) as typeof fetch;
+    const page = createRemoteAnnotationStore({ baseUrl: "http://prompt.test", promptPath: PROMPT_PATH, fetch: slowGet });
+
+    const loading = page.load();
+    const filed = page.add({ target: request.target as never, body: request.body, intent: "agent-request", author: "ford" });
+    await page.flush();
+    releaseGet();
+    await loading;
+
+    expect(page.list().map((entry) => entry.id)).toEqual([filed.id]);
+    expect(page.resolve(filed.id)).toMatchObject({ id: filed.id, status: "resolved" });
+  });
 });

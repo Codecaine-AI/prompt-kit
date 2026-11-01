@@ -39,6 +39,8 @@ export function createRemoteAnnotationStore(
   const listeners = new Set<() => void>();
   let queue: Promise<void> = Promise.resolve();
   let pending = 0;
+  /** Counts local writes, so a load that started before one can drop its stale result. */
+  let writes = 0;
 
   function commit(annotations: PromptAnnotation[]): void {
     doc = { schemaVersion: 1, annotations };
@@ -65,12 +67,15 @@ export function createRemoteAnnotationStore(
   }
 
   async function load(): Promise<void> {
-    commit((await request("GET", "")).annotations);
+    const started = writes;
+    const { annotations } = await request("GET", "");
+    if (writes === started) commit(annotations);
   }
 
   /** Queues one write; adopts the server state once nothing else is pending. */
   function send(method: string, suffix: string, body: unknown): void {
     pending += 1;
+    writes += 1;
     queue = queue
       .then(async () => {
         const result = await request(method, suffix, body);
