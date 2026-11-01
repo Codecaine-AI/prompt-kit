@@ -3,6 +3,7 @@ import { createServer, type Server as NetServer } from "node:net";
 import { mkdir, realpath, unlink, writeFile } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { createPromptAnnotationFileStore, createPromptAnnotationRoutes, type PromptAnnotationFileStore } from "@codecaine-ai/prompt-kit-server";
+import { ActionLog, newRunId } from "@codecaine-ai/action-log";
 import { createInteractionService } from "./service";
 import { implementationFingerprint, PACKAGE_ROOT, stateDirectory, writeDaemonState } from "./lifecycle";
 
@@ -34,6 +35,45 @@ async function acquireDaemonLease(): Promise<NetServer> {
 async function releaseDaemonLease(lease: NetServer) {
   if (!lease.listening) return;
   await new Promise<void>((resolve, reject) => lease.close(error => error ? reject(error) : resolve()));
+}
+
+const SERVER_NAME = "prompt-kit-mcp";
+const daemonRunId = newRunId();
+let actionLog: ActionLog | undefined;
+
+type Identity = { runId?: string; threadId?: string | null; agent?: string | null };
+
+function resultSummary(result: any): string {
+  if (result?.isError) {
+    const detail = result.structuredContent?.detail ?? result.structuredContent?.error ?? "error";
+    return `refused: ${String(detail).split("\n")[0]}`;
+  }
+  const findings = result?.structuredContent?.findings;
+  return Array.isArray(findings) && findings.length ? `${findings.length} findings` : "ok";
+}
+
+/** Appends one action-log record for a finished call. A failed write never fails the call. */
+function recordCall(body: { name: string; arguments?: any; identity?: Identity }, result: any) {
+  try {
+    actionLog ??= ActionLog.open();
+    const identity = body.identity ?? {};
+    const args = body.arguments ?? {};
+    const runId = identity.runId || daemonRunId;
+    if (body.name === "prompts_begin" && typeof args.thread_id === "string" && args.thread_id && !result?.isError) actionLog.bindThread(runId, args.thread_id);
+    const snapshotId = result?.structuredContent?.snapshot_id;
+    actionLog.record({
+      runId, threadId: identity.threadId || null, agent: identity.agent || SERVER_NAME, tool: body.name,
+      target: typeof args.path === "string" && args.path ? args.path : "-",
+      result: resultSummary(result), snapshotId: typeof snapshotId === "string" ? snapshotId : null, at: new Date(),
+    });
+  } catch (error) { console.error(`Action log write failed: ${error instanceof Error ? error.message : String(error)}`); }
+}
+
+/** Runs one /rpc call against the service and logs it. */
+export async function handleRpc(service: ReturnType<typeof createInteractionService>, body: { workspace: string; name: string; arguments?: any; identity?: Identity }) {
+  const result = await service.call(body.workspace, body.name, body.arguments ?? {});
+  recordCall(body, result);
+  return result;
 }
 
 export async function runDaemon() {
@@ -69,7 +109,7 @@ export async function runDaemon() {
       if (url.pathname === "/rpc" && request.method === "POST") {
         const body = await request.json() as any;
         if (typeof body.workspace !== "string" || typeof body.name !== "string") return Response.json({ error: "workspace and name required" }, { status: 400 });
-        return Response.json(await service.call(body.workspace, body.name, body.arguments ?? {}));
+        return Response.json(await handleRpc(service, body));
       }
       const annotationResponse = await annotationRoutes(request);
       if (annotationResponse) return annotationResponse;

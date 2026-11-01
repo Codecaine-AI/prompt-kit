@@ -8,6 +8,7 @@ import { startMcp } from "./mcp";
 import { createInteractionService } from "./service";
 import { loadGuidance, generateSkillFolder } from "./guidance";
 import { createDevelopmentSnapshot } from "./snapshot";
+import { identityFromEnv, newRunId } from "@codecaine-ai/action-log";
 import { loadCodecaineEnv } from "./codecaine-env";
 // Background and client-launched processes do not inherit the shell. See codecaine-env.ts.
 loadCodecaineEnv();
@@ -27,7 +28,7 @@ try {
     case "discover": case "call": case "tools": {
       const state = await ensureDaemon();
       const name = command === "discover" ? "prompts_discover" : args[0];
-      const response = command === "tools" ? await daemonFetch(state, "/tools") : await daemonFetch(state, "/rpc", { workspace, name, arguments: command === "discover" ? {} : JSON.parse(option("--args", "{}")!) });
+      const response = command === "tools" ? await daemonFetch(state, "/tools") : await daemonFetch(state, "/rpc", { workspace, name, arguments: command === "discover" ? {} : JSON.parse(option("--args", "{}")!), identity: { runId: newRunId(), ...identityFromEnv() } });
       const result = await response.json(); out(result); if (!response.ok || (result as any).isError) process.exitCode = 1; break;
     }
     case "install": {
