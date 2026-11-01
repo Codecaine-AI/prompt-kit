@@ -66,10 +66,21 @@ export function createRemoteAnnotationStore(
     return { annotations: payload.annotations };
   }
 
-  async function load(): Promise<void> {
+  /** Adopts the server state unless a write was queued while the GET was in flight. */
+  async function refresh(): Promise<void> {
     const started = writes;
     const { annotations } = await request("GET", "");
     if (writes === started) commit(annotations);
+  }
+
+  /** Waits for queued writes to land, including ones queued while it waited, then adopts the server state. */
+  async function load(): Promise<void> {
+    let waited: Promise<void>;
+    do {
+      waited = queue;
+      await waited.catch(() => {});
+    } while (waited !== queue);
+    await refresh();
   }
 
   /** Queues one write; adopts the server state once nothing else is pending. */
@@ -83,7 +94,7 @@ export function createRemoteAnnotationStore(
       })
       .catch(async (error: unknown) => {
         options.onError?.(error instanceof Error ? error : new Error(String(error)));
-        await load().catch(() => {});
+        await refresh().catch(() => {});
       })
       .finally(() => {
         pending -= 1;
