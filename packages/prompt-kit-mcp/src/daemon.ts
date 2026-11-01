@@ -43,11 +43,9 @@ let actionLog: ActionLog | undefined;
 
 type Identity = { runId?: string; threadId?: string | null; agent?: string | null };
 
+/** "ok", "refused" or "<n> findings". Error detail stays out, because validation text can echo the prompt payload. */
 function resultSummary(result: any): string {
-  if (result?.isError) {
-    const detail = result.structuredContent?.detail ?? result.structuredContent?.error ?? "error";
-    return `refused: ${String(detail).split("\n")[0]}`;
-  }
+  if (result?.isError) return "refused";
   const findings = result?.structuredContent?.findings;
   return Array.isArray(findings) && findings.length ? `${findings.length} findings` : "ok";
 }

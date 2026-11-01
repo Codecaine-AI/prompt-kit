@@ -47,5 +47,5 @@ test("prompts_begin with thread_id binds the run so later calls resolve to the t
   expect(records.map(r => r.tool)).toEqual(["prompts_discover", "prompts_begin", "prompts_read"]);
   expect(records[0]!.agent).toBe("prompt-kit-mcp");
   expect(records[1]!.snapshotId).toBe("snapshot:generic");
-  expect(records[2]).toMatchObject({ target: "nope", result: expect.stringMatching(/^refused:/) });
+  expect(records[2]).toMatchObject({ target: "nope", result: "refused" });
 });
