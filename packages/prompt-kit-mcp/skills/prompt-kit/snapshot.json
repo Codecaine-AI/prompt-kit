@@ -83,17 +83,17 @@
   ],
   "skillSources": [
     {
-      "path": "packages/prompt-kit-agent/catalog/prompt-editor/context/blocks/10-state-reference.md",
-      "sha256": "070efb70be6b33f19112fb94caf42f469068a2c8604cdbbc48d8e93864f38a96",
+      "path": "packages/prompt-kit-mcp/catalog/prompt-editor/context/blocks/10-state-reference.md",
+      "sha256": "ab5b8bd34220923be9cd2f2056586b9b55faa6d9ac6485e5a23dedca9f640ee5",
       "output": "references/prompt-state-reference.md"
     },
     {
-      "path": "packages/prompt-kit-agent/catalog/prompt-editor/context/blocks/20-tool-guide.md",
-      "sha256": "9da7059ca78ce53b29c042d4911900cc7682f6d294ec614f2ced6ed254bb69d8",
+      "path": "packages/prompt-kit-mcp/catalog/prompt-editor/context/blocks/20-tool-guide.md",
+      "sha256": "c7a1461e1fdbd08e37bfe5048cf68fc782005abaccfffc85f347008ca06c560f",
       "output": "references/prompt-tool-guide.md"
     },
     {
-      "path": "packages/prompt-kit-agent/catalog/prompt-editor/prompt/prompt.json",
+      "path": "packages/prompt-kit-mcp/catalog/prompt-editor/prompt/prompt.json",
       "sha256": "87318b49c6ef0462e8b906bfce2edfdf015f27e851de4cca4a7728b37f16e1e8"
     }
   ]

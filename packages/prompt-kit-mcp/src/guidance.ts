@@ -12,7 +12,7 @@ export {
 } from "@codecaine-ai/prompt-kit-server";
 
 const REPOSITORY_ROOT = resolve(PACKAGE_ROOT, "../..");
-const EDITOR_CATALOG = "packages/prompt-kit-agent/catalog/prompt-editor";
+const EDITOR_CATALOG = "packages/prompt-kit-mcp/catalog/prompt-editor";
 
 /**
  * Prompt-editor sources the skill carries beyond the authoring guidance.
