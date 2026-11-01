@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <title>Prompt Studio</title>
+    <script>
+      // The theme before the first paint: the stored choice, else the OS setting (src/_components/ThemeToggle).
+      (function () {
+        var theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        try {
+          var stored = window.localStorage.getItem("prompt-studio.theme");
+          if (stored === "dark" || stored === "light") theme = stored;
+        } catch (error) {
+          // Blocked storage: the OS setting.
+        }
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
