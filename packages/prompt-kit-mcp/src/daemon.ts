@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createServer, type Server as NetServer } from "node:net";
 import { mkdir, realpath, unlink, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
+import { createPromptAnnotationFileStore, createPromptAnnotationRoutes, type PromptAnnotationFileStore } from "@codecaine-ai/prompt-kit-server";
 import { createInteractionService } from "./service";
 import { implementationFingerprint, PACKAGE_ROOT, stateDirectory, writeDaemonState } from "./lifecycle";
 
@@ -48,6 +49,15 @@ export async function runDaemon() {
     const fingerprint = await implementationFingerprint();
     const service = createInteractionService();
     const startedAt = new Date().toISOString();
+    // Prompt UI annotation routes and the request event stream, behind the same token.
+    const annotationStores = new Map<string, PromptAnnotationFileStore>();
+    const annotationRoutes = createPromptAnnotationRoutes((url) => {
+      const root = url.searchParams.get("root");
+      if (!root || !isAbsolute(root)) throw new Error("root query parameter must be an absolute project root");
+      let store = annotationStores.get(root);
+      if (!store) { store = createPromptAnnotationFileStore({ root }); annotationStores.set(root, store); }
+      return store;
+    });
     server = Bun.serve({ hostname: "127.0.0.1", port: 0, idleTimeout: 120, async fetch(request) {
     const url = new URL(request.url);
     if (url.hostname !== "127.0.0.1" || (request.headers.get("origin") && request.headers.get("origin") !== url.origin)) return new Response("Forbidden origin", { status: 403 });
@@ -61,6 +71,8 @@ export async function runDaemon() {
         if (typeof body.workspace !== "string" || typeof body.name !== "string") return Response.json({ error: "workspace and name required" }, { status: 400 });
         return Response.json(await service.call(body.workspace, body.name, body.arguments ?? {}));
       }
+      const annotationResponse = await annotationRoutes(request);
+      if (annotationResponse) return annotationResponse;
       return new Response("Not found", { status: 404 });
     } catch (error) { return Response.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 }); }
     }});

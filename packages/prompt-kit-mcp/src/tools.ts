@@ -7,7 +7,10 @@ import {
   type PromptLintProfile,
 } from "@codecaine-ai/prompt-kit/authoring";
 import { validatePrompt } from "@codecaine-ai/prompt-kit";
-import { confinePath, createPromptStore, type PromptStore, type PromptStoreFailure } from "@codecaine-ai/prompt-kit-server";
+import {
+  confinePath, createPromptAnnotationFileStore, createPromptStore,
+  type PromptAnnotationFailure, type PromptAnnotationFileStore, type PromptStore, type PromptStoreFailure,
+} from "@codecaine-ai/prompt-kit-server";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import type { DiscoveredPrompt, PromptProject } from "./discovery";
@@ -64,7 +67,7 @@ function exact(args: unknown, required: string[], optional: string[] = []): Reco
   return args;
 }
 
-function storeFailure(value: PromptStoreFailure): PromptToolResult {
+function storeFailure(value: PromptStoreFailure | PromptAnnotationFailure): PromptToolResult {
   return result({ ...value });
 }
 
@@ -86,6 +89,12 @@ function strictOps(value: unknown): void {
 /** Direct adapter over the shared filesystem store; no Kernel or model process is started. */
 export function createPromptTools(context: PromptToolContext): PromptTool[] {
   const stores = new Map<string, PromptStore>();
+  const annotationStores = new Map<string, PromptAnnotationFileStore>();
+  function annotationsFor(root: string): PromptAnnotationFileStore {
+    let store = annotationStores.get(root);
+    if (!store) { store = createPromptAnnotationFileStore({ root }); annotationStores.set(root, store); }
+    return store;
+  }
   async function selected(args: Record<string, unknown>) {
     const projectId = args.project as string;
     const promptId = args.prompt_id as string;
@@ -195,6 +204,31 @@ export function createPromptTools(context: PromptToolContext): PromptTool[] {
       context.onMutation?.({ taskId: args.task_id as string, projectId: choice.projectId, promptId: choice.promptId, hash: undone.hash });
       return { ...undone, expected_hash: undone.hash, profile,
         findings: lintPrompt(undone.document, profile), next: "Undo is saved. Run prompts_check for this revision." };
+    }),
+    tool("prompts_requests", "Read the open human requests (agent-request annotations) filed on one prompt, with their targets, threads, and replies. Use hash as expected_hash for prompts_request_reply and prompts_request_resolve.", schema({ ...targetProperties, task_id: string }, ["project", "prompt_id"]), async (raw) => {
+      const args = exact(raw, ["project", "prompt_id"], ["task_id"]);
+      const choice = await selected(args);
+      const listed = await annotationsFor(choice.project.root).list(choice.prompt.target.promptPath);
+      if (!listed.ok) return storeFailure(listed);
+      const requests = listed.annotations.filter((entry) => entry.intent === "agent-request" && entry.status === "open");
+      return { ok: true, prompt_path: listed.path, hash: listed.hash, expected_hash: listed.hash, requests,
+        next: requests.length ? "Work each request with prompts_apply_ops, then close it with prompts_request_resolve. Ask with prompts_request_reply when it is ambiguous." : "No open requests." };
+    }),
+    tool("prompts_request_reply", "Add a reply to one request's thread and leave it open: a question or a short progress note. Requires prompts_begin, task_id, and the expected_hash from prompts_requests.", schema({ ...targetProperties, task_id: string, request_id: string, expected_hash: string, body: string }), async (raw) => {
+      const args = exact(raw, ["project", "prompt_id", "task_id", "request_id", "expected_hash", "body"]);
+      const choice = await selected(args);
+      const replied = await annotationsFor(choice.project.root).reply(choice.prompt.target.promptPath, args.request_id as string,
+        { author: "agent", body: args.body as string, expectedHash: args.expected_hash as string });
+      if (!replied.ok) return storeFailure(replied);
+      return { ok: true, request: replied.annotation, reply: replied.reply, hash: replied.hash, expected_hash: replied.hash };
+    }),
+    tool("prompts_request_resolve", "Close one request after its edit is saved, or decline it, with a one-sentence resolution naming what changed or why not. Requires prompts_begin, task_id, and the expected_hash from prompts_requests.", schema({ ...targetProperties, task_id: string, request_id: string, expected_hash: string, resolution: string }), async (raw) => {
+      const args = exact(raw, ["project", "prompt_id", "task_id", "request_id", "expected_hash", "resolution"]);
+      const choice = await selected(args);
+      const resolved = await annotationsFor(choice.project.root).resolve(choice.prompt.target.promptPath, args.request_id as string,
+        { resolution: args.resolution as string, actor: "agent", expectedHash: args.expected_hash as string });
+      if (!resolved.ok) return storeFailure(resolved);
+      return { ok: true, request: resolved.annotation, hash: resolved.hash, expected_hash: resolved.hash };
     }),
     tool("prompts_check", "Check the current revision for structural, variable, and selected profile findings. A missing declaration source is reported as unknown, not passing.", schema({ ...targetProperties, task_id: string }, ["project", "prompt_id"]), async (raw) => {
       const args = exact(raw, ["project", "prompt_id"], ["task_id"]);
