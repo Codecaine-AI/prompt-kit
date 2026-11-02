@@ -51,3 +51,19 @@ test("prompts_begin with thread_id binds the run so later calls resolve to the t
   expect(records[2]).toMatchObject({ target: "nope", result: "refused" });
   expect(records[3]!.snapshotId).toBe("snapshot:generic");
 });
+
+test("a failed prompts_check logs its findings count, and an empty thread_id is refused", async () => {
+  const { root, service } = await fixture();
+  // Without declared variables the check reports a blocking finding.
+  await rm(join(root, "catalog", "fixture", "agent.json"));
+  const identity = { runId: "run-c", threadId: null, agent: null };
+  const found = await handleRpc(service, { workspace: root, name: "prompts_discover", arguments: {}, identity });
+  const project = (found.structuredContent.projects as Array<{ id: string }>)[0]!.id;
+  const blank = await handleRpc(service, { workspace: root, name: "prompts_begin", arguments: { project, thread_id: "" }, identity });
+  const checked = await handleRpc(service, { workspace: root, name: "prompts_check", arguments: { project, prompt_id: "fixture" }, identity });
+  expect(blank.isError).toBe(true);
+  expect(checked.isError).toBe(true);
+  expect(checked.structuredContent.blocking).toHaveLength(1);
+  const records = ActionLog.open({ path: logPath }).query({ runId: "run-c" });
+  expect(records.map(r => r.result)).toEqual(["ok", "refused", "1 findings"]);
+});

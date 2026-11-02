@@ -47,9 +47,11 @@ type Identity = { runId?: string; threadId?: string | null; agent?: string | nul
 
 /** "ok", "refused" or "<n> findings". Error detail stays out, because validation text can echo the prompt payload. */
 function resultSummary(result: any): string {
-  if (result?.isError) return "refused";
-  const findings = result?.structuredContent?.findings;
-  return Array.isArray(findings) && findings.length ? `${findings.length} findings` : "ok";
+  // A failed prompts_check is an error result that still carries its findings, or only its blocking items.
+  const data = result?.structuredContent ?? {};
+  const count = (Array.isArray(data.findings) ? data.findings.length : 0) || (Array.isArray(data.blocking) ? data.blocking.length : 0);
+  if (count) return `${count} findings`;
+  return result?.isError ? "refused" : "ok";
 }
 
 /** Appends one action-log record for a finished call. A failed write never fails the call. */

@@ -132,6 +132,7 @@ export function createInteractionService(options: InteractionServiceOptions = {}
       }
       if (name === "prompts_begin") {
         const args = input(rawArgs, ["project"], ["profile", "thread_id"]);
+        if (args.thread_id !== undefined && (typeof args.thread_id !== "string" || !args.thread_id)) throw new Error("thread_id must be a non-empty string.");
         const selectedProject = projects.get(args.project as string);
         if (!workspaces.get(found.workspace)?.has(args.project as string)) throw new Error("Project is not in this workspace. Call prompts_discover and use a returned project ID.");
         if (!selectedProject) throw new Error("Unknown project. Call prompts_discover first.");
