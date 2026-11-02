@@ -33,7 +33,7 @@ reviews:
     - "!packages/prompt-kit-server/guidance/**"
     # Rendered prompt snapshots derived from prompt.json, and annotation sidecars written by the prompt tools
     - "!**/prompt/system.md"
-    - "!packages/prompt-kit-agent/catalog/**/annotations.json"
+    - "!packages/prompt-kit-mcp/catalog/**/annotations.json"
     # MCP install verification reports
     - "!artifacts/**/*.json"
     # Standalone HTML design mockups, deleted once the work they drove lands
