@@ -1,0 +1,108 @@
+@import "tailwindcss";
+/*
+ * Prompt Studio's root stylesheet. main.tsx loads the design system's fonts,
+ * tokens, host contract and layout first. Here: the strict reset (drops
+ * Tailwind's own palette and scales), the design-system utilities, and the
+ * Tailwind names for the host-contract colors the Lab writes (`bg-card`,
+ * `text-muted-foreground`, `border-status-info-border`, ...).
+ */
+@import "@codecaine-ai/design-system/tailwind-strict.css";
+@import "@codecaine-ai/design-system/tailwind.css";
+
+/* The studio's sources, and the linked TS sources that render the Lab. Tailwind never scans node_modules. */
+@source "./";
+@source "../../prompt-kit/src";
+@source "../../../../annotations/src";
+
+/* host-contract.css writes these as RGB triplets. --color-accent shadows tailwind.css's: the Lab writes `bg-accent` for the contract's accent. */
+@theme inline {
+  --color-background: rgb(var(--background));
+  --color-foreground: rgb(var(--foreground));
+  --color-card: rgb(var(--card));
+  --color-card-foreground: rgb(var(--card-foreground));
+  --color-popover: rgb(var(--popover));
+  --color-popover-foreground: rgb(var(--popover-foreground));
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-secondary: rgb(var(--secondary));
+  --color-secondary-foreground: rgb(var(--secondary-foreground));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+  --color-destructive: rgb(var(--destructive));
+  --color-border: rgb(var(--border));
+  --color-input: rgb(var(--input));
+  --color-ring: rgb(var(--ring));
+
+  --color-status-neutral: rgb(var(--status-neutral));
+  --color-status-neutral-fill: rgb(var(--status-neutral-fill));
+  --color-status-neutral-border: rgb(var(--status-neutral-border));
+  --color-status-success: rgb(var(--status-success));
+  --color-status-success-fill: rgb(var(--status-success-fill));
+  --color-status-success-border: rgb(var(--status-success-border));
+  --color-status-warning: rgb(var(--status-warning));
+  --color-status-warning-fill: rgb(var(--status-warning-fill));
+  --color-status-warning-border: rgb(var(--status-warning-border));
+  --color-status-info: rgb(var(--status-info));
+  --color-status-info-fill: rgb(var(--status-info-fill));
+  --color-status-info-border: rgb(var(--status-info-border));
+}
+
+body {
+  margin: 0;
+  background: var(--ds-color-surface-page);
+  color: var(--ds-color-text-body);
+  font-family: var(--ds-font-family-sans);
+}
+
+/*
+ * The Lab's surface contract (prompt-kit/src/ui/lab/index.tsx, item 3): the
+ * host owns the `.prompt-editor-surface` rules. Each value is a token, and a
+ * --prompt-editor-* knob still wins when the Lab sets one.
+ */
+.prompt-editor-surface {
+  color: var(--prompt-editor-fg, var(--editor-fg));
+  background: var(--prompt-editor-bg, var(--editor-bg));
+}
+
+.prompt-editor-surface .prompt-editor-row {
+  background: var(--prompt-editor-row-zebra, transparent);
+}
+
+.prompt-editor-surface .prompt-editor-grip {
+  color: var(--prompt-editor-grip-color, var(--editor-line-number));
+  opacity: var(--prompt-editor-grip-opacity, 0.5);
+}
+
+.prompt-editor-surface .prompt-editor-grip:focus-visible {
+  opacity: 1;
+}
+
+/* Hover only where a pointer can hover: a touch tap must not leave a row lit. */
+@media (hover: hover) {
+  .prompt-editor-surface .prompt-editor-row:hover {
+    background: var(--prompt-editor-hover-bg, var(--ds-color-fill-hover));
+  }
+
+  .prompt-editor-surface .prompt-editor-grip:hover {
+    opacity: 1;
+  }
+}
+
+/* The Lab fills the content area under the topbar. */
+.studio-lab {
+  height: calc(
+    100vh - var(--ds-layout-topbar-height) - var(--ds-layout-content-padding-top) -
+      var(--ds-layout-content-padding-bottom)
+  );
+}
+
+.studio-message {
+  color: var(--ds-color-text-muted);
+  font-size: var(--ds-font-size-ui-sm);
+}
+
+.studio-message[data-tone="danger"] {
+  color: var(--ds-color-status-danger-text);
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@codecaine-ai/prompt-kit-studio",
+  "productName": "Prompt Studio",
+  "version": "0.0.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bunx --bun vite",
+    "start": "bunx --bun vite build && bunx --bun vite preview",
+    "build": "bunx --bun vite build",
+    "test": "bun test server",
+    "typecheck": "bunx --bun tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@codecaine-ai/design-system": "workspace:*",
+    "@codecaine-ai/prompt-kit": "workspace:*",
+    "@codecaine-ai/prompt-kit-mcp": "workspace:*",
+    "@codecaine-ai/prompt-kit-server": "workspace:*",
+    "lucide-react": "^0.563.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/bun": "latest",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.1.2",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vite": "^7.3.0"
+  }
+}

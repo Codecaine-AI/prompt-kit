@@ -42,6 +42,8 @@ export function createRemoteAnnotationStore(
   let pending = 0;
   /** Counts local writes, so a load that started before one can drop its stale result. */
   let writes = 0;
+  /** Counts loads, so only the newest load's response reaches the document when loads overlap. */
+  let loads = 0;
 
   function commit(annotations: PromptAnnotation[]): void {
     doc = { schemaVersion: 1, annotations };
@@ -67,11 +69,12 @@ export function createRemoteAnnotationStore(
     return { annotations: payload.annotations };
   }
 
-  /** Adopts the server state unless a write was queued while the GET was in flight. */
+  /** Adopts the server state unless a write was queued or a newer load started while the GET was in flight. */
   async function refresh(): Promise<void> {
     const started = writes;
+    const generation = ++loads;
     const { annotations } = await request("GET", "");
-    if (writes === started) commit(annotations);
+    if (writes === started && generation === loads) commit(annotations);
   }
 
   /** Waits for queued writes to land, including ones queued while it waited, then adopts the server state. */

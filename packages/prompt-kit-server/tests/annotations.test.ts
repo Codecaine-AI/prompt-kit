@@ -193,4 +193,29 @@ describe("Prompt UI remote annotation store", () => {
     expect(shownWhileQueued).toContain(queued.id);
     expect(page.list().map((entry) => entry.id)).toEqual([queued.id]);
   });
+
+  test("an older load that finishes after a newer one does not erase what the newer one saw", async () => {
+    const root = await fixture();
+    const server = serve(root);
+    let releaseFirst!: () => void;
+    const firstHeld = new Promise<void>((resolve) => (releaseFirst = resolve));
+    let gets = 0;
+    const racingGet = (async (input: string, init?: RequestInit) => {
+      const response = await server.fetch(input, init);
+      if ((init?.method ?? "GET") === "GET" && ++gets === 1) await firstHeld;
+      return response;
+    }) as typeof fetch;
+    const page = createRemoteAnnotationStore({ baseUrl: "http://prompt.test", promptPath: PROMPT_PATH, fetch: racingGet });
+
+    const older = page.load();
+    const writer = createRemoteAnnotationStore({ baseUrl: "http://prompt.test", promptPath: PROMPT_PATH, fetch: server.fetch });
+    const filed = writer.add({ target: request.target as never, body: request.body, intent: "agent-request", author: "agent" });
+    await writer.flush();
+    await page.load();
+    expect(page.list().map((entry) => entry.id)).toEqual([filed.id]);
+
+    releaseFirst();
+    await older;
+    expect(page.list().map((entry) => entry.id)).toEqual([filed.id]);
+  });
 });
