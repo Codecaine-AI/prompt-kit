@@ -222,12 +222,11 @@ export function createPromptTools(context: PromptToolContext): PromptTool[] {
       if (!replied.ok) return storeFailure(replied);
       return { ok: true, request: replied.annotation, reply: replied.reply, hash: replied.hash, expected_hash: replied.hash };
     }),
-    tool("prompts_request_resolve", "Close one request after its edit is saved, or decline it, with a one-sentence resolution naming what changed or why not. Requires prompts_begin, task_id, and the expected_hash from prompts_requests.", schema({ ...targetProperties, task_id: string, request_id: string, expected_hash: string, resolution: string }, ["project", "prompt_id", "task_id", "request_id", "expected_hash"]), async (raw) => {
-      const args = exact(raw, ["project", "prompt_id", "task_id", "request_id", "expected_hash"], ["resolution"]);
-      if (args.resolution !== undefined && typeof args.resolution !== "string") throw new Error("resolution must be a string.");
+    tool("prompts_request_resolve", "Close one request after its edit is saved, or decline it, with a one-sentence resolution naming what changed or why not. Requires prompts_begin, task_id, and the expected_hash from prompts_requests.", schema({ ...targetProperties, task_id: string, request_id: string, expected_hash: string, resolution: string }), async (raw) => {
+      const args = exact(raw, ["project", "prompt_id", "task_id", "request_id", "expected_hash", "resolution"]);
       const choice = await selected(args);
       const resolved = await annotationsFor(choice.project.root).resolve(choice.prompt.target.promptPath, args.request_id as string,
-        { resolution: args.resolution as string | undefined, actor: "agent", expectedHash: args.expected_hash as string });
+        { resolution: args.resolution as string, actor: "agent", expectedHash: args.expected_hash as string });
       if (!resolved.ok) return storeFailure(resolved);
       return { ok: true, request: resolved.annotation, hash: resolved.hash, expected_hash: resolved.hash };
     }),

@@ -69,5 +69,5 @@ Rules for every edit:
 Generated beside this file by `bun packages/prompt-kit-mcp/src/cli.ts guidance --write`. Do not edit them by hand. `snapshot.json` hashes every source.
 
 - `references/standards.md` and `references/catalog.md`: the prompt authoring standards, with one page per topic under `references/details/`.
-- `references/prompt-state-reference.md`: how the in-app prompt editor agent reads its request queue and diffs. Its request fields match what `prompts_requests` returns.
-- `references/prompt-tool-guide.md`: the in-app editor's tools. `read_prompt` maps to `prompts_read`, `propose_transaction` to `prompts_apply_ops`, `reply_request` to `prompts_request_reply`, and `resolve_request` to `prompts_request_resolve`. `add_note` has no MCP tool.
+- `references/prompt-state-reference.md`: how the in-app prompt editor agent reads its request queue and diffs. The `R` aliases and compact target strings exist only in the editor. With MCP tools, pass a request's `id` from `prompts_requests` as `request_id`.
+- `references/prompt-tool-guide.md`: the in-app editor's tools. `read_prompt` maps to `prompts_read`, `propose_transaction` to `prompts_apply_ops`, `reply_request` to `prompts_request_reply`, and `resolve_request` to `prompts_request_resolve`. `add_note` has no MCP tool. Two differences apply to MCP tools. `prompts_apply_ops` saves at once, with no staged review. `prompts_request_resolve` takes one `resolution` sentence, not an outcome and a note.

@@ -169,4 +169,28 @@ describe("Prompt UI remote annotation store", () => {
     expect(page.list().map((entry) => entry.id)).toEqual([filed.id]);
     expect(page.resolve(filed.id)).toMatchObject({ id: filed.id, status: "resolved" });
   });
+
+  test("a failed write does not hide a request still queued behind it", async () => {
+    const root = await fixture();
+    const server = serve(root);
+    let posts = 0;
+    let shownWhileQueued: string[] = [];
+    const page = createRemoteAnnotationStore({
+      baseUrl: "http://prompt.test", promptPath: PROMPT_PATH, onError: () => {},
+      fetch: (async (input: string, init?: RequestInit) => {
+        if (init?.method !== "POST") return server.fetch(input, init);
+        posts += 1;
+        if (posts === 1) return Response.json({ detail: "disk full" }, { status: 500 });
+        shownWhileQueued = page.list().map((entry) => entry.id);
+        return server.fetch(input, init);
+      }) as typeof fetch,
+    });
+    await page.load();
+    page.add({ target: request.target as never, body: "Fails.", intent: "agent-request", author: "ford" });
+    const queued = page.add({ target: request.target as never, body: request.body, intent: "agent-request", author: "ford" });
+    await page.flush();
+
+    expect(shownWhileQueued).toContain(queued.id);
+    expect(page.list().map((entry) => entry.id)).toEqual([queued.id]);
+  });
 });

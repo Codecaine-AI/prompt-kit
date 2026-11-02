@@ -136,7 +136,11 @@ test("an agent reads, replies to, and resolves a request filed through the Promp
     const task = (await service.call(root, "prompts_begin", { project })).structuredContent.task_id as string;
     const replied = (await service.call(root, "prompts_request_reply", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: open.hash, body: "Working on it." })).structuredContent;
     expect(replied.ok).toBe(true);
-    const stale = await service.call(root, "prompts_request_resolve", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: open.hash });
+    for (const resolution of [undefined, "  "]) {
+      const unexplained = await service.call(root, "prompts_request_resolve", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: replied.expected_hash, ...(resolution === undefined ? {} : { resolution }) });
+      expect(unexplained.isError).toBe(true);
+    }
+    const stale = await service.call(root, "prompts_request_resolve", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: open.hash, resolution: "Changed body to say after." });
     expect(stale.structuredContent.code).toBe("conflict");
     const resolved = (await service.call(root, "prompts_request_resolve", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: replied.expected_hash, resolution: "Changed body to say after." })).structuredContent;
     expect(resolved.ok).toBe(true);

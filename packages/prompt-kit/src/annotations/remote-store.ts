@@ -5,7 +5,8 @@
  * after a reload. Writes apply locally first, so the store keeps the
  * synchronous contract the lab expects, then go to the server in order. When
  * the queue drains, the server's document replaces the local one. A failed
- * write reports through `onError` and reloads the server's state.
+ * write reports through `onError`, and the server's state is reloaded once
+ * no other write is queued.
  */
 
 import type { AnnotationReply, PromptAnnotation, PromptAnnotationsDocument } from "./schema";
@@ -94,7 +95,8 @@ export function createRemoteAnnotationStore(
       })
       .catch(async (error: unknown) => {
         options.onError?.(error instanceof Error ? error : new Error(String(error)));
-        await refresh().catch(() => {});
+        // A later queued write adopts the server state itself; reloading now would drop it locally.
+        if (pending === 1) await refresh().catch(() => {});
       })
       .finally(() => {
         pending -= 1;
