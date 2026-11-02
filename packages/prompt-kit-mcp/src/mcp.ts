@@ -4,18 +4,20 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListResourcesRequestSchema, ListToolsRequestSchema, ReadResourceRequestSchema, RootsListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
+import { identityFromEnv, newRunId } from "@codecaine-ai/action-log";
 import { daemonFetch, ensureDaemon } from "./lifecycle";
 
 export const MCP_INSTRUCTIONS = "Use prompts_discover for the active workspace. For prompt edits call prompts_begin, read its pinned standards, then prompts_read before typed operations with task_id and expected_hash. Valid edits save immediately. Run prompts_check before prompts_end. Never rewrite prompt JSON or rendered Markdown directly.";
 
 export async function startMcp(initialWorkspace: string) {
   const state = await ensureDaemon();
+  const identity = { runId: newRunId(), ...identityFromEnv() };
   let workspace = resolve(initialWorkspace);
   let rootsReady: Promise<void> = Promise.resolve();
   const server = new Server({ name: "prompt-kit", version }, { capabilities: { tools: {}, resources: {} }, instructions: MCP_INSTRUCTIONS });
   const call = async (name: string, args: Record<string, unknown> = {}) => {
     await rootsReady;
-    const response = await daemonFetch(state, "/rpc", { workspace, name, arguments: args });
+    const response = await daemonFetch(state, "/rpc", { workspace, name, arguments: args, identity });
     if (!response.ok) throw new Error(`Prompt service error: ${response.status}`);
     const result = await response.json() as any;
     if (name === "prompts_discover" && !result.isError && typeof result.structuredContent?.workspace === "string") workspace = result.structuredContent.workspace;

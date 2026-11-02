@@ -102,7 +102,7 @@ export function createInteractionService(options: InteractionServiceOptions = {}
 
   const metadataTools = [
     { name: "prompts_discover", description: "Discover prompt projects in the active workspace, explicit manifests, and bounded workspace members. Call first and use returned IDs.", inputSchema: objectSchema({ workspace: nonempty }) },
-    { name: "prompts_begin", description: "Begin direct prompt authoring for one discovered project with a pinned profile and guidance snapshot. Returns the task_id required for mutation tools.", inputSchema: objectSchema({ project: nonempty, profile: profileSchema }, ["project"]) },
+    { name: "prompts_begin", description: "Begin direct prompt authoring for one discovered project with a pinned profile and guidance snapshot. Returns the task_id required for mutation tools.", inputSchema: objectSchema({ project: nonempty, profile: profileSchema, thread_id: { type: "string", minLength: 1, description: "Your T3 thread id, when the harness does not pass T3CODE_THREAD_ID. Binds this server run to that thread in the action log." } }, ["project"]) },
     { name: "prompts_guidance", description: "Read the task's pinned guidance or one detailed catalog reference. Without task_id, profile selects a current read-only snapshot.", inputSchema: objectSchema({ task_id: nonempty, profile: profileSchema, reference: nonempty }) },
     { name: "prompts_end", description: "End a task and report each changed prompt plus whether its current revision passed prompts_check. Saved changes remain saved.", inputSchema: objectSchema({ task_id: nonempty }, ["task_id"]) },
   ];
@@ -131,7 +131,8 @@ export function createInteractionService(options: InteractionServiceOptions = {}
         return reply({ ok: true, ...found, next: "Call prompts_list with a returned project ID, then prompts_begin before editing." });
       }
       if (name === "prompts_begin") {
-        const args = input(rawArgs, ["project"], ["profile"]);
+        const args = input(rawArgs, ["project"], ["profile", "thread_id"]);
+        if (args.thread_id !== undefined && (typeof args.thread_id !== "string" || !args.thread_id)) throw new Error("thread_id must be a non-empty string.");
         const selectedProject = projects.get(args.project as string);
         if (!workspaces.get(found.workspace)?.has(args.project as string)) throw new Error("Project is not in this workspace. Call prompts_discover and use a returned project ID.");
         if (!selectedProject) throw new Error("Unknown project. Call prompts_discover first.");

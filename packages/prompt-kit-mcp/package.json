@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
+    "@codecaine-ai/action-log": "workspace:*",
     "@codecaine-ai/prompt-kit": "workspace:*",
     "@codecaine-ai/prompt-kit-server": "workspace:*"
   },
