@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { MCP_INSTRUCTIONS } from "./instructions";
 import { createPiExtension } from "./pi-extension";
 import type { BridgeConnection, PiContext, PiExtensionAPI } from "./pi-extension";
 
@@ -11,7 +12,6 @@ describe("pi MCP bridge", () => {
     let captured: unknown;
     const schema = { type: "object", properties: { project: { type: "string" } }, required: ["project"] };
     const client: BridgeConnection = {
-      instructions: "Use prompts_begin before editing.",
       async listTools() { return { tools: [{ name: "prompts_begin", description: "Load guidance", inputSchema: schema }] }; },
       async callTool(params) { captured = params; return { content: [{ type: "text", text: "ready" }], structuredContent: { authoring_id: "task1" } }; },
       async close() { closed++; },
@@ -24,7 +24,7 @@ describe("pi MCP bridge", () => {
     expect(registered[0]!.parameters).toBe(schema);
     expect(await registered[0]!.execute("id", { project: "docs" })).toEqual({ content: [{ type: "text", text: "ready" }], details: { authoring_id: "task1" } });
     expect(captured).toEqual({ name: "prompts_begin", arguments: { project: "docs" } });
-    expect(await handlers.get("before_agent_start")!({ systemPrompt: "base" }, { cwd: "/workspace" })).toEqual({ systemPrompt: "base\n\nUse prompts_begin before editing." });
+    expect(await handlers.get("before_agent_start")!({ systemPrompt: "base" }, { cwd: "/workspace" })).toEqual({ systemPrompt: `base\n\n${MCP_INSTRUCTIONS}` });
     await handlers.get("session_shutdown")!({}, { cwd: "/workspace" });
     await handlers.get("session_shutdown")!({}, { cwd: "/workspace" });
     expect(closed).toBe(1);

@@ -5,10 +5,20 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { PACKAGE_ROOT } from "./lifecycle";
+import { MCP_INSTRUCTIONS } from "./instructions";
+import { CLI_PATH, PACKAGE_ROOT } from "./lifecycle";
 
 const clients: Client[] = [];
 afterEach(async () => { await Promise.all(clients.splice(0).map(client => client.close())); });
+
+test("the prompt block stays within 12 lines and 800 bytes, names the first calls, and the CLI prints it unchanged", async () => {
+  expect(MCP_INSTRUCTIONS.split("\n").length).toBeLessThanOrEqual(12);
+  expect(Buffer.byteLength(MCP_INSTRUCTIONS)).toBeLessThanOrEqual(800);
+  for (const phrase of ["prompts_capabilities first", 'topic "standards"', "prompts_check with task_id", "compaction"]) expect(MCP_INSTRUCTIONS).toContain(phrase);
+  const run = Bun.spawn([process.execPath, CLI_PATH, "instructions"], { stdout: "pipe", stderr: "pipe" });
+  expect(await new Response(run.stdout).text()).toBe(`${MCP_INSTRUCTIONS}\n`);
+  expect(await run.exited).toBe(0);
+});
 
 describe("stdio MCP bridge", () => {
   test("forwards real MCP tool and resource requests to the authenticated loopback daemon", async () => {
@@ -34,7 +44,7 @@ describe("stdio MCP bridge", () => {
       const client = new Client({ name: "prompt-protocol-test", version: "1.0.0" }); clients.push(client);
       const moduleUrl = pathToFileURL(join(PACKAGE_ROOT, "src/mcp.ts")).href;
       await client.connect(new StdioClientTransport({ command: process.execPath, args: ["-e", `import { startMcp } from ${JSON.stringify(moduleUrl)}; await startMcp(${JSON.stringify(root)});`], env: { ...process.env, CODECAINE_PROMPTS_STATE_DIR: stateDir } as Record<string, string> }));
-      expect(client.getInstructions()).toContain("prompts_begin");
+      expect(client.getInstructions()).toBe(MCP_INSTRUCTIONS);
       expect((await client.listTools()).tools.map(tool => tool.name)).toEqual(["prompts_discover", "prompts_guidance"]);
       const called = await client.callTool({ name: "prompts_discover", arguments: {} });
       expect(called.structuredContent).toMatchObject({ ok: true, workspace: root });
