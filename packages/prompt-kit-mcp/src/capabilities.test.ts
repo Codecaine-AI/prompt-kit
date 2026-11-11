@@ -325,6 +325,29 @@ describe("prompts_capabilities", () => {
     } finally { await rm(many, { recursive: true, force: true }); }
   });
 
+  test("a project name too long for a page alone is cut to fit and marked truncated, and prompts_discover returns it whole", async () => {
+    const long = await workspace();
+    try {
+      await writeFile(join(long, "codecaine.prompts.json"), JSON.stringify({ name: "x".repeat(5000), catalogRoots: ["catalog"] }));
+      const projects: Record<string, any>[] = [];
+      let cursor: string | undefined;
+      do {
+        const result = await service.call(long, "prompts_capabilities", cursor === undefined ? {} : { cursor });
+        expect(Buffer.byteLength(result.content[0]!.text)).toBeLessThanOrEqual(4096);
+        projects.push(...(result.structuredContent.projects as Record<string, any>[]));
+        cursor = (result.structuredContent.next_cursor as string | null) ?? undefined;
+      } while (cursor !== undefined);
+      const whole = (await service.discover(long)).projects[0]!;
+      expect(projects).toHaveLength(1);
+      const [cut] = projects;
+      expect(cut).toMatchObject({ truncated: true, prompts: 1 });
+      expect(cut!.name).toMatch(/^x+…$/);
+      expect(cut!.name.length).toBeLessThan(whole.name.length);
+      expect(whole.id.startsWith(cut!.id.slice(0, -1))).toBe(true);
+      expect((await service.call(long, "prompts_discover", {})).structuredContent.projects).toMatchObject([{ id: whole.id, name: "x".repeat(5000) }]);
+    } finally { await rm(long, { recursive: true, force: true }); }
+  });
+
   test("lists 10 tools", () => {
     const tools = createPromptTools({ resolvePrompt: async () => { throw new Error("unused"); } });
     const listed = service.listTools().map((tool) => tool.name);

@@ -46,6 +46,20 @@ export const DEFAULT_TASK_MAX_AGE_MS = 12 * HOUR;
 const SWEEP_EVERY_MS = MINUTE, RETIRED_KEEP_MS = 24 * HOUR, MAX_RETIRED = 5000;
 /** One prompts_capabilities page stays within 4,096 bytes. */
 const CAPABILITIES_PAGE_BYTES = 4096;
+
+/**
+ * An index item cut to fit a page alone: every text field longer than the largest length that fits is cut to that
+ * length and ends with an ellipsis. An object item gains truncated: true, and a text item ends with "[truncated]".
+ */
+function fitAlone(value: unknown, fits: (value: unknown) => boolean): unknown {
+  const cut = (text: string, length: number) => text.length > length ? `${text.slice(0, length)}…` : text;
+  const capped = (length: number): unknown => typeof value === "string" ? `${cut(value, length)} [truncated]`
+    : { ...Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, field]) => [key, typeof field === "string" ? cut(field, length) : field])), truncated: true };
+  const texts = typeof value === "string" ? [value] : Object.values(value as Record<string, unknown>).filter((field): field is string => typeof field === "string");
+  let low = 0, high = Math.max(0, ...texts.map((text) => text.length));
+  while (low < high) { const mid = Math.ceil((low + high) / 2); if (fits(capped(mid))) low = mid; else high = mid - 1; }
+  return capped(low);
+}
 type RetireReason = "idle" | "max-age";
 const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
 /** A finite positive millisecond count from the environment, else the default with one warning. */
@@ -178,7 +192,7 @@ export function createInteractionService(options: InteractionServiceOptions = {}
     { name: "prompts_guidance", description: "Read one guidance topic, or list the topics when you omit topic. With task_id it serves the task's pinned snapshot and records the read. Without task_id, profile selects a current read-only snapshot. A topic over 24,576 bytes comes in parts: pass part for each further part the result names. prompts_apply_ops is refused until the task reads every part of topic standards.",
       inputSchema: objectSchema({ task_id: nonempty, profile: { ...nullable(profileSchema), description: "Without task_id, the snapshot's profile. Omit it, or pass null, for generic. With task_id it must be the task's profile." }, topic: { ...nullable({ type: "string", enum: GUIDANCE_TOPIC_IDS }), description: "A topic id from prompts_capabilities. Omit it, or pass null, for the topic list." }, part: { ...nullable({ type: "integer", minimum: 1 }), description: "The part to read, from 1. Defaults to 1." } }) },
   ];
-  const capabilitiesTool = { name: "prompts_capabilities", description: "The capabilities index: versions, the guidance snapshot, the tool order, each guidance topic with its size, its part count and the writes it unlocks, the discovery tool with the prompt count, and the project ids of the workspace. Call it first. A page holds at most 4,096 bytes. Pass next_cursor as cursor for the next page. Topic sizes are for the largest profile.",
+  const capabilitiesTool = { name: "prompts_capabilities", description: "The capabilities index: versions, the guidance snapshot, the tool order, each guidance topic with its size, its part count and the writes it unlocks, the discovery tool with the prompt count, and the project ids of the workspace. Call it first. A page holds at most 4,096 bytes. Pass next_cursor as cursor for the next page. Topic sizes are for the largest profile. An item too long for a page alone is cut to fit and marked truncated: prompts_discover returns it whole.",
     inputSchema: objectSchema({ workspace: { ...nullable(nonempty), description: "Absolute workspace path. Switches the bridge to it. Defaults to the connected workspace." }, cursor: { ...nullable(nonempty), description: "next_cursor from the previous page." } }) };
   const mutationNames = new Set(["prompts_apply_ops", "prompts_undo", "prompts_request_reply"]);
 
@@ -246,6 +260,11 @@ export function createInteractionService(options: InteractionServiceOptions = {}
     };
     // Measure with the widest cursor, so the page still fits once next_cursor is set.
     const fits = (end: number) => Buffer.byteLength(JSON.stringify(page(end, `${current}:${items.length}`))) <= CAPABILITIES_PAGE_BYTES;
+    // A page holds at least one item. One that overflows the page alone is cut to fit, and prompts_discover returns it whole.
+    if (!fits(offset + 1)) {
+      const [list, value] = items[offset]!;
+      items[offset] = [list, fitAlone(value, (candidate) => { items[offset] = [list, candidate]; const fitted = fits(offset + 1); items[offset] = [list, value]; return fitted; })];
+    }
     let end = offset + 1;
     while (end < items.length && fits(end + 1)) end++;
     return page(end, end < items.length ? `${current}:${end}` : null);
