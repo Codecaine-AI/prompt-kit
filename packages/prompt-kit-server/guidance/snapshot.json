@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "snapshotId": "sha256:b8ef7156a9a6e4502a40613d59366bcb250e63dbbf0fc4fe6476902d8ca45a34",
+  "snapshotId": "sha256:433edfb664833f84d80bea8437dcd480b18113bf5ee9c297c55a29b231feb2fe",
   "profile": "generic",
   "sources": [
     {
@@ -90,9 +90,9 @@
     {
       "path": "docs/40-guides/25-work-requests/doc.json",
       "kind": "guide",
-      "sourceSha256": "1982ae3b4c0f5e512968f8b1932d1bcba0cd385d449c8c46a7beba352234a92d",
-      "renderedSha256": "6deb49d37975904881c5b6fcc47145dedd78799a0ef685ffb1bd0aaf15c596b0",
-      "sha256": "c1ec194e27d453bc433c154fb61692583442d0022c1feed0372f0b5a89b46b51"
+      "sourceSha256": "e3b804bfae74f5046cc96b8180e9e74810ade244776f371b25c389c3cf727e7e",
+      "renderedSha256": "c685acc923debb6e4047ded602b70100f2ab23c71f71238b8a0f763d93bc423d",
+      "sha256": "e85a033b48dc1e8c2ec968a9b0d196e4ccc7f430827f81ad876c29a5748879f7"
     },
     {
       "path": "packages/prompt-kit-mcp/catalog/prompt-editor/context/blocks/10-state-reference.md",

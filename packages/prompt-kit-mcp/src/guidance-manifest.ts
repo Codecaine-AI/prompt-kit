@@ -172,7 +172,7 @@ const UNITS: readonly ManifestUnit[] = [
   {
     id: "skill.work.close-out", kind: "step", file: "SKILL.md", lines: [50, 53], scenario: "work-requests", destination: requests,
     text: "3. Close out.\n   - Call `prompts_requests` again. Every request you could close must be resolved one by one, never as a lump.\n   - Every request left open must carry an unanswered question whose answer changes the edit.\n   - Run `prompts_check` with `task_id`.",
-    anchors: ["Close out the queue.", "Call `prompts_requests` again", "Close every request you could close one by one, never as a lump", "Every request left open must carry an unanswered question whose answer changes the edit", "Run `prompts_check` with `task_id`"],
+    anchors: ["Close out the queue.", "Call `prompts_requests` again and confirm that the request is closed", "Close every request you could close one by one, never as a lump", "Every request left open must carry an unanswered question whose answer changes the edit", "Run `prompts_check` with `task_id`"],
     behavior: { tools: ["prompts_requests", "prompts_check"] },
   },
   {

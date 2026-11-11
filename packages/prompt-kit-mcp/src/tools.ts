@@ -208,7 +208,7 @@ export function createPromptTools(context: PromptToolContext): PromptTool[] {
       if (!listed.ok) return storeFailure(listed);
       const requests = listed.annotations.filter((entry) => entry.intent === "agent-request" && entry.status === "open");
       return { ok: true, prompt_path: listed.path, hash: listed.hash, expected_hash: listed.hash, requests,
-        next: requests.length ? "Work each request with prompts_apply_ops, then close it with prompts_request_reply and close: true. Ask with prompts_request_reply when it is ambiguous." : "No open requests." };
+        next: requests.length ? "Work each request with prompts_apply_ops and prompts_check, close it with prompts_request_reply and close: true, then call prompts_requests again to confirm it is closed. Ask with prompts_request_reply when it is ambiguous." : "No open requests." };
     }),
     tool("prompts_request_reply", "Answer one request. Without close, body is a reply on the request's thread, a question or a short progress note, and the request stays open. With close: true, body is the one-sentence resolution that names what changed or why not, and the request closes: send it after the request's edit is saved, or to decline it. Requires prompts_begin, task_id, and the expected_hash from prompts_requests.",
       schema({ ...targetProperties, task_id: string, request_id: string, expected_hash: string, body: string, close: { ...nullable({ type: "boolean" }), description: "true closes the request with body as its resolution. Omit it, or pass false or null, to reply and leave the request open." } },
@@ -221,7 +221,8 @@ export function createPromptTools(context: PromptToolContext): PromptTool[] {
         const resolved = await store.resolve(choice.prompt.target.promptPath, args.request_id as string,
           { resolution: args.body as string, actor: "agent", expectedHash: args.expected_hash as string });
         if (!resolved.ok) return storeFailure(resolved);
-        return { ok: true, request: resolved.annotation, hash: resolved.hash, expected_hash: resolved.hash };
+        return { ok: true, request: resolved.annotation, hash: resolved.hash, expected_hash: resolved.hash,
+          next: "Call prompts_requests again and confirm that the request is closed, then work the next open request." };
       }
       const replied = await store.reply(choice.prompt.target.promptPath, args.request_id as string,
         { author: "agent", body: args.body as string, expectedHash: args.expected_hash as string });
