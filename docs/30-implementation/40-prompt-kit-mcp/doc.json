@@ -22,7 +22,9 @@
         "cg-11",
         "cg-13",
         "cg-15",
+        "985f187a-5d6b-4174-822e-bb4183a3424d",
         "tl-1",
+        "c5d023d7-0062-4a2d-80c4-2e6545e1b229",
         "authored-7",
         "authored-8",
         "authored-9",
@@ -204,13 +206,14 @@
       "props": {},
       "text": [
         {
-          "insert": "The index lists each guidance topic with its size, its part count, and the writes it unlocks."
+          "insert": "The index lists each guidance topic with its size and part count for the largest profile, and the writes it unlocks."
         }
       ],
       "children": [
         "cg-4",
         "cg-5",
-        "cg-6"
+        "cg-6",
+        "8e5eab23-86a6-485a-97ac-69b7506d403d"
       ]
     },
     "cg-4": {
@@ -269,6 +272,35 @@
       "text": [
         {
           "insert": "Every call rescans the workspace. A cursor from a changed project list is refused, and an unchanged rescan keeps it valid."
+        }
+      ],
+      "children": []
+    },
+    "8e5eab23-86a6-485a-97ac-69b7506d403d": {
+      "id": "8e5eab23-86a6-485a-97ac-69b7506d403d",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "An item too long for a page alone is cut to fit and marked "
+        },
+        {
+          "insert": "truncated",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "prompts_discover",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " returns that item whole."
         }
       ],
       "children": []
@@ -344,6 +376,7 @@
       ],
       "children": [
         "cg-8",
+        "ef87f3cc-2e58-49e3-b399-b521edab8f2b",
         "cg-9",
         "cg-10"
       ]
@@ -364,6 +397,35 @@
         },
         {
           "insert": " names its topic, and the task's pinned snapshot holds the topics of its profile."
+        }
+      ],
+      "children": []
+    },
+    "ef87f3cc-2e58-49e3-b399-b521edab8f2b": {
+      "id": "ef87f3cc-2e58-49e3-b399-b521edab8f2b",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "The topics come from the docs pages of this repo. A packaged install with no "
+        },
+        {
+          "insert": "docs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " folder reads the bundle in "
+        },
+        {
+          "insert": "packages/prompt-kit-server/guidance",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -543,7 +605,7 @@
           }
         },
         {
-          "insert": " is the prompt block, 800 bytes or less."
+          "insert": " is the prompt block, at most 12 lines and 800 bytes."
         }
       ],
       "children": [
@@ -579,13 +641,26 @@
       ],
       "children": []
     },
+    "985f187a-5d6b-4174-822e-bb4183a3424d": {
+      "id": "985f187a-5d6b-4174-822e-bb4183a3424d",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Tool List"
+        }
+      ],
+      "children": []
+    },
     "tl-1": {
       "id": "tl-1",
       "type": "paragraph",
       "props": {},
       "text": [
         {
-          "insert": "The server lists 10 tools: "
+          "insert": "The server lists 10 tools in this order: "
         },
         {
           "insert": "prompts_capabilities",
@@ -651,7 +726,7 @@
           "insert": ", "
         },
         {
-          "insert": "prompts_check",
+          "insert": "prompts_requests",
           "attributes": {
             "code": true
           }
@@ -660,7 +735,7 @@
           "insert": ", "
         },
         {
-          "insert": "prompts_requests",
+          "insert": "prompts_request_reply",
           "attributes": {
             "code": true
           }
@@ -669,13 +744,48 @@
           "insert": ", and "
         },
         {
-          "insert": "prompts_request_reply",
+          "insert": "prompts_check",
           "attributes": {
             "code": true
           }
         },
         {
           "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "c5d023d7-0062-4a2d-80c4-2e6545e1b229": {
+      "id": "c5d023d7-0062-4a2d-80c4-2e6545e1b229",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "prompts_request_reply",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " answers one request. With "
+        },
+        {
+          "insert": "close: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", its "
+        },
+        {
+          "insert": "body",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the one-sentence resolution, and the request closes."
         }
       ],
       "children": []
