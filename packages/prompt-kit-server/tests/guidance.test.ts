@@ -1,14 +1,29 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { cp, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import {
-	generateSkillReferences,
 	GUIDANCE_SOURCE_MANIFEST,
 	loadGuidance,
+	writeGuidanceBundle,
+	type GuidanceSnapshot,
+	type GuidanceTopicId,
 } from "../src/guidance";
 
 const REPO_ROOT = resolve(import.meta.dir, "../../..");
+const BUNDLE = resolve(import.meta.dir, "../guidance");
+/** One topic's text from a snapshot. */
+const topic = (snapshot: GuidanceSnapshot, id: GuidanceTopicId) => snapshot.topics.find((entry) => entry.id === id)!.text;
+/** Every file under dir, by its relative path. */
+async function files(dir: string, base = dir): Promise<Record<string, string>> {
+	const out: Record<string, string> = {};
+	for (const entry of await readdir(dir, { withFileTypes: true })) {
+		const path = join(dir, entry.name);
+		if (entry.isDirectory()) Object.assign(out, await files(path, base));
+		else out[path.slice(base.length + 1)] = await readFile(path, "utf8");
+	}
+	return out;
+}
 const temporary: string[] = [];
 
 async function temp(): Promise<string> {
@@ -33,24 +48,24 @@ afterEach(async () => {
 });
 
 describe("prompt authoring guidance", () => {
-	test("assembles profile essentials and catalogs detailed canonical references", async () => {
+	test("serves each profile's standards and the shared topics, and catalogs detailed canonical references", async () => {
 		const agent = await loadGuidance({ profile: "agent" });
 		const single = await loadGuidance({ profile: "single-output" });
 		const generic = await loadGuidance();
 
 		expect(agent.profile).toBe("agent");
-		expect(agent.text).toContain("## Agent prompt structure");
-		expect(agent.text).not.toContain("## Single-output prompt structure");
-		expect(single.text).toContain("## Single-output prompt structure");
-		expect(single.text).not.toContain("## Agent prompt structure");
+		expect(topic(agent, "standards")).toContain("## Agent prompt structure");
+		expect(topic(agent, "standards")).not.toContain("## Single-output prompt structure");
+		expect(topic(single, "standards")).toContain("## Single-output prompt structure");
+		expect(topic(single, "standards")).not.toContain("## Agent prompt structure");
 		expect(generic.profile).toBe("generic");
-		expect(generic.text).toContain("## Prompt placement and structure");
-		expect(generic.text).toContain("## Prompt quality");
-		expect(generic.text).toContain("The canonical prompt object is a `PromptDocument`");
-		expect(generic.text).toContain("## Prompt edit operation guide");
-		expect(agent.text).toContain("# Workflow Structure");
-		expect(agent.text).toContain("| update_node | Shallow-merge supported fields");
-		expect(agent.text).toContain("Errors identify the offending operation");
+		expect(topic(generic, "standards")).toContain("## Prompt placement and structure");
+		expect(topic(generic, "standards")).toContain("## Prompt quality");
+		expect(topic(generic, "operations")).toContain("The canonical prompt object is a `PromptDocument`");
+		expect(topic(generic, "operations")).toContain("## Prompt edit operation guide");
+		expect(topic(agent, "standards")).toContain("# Workflow Structure");
+		expect(topic(agent, "operations")).toContain("| update_node | Shallow-merge supported fields");
+		expect(topic(agent, "operations")).toContain("Errors identify the offending operation");
 		expect(Object.keys(generic.references)).toEqual(
 			GUIDANCE_SOURCE_MANIFEST.map((source) => source.id),
 		);
@@ -77,8 +92,8 @@ describe("prompt authoring guidance", () => {
 		const after = await loadGuidance({ repoRoot: root, profile: "agent" });
 
 		expect(after.snapshotId).not.toBe(before.snapshotId);
-		expect(after.text).toContain("Fresh Agent Guidance");
-		expect(before.text).not.toContain("Fresh Agent Guidance");
+		expect(topic(after, "standards")).toContain("Fresh Agent Guidance");
+		expect(topic(before, "standards")).not.toContain("Fresh Agent Guidance");
 		const beforeSource = before.sources.find((entry) => entry.path === source.path)!;
 		const afterSource = after.sources.find((entry) => entry.path === source.path)!;
 		expect(afterSource.sourceSha256).not.toBe(beforeSource.sourceSha256);
@@ -89,7 +104,7 @@ describe("prompt authoring guidance", () => {
 		const sourceOnlyProvenance = sourceOnly.sources.find(
 			(entry) => entry.path === source.path,
 		)!;
-		expect(sourceOnly.text).toBe(after.text);
+		expect(sourceOnly.topics).toEqual(after.topics);
 		expect(sourceOnly.snapshotId).not.toBe(after.snapshotId);
 		expect(sourceOnlyProvenance.sourceSha256).not.toBe(afterSource.sourceSha256);
 		expect(sourceOnlyProvenance.renderedSha256).toBe(afterSource.renderedSha256);
@@ -102,7 +117,7 @@ describe("prompt authoring guidance", () => {
 		const root = await temp();
 		await copyCorpus(root);
 		const bundle = await temp();
-		await generateSkillReferences(bundle, await loadGuidance());
+		await writeGuidanceBundle(bundle, await loadGuidance());
 		const missing = GUIDANCE_SOURCE_MANIFEST[0]!;
 		await unlink(join(root, missing.path));
 
@@ -125,10 +140,10 @@ describe("prompt authoring guidance", () => {
 		);
 	});
 
-	test("generated references preserve provenance and provide an explicit portable fallback", async () => {
+	test("the bundle preserves provenance and provides an explicit portable fallback", async () => {
 		const output = await temp();
 		const canonical = await loadGuidance({ profile: "agent" });
-		await generateSkillReferences(output, canonical);
+		await writeGuidanceBundle(output, canonical);
 		const portable = await loadGuidance({
 			profile: "agent",
 			bundledRoot: output,
@@ -136,13 +151,13 @@ describe("prompt authoring guidance", () => {
 		});
 
 		expect(portable.snapshotId).toBe(canonical.snapshotId);
-		expect(portable.text).toBe(canonical.text);
+		expect(portable.topics).toEqual(canonical.topics);
 		expect(portable.references).toEqual(canonical.references);
-		expect(await readFile(join(output, "references/standards.md"), "utf8")).toContain(
+		expect(await readFile(join(output, "references/details/quality.md"), "utf8")).toContain(
 			canonical.snapshotId,
 		);
-		expect(await readFile(join(output, "references/catalog.md"), "utf8")).toContain(
-			"details/workflow.md",
+		expect(Object.keys(await files(output)).sort()).toEqual(
+			["snapshot.json", ...GUIDANCE_SOURCE_MANIFEST.map((source) => `references/details/${source.id}.md`)].sort(),
 		);
 		const manifest = JSON.parse(await readFile(join(output, "snapshot.json"), "utf8"));
 		expect(manifest.sources).toEqual(canonical.sources);
@@ -151,5 +166,15 @@ describe("prompt authoring guidance", () => {
 		await expect(
 			loadGuidance({ profile: "agent", bundledRoot: output, sourceMode: "bundled" }),
 		).rejects.toThrow("Bundled guidance reference is unavailable: quality");
+	});
+
+	test("the committed bundle equals a fresh build from the canonical docs", async () => {
+		// Run `bun run --cwd packages/prompt-kit-server guidance:bundle` when this fails.
+		const fresh = await temp();
+		await writeGuidanceBundle(fresh);
+		const again = await files(fresh);
+		await writeGuidanceBundle(fresh);
+		expect(await files(fresh)).toEqual(again);
+		expect(await files(BUNDLE)).toEqual(again);
 	});
 });

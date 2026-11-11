@@ -34,7 +34,6 @@ export interface GuidanceSourceDefinition {
 	readonly kind: GuidanceSourceKind;
 	readonly topic: GuidanceTopicId;
 	readonly profiles: readonly GuidanceProfile[];
-	readonly essentialFor: readonly GuidanceProfile[];
 }
 
 /** One topic for one profile: its title as a heading, then its sources in manifest order, each under its title. */
@@ -64,7 +63,6 @@ export interface GuidanceCatalogEntry {
 
 export interface GuidanceSnapshot {
 	readonly profile: GuidanceProfile;
-	readonly text: string;
 	readonly snapshotId: string;
 	readonly sources: readonly GuidanceSource[];
 	readonly references: Readonly<Record<string, string>>;
@@ -97,7 +95,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "standard",
 		topic: "standards",
 		profiles: ALL_PROFILES,
-		essentialFor: ALL_PROFILES,
 	},
 	{
 		id: "agent-structure",
@@ -107,7 +104,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "standard",
 		topic: "standards",
 		profiles: ["agent"],
-		essentialFor: ["agent"],
 	},
 	{
 		id: "workflow",
@@ -117,7 +113,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "standard",
 		topic: "standards",
 		profiles: ["agent", "single-output"],
-		essentialFor: ["agent"],
 	},
 	{
 		id: "single-output-structure",
@@ -127,7 +122,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "standard",
 		topic: "standards",
 		profiles: ["single-output"],
-		essentialFor: ["single-output"],
 	},
 	{
 		id: "quality",
@@ -137,7 +131,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "standard",
 		topic: "standards",
 		profiles: ALL_PROFILES,
-		essentialFor: ALL_PROFILES,
 	},
 	{
 		id: "techniques",
@@ -147,7 +140,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "standard",
 		topic: "catalog",
 		profiles: ALL_PROFILES,
-		essentialFor: [],
 	},
 	{
 		id: "document-model",
@@ -157,7 +149,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "model",
 		topic: "operations",
 		profiles: ALL_PROFILES,
-		essentialFor: ALL_PROFILES,
 	},
 	{
 		id: "authoring-model",
@@ -167,7 +158,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "model",
 		topic: "catalog",
 		profiles: ALL_PROFILES,
-		essentialFor: [],
 	},
 	{
 		id: "validation",
@@ -177,7 +167,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "model",
 		topic: "catalog",
 		profiles: ALL_PROFILES,
-		essentialFor: [],
 	},
 	{
 		id: "editing-model",
@@ -187,7 +176,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "transaction",
 		topic: "editor",
 		profiles: ALL_PROFILES,
-		essentialFor: [],
 	},
 	{
 		id: "transactions",
@@ -197,7 +185,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "transaction",
 		topic: "operations",
 		profiles: ALL_PROFILES,
-		essentialFor: ALL_PROFILES,
 	},
 	{
 		id: "edit-prompts",
@@ -207,7 +194,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "guide",
 		topic: "workflow",
 		profiles: ALL_PROFILES,
-		essentialFor: [],
 	},
 	{
 		id: "work-requests",
@@ -217,7 +203,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "guide",
 		topic: "work-requests",
 		profiles: ALL_PROFILES,
-		essentialFor: [],
 	},
 	{
 		id: "editor-state-reference",
@@ -227,7 +212,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "editor",
 		topic: "editor",
 		profiles: ALL_PROFILES,
-		essentialFor: [],
 	},
 	{
 		id: "editor-tool-guide",
@@ -237,7 +221,6 @@ export const GUIDANCE_SOURCE_MANIFEST: readonly GuidanceSourceDefinition[] = [
 		kind: "editor",
 		topic: "editor",
 		profiles: ALL_PROFILES,
-		essentialFor: [],
 	},
 ] as const;
 
@@ -308,25 +291,6 @@ function generatedBody(content: string, file: string): string {
 	return content.slice(end + 4);
 }
 
-export function assembleGuidanceText(
-	profile: GuidanceProfile,
-	contents: Readonly<Record<string, string>>,
-): string {
-	assertProfile(profile);
-	const selected = GUIDANCE_SOURCE_MANIFEST.filter((source) =>
-		source.essentialFor.includes(profile),
-	);
-	return selected
-		.map((source) => {
-			const content = contents[source.id];
-			if (content === undefined) {
-				throw new Error(`Missing required guidance source: ${source.path}`);
-			}
-			return sourceSection(source, content);
-		})
-		.join("\n\n---\n\n");
-}
-
 /** A source as a topic holds it: its title as a heading, then its text. */
 const sourceSection = (source: GuidanceSourceDefinition, content: string) =>
 	`## ${source.title}\n\n${stripFrontmatter(content)}`;
@@ -379,14 +343,12 @@ function buildSnapshot(
 		),
 	);
 	const topics = Object.freeze(assembleGuidanceTopics(profile, contents).map((topic) => Object.freeze(topic)));
-	const text = assembleGuidanceText(profile, contents);
 	const frozenSources = Object.freeze(sources.map((source) => Object.freeze({ ...source })));
 	const snapshotId = `sha256:${hashGuidanceContent(
 		JSON.stringify({
 			version: GUIDANCE_SCHEMA_VERSION,
 			profile,
 			sources: frozenSources,
-			text,
 			references,
 			catalog,
 			topics,
@@ -394,7 +356,6 @@ function buildSnapshot(
 	)}`;
 	return Object.freeze({
 		profile,
-		text,
 		snapshotId,
 		sources: frozenSources,
 		references,
@@ -521,37 +482,24 @@ export async function loadGuidance(
 		: loadBundled(bundledRoot, profile);
 }
 
-function renderCatalog(snapshot: GuidanceSnapshot): string {
-	return GUIDANCE_SOURCE_MANIFEST
-		.map(
-			(entry) =>
-				`- [${entry.title}](details/${entry.id}.md)\n  - ${entry.summary}\n  - Profiles: ${entry.profiles.join(", ")}`,
-		)
-		.join("\n");
-}
-
-/** Render the same maintained sources into a portable skill/package directory. */
-export async function generateSkillReferences(
-	outputDir: string,
+/**
+ * Write the bundle that a packaged installation with no docs folder loads: one generated file per source under
+ * references/details/ and snapshot.json with the provenance loadBundled checks. Deterministic, so a second run changes
+ * nothing. The default is this package's guidance/ folder from the canonical docs. Run it with
+ * `bun run --cwd packages/prompt-kit-server guidance:bundle`, and tests/guidance.test.ts fails while the committed
+ * bundle differs from a fresh one.
+ */
+export async function writeGuidanceBundle(
+	outputDir: string = DEFAULT_BUNDLED_ROOT,
 	guidance?: GuidanceSnapshot,
 ): Promise<void> {
-	const snapshot = guidance ?? (await loadGuidance());
-	const referencesDir = join(outputDir, "references");
-	const detailsDir = join(referencesDir, "details");
+	const snapshot = guidance ?? (await loadGuidance({ sourceMode: "canonical" }));
+	const detailsDir = join(outputDir, "references", "details");
 	await mkdir(detailsDir, { recursive: true });
-	const stamp = `${GENERATED_PREFIX}snapshot ${snapshot.snapshotId}. Refresh the installation to regenerate. -->\n`;
-	const standards = snapshot.topics.find((topic) => topic.id === "standards")!;
+	const stamp = `${GENERATED_PREFIX}snapshot ${snapshot.snapshotId}. Regenerate with \`bun run --cwd packages/prompt-kit-server guidance:bundle\`. -->\n`;
 	await Promise.all([
-		writeFile(join(referencesDir, "standards.md"), `${stamp}${standards.text}\n`),
-		writeFile(
-			join(referencesDir, "catalog.md"),
-			`${stamp}# Prompt Guidance Catalog\n\n${renderCatalog(snapshot)}\n`,
-		),
 		...GUIDANCE_SOURCE_MANIFEST.map((source) =>
-			writeFile(
-				join(detailsDir, `${source.id}.md`),
-				`${stamp}${snapshot.references[source.id] ?? ""}`,
-			),
+			writeFile(join(detailsDir, `${source.id}.md`), `${stamp}${snapshot.references[source.id] ?? ""}`),
 		),
 		writeFile(
 			join(outputDir, "snapshot.json"),
