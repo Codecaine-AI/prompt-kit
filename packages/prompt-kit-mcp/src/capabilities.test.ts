@@ -190,6 +190,23 @@ describe("manifest contract", () => {
 });
 
 describe("topics", () => {
+  test("each tool name that tools/list returns and a served topic mentions appears with its exact name, and no topic holds prompts*", async () => {
+    const service = createInteractionService();
+    const tools = service.listTools().map((tool) => tool.name);
+    service.close();
+    const findings: string[] = [];
+    for (const profile of GUIDANCE_PROFILES) {
+      for (const topic of (await loadGuidance({ profile })).topics) {
+        const text = topicParts(topic).join("\n");
+        // Markdown emphasis that eats the underscores turns prompts_check into prompts*check* or promptscheck.
+        for (const damaged of text.match(/prompts\*[\w*]*/g) ?? []) findings.push(`${profile} ${topic.id}: ${damaged}`);
+        for (const name of new Set(text.match(/\bprompts_[a-z_]+\b/g) ?? [])) if (!tools.includes(name)) findings.push(`${profile} ${topic.id}: ${name} is not a listed tool`);
+        for (const name of tools) if (new RegExp(`\\b${name.replace(/_/g, "")}\\b`).test(text)) findings.push(`${profile} ${topic.id}: ${name} lost its underscores`);
+      }
+    }
+    expect(findings).toEqual([]);
+  });
+
   test("each topic serves its sources in parts of at most 24,576 bytes, and no line is lost", async () => {
     for (const profile of GUIDANCE_PROFILES) {
       const snapshot = await loadGuidance({ profile });

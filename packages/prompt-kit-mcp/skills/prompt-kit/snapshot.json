@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "snapshotId": "sha256:560bc8075b7f3588e8353f02f03bd4b7ebd440933ff17386ffffcec0476a228b",
+  "snapshotId": "sha256:3a213f64fb72928c7078f85092107b1e33682a5c2106e62d27858c691a8f521b",
   "profile": "generic",
   "sources": [
     {
@@ -76,9 +76,9 @@
     {
       "path": "docs/10-system-design/90-external-authoring/20-operations/doc.json",
       "kind": "transaction",
-      "sourceSha256": "d497231afc7e64faa6cdeb26e8750c110daa2a046d253347523c32550179cb06",
-      "renderedSha256": "ab66b13f70bc93998d5efa4ccd9c2748a0f8adf03d8251360d6ff9e5804cba65",
-      "sha256": "df69d75a50aae46494ca0af6fdc662af40287ddedbbf7ac1bf2574affa6b8cad"
+      "sourceSha256": "dbc5d552713ce30af39ceac227930a911b8e69272cc44450f6705152a6625bee",
+      "renderedSha256": "1ec1995c58f5d318a2557195e8e95ba3ef05f92ce911e8462218d95e8c1df3ce",
+      "sha256": "9c5dfc4fb085643c3668f018c03a1863d790152ce80852e410f46111a37e25ad"
     },
     {
       "path": "docs/40-guides/20-edit-prompts/doc.json",

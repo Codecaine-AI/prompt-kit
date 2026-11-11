@@ -433,16 +433,34 @@
       "props": {},
       "text": [
         {
-          "insert": "Every mutation requires a task in the same workspace and project plus a current prompt hash. prompts"
+          "insert": "Every mutation requires a task in the same workspace and project plus a current prompt hash. "
         },
         {
-          "insert": "apply",
+          "insert": "prompts_apply_ops",
           "attributes": {
-            "italic": true
+            "code": true
           }
         },
         {
-          "insert": "ops also requires that the task read every part of topic standards. Guidance is pinned within a task, and new tasks observe updated canonical standards. A task expires 30 minutes after its last call or 12 hours after prompts_begin."
+          "insert": " also requires that the task read every part of topic "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Guidance is pinned within a task, and new tasks observe updated canonical standards. A task expires 30 minutes after its last call or 12 hours after "
+        },
+        {
+          "insert": "prompts_begin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []

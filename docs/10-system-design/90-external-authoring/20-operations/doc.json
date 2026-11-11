@@ -203,16 +203,25 @@
       "props": {},
       "text": [
         {
-          "insert": "Profile findings can remain during a sequence of saves. Structural errors and undeclared variables block saves. Finish with prompts"
+          "insert": "Profile findings can remain during a sequence of saves. Structural errors and undeclared variables block saves. Finish with "
         },
         {
-          "insert": "check and the task ID after you inspect the production render. Use prompts",
+          "insert": "prompts_check",
           "attributes": {
-            "italic": true
+            "code": true
           }
         },
         {
-          "insert": "undo with the committed change ID and current hash to undo a save without overwriting intervening changes."
+          "insert": " and the task ID after you inspect the production render. Use "
+        },
+        {
+          "insert": "prompts_undo",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with the committed change ID and current hash to undo a save without overwriting intervening changes."
         }
       ],
       "children": []
