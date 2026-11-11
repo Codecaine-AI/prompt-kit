@@ -309,9 +309,12 @@ export function createInteractionService(options: InteractionServiceOptions = {}
         if (!selectedProject) throw new Error("Unknown project. Call prompts_discover first.");
         // Only an omitted profile or null selects the project's own profile.
         const profile = args.profile == null ? selectedProject.defaultProfile : selectedProfile(args.profile);
-        if (tasks.size >= maxTasks) throw new Error(`Too many open prompt tasks (${tasks.size}). A task expires after ${span(idleMs)} without a prompt call that names it.`);
+        const assertCapacity = () => { if (tasks.size >= maxTasks) throw new Error(`Too many open prompt tasks (${tasks.size}). A task expires after ${span(idleMs)} without a prompt call that names it.`); };
+        assertCapacity();
         if (await startupFingerprint !== await fingerprint()) throw new Error("Prompt implementation changed. Restart the Prompt service before beginning a task.");
         const snapshot = await guidanceLoader({ profile });
+        // Parallel begins all pass the first check before their awaits, so the insert checks again.
+        assertCapacity();
         const id = randomUUID();
         const task: TaskState = { workspace: found.workspace, project: args.project as string, profile, snapshot, configurationFingerprint: found.configurationFingerprint,
           implementationFingerprint: await startupFingerprint, toolContractHash: toolContractHash(), createdAt: now(), lastUsedAt: now(), inFlight: 0, topicsRead: new Set(), changed: new Map(), checked: new Map() };

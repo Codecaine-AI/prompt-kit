@@ -396,3 +396,19 @@ test("the task limits come from CODECAINE_PROMPTS_TASK_IDLE_MS and CODECAINE_PRO
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("parallel prompts_begin calls never open more tasks than maxTasks", async () => {
+  const root = await fixture();
+  // A slow guidance load keeps each begin between its capacity check and its insert while the others arrive.
+  const slow = async (options?: { profile?: "agent" | "single-output" | "generic" }) => { await Bun.sleep(20); return guidance(options); };
+  const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: slow as never, maxTasks: 1 });
+  try {
+    const project = ((await service.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
+    const results = await Promise.all([1, 2, 3].map(() => service.call(root, "prompts_begin", { project })));
+    expect(results.filter((result) => result.structuredContent.ok === true)).toHaveLength(1);
+    for (const refused of results.filter((result) => result.isError)) {
+      expect(refused.structuredContent.detail).toBe("Too many open prompt tasks (1). A task expires after 30 minutes without a prompt call that names it.");
+    }
+    expect(service.stats().tasks).toBe(1);
+  } finally { service.close(); await rm(root, { recursive: true, force: true }); }
+});
