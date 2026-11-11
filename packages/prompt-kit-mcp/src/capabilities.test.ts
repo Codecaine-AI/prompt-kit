@@ -1,5 +1,5 @@
 /**
- * The rule-unit manifest of the deleted prompt-kit skill against the served topics, the prompts_capabilities index, the
+ * The rule-unit manifest of the deleted skill against the served topics, the prompts_capabilities index, the
  * standards gate and the tool list. Every check runs in process on the real guidance, with no network call.
  */
 import { createHash } from "node:crypto";
