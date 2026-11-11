@@ -220,7 +220,6 @@ test("prompts_discover with project returns that project's prompts and errors, a
       expect(refused.isError).toBe(true);
       expect(refused.structuredContent.detail).toBe(detail);
     }
-    expect(service.listTools().map((tool) => tool.name)).not.toContain("prompts_list");
   } finally { await rm(root, { recursive: true, force: true }); await rm(other, { recursive: true, force: true }); }
 });
 

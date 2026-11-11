@@ -203,7 +203,16 @@
       "props": {},
       "text": [
         {
-          "insert": "Profile findings can remain during a sequence of saves. Structural errors and undeclared variables block saves. Finish with prompts_check after inspecting the production render, then prompts_end. Use prompts_undo with the committed change ID and current hash to undo a save without overwriting intervening changes."
+          "insert": "Profile findings can remain during a sequence of saves. Structural errors and undeclared variables block saves. Finish with prompts"
+        },
+        {
+          "insert": "check and the task ID after you inspect the production render. Use prompts",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": "undo with the committed change ID and current hash to undo a save without overwriting intervening changes."
         }
       ],
       "children": []
