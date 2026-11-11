@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 import { identityFromEnv, newRunId } from "@codecaine-ai/action-log";
 import { daemonFetch, ensureDaemon } from "./lifecycle";
 
-export const MCP_INSTRUCTIONS = "Use prompts_discover for the active workspace. For prompt edits call prompts_begin, read its pinned standards, then prompts_read before typed operations with task_id and expected_hash. Valid edits save immediately. Run prompts_check before prompts_end. Never rewrite prompt JSON or rendered Markdown directly.";
+export const MCP_INSTRUCTIONS = "Use prompts_discover for the active workspace. For prompt edits call prompts_begin, read its pinned standards, then prompts_read before typed operations with task_id and expected_hash. Valid edits save immediately. Run prompts_check with task_id before you report. Never rewrite prompt JSON or rendered Markdown directly.";
 
 export async function startMcp(initialWorkspace: string) {
   const state = await ensureDaemon();

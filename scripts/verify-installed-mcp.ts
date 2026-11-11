@@ -33,14 +33,14 @@ try {
   const a = await create();
   const b = await create();
   const listedTools = await a.listTools();
-  for (const name of ["prompts_discover", "prompts_list", "prompts_begin", "prompts_guidance", "prompts_read", "prompts_apply_ops", "prompts_undo", "prompts_check", "prompts_end"]) {
+  for (const name of ["prompts_discover", "prompts_begin", "prompts_guidance", "prompts_read", "prompts_apply_ops", "prompts_undo", "prompts_check", "prompts_requests", "prompts_request_reply"]) {
     assert(listedTools.tools.some(tool => tool.name === name), `Missing tool ${name}`);
   }
   const live = await call(a, "prompts_discover", { workspace });
   assert.equal(live.ok, true);
   assert(live.projects.length > 0, "Current Prompt Kit catalog must be discoverable");
   const actualProject = live.projects.find((project: any) => project.name === "prompt-kit") ?? live.projects[0];
-  const actualList = await call(a, "prompts_list", { project: actualProject.id });
+  const actualList = await call(a, "prompts_discover", { workspace, project: actualProject.id });
   assert.equal(actualList.ok, true);
   assert(actualList.prompts.length > 0);
   const actualRead = await call(a, "prompts_read", { project: actualProject.id, prompt_id: actualList.prompts[0].id });
@@ -56,7 +56,8 @@ try {
   assert.equal((await call(b, "prompts_discover", { workspace: fixture })).ok, true);
   const task = await call(a, "prompts_begin", { project, profile: "generic" });
   assert.equal(task.ok, true);
-  assert(typeof task.guidance === "string" && task.guidance.length > 1000);
+  const guidance = await call(a, "prompts_guidance", { task_id: task.task_id });
+  assert(typeof guidance.guidance === "string" && guidance.guidance.length > 1000);
   const target = { project, prompt_id: doc.id };
   const before = await call(a, "prompts_read", target);
   assert.equal(before.ok, true);
@@ -75,10 +76,10 @@ try {
   const undone = await call(b, "prompts_undo", { ...target, task_id: task.task_id, expected_hash: saved.hash, change_id: saved.changeId });
   assert.equal(undone.ok, true, JSON.stringify(undone));
   assert.equal(undone.hash, before.hash);
-  assert.equal((await call(a, "prompts_check", { ...target, task_id: task.task_id })).ok, true);
-  const ended = await call(a, "prompts_end", { task_id: task.task_id });
-  assert.equal(ended.ok, true, JSON.stringify(ended));
-  console.log(JSON.stringify({ ok: true, client: clientName, installedConnection: "prompt-kit", toolCount: listedTools.tools.length, realProject: actualProject.id, realPrompt: actualList.prompts[0].id, checks: ["real catalog read", "guidance loaded", "two-client saved revision visibility", "derived render", "stale revision rejection", "completion check", "guarded undo", "task end"], verifiedAt: new Date().toISOString() }, null, 2));
+  const report = await call(a, "prompts_check", { ...target, task_id: task.task_id });
+  assert.equal(report.ok, true, JSON.stringify(report));
+  assert.equal(report.all_current_revisions_checked, true, JSON.stringify(report));
+  console.log(JSON.stringify({ ok: true, client: clientName, installedConnection: "prompt-kit", toolCount: listedTools.tools.length, realProject: actualProject.id, realPrompt: actualList.prompts[0].id, checks: ["real catalog read", "guidance loaded", "two-client saved revision visibility", "derived render", "stale revision rejection", "completion check", "guarded undo", "task report"], verifiedAt: new Date().toISOString() }, null, 2));
 } finally {
   await Promise.all(clients.map(client => client.close()));
   await rm(fixture, { recursive: true, force: true });

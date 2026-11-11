@@ -21,7 +21,6 @@ async function standaloneFixture(variables: string[] | undefined, nodes: unknown
 
 test("published apply schema compiles with draft 2020-12 refs rooted at the MCP input", async () => {
   const tools = createPromptTools({
-    resolveProject: async () => { throw new Error("unused"); },
     resolvePrompt: async () => { throw new Error("unused"); },
   });
   const apply = tools.find((tool) => tool.name === "prompts_apply_ops")!;
@@ -35,7 +34,7 @@ test("published apply schema compiles with draft 2020-12 refs rooted at the MCP 
   expect(opsSchema.$schema).toBeUndefined();
 });
 
-test("unknown standalone declarations block check completion and task end", async () => {
+test("unknown standalone declarations block the check and its task report", async () => {
   const root = await standaloneFixture(undefined, [{ type: "paragraph", id: "body", content: ["text"] }]);
   try {
     const service = createInteractionService({ runtimeFingerprint: () => "runtime", guidance: guidance as never });
@@ -45,8 +44,7 @@ test("unknown standalone declarations block check completion and task end", asyn
     expect(checked.ok).toBe(false);
     expect(checked.variable_declarations_known).toBe(false);
     expect(JSON.stringify(checked.blocking)).toContain("variable_declarations_unknown");
-    const ended = (await service.call(root, "prompts_end", { task_id: task })).structuredContent;
-    expect(ended.all_current_revisions_checked).toBe(false);
+    expect(checked.all_current_revisions_checked).toBe(false);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
@@ -56,7 +54,7 @@ test("mutation lock rejects standalone declaration drift from its discovered ent
     const discovery = await discoverPromptProjects(root);
     const project = discovery.projects[0]!;
     const prompt = project.prompts[0]!;
-    const tools = createPromptTools({ resolveProject: async () => project, resolvePrompt: async () => ({ project, prompt }) });
+    const tools = createPromptTools({ resolvePrompt: async () => ({ project, prompt }) });
     const read = await tools.find((tool) => tool.name === "prompts_read")!.execute({ project: project.id, prompt_id: prompt.id });
     await writeFile(join(root, "codecaine.prompts.json"), JSON.stringify({ name: "standalone-project",
       standalonePrompts: [{ path: "prompt.json", variables: ["changed"] }] }));

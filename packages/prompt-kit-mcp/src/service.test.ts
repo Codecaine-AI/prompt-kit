@@ -20,13 +20,14 @@ async function fixture() {
   return root;
 }
 
-test("runs discover, begin, read, apply, check, end and reports current checked revision", async () => {
+test("runs discover, begin, read, apply and check, and the check with task_id reports the current checked revision", async () => {
   const root = await fixture();
   try {
     const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never });
     const discovered = (await service.call(root, "prompts_discover", {})).structuredContent;
     const project = (discovered.projects as Array<{ id: string }>)[0]!.id;
     const begun = (await service.call(root, "prompts_begin", { project, profile: "generic" })).structuredContent;
+    expect(begun).toEqual({ ok: true, task_id: expect.any(String), profile: "generic", snapshot_id: "snapshot:generic", project: { id: project, name: "fixture-project" } });
     const task = begun.task_id as string;
     const read = (await service.call(root, "prompts_read", { project, prompt_id: "fixture" })).structuredContent;
     expect((read.address_map as { rootId: string }).rootId).toBe("$root");
@@ -38,9 +39,20 @@ test("runs discover, begin, read, apply, check, end and reports current checked 
     expect(changed.hash).not.toBe(read.hash);
     const checked = (await service.call(root, "prompts_check", { project, prompt_id: "fixture", task_id: task })).structuredContent;
     expect(checked.ok).toBe(true);
-    const ended = (await service.call(root, "prompts_end", { task_id: task })).structuredContent;
-    expect(ended.all_current_revisions_checked).toBe(true);
-    expect((ended.changed as unknown[])).toHaveLength(1);
+    expect(checked.snapshot_id).toBe("snapshot:generic");
+    expect(checked.all_current_revisions_checked).toBe(true);
+    expect(checked.changed).toEqual([{ project, prompt_id: "fixture", hash: changed.hash, current_hash: changed.hash, checked: true, check_ok: true }]);
+    // Without task_id, or with null, the check reports the prompt alone. A wrong-typed task_id is refused.
+    for (const args of [{}, { task_id: null }]) {
+      const plain = (await service.call(root, "prompts_check", { project, prompt_id: "fixture", ...args })).structuredContent;
+      expect(plain.ok).toBe(true);
+      expect(plain.changed).toBeUndefined();
+    }
+    for (const task_id of [7, "", "missing"]) {
+      const refused = await service.call(root, "prompts_check", { project, prompt_id: "fixture", task_id });
+      expect(refused.isError).toBe(true);
+      expect(refused.structuredContent.detail).toBe("Unknown task for this workspace. Call prompts_begin and use its task_id.");
+    }
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
@@ -56,7 +68,7 @@ test("rejects stale hashes, cross-workspace tasks, and changed runtime contracts
     const stale = await service.call(first, "prompts_apply_ops", { project, prompt_id: "fixture", task_id: task, expected_hash: "pk1-stale", ops: [{ op: "remove_node", nodeId: "body" }] });
     expect(stale.isError).toBe(true);
     expect(stale.structuredContent.code).toBe("conflict");
-    expect((await service.call(second, "prompts_end", { task_id: task })).isError).toBe(true);
+    expect((await service.call(second, "prompts_check", { project, prompt_id: "fixture", task_id: task })).isError).toBe(true);
     runtime = "runtime-2";
     const changed = await service.call(first, "prompts_apply_ops", { project, prompt_id: "fixture", task_id: task, expected_hash: read.hash, ops: [{ op: "update_node", nodeId: "body", patch: { content: ["blocked"] } }] });
     expect(changed.isError).toBe(true);
@@ -81,7 +93,7 @@ test("uses the task profile for completion while allowing incremental profile re
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
-test("durable undo survives service restart and end rechecks the disk-current hash", async () => {
+test("durable undo survives service restart and the task report rechecks the disk-current hash", async () => {
   const root = await fixture();
   try {
     const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never });
@@ -107,13 +119,21 @@ test("durable undo survives service restart and end rechecks the disk-current ha
     (externallyEdited.nodes[0] as { content: string[] }).content = ["external writer"];
     const external = await store.save(target, { document: externallyEdited, expectedHash: current.hash, source: "test-external" });
     if (!external.ok) throw new Error(external.detail);
-    const ended = (await restarted.call(root, "prompts_end", { task_id: restartedTask })).structuredContent;
-    expect(ended.all_current_revisions_checked).toBe(false);
-    expect((ended.changed as Array<{ current_hash: string }>)[0]!.current_hash).toBe(external.hash);
+    const report = (await restarted.call(root, "prompts_check", { project, prompt_id: "fixture", task_id: restartedTask })).structuredContent;
+    // The check records the external revision, so the report checks the other way: a stale check fails it.
+    expect((report.changed as Array<{ current_hash: string; checked: boolean }>)[0]).toMatchObject({ current_hash: external.hash, checked: true });
+    const later = structuredClone(external.document);
+    (later.nodes[0] as { content: string[] }).content = ["second external writer"];
+    const second = await store.save(target, { document: later, expectedHash: external.hash, source: "test-external" });
+    if (!second.ok) throw new Error(second.detail);
+    const otherPrompt = (await restarted.call(root, "prompts_check", { project, prompt_id: "fixture" })).structuredContent;
+    expect(otherPrompt.changed).toBeUndefined();
+    const discovered = (await restarted.call(root, "prompts_discover", { project })).structuredContent;
+    expect((discovered.prompts as unknown[]).length).toBe(1);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
-test("an agent reads, replies to, and resolves a request filed through the Prompt UI's HTTP API", async () => {
+test("an agent reads, replies to, and closes a request filed through the Prompt UI's HTTP API", async () => {
   const root = await fixture();
   try {
     const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never });
@@ -131,22 +151,101 @@ test("an agent reads, replies to, and resolves a request filed through the Promp
     expect(open.prompt_path).toBe(promptPath);
     expect((open.requests as Array<{ id: string; body: string }>).map((entry) => [entry.id, entry.body])).toEqual([[requestId, "Say after."]]);
 
-    const unbegun = await service.call(root, "prompts_request_resolve", { project, prompt_id: "fixture", task_id: "missing", request_id: requestId, expected_hash: open.hash });
+    const unbegun = await service.call(root, "prompts_request_reply", { project, prompt_id: "fixture", task_id: "missing", request_id: requestId, expected_hash: open.hash, body: "Done.", close: true });
     expect(unbegun.isError).toBe(true);
     const task = (await service.call(root, "prompts_begin", { project })).structuredContent.task_id as string;
     const replied = (await service.call(root, "prompts_request_reply", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: open.hash, body: "Working on it." })).structuredContent;
     expect(replied.ok).toBe(true);
-    for (const resolution of [undefined, "  "]) {
-      const unexplained = await service.call(root, "prompts_request_resolve", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: replied.expected_hash, ...(resolution === undefined ? {} : { resolution }) });
-      expect(unexplained.isError).toBe(true);
+    expect((replied.reply as { body: string }).body).toBe("Working on it.");
+    // close false or null replies and leaves the request open, as an omitted close does.
+    let hash = replied.expected_hash;
+    for (const close of [false, null]) {
+      const open = (await service.call(root, "prompts_request_reply", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: hash, body: `Still on it (${close}).`, close })).structuredContent;
+      expect(open).toMatchObject({ ok: true, request: { status: "open" }, reply: { body: `Still on it (${close}).` } });
+      hash = open.expected_hash;
     }
-    const stale = await service.call(root, "prompts_request_resolve", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: open.hash, resolution: "Changed body to say after." });
+    for (const body of [undefined, "  "]) {
+      const unexplained = await service.call(root, "prompts_request_reply", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: hash, close: true, ...(body === undefined ? {} : { body }) });
+      expect(unexplained.isError).toBe(true);
+      expect(unexplained.structuredContent.detail).toBe("body must be a non-empty string.");
+    }
+    for (const close of ["true", 1]) {
+      const wrong = await service.call(root, "prompts_request_reply", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: hash, body: "Done.", close });
+      expect(wrong.structuredContent).toEqual({ ok: false, detail: "close must be true, false, or null." });
+    }
+    const stale = await service.call(root, "prompts_request_reply", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: open.hash, body: "Changed body to say after.", close: true });
     expect(stale.structuredContent.code).toBe("conflict");
-    const resolved = (await service.call(root, "prompts_request_resolve", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: replied.expected_hash, resolution: "Changed body to say after." })).structuredContent;
-    expect(resolved.ok).toBe(true);
+    const resolved = (await service.call(root, "prompts_request_reply", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: hash, body: "Changed body to say after.", close: true })).structuredContent;
+    expect(resolved).toMatchObject({ ok: true, request: { status: "resolved", resolution: "Changed body to say after." } });
+    expect(resolved.reply).toBeUndefined();
 
     expect((await service.call(root, "prompts_requests", { project, prompt_id: "fixture" })).structuredContent.requests).toEqual([]);
     const reopened = await createPromptAnnotationFileStore({ root }).list(promptPath);
-    expect(reopened.ok && reopened.annotations[0]).toMatchObject({ status: "resolved", resolution: "Changed body to say after.", replies: [{ author: "agent", body: "Working on it." }] });
+    expect(reopened.ok && reopened.annotations[0]).toMatchObject({ status: "resolved", resolution: "Changed body to say after.",
+      replies: [{ author: "agent", body: "Working on it." }, { author: "agent", body: "Still on it (false)." }, { author: "agent", body: "Still on it (null)." }] });
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("prompts_discover with project returns that project's prompts and errors, and refuses a project outside the workspace", async () => {
+  const root = await fixture();
+  const other = await fixture();
+  try {
+    const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never });
+    const whole = (await service.call(root, "prompts_discover", {})).structuredContent;
+    const project = (whole.projects as Array<{ id: string; prompts: unknown[] }>)[0]!;
+    for (const empty of [{ project: null }, { project: null, workspace: null }]) {
+      expect((await service.call(root, "prompts_discover", empty)).structuredContent).toEqual(whole);
+    }
+    const one = (await service.call(root, "prompts_discover", { project: project.id })).structuredContent;
+    expect(one).toEqual({ ok: true, workspace: whole.workspace, project: { id: project.id, name: "fixture-project" }, prompts: project.prompts, errors: [],
+      next: "Call prompts_begin with this project before editing, then prompts_read for a prompt." });
+    const foreign = ((await service.call(other, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
+    for (const [args, detail] of [
+      [{ project: "missing" }, "Project is not in this workspace. Call prompts_discover and use a returned project ID."],
+      [{ project: foreign }, "Project is not in this workspace. Call prompts_discover and use a returned project ID."],
+      [{ project: 5 }, "project must be a non-empty string."],
+      [{ project: "" }, "project must be a non-empty string."],
+      [{ workspace: 5 }, "workspace must be a non-empty string."],
+      [{ projects: project.id }, "Unknown argument: projects."],
+    ] as const) {
+      const refused = await service.call(root, "prompts_discover", args as Record<string, unknown>);
+      expect(refused.isError).toBe(true);
+      expect(refused.structuredContent.detail).toBe(detail);
+    }
+    expect(service.listTools().map((tool) => tool.name)).not.toContain("prompts_list");
+  } finally { await rm(root, { recursive: true, force: true }); await rm(other, { recursive: true, force: true }); }
+});
+
+test("a task expires 30 minutes after its last call or 12 hours after prompts_begin, and a later call names the reason", async () => {
+  const root = await fixture();
+  let clock = 1_000_000;
+  const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never, now: () => clock });
+  try {
+    const project = ((await service.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
+    const begin = async () => (await service.call(root, "prompts_begin", { project })).structuredContent.task_id as string;
+    const check = (task_id: string) => service.call(root, "prompts_check", { project, prompt_id: "fixture", task_id });
+    const idle = await begin();
+    const busy = await begin();
+    expect(service.stats().tasks).toBe(2);
+    clock += 29 * 60_000;
+    expect((await check(busy)).isError).toBeUndefined();
+    clock += 2 * 60_000;
+    // 31 minutes since idle's last call, 2 since busy's.
+    expect(service.stats().tasks).toBe(1);
+    expect((await check(idle)).structuredContent.detail).toBe(`Task ${idle} expired after 30 minutes without a prompt call that named it. Saved edits are kept. Call prompts_begin again.`);
+    expect((await check(busy)).isError).toBeUndefined();
+    // A task that stays busy still closes 12 hours after prompts_begin.
+    // busy began 31 minutes ago. 27 calls 25 minutes apart reach 11 hours 46 minutes, and the next one passes 12 hours.
+    for (let call = 0; call < 27; call++) { clock += 25 * 60_000; expect((await check(busy)).isError).toBeUndefined(); }
+    clock += 25 * 60_000;
+    expect((await check(busy)).structuredContent.detail).toBe(`Task ${busy} reached its 12 hours limit and was closed. Saved edits are kept. Call prompts_begin again.`);
+    expect(service.stats().tasks).toBe(0);
+    // An expired id from another workspace stays unknown there.
+    const other = await fixture();
+    try {
+      await service.call(other, "prompts_discover", {});
+      const elsewhere = await service.call(other, "prompts_check", { project, prompt_id: "fixture", task_id: idle });
+      expect(elsewhere.structuredContent.detail).not.toContain("expired");
+    } finally { await rm(other, { recursive: true, force: true }); }
+  } finally { service.close(); await rm(root, { recursive: true, force: true }); }
 });

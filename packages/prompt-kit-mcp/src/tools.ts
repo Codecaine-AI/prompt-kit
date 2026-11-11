@@ -29,7 +29,6 @@ export interface PromptTool {
 }
 
 export interface PromptToolContext {
-  resolveProject(projectId: string): Promise<PromptProject>;
   resolvePrompt(projectId: string, promptId: string): Promise<{ project: PromptProject; prompt: DiscoveredPrompt }>;
   onMutation?(event: { taskId?: string; projectId: string; promptId: string; hash: string }): void;
   onCheck?(event: { taskId?: string; projectId: string; promptId: string; hash: string; ok: boolean }): void;
@@ -37,6 +36,8 @@ export interface PromptToolContext {
 }
 
 const string = { type: "string", minLength: 1 };
+/** An optional field that a client may also send as null. Only an omitted field or null counts as absent. */
+export const nullable = (schema: Record<string, unknown>) => ({ anyOf: [schema, { type: "null" }] });
 const targetProperties = { project: string, prompt_id: string };
 const schema = (properties: Record<string, unknown>, required = Object.keys(properties)) => ({
   type: "object", properties, required, additionalProperties: false,
@@ -148,11 +149,6 @@ export function createPromptTools(context: PromptToolContext): PromptTool[] {
   }
 
   return [
-    tool("prompts_list", "List discovered prompts and per-entry discovery errors for one explicit project.", schema({ project: string }), async (raw) => {
-      const args = exact(raw, ["project"]);
-      const project = await context.resolveProject(args.project as string);
-      return { ok: true, project: { id: project.id, name: project.name }, prompts: project.prompts, errors: project.errors };
-    }),
     tool("prompts_read", "Read the normalized prompt, production render, current hash, stable address map, declarations, profile, and findings. Use hash as expected_hash for edits.", schema(targetProperties), async (raw) => {
       const args = exact(raw, ["project", "prompt_id"]);
       const state = await snapshot(args);
@@ -184,7 +180,7 @@ export function createPromptTools(context: PromptToolContext): PromptTool[] {
       context.onMutation?.({ taskId: args.task_id as string, projectId: choice.projectId, promptId: choice.promptId, hash: changed.hash });
       return { ...changed, expected_hash: changed.hash, profile, findings: lintPrompt(changed.document, profile),
         validation: validatePrompt(changed.document, { declaredVariables: choice.prompt.target.declaredVariables }),
-        next: "Changes are saved. Run prompts_check for this revision before ending the task." };
+        next: "Changes are saved. Run prompts_check with task_id for this revision before you report." };
     }),
     tool("prompts_undo", "Undo a change created through this service, only while its resulting revision is current. Requires prompts_begin and task_id.", schema({ ...targetProperties, task_id: string, change_id: string, expected_hash: string }), async (raw) => {
       const args = exact(raw, ["project", "prompt_id", "task_id", "change_id", "expected_hash"]);
@@ -205,34 +201,36 @@ export function createPromptTools(context: PromptToolContext): PromptTool[] {
       return { ...undone, expected_hash: undone.hash, profile,
         findings: lintPrompt(undone.document, profile), next: "Undo is saved. Run prompts_check for this revision." };
     }),
-    tool("prompts_requests", "Read the open human requests (agent-request annotations) filed on one prompt, with their targets, threads, and replies. Use hash as expected_hash for prompts_request_reply and prompts_request_resolve.", schema({ ...targetProperties, task_id: string }, ["project", "prompt_id"]), async (raw) => {
+    tool("prompts_requests", "Read the open human requests (agent-request annotations) filed on one prompt, with their targets, threads, and replies. Use hash as expected_hash for prompts_request_reply.", schema({ ...targetProperties, task_id: string }, ["project", "prompt_id"]), async (raw) => {
       const args = exact(raw, ["project", "prompt_id"], ["task_id"]);
       const choice = await selected(args);
       const listed = await annotationsFor(choice.project.root).list(choice.prompt.target.promptPath);
       if (!listed.ok) return storeFailure(listed);
       const requests = listed.annotations.filter((entry) => entry.intent === "agent-request" && entry.status === "open");
       return { ok: true, prompt_path: listed.path, hash: listed.hash, expected_hash: listed.hash, requests,
-        next: requests.length ? "Work each request with prompts_apply_ops, then close it with prompts_request_resolve. Ask with prompts_request_reply when it is ambiguous." : "No open requests." };
+        next: requests.length ? "Work each request with prompts_apply_ops, then close it with prompts_request_reply and close: true. Ask with prompts_request_reply when it is ambiguous." : "No open requests." };
     }),
-    tool("prompts_request_reply", "Add a reply to one request's thread and leave it open: a question or a short progress note. Requires prompts_begin, task_id, and the expected_hash from prompts_requests.", schema({ ...targetProperties, task_id: string, request_id: string, expected_hash: string, body: string }), async (raw) => {
-      const args = exact(raw, ["project", "prompt_id", "task_id", "request_id", "expected_hash", "body"]);
+    tool("prompts_request_reply", "Answer one request. Without close, body is a reply on the request's thread, a question or a short progress note, and the request stays open. With close: true, body is the one-sentence resolution that names what changed or why not, and the request closes: send it after the request's edit is saved, or to decline it. Requires prompts_begin, task_id, and the expected_hash from prompts_requests.",
+      schema({ ...targetProperties, task_id: string, request_id: string, expected_hash: string, body: string, close: { ...nullable({ type: "boolean" }), description: "true closes the request with body as its resolution. Omit it, or pass false or null, to reply and leave the request open." } },
+        ["project", "prompt_id", "task_id", "request_id", "expected_hash", "body"]), async (raw) => {
+      const args = exact(raw, ["project", "prompt_id", "task_id", "request_id", "expected_hash", "body"], ["close"]);
+      if (args.close != null && typeof args.close !== "boolean") throw new Error("close must be true, false, or null.");
       const choice = await selected(args);
-      const replied = await annotationsFor(choice.project.root).reply(choice.prompt.target.promptPath, args.request_id as string,
+      const store = annotationsFor(choice.project.root);
+      if (args.close === true) {
+        const resolved = await store.resolve(choice.prompt.target.promptPath, args.request_id as string,
+          { resolution: args.body as string, actor: "agent", expectedHash: args.expected_hash as string });
+        if (!resolved.ok) return storeFailure(resolved);
+        return { ok: true, request: resolved.annotation, hash: resolved.hash, expected_hash: resolved.hash };
+      }
+      const replied = await store.reply(choice.prompt.target.promptPath, args.request_id as string,
         { author: "agent", body: args.body as string, expectedHash: args.expected_hash as string });
       if (!replied.ok) return storeFailure(replied);
       return { ok: true, request: replied.annotation, reply: replied.reply, hash: replied.hash, expected_hash: replied.hash };
     }),
-    tool("prompts_request_resolve", "Close one request after its edit is saved, or decline it, with a one-sentence resolution naming what changed or why not. Requires prompts_begin, task_id, and the expected_hash from prompts_requests.", schema({ ...targetProperties, task_id: string, request_id: string, expected_hash: string, resolution: string }), async (raw) => {
-      const args = exact(raw, ["project", "prompt_id", "task_id", "request_id", "expected_hash", "resolution"]);
-      const choice = await selected(args);
-      const resolved = await annotationsFor(choice.project.root).resolve(choice.prompt.target.promptPath, args.request_id as string,
-        { resolution: args.resolution as string, actor: "agent", expectedHash: args.expected_hash as string });
-      if (!resolved.ok) return storeFailure(resolved);
-      return { ok: true, request: resolved.annotation, hash: resolved.hash, expected_hash: resolved.hash };
-    }),
-    tool("prompts_check", "Check the current revision for structural, variable, and selected profile findings. A missing declaration source is reported as unknown, not passing.", schema({ ...targetProperties, task_id: string }, ["project", "prompt_id"]), async (raw) => {
+    tool("prompts_check", "Check the current revision for structural, variable, and selected profile findings. A missing declaration source is reported as unknown, not passing. With task_id, the result also reports each prompt the task changed: changed lists its current hash and whether that revision passed prompts_check, and all_current_revisions_checked is true when every one did.", schema({ ...targetProperties, task_id: nullable(string) }, ["project", "prompt_id"]), async (raw) => {
       const args = exact(raw, ["project", "prompt_id"], ["task_id"]);
-      if (args.task_id !== undefined && (typeof args.task_id !== "string" || !args.task_id)) throw new Error("task_id must be a non-empty string.");
+      if (args.task_id != null && (typeof args.task_id !== "string" || !args.task_id)) throw new Error("task_id must be a non-empty string.");
       const state = await snapshot(args);
       if (state.failure) return state.failure;
       const { choice, read, validation, findings, selectedProfile } = state;
