@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "snapshotId": "sha256:34b0e13e5e64274898137c5561bfc493e0b19904f1477ac442c35fa8bac85fd3",
+  "snapshotId": "sha256:04c3e5055183897d93ca883d39a6693fd3e3a7414ed16215eddbe3bf48fe0f4f",
   "profile": "generic",
   "sources": [
     {
@@ -83,9 +83,9 @@
     {
       "path": "docs/40-guides/20-edit-prompts/doc.json",
       "kind": "guide",
-      "sourceSha256": "82c4c7401f09f3b14693fd80bec5deb415f97c9a22e7e32aed0b26a8596436ae",
-      "renderedSha256": "33f0efee917315b0383d21fe768a5f8079cd0030fcc1ef7a9c9a861ecee20208",
-      "sha256": "a8bc276eee6aa652ead199e762ed9eb0b609c363245fedc6888e75b740212775"
+      "sourceSha256": "68fcb2650f1efba2b323ecf1ece5f4dc2892fe8e319a1e96bb92973d64f43c1e",
+      "renderedSha256": "10729a8ab5fb4e85085753d0cb914a19f101e0780b3d5ec1049170f38f32cb25",
+      "sha256": "d7f395ae5b2958c10945da8993c92faae89e78773f0f05196361a17006386ed0"
     },
     {
       "path": "docs/40-guides/25-work-requests/doc.json",

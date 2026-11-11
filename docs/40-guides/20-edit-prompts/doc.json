@@ -200,15 +200,6 @@
           }
         },
         {
-          "insert": " or "
-        },
-        {
-          "insert": "prompts_capabilities",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
           "insert": " for the active workspace, and select the requested project explicitly."
         }
       ],
