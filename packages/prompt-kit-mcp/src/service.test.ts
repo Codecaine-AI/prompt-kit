@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -356,4 +356,43 @@ test("prompts_begin with profile null pins the project's own profile, as an omit
     const begin = service.listTools().find((tool) => tool.name === "prompts_begin")!;
     expect((begin.inputSchema.properties as Record<string, unknown>).profile).toMatchObject({ anyOf: [{ enum: ["agent", "single-output", "generic"] }, { type: "null" }] });
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("the task limits come from CODECAINE_PROMPTS_TASK_IDLE_MS and CODECAINE_PROMPTS_TASK_MAX_AGE_MS, and an invalid value keeps the default with a warning", async () => {
+  const root = await fixture();
+  const saved = { idle: process.env.CODECAINE_PROMPTS_TASK_IDLE_MS, age: process.env.CODECAINE_PROMPTS_TASK_MAX_AGE_MS };
+  const warn = spyOn(console, "error").mockImplementation(() => {});
+  let clock = 1_000_000;
+  const services: ReturnType<typeof createInteractionService>[] = [];
+  const open = () => { const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never, now: () => clock }); services.push(service); return service; };
+  try {
+    process.env.CODECAINE_PROMPTS_TASK_IDLE_MS = "120000";
+    process.env.CODECAINE_PROMPTS_TASK_MAX_AGE_MS = "300000";
+    const short = open();
+    const project = ((await short.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
+    const check = (service: ReturnType<typeof createInteractionService>, task_id: string) => service.call(root, "prompts_check", { project, prompt_id: "fixture", task_id });
+    const idle = await begin(short, root, { project });
+    clock += 2 * 60_000 + 1;
+    expect((await check(short, idle)).structuredContent.detail).toBe(`Task ${idle} expired after 2 minutes without a prompt call that named it. Saved edits are kept. Call prompts_begin again.`);
+    const aged = await begin(short, root, { project });
+    for (let call = 0; call < 5; call++) { clock += 60_000; expect((await check(short, aged)).isError).toBeUndefined(); }
+    clock += 1;
+    expect((await check(short, aged)).structuredContent.detail).toBe(`Task ${aged} reached its 5 minutes limit and was closed. Saved edits are kept. Call prompts_begin again.`);
+    expect(warn).not.toHaveBeenCalled();
+    process.env.CODECAINE_PROMPTS_TASK_IDLE_MS = "abc";
+    process.env.CODECAINE_PROMPTS_TASK_MAX_AGE_MS = "-1";
+    const fallback = open();
+    expect(warn.mock.calls.map(([message]) => String(message).split("=")[0])).toEqual(["CODECAINE_PROMPTS_TASK_IDLE_MS", "CODECAINE_PROMPTS_TASK_MAX_AGE_MS"]);
+    await fallback.call(root, "prompts_discover", {});
+    const kept = await begin(fallback, root, { project });
+    clock += 29 * 60_000;
+    expect((await check(fallback, kept)).isError).toBeUndefined();
+  } finally {
+    warn.mockRestore();
+    for (const service of services) service.close();
+    for (const [key, value] of [["CODECAINE_PROMPTS_TASK_IDLE_MS", saved.idle], ["CODECAINE_PROMPTS_TASK_MAX_AGE_MS", saved.age]] as const) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+    await rm(root, { recursive: true, force: true });
+  }
 });

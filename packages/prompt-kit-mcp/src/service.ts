@@ -27,8 +27,8 @@ interface TaskState {
 }
 
 /**
- * A task expires after taskIdleMs without a call that names it, or taskMaxAgeMs after prompts_begin. now and maxTasks
- * are for tests.
+ * A task expires after taskIdleMs without a call that names it (CODECAINE_PROMPTS_TASK_IDLE_MS, default 30 minutes), or
+ * taskMaxAgeMs after prompts_begin (CODECAINE_PROMPTS_TASK_MAX_AGE_MS, default 12 hours). now and maxTasks are for tests.
  */
 export interface InteractionServiceOptions {
   runtimeFingerprint?: () => string | Promise<string>;
@@ -48,6 +48,15 @@ const SWEEP_EVERY_MS = MINUTE, RETIRED_KEEP_MS = 24 * HOUR, MAX_RETIRED = 5000;
 const CAPABILITIES_PAGE_BYTES = 4096;
 type RetireReason = "idle" | "max-age";
 const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
+/** A finite positive millisecond count from the environment, else the default with one warning. */
+function durationSetting(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw.trim() === "") return fallback;
+  const value = Number(raw);
+  if (Number.isFinite(value) && value > 0) return value;
+  console.error(`${name}=${JSON.stringify(raw)} is not a positive number of milliseconds. Using ${fallback}.`);
+  return fallback;
+}
 /** A duration in its largest whole unit: 30 minutes, 12 hours. */
 const span = (ms: number) => ms % HOUR === 0 ? plural(ms / HOUR, "hour") : ms % MINUTE === 0 ? plural(ms / MINUTE, "minute") : plural(Math.ceil(ms / 1000), "second");
 
@@ -86,8 +95,8 @@ export function createInteractionService(options: InteractionServiceOptions = {}
   const workspaces = new Map<string, Set<string>>();
   const tasks = new Map<string, TaskState>();
   const now = options.now ?? Date.now;
-  const idleMs = options.taskIdleMs ?? DEFAULT_TASK_IDLE_MS;
-  const maxAgeMs = options.taskMaxAgeMs ?? DEFAULT_TASK_MAX_AGE_MS;
+  const idleMs = options.taskIdleMs ?? durationSetting("CODECAINE_PROMPTS_TASK_IDLE_MS", DEFAULT_TASK_IDLE_MS);
+  const maxAgeMs = options.taskMaxAgeMs ?? durationSetting("CODECAINE_PROMPTS_TASK_MAX_AGE_MS", DEFAULT_TASK_MAX_AGE_MS);
   const maxTasks = options.maxTasks ?? 1000;
   // Retired task ids, so a call with one gets the reason instead of "Unknown task". Answered only in the task's own workspace.
   const retired = new Map<string, { workspace: string; reason: RetireReason; at: number }>();
