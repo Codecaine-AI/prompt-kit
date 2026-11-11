@@ -317,3 +317,29 @@ test("a slow discovery cannot expire the task of a call that is already running"
     expect((await service.call(root, "prompts_check", { project, prompt_id: "fixture", task_id: task })).structuredContent.detail).toContain("expired after 30 minutes");
   } finally { service.close(); await rm(root, { recursive: true, force: true }); }
 });
+
+test("a prompts_check with task_id that fails still carries the task report, with each read error", async () => {
+  const root = await fixture();
+  const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never });
+  try {
+    const project = ((await service.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
+    const task = await begin(service, root, { project });
+    const read = (await service.call(root, "prompts_read", { project, prompt_id: "fixture" })).structuredContent;
+    const saved = (await service.call(root, "prompts_apply_ops", { project, prompt_id: "fixture", task_id: task, expected_hash: read.hash,
+      ops: [{ op: "update_node", nodeId: "body", patch: { content: ["after"] } }] })).structuredContent;
+    // An unknown prompt fails the check before any read.
+    const unknown = await service.call(root, "prompts_check", { project, prompt_id: "missing", task_id: task });
+    expect(unknown.isError).toBe(true);
+    expect(unknown.structuredContent).toMatchObject({ ok: false, detail: expect.stringContaining("Unknown prompt missing"), snapshot_id: "snapshot:generic", all_current_revisions_checked: false,
+      changed: [{ project, prompt_id: "fixture", hash: saved.hash, current_hash: saved.hash, checked: false, check_ok: false }] });
+    // A prompt that no longer reads fails the check, and its report entry carries the read error.
+    await writeFile(join(root, "catalog", "fixture", "prompt", "prompt.json"), "not json");
+    const broken = await service.call(root, "prompts_check", { project, prompt_id: "fixture", task_id: task });
+    expect(broken.isError).toBe(true);
+    const entry = (broken.structuredContent.changed as Array<Record<string, unknown>>)[0]!;
+    expect(entry).toMatchObject({ prompt_id: "fixture", checked: false, check_ok: false });
+    expect(entry.current_hash).toBeUndefined();
+    expect(typeof entry.read_error).toBe("string");
+    expect(broken.structuredContent.all_current_revisions_checked).toBe(false);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

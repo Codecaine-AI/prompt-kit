@@ -352,7 +352,8 @@ export function createInteractionService(options: InteractionServiceOptions = {}
       const task = taskFor(taskId, found.workspace, admission);
       if (task.project !== project) throw new Error("This task belongs to a different project.");
       const result = await tool.execute(rawArgs);
-      if (name !== "prompts_check" || result.structuredContent.hash === undefined) return result;
+      if (name !== "prompts_check") return result;
+      // A check that fails, even before it reads the prompt, still carries the task report.
       return reply({ ...result.structuredContent, ...await taskReport(task) }, result.isError === true);
     } catch (error) { return reply({ ok: false, detail: error instanceof Error ? error.message : String(error) }); }
   }
