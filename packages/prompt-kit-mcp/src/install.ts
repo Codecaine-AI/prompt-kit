@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -154,14 +154,26 @@ async function regularFile(path: string): Promise<string | null> {
 }
 const realDirectory = async (path: string) => (await lstat(path).catch(() => null))?.isDirectory() === true;
 
+/** The backup this installer wrote of a file it removed: `<name>.codecaine-backup-<ms>-<uuid>`. */
+const BACKUP = /^SKILL\.md\.codecaine-backup-\d+-[0-9a-f-]{36}$/;
+/** The newest SKILL.md backup in `dir`, which an interrupted retirement leaves after it removed SKILL.md. */
+async function skillBackup(dir: string): Promise<string | null> {
+  const names = (await readdir(dir)).filter((entry) => BACKUP.test(entry)).sort((a, b) => b.localeCompare(a, "en", { numeric: true }));
+  for (const entry of names) { const text = await regularFile(join(dir, entry)); if (text !== null) return text; }
+  return null;
+}
+
 /**
- * The snapshot id of the skill copy at `dir` when an earlier install wrote it: a real directory whose SKILL.md
- * frontmatter names `name` and whose snapshot.json has the shape the skill generator wrote. Else null: a symlink or
- * any other folder is not the installer's.
+ * The snapshot id of the skill copy at `dir` when an earlier install wrote it: a real directory whose snapshot.json has
+ * the shape the skill generator wrote, and whose SKILL.md frontmatter names `name`. A copy with no SKILL.md counts
+ * when this installer's SKILL.md backup beside it names `name`: a retirement stopped after it removed SKILL.md. Else
+ * null: a symlink or any other folder is not the installer's.
  */
 async function installedSkill(dir: string, name: string): Promise<string | null> {
   if (!await realDirectory(dir)) return null;
-  const frontmatter = (await regularFile(join(dir, "SKILL.md")))?.match(/^---\n([\s\S]*?)\n---\n/)?.[1];
+  const skillPath = join(dir, "SKILL.md");
+  const skill = await lstat(skillPath).catch(() => null) ? await regularFile(skillPath) : await skillBackup(dir);
+  const frontmatter = skill?.match(/^---\n([\s\S]*?)\n---\n/)?.[1];
   if (frontmatter === undefined || !new RegExp(`^name: ${name}$`, "m").test(frontmatter)) return null;
   try {
     const snapshot = JSON.parse(await regularFile(join(dir, "snapshot.json")) ?? "");
@@ -173,8 +185,9 @@ async function installedSkill(dir: string, name: string): Promise<string | null>
 
 /**
  * The generator's regular files in the copy at `dir`: each listed reference that carries a generator's stamp, then the
- * owner markers snapshot.json and SKILL.md last, so a retry after a partial failure still recognizes the copy. A
- * symlinked references or details folder is never entered.
+ * owner markers SKILL.md and snapshot.json last. SKILL.md goes first, so a run stopped between the two leaves an
+ * inactive folder that installedSkill still recognizes by its backup. A symlinked references or details folder is
+ * never entered.
  */
 async function generatedSkillFiles(dir: string, snapshotId: string): Promise<string[]> {
   const references = join(dir, "references");
@@ -186,7 +199,7 @@ async function generatedSkillFiles(dir: string, snapshotId: string): Promise<str
   ];
   const files: string[] = [];
   for (const path of listed) { const text = await regularFile(path); if (text !== null && stamped(text, snapshotId)) files.push(path); }
-  for (const path of [join(dir, "snapshot.json"), join(dir, "SKILL.md")]) if (await regularFile(path) !== null) files.push(path);
+  for (const path of [join(dir, "SKILL.md"), join(dir, "snapshot.json")]) if (await regularFile(path) !== null) files.push(path);
   return files;
 }
 
