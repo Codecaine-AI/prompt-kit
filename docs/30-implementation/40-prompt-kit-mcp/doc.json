@@ -15,12 +15,23 @@
         "authored-4",
         "authored-5",
         "authored-6",
+        "cg-1",
+        "cg-2",
+        "cg-3",
+        "cg-7",
+        "cg-11",
+        "cg-13",
+        "cg-15",
+        "tl-1",
         "authored-7",
         "authored-8",
         "authored-9",
         "authored-10",
         "authored-11",
-        "authored-12"
+        "authored-12",
+        "vc-1",
+        "vc-2",
+        "vc-3"
       ]
     },
     "authored-1": {
@@ -127,6 +138,530 @@
       ],
       "children": []
     },
+    "cg-1": {
+      "id": "cg-1",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Capabilities and Guidance"
+        }
+      ],
+      "children": []
+    },
+    "cg-2": {
+      "id": "cg-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A client calls "
+        },
+        {
+          "insert": "prompts_capabilities",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " once per thread, before the first Prompt Kit tool. It returns the capabilities index in pages of 4,096 bytes or less, with no standards text. The guidance rules come from "
+        },
+        {
+          "insert": "prompts_guidance",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " topics, one topic at a time."
+        }
+      ],
+      "children": []
+    },
+    "cg-3": {
+      "id": "cg-3",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "The index lists each guidance topic with its size, its part count, and the writes it unlocks."
+        }
+      ],
+      "children": [
+        "cg-4",
+        "cg-5",
+        "cg-6"
+      ]
+    },
+    "cg-4": {
+      "id": "cg-4",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "It also lists the tool order, the project IDs, and the guidance snapshot."
+        }
+      ],
+      "children": []
+    },
+    "cg-5": {
+      "id": "cg-5",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "It names "
+        },
+        {
+          "insert": "prompts_discover",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as the discovery tool with the prompt count. Pass "
+        },
+        {
+          "insert": "project",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to "
+        },
+        {
+          "insert": "prompts_discover",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for one project's prompts."
+        }
+      ],
+      "children": []
+    },
+    "cg-6": {
+      "id": "cg-6",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every call rescans the workspace. A cursor from a changed project list is refused, and an unchanged rescan keeps it valid."
+        }
+      ],
+      "children": []
+    },
+    "cg-7": {
+      "id": "cg-7",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "prompts_guidance",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " serves the topics "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "workflow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "operations",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "work-requests",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "catalog",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": [
+        "cg-8",
+        "cg-9",
+        "cg-10"
+      ]
+    },
+    "cg-8": {
+      "id": "cg-8",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each source in "
+        },
+        {
+          "insert": "GUIDANCE_SOURCE_MANIFEST",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " names its topic, and the task's pinned snapshot holds the topics of its profile."
+        }
+      ],
+      "children": []
+    },
+    "cg-9": {
+      "id": "cg-9",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "A topic over 24,576 bytes splits into parts and is never truncated. The "
+        },
+        {
+          "insert": "agent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "single-output",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " standards topics have 2 parts."
+        }
+      ],
+      "children": []
+    },
+    "cg-10": {
+      "id": "cg-10",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "codecaine://prompts/guidance",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " resource returns the topic index."
+        }
+      ],
+      "children": []
+    },
+    "cg-11": {
+      "id": "cg-11",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "prompts_begin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " pins the profile and the guidance snapshot, and returns task state only."
+        }
+      ],
+      "children": [
+        "cg-12"
+      ]
+    },
+    "cg-12": {
+      "id": "cg-12",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "A task expires 30 minutes after its last call or 12 hours after "
+        },
+        {
+          "insert": "prompts_begin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "prompts_check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " carries the task report."
+        }
+      ],
+      "children": []
+    },
+    "cg-13": {
+      "id": "cg-13",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is refused until the task reads every part of topic "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " at the pinned snapshot."
+        }
+      ],
+      "children": [
+        "cg-14"
+      ]
+    },
+    "cg-14": {
+      "id": "cg-14",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "The refusal names "
+        },
+        {
+          "insert": "prompts_guidance(task_id, topic='standards')",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Every read and every other write stays open."
+        }
+      ],
+      "children": []
+    },
+    "cg-15": {
+      "id": "cg-15",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "MCP_INSTRUCTIONS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "src/instructions.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the prompt block, 800 bytes or less."
+        }
+      ],
+      "children": [
+        "cg-16"
+      ]
+    },
+    "cg-16": {
+      "id": "cg-16",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "The MCP instructions, the Pi bridge, and "
+        },
+        {
+          "insert": "cli.ts instructions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " send the same constant, and the agent-config build reads it from "
+        },
+        {
+          "insert": "cli.ts instructions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "tl-1": {
+      "id": "tl-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The server lists 10 tools: "
+        },
+        {
+          "insert": "prompts_capabilities",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompts_discover",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompts_begin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompts_guidance",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompts_read",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompts_undo",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompts_check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompts_requests",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "prompts_request_reply",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
     "authored-7": {
       "id": "authored-7",
       "type": "heading",
@@ -156,6 +691,14 @@
           [
             "src/service.ts",
             "Workspace routing, tasks, fingerprints, and completion."
+          ],
+          [
+            "src/guidance-manifest.ts",
+            "Rule-unit manifest of the skill, the topic each write needs, the standards refusal, and the fixed fields of the capabilities index."
+          ],
+          [
+            "src/instructions.ts",
+            "The prompt block that the MCP instructions, the Pi bridge, and cli.ts instructions send."
           ],
           [
             "src/tools.ts",
@@ -236,6 +779,57 @@
       "text": [
         {
           "insert": "Installer tests cover preservation of unrelated settings, unmanaged-name collisions, removal of installer-owned legacy entries, and rollback after a later file fails to commit. Protocol success does not establish that an already-open client UI has reloaded its tools or selected a skill."
+        }
+      ],
+      "children": []
+    },
+    "vc-1": {
+      "id": "vc-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two tests in src/capabilities.test.ts guard the capabilities contract."
+        }
+      ],
+      "children": []
+    },
+    "vc-2": {
+      "id": "vc-2",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "One asserts that each serialized "
+        },
+        {
+          "insert": "prompts_capabilities",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " page is 4,096 bytes or less."
+        }
+      ],
+      "children": []
+    },
+    "vc-3": {
+      "id": "vc-3",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "One asserts that "
+        },
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " refuses before the standards read and succeeds after it, while the reads stay open."
         }
       ],
       "children": []
