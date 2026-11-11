@@ -122,7 +122,25 @@
       "props": {},
       "text": [
         {
-          "insert": "Decision: transport and client installation remain in the MCP package. The shared filesystem server and pure library do not depend on MCP or Agent Kernel. Runtime state belongs to an authenticated local daemon. Source documents remain on disk."
+          "insert": "Transport and client installation stay in the MCP package. The shared filesystem server and pure library do not depend on MCP or Agent Kernel. Runtime state belongs to an authenticated local daemon, and source documents remain on disk. Agents read the guidance through "
+        },
+        {
+          "insert": "prompts_capabilities",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "prompts_guidance",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so the installer writes no skill and removes the skill copies that earlier installs wrote."
         }
       ],
       "children": []
@@ -133,7 +151,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Why: clients share one endpoint while Kernel hosts can save through the filesystem library independently. Applies to future client adapters and transports."
+          "insert": "Clients share one endpoint, while Kernel hosts can save through the filesystem library independently. The same split applies to future client adapters and transports."
         }
       ],
       "children": []
@@ -694,7 +712,7 @@
           ],
           [
             "src/guidance-manifest.ts",
-            "Rule-unit manifest of the skill, the topic each write needs, the standards refusal, and the fixed fields of the capabilities index."
+            "Frozen rule-unit manifest of the deleted skill, the topic each write needs, the standards refusal, and the fixed fields of the capabilities index."
           ],
           [
             "src/instructions.ts",
@@ -778,7 +796,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Installer tests cover preservation of unrelated settings, unmanaged-name collisions, removal of installer-owned legacy entries, and rollback after a later file fails to commit. Protocol success does not establish that an already-open client UI has reloaded its tools or selected a skill."
+          "insert": "Installer tests cover preservation of unrelated settings, unmanaged-name collisions, removal of installer-owned legacy entries, the removal of old skill copies, and rollback after a later file fails to commit. Protocol success does not establish that an already-open client UI has reloaded its tools."
         }
       ],
       "children": []
