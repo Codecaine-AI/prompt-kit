@@ -343,3 +343,17 @@ test("a prompts_check with task_id that fails still carries the task report, wit
     expect(broken.structuredContent.all_current_revisions_checked).toBe(false);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test("prompts_begin with profile null pins the project's own profile, as an omitted profile does", async () => {
+  const root = await fixture();
+  await writeFile(join(root, "codecaine.prompts.json"), JSON.stringify({ name: "fixture-project", profile: "agent", catalogRoots: ["catalog"] }));
+  const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never });
+  try {
+    const project = ((await service.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
+    for (const args of [{}, { profile: null }]) expect((await service.call(root, "prompts_begin", { project, ...args })).structuredContent.profile).toBe("agent");
+    expect((await service.call(root, "prompts_begin", { project, profile: "generic" })).structuredContent.profile).toBe("generic");
+    expect((await service.call(root, "prompts_begin", { project, profile: 3 })).structuredContent.detail).toBe("profile must be agent, single-output, or generic.");
+    const begin = service.listTools().find((tool) => tool.name === "prompts_begin")!;
+    expect((begin.inputSchema.properties as Record<string, unknown>).profile).toMatchObject({ anyOf: [{ enum: ["agent", "single-output", "generic"] }, { type: "null" }] });
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
