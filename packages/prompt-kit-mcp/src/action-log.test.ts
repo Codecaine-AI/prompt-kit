@@ -9,6 +9,7 @@ import { createInteractionService } from "./service";
 
 const guidance = async ({ profile = "generic" }: { profile?: string } = {}) => ({
   profile, text: "guide", snapshotId: `snapshot:${profile}`, sources: [], references: {}, catalog: [],
+  topics: [{ id: "standards", title: "Standards", summary: "The standards.", text: "# Standards\n\nguide" }],
 });
 // The daemon opens its log once per process, so every test shares one file and uses its own run id.
 const logDir = mkdtempSync(join(tmpdir(), "prompt-action-log-file-"));

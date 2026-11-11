@@ -9,6 +9,7 @@ import { createPromptTools } from "./tools";
 
 const guidance = async ({ profile = "generic" }: { profile?: "agent" | "single-output" | "generic" } = {}) => ({
   profile, text: "guide", snapshotId: `snapshot:${profile}`, sources: [], references: {}, catalog: [],
+  topics: [{ id: "standards", title: "Standards", summary: "The standards.", text: "# Standards\n\nguide" }],
 });
 
 async function standaloneFixture(variables: string[] | undefined, nodes: unknown[]) {
@@ -75,6 +76,7 @@ test("fresh standalone declarations validate rendered placeholder references", a
     const service = createInteractionService({ runtimeFingerprint: () => "runtime", guidance: guidance as never });
     const project = ((await service.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
     const task = (await service.call(root, "prompts_begin", { project })).structuredContent.task_id as string;
+    await service.call(root, "prompts_guidance", { task_id: task, topic: "standards" });
     const read = (await service.call(root, "prompts_read", { project, prompt_id: "standalone" })).structuredContent;
     const changed = await service.call(root, "prompts_apply_ops", { project, prompt_id: "standalone", task_id: task,
       expected_hash: read.hash, ops: [{ op: "update_node", nodeId: "raw", patch: { value: "Hello {{undeclared}}" } }] });

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { generateSkillReferences, loadGuidance, type GuidanceSnapshot } from "@codecaine-ai/prompt-kit-server";
+import { generateSkillReferences, loadGuidance, type GuidanceSnapshot, type GuidanceTopic } from "@codecaine-ai/prompt-kit-server";
 import { PACKAGE_ROOT } from "./lifecycle";
 
 export {
@@ -15,14 +15,14 @@ const REPOSITORY_ROOT = resolve(PACKAGE_ROOT, "../..");
 const EDITOR_CATALOG = "packages/prompt-kit-mcp/catalog/prompt-editor";
 
 /**
- * Prompt-editor sources the skill carries beyond the authoring guidance.
- * Each `output` is a generated file under the skill folder. The system prompt
- * has no output: SKILL.md's "Work Requests" section is its hand-adapted form,
- * and its hash in snapshot.json shows when that section needs review.
+ * Prompt-editor sources the skill tracks beyond the authoring guidance. The
+ * editor's context blocks are guidance sources (topic `editor`), so
+ * `generateSkillReferences` writes them under references/details/. The system
+ * prompt has no output: the Work Requests guide (topic `work-requests`) is its
+ * hand-adapted form, and its hash in snapshot.json shows when that guide needs
+ * review. An `output` is a generated file under the skill folder.
  */
 export const SKILL_SOURCES: readonly { path: string; output?: string }[] = [
-	{ path: `${EDITOR_CATALOG}/context/blocks/10-state-reference.md`, output: "references/prompt-state-reference.md" },
-	{ path: `${EDITOR_CATALOG}/context/blocks/20-tool-guide.md`, output: "references/prompt-tool-guide.md" },
 	{ path: `${EDITOR_CATALOG}/prompt/prompt.json` },
 ];
 
@@ -55,3 +55,40 @@ export async function generateSkillFolder(
 	const snapshot = JSON.parse(await readFile(snapshotFile, "utf8")) as Record<string, unknown>;
 	await writeFile(snapshotFile, `${JSON.stringify({ ...snapshot, skillSources }, null, 2)}\n`);
 }
+
+/** A served topic part holds at most this many bytes, unless one line alone is longer. */
+export const TOPIC_PART_BYTES = 24_576;
+/** Where a topic may split, most preferred first: between sources, between paragraphs, between lines. */
+const BREAKS = ["\n\n---\n\n", "\n\n", "\n"] as const;
+
+/**
+ * A topic as `prompts_guidance` serves it: one or more parts, never truncated. Each part starts with the topic
+ * heading, and a topic with more than one part says which part each one is. The body splits at the most preferred
+ * break that brings each piece within the budget, and each part packs as many whole pieces as fit. Only the break
+ * between two parts is dropped.
+ */
+export function topicParts(topic: Pick<GuidanceTopic, "title" | "text">): string[] {
+	const heading = `# ${topic.title}`;
+	const body = topic.text.startsWith(`${heading}\n\n`) ? topic.text.slice(heading.length + 2) : topic.text;
+	const bytes = (text: string) => Buffer.byteLength(text);
+	const room = TOPIC_PART_BYTES - bytes(`${heading}\n\nPart 99 of 99.\n\n`);
+	// Each piece with the break that joins it to the piece before it.
+	let pieces: { text: string; before: string }[] = [{ text: body, before: "" }];
+	for (const split of BREAKS) {
+		pieces = pieces.flatMap((piece) => bytes(piece.text) <= room ? [piece]
+			: piece.text.split(split).map((text, index) => ({ text, before: index === 0 ? piece.before : split })));
+	}
+	const chunks: string[] = [];
+	for (const piece of pieces) {
+		const last = chunks.at(-1);
+		if (last !== undefined && bytes(last) + bytes(piece.before) + bytes(piece.text) <= room) chunks[chunks.length - 1] = `${last}${piece.before}${piece.text}`;
+		else chunks.push(piece.text);
+	}
+	return chunks.map((chunk, index) => chunks.length === 1 ? `${heading}\n\n${chunk}` : `${heading}\n\nPart ${index + 1} of ${chunks.length}.\n\n${chunk}`);
+}
+
+let servedTextHook: ((text: string) => string) | undefined;
+/** Test hook for the manifest mutation test: it rewrites each served topic part. The snapshot and the manifest stay unchanged. */
+export function setServedTextHook(hook?: (text: string) => string): void { servedTextHook = hook; }
+/** One topic part as `prompts_guidance` serves it. */
+export const servedText = (text: string): string => servedTextHook ? servedTextHook(text) : text;

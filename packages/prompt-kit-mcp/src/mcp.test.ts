@@ -23,7 +23,7 @@ describe("stdio MCP bridge", () => {
       if (url.pathname === "/tools") return Response.json({ tools: [{ name: "prompts_discover", description: "Discover prompts", inputSchema: { type: "object", properties: {} } }, { name: "prompts_guidance", description: "Read guidance", inputSchema: { type: "object", properties: {} } }] });
       if (url.pathname === "/rpc") {
         const body = await request.json() as typeof requests[number]; requests.push(body);
-        if (body.name === "prompts_guidance") return Response.json({ content: [{ type: "text", text: "serialized fallback" }], structuredContent: { ok: true, guidance: "# Prompt guidance\nPinned standards." } });
+        if (body.name === "prompts_guidance") return Response.json({ content: [{ type: "text", text: "serialized" }], structuredContent: { ok: true, topics: [{ id: "standards", title: "Prompt Authoring Standards", bytes: 100, parts: 1, required_for: ["prompts_apply_ops"] }] } });
         return Response.json({ content: [{ type: "text", text: "discovered" }], structuredContent: { ok: true, workspace: body.workspace, projects: [] } });
       }
       return new Response("Not found", { status: 404 });
@@ -41,7 +41,8 @@ describe("stdio MCP bridge", () => {
       const resources = await client.listResources();
       expect(resources.resources[0]?.uri).toBe("codecaine://prompts/guidance");
       const resource = await client.readResource({ uri: "codecaine://prompts/guidance" });
-      expect((resource.contents[0] as { text: string }).text).toContain("Pinned standards");
+      expect(resource.contents[0]).toMatchObject({ mimeType: "application/json" });
+      expect(JSON.parse((resource.contents[0] as { text: string }).text).topics[0]).toMatchObject({ id: "standards", required_for: ["prompts_apply_ops"] });
       expect(requests.map(item => item.name)).toEqual(["prompts_discover", "prompts_guidance"]);
       expect(requests.every(item => item.workspace === root)).toBe(true);
     } finally { server.stop(true); await rm(root, { recursive: true, force: true }); }

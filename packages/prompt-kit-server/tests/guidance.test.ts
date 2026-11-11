@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { cp, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import {
 	generateSkillReferences,
 	GUIDANCE_SOURCE_MANIFEST,
@@ -15,6 +15,15 @@ async function temp(): Promise<string> {
 	const path = await mkdtemp(join(tmpdir(), "prompt-kit-guidance-"));
 	temporary.push(path);
 	return path;
+}
+
+/** A checkout copy with docs/ and every guidance source outside it, such as the prompt-editor blocks. */
+async function copyCorpus(root: string): Promise<void> {
+	await cp(join(REPO_ROOT, "docs"), join(root, "docs"), { recursive: true });
+	for (const source of GUIDANCE_SOURCE_MANIFEST.filter((entry) => !entry.path.startsWith("docs/"))) {
+		await mkdir(dirname(join(root, source.path)), { recursive: true });
+		await cp(join(REPO_ROOT, source.path), join(root, source.path));
+	}
 }
 
 afterEach(async () => {
@@ -53,7 +62,7 @@ describe("prompt authoring guidance", () => {
 
 	test("new loads observe source changes while a pinned snapshot stays immutable", async () => {
 		const root = await temp();
-		await cp(join(REPO_ROOT, "docs"), join(root, "docs"), { recursive: true });
+		await copyCorpus(root);
 		const before = await loadGuidance({ repoRoot: root, profile: "agent" });
 		const source = GUIDANCE_SOURCE_MANIFEST.find(
 			(entry) => entry.id === "agent-structure",
@@ -91,7 +100,7 @@ describe("prompt authoring guidance", () => {
 
 	test("an incomplete canonical corpus fails instead of silently using a bundle", async () => {
 		const root = await temp();
-		await cp(join(REPO_ROOT, "docs"), join(root, "docs"), { recursive: true });
+		await copyCorpus(root);
 		const bundle = await temp();
 		await generateSkillReferences(bundle, await loadGuidance());
 		const missing = GUIDANCE_SOURCE_MANIFEST[0]!;
@@ -104,7 +113,7 @@ describe("prompt authoring guidance", () => {
 
 	test("invalid native Docs input fails before guidance assembly", async () => {
 		const root = await temp();
-		await cp(join(REPO_ROOT, "docs"), join(root, "docs"), { recursive: true });
+		await copyCorpus(root);
 		const source = GUIDANCE_SOURCE_MANIFEST[0]!;
 		await writeFile(join(root, source.path), "not json\n");
 		await expect(loadGuidance({ repoRoot: root })).rejects.toThrow(

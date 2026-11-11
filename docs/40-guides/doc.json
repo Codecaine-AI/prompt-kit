@@ -12,6 +12,7 @@
         "authored-1",
         "authored-2",
         "authored-3",
+        "gi-1",
         "authored-4"
       ]
     },
@@ -62,6 +63,17 @@
         },
         {
           "insert": " covers the external editing loop and recovery decisions."
+        }
+      ],
+      "children": []
+    },
+    "gi-1": {
+      "id": "gi-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Work Requests covers the request tools and the rules for working a prompt's request queue."
         }
       ],
       "children": []

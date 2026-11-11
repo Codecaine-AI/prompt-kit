@@ -1,6 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
-import { loadGuidance, type GuidanceProfile, type GuidanceSnapshot } from "@codecaine-ai/prompt-kit-server";
+import { GUIDANCE_PROFILES, GUIDANCE_TOPICS, loadGuidance, type GuidanceProfile, type GuidanceSnapshot } from "@codecaine-ai/prompt-kit-server";
+import { version } from "../package.json";
 import { discoverPromptProjects, type PromptDiscovery, type PromptProject } from "./discovery";
+import { servedText, topicParts } from "./guidance";
+import { CAPABILITIES, STANDARDS_GATE, requiredTopics } from "./guidance-manifest";
 import { implementationFingerprint } from "./lifecycle";
 import { createPromptTools, nullable, type PromptToolResult } from "./tools";
 
@@ -17,6 +20,8 @@ interface TaskState {
   lastUsedAt: number;
   /** Calls running with this task. A task inside a call never expires. */
   inFlight: number;
+  /** Each topic part the task read, as "topic#part". */
+  topicsRead: Set<string>;
   changed: Map<string, { project: string; prompt_id: string; hash: string }>;
   checked: Map<string, { hash: string; ok: boolean }>;
 }
@@ -39,6 +44,8 @@ const MINUTE = 60_000, HOUR = 60 * MINUTE;
 export const DEFAULT_TASK_IDLE_MS = 30 * MINUTE;
 export const DEFAULT_TASK_MAX_AGE_MS = 12 * HOUR;
 const SWEEP_EVERY_MS = MINUTE, RETIRED_KEEP_MS = 24 * HOUR, MAX_RETIRED = 5000;
+/** One prompts_capabilities page stays within 4,096 bytes. */
+const CAPABILITIES_PAGE_BYTES = 4096;
 type RetireReason = "idle" | "max-age";
 const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
 /** A duration in its largest whole unit: 30 minutes, 12 hours. */
@@ -46,6 +53,7 @@ const span = (ms: number) => ms % HOUR === 0 ? plural(ms / HOUR, "hour") : ms % 
 
 const nonempty = { type: "string", minLength: 1 };
 const profileSchema = { type: "string", enum: ["agent", "single-output", "generic"] };
+const GUIDANCE_TOPIC_IDS = GUIDANCE_TOPICS.map((topic) => topic.id);
 const objectSchema = (properties: Record<string, unknown>, required: string[] = []) => ({ type: "object", properties, required, additionalProperties: false });
 
 function reply(data: Record<string, unknown>, error = data.ok === false): PromptToolResult {
@@ -63,7 +71,7 @@ function input(value: unknown, required: string[], optional: string[] = []): Rec
 }
 
 function selectedProfile(value: unknown): GuidanceProfile {
-  if (value === undefined) return "generic";
+  if (value == null) return "generic";
   if (value === "agent" || value === "single-output" || value === "generic") return value;
   throw new Error("profile must be agent, single-output, or generic.");
 }
@@ -150,12 +158,15 @@ export function createInteractionService(options: InteractionServiceOptions = {}
   const metadataTools = [
     { name: "prompts_discover", description: "Discover prompt projects in the active workspace, explicit manifests, and bounded workspace members, with each project's prompts and per-entry discovery errors. Pass project to return only that project's prompts and errors. Use the returned IDs.", inputSchema: objectSchema({ workspace: { ...nullable(nonempty), description: "Absolute workspace path. Switches the bridge to it. Defaults to the connected workspace." }, project: { ...nullable(nonempty), description: "A project ID from this workspace. Limits the result to that project's prompts and errors." } }) },
     { name: "prompts_begin", description: "Begin direct prompt authoring for one discovered project. Pins the profile (the project default when omitted) and the guidance snapshot, and returns task_id, profile, snapshot_id and project. Pass task_id to every mutation tool.", inputSchema: objectSchema({ project: nonempty, profile: profileSchema, thread_id: { type: "string", minLength: 1, description: "Your T3 thread id, when the harness does not pass T3CODE_THREAD_ID. Binds this server run to that thread in the action log." } }, ["project"]) },
-    { name: "prompts_guidance", description: "Read the task's pinned guidance or one detailed catalog reference. Without task_id, profile selects a current read-only snapshot.", inputSchema: objectSchema({ task_id: nonempty, profile: profileSchema, reference: nonempty }) },
+    { name: "prompts_guidance", description: "Read one guidance topic, or list the topics when you omit topic. With task_id it serves the task's pinned snapshot and records the read. Without task_id, profile selects a current read-only snapshot. A topic over 24,576 bytes comes in parts: pass part for each further part the result names. prompts_apply_ops is refused until the task reads every part of topic standards.",
+      inputSchema: objectSchema({ task_id: nonempty, profile: profileSchema, topic: { ...nullable({ type: "string", enum: GUIDANCE_TOPIC_IDS }), description: "A topic id from prompts_capabilities. Omit it, or pass null, for the topic list." }, part: { ...nullable({ type: "integer", minimum: 1 }), description: "The part to read, from 1. Defaults to 1." } }) },
   ];
+  const capabilitiesTool = { name: "prompts_capabilities", description: "The capabilities index: versions, the guidance snapshot, the tool order, each guidance topic with its size, its part count and the writes it unlocks, the discovery tool with the prompt count, and the project ids of the workspace. Call it first. A page holds at most 4,096 bytes. Pass next_cursor as cursor for the next page. Topic sizes are for the largest profile.",
+    inputSchema: objectSchema({ workspace: { ...nullable(nonempty), description: "Absolute workspace path. Switches the bridge to it. Defaults to the connected workspace." }, cursor: { ...nullable(nonempty), description: "next_cursor from the previous page." } }) };
   const mutationNames = new Set(["prompts_apply_ops", "prompts_undo", "prompts_request_reply"]);
 
   function listTools() {
-    return [...metadataTools, ...tools.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }))];
+    return [capabilitiesTool, ...metadataTools, ...tools.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }))];
   }
   function toolContractHash() {
     return createHash("sha256").update(JSON.stringify(listTools())).digest("hex");
@@ -165,6 +176,62 @@ export function createInteractionService(options: InteractionServiceOptions = {}
     if (await startupFingerprint !== await fingerprint()) throw new Error("Prompt implementation changed during this task. Restart the Prompt service and begin a new task before further edits.");
     if (task.toolContractHash !== toolContractHash()) throw new Error("Prompt tool contracts changed during this task. Restart the Prompt service and begin a new task.");
     if (task.configurationFingerprint !== found.configurationFingerprint) throw new Error("Prompt sources or declarations changed during this task. Read the current discovery result and begin a new task before editing.");
+  }
+
+  const partCount = (snapshot: GuidanceSnapshot, id: string) => topicParts(snapshot.topics.find((topic) => topic.id === id)!).length;
+  /** The parts of a topic that the task has not read, from 1. */
+  const unreadParts = (task: TaskState, id: string) =>
+    Array.from({ length: partCount(task.snapshot, id) }, (_, index) => index + 1).filter((part) => !task.topicsRead.has(`${id}#${part}`));
+  /** Each topic with its served size and part count, the largest over the given snapshots, and the writes it unlocks. */
+  function topicIndex(snapshots: readonly GuidanceSnapshot[]) {
+    const writes = listTools().map((tool) => tool.name);
+    return snapshots[0]!.topics.map((topic) => {
+      const served = snapshots.map((snapshot) => topicParts(snapshot.topics.find((entry) => entry.id === topic.id)!));
+      return { id: topic.id, title: topic.title, bytes: Math.max(...served.map((parts) => parts.reduce((sum, part) => sum + Buffer.byteLength(part), 0))),
+        parts: Math.max(...served.map((parts) => parts.length)), required_for: writes.filter((write) => requiredTopics(write).includes(topic.id)) };
+    });
+  }
+
+  /** Each workspace's last listing and its generation. A capabilities cursor names the generation, so one page set never mixes two listings. */
+  const listings = new Map<string, { listing: string; generation: number }>();
+  let generation = 0;
+  /**
+   * One page of the capabilities index. Every call rescans the workspace. Scalar fields repeat on every page, and the
+   * lists topics, projects and warnings continue across pages in that order. next_cursor is "<generation>:<offset>",
+   * or null on the last page. A rescan that finds the same projects and warnings keeps the generation, so its cursor
+   * stays valid. A page holds at least one item, so paging always ends.
+   */
+  async function capabilities(found: PromptDiscovery, cursor: unknown) {
+    const snapshots = await Promise.all(GUIDANCE_PROFILES.map((profile) => guidanceLoader({ profile })));
+    const generic = snapshots.find((snapshot) => snapshot.profile === "generic") ?? snapshots[0]!;
+    const projectList = found.projects.map((project) => ({ id: project.id, name: project.name, prompts: project.prompts.length }));
+    const listing = JSON.stringify([projectList, found.warnings]);
+    const last = listings.get(found.workspace);
+    const current = last?.listing === listing ? last.generation : ++generation;
+    listings.set(found.workspace, { listing, generation: current });
+    const items: (readonly ["topics" | "projects" | "warnings", unknown])[] = [
+      ...topicIndex(snapshots).map((topic) => ["topics", topic] as const),
+      ...projectList.map((project) => ["projects", project] as const),
+      ...found.warnings.map((warning) => ["warnings", warning] as const),
+    ];
+    const parsed = typeof cursor === "string" ? /^(\d+):(\d+)$/.exec(cursor) : null;
+    if (parsed && Number(parsed[1]) !== current) throw new Error("The project list changed. Call prompts_capabilities without a cursor for the first page.");
+    const offset = cursor === undefined ? 0 : parsed ? Number(parsed[2]) : -1;
+    if (offset < 0 || offset >= items.length) throw new Error("Unknown cursor. Call prompts_capabilities without a cursor for the first page.");
+    const prompts = projectList.reduce((sum, project) => sum + project.prompts, 0);
+    const page = (end: number, next_cursor: string | null) => {
+      const pick = (list: string) => items.slice(offset, end).filter(([name]) => name === list).map(([, value]) => value);
+      return { ok: true, protocol_version: CAPABILITIES.protocol_version, server_version: version, tool_contract_hash: `sha256:${toolContractHash()}`,
+        guidance_snapshot: generic.snapshotId, scope: { workspace: found.workspace }, guidance_tool: CAPABILITIES.guidance_tool, entry_tool: CAPABILITIES.entry_tool,
+        completion_tools: CAPABILITIES.completion_tools, operations: CAPABILITIES.operations, topics: pick("topics"),
+        discovery_tools: [{ name: "prompts_discover", purpose: `List the ${prompts} prompt${prompts === 1 ? "" : "s"} of the ${projectList.length} project${projectList.length === 1 ? "" : "s"} in this workspace, with discovery errors. Pass project for one project.` }],
+        projects: pick("projects"), warnings: pick("warnings"), next_cursor };
+    };
+    // Measure with the widest cursor, so the page still fits once next_cursor is set.
+    const fits = (end: number) => Buffer.byteLength(JSON.stringify(page(end, `${current}:${items.length}`))) <= CAPABILITIES_PAGE_BYTES;
+    let end = offset + 1;
+    while (end < items.length && fits(end + 1)) end++;
+    return page(end, end < items.length ? `${current}:${end}` : null);
   }
 
   /** Each prompt the task changed, its disk-current hash, and whether prompts_check passed at that hash. */
@@ -194,6 +261,11 @@ export function createInteractionService(options: InteractionServiceOptions = {}
 
   async function dispatch(workspace: string, name: string, rawArgs: Record<string, unknown>, held: TaskState[]): Promise<PromptToolResult> {
     try {
+      if (name === "prompts_capabilities") {
+        const args = input(rawArgs, [], ["workspace", "cursor"]);
+        for (const key of ["workspace", "cursor"]) if (args[key] != null && (typeof args[key] !== "string" || !args[key])) throw new Error(`${key} must be a non-empty string.`);
+        return reply(await capabilities(await discover(typeof args.workspace === "string" ? args.workspace : workspace), args.cursor ?? undefined));
+      }
       if (name === "prompts_discover") {
         const args = input(rawArgs, [], ["workspace", "project"]);
         for (const key of ["workspace", "project"]) if (args[key] != null && (typeof args[key] !== "string" || !args[key])) throw new Error(`${key} must be a non-empty string.`);
@@ -217,25 +289,33 @@ export function createInteractionService(options: InteractionServiceOptions = {}
         const snapshot = await guidanceLoader({ profile });
         const id = randomUUID();
         const task: TaskState = { workspace: found.workspace, project: args.project as string, profile, snapshot, configurationFingerprint: found.configurationFingerprint,
-          implementationFingerprint: await startupFingerprint, toolContractHash: toolContractHash(), createdAt: now(), lastUsedAt: now(), inFlight: 0, changed: new Map(), checked: new Map() };
+          implementationFingerprint: await startupFingerprint, toolContractHash: toolContractHash(), createdAt: now(), lastUsedAt: now(), inFlight: 0, topicsRead: new Set(), changed: new Map(), checked: new Map() };
         tasks.set(id, task);
         return reply({ ok: true, task_id: id, profile, snapshot_id: snapshot.snapshotId, project: { id: selectedProject.id, name: selectedProject.name } });
       }
       if (name === "prompts_guidance") {
-        const args = input(rawArgs, [], ["task_id", "profile", "reference"]);
+        const args = input(rawArgs, [], ["task_id", "profile", "topic", "part"]);
         let snapshot: GuidanceSnapshot;
-        if (args.task_id !== undefined) {
-          const task = taskFor(args.task_id, found.workspace, held);
-          if (args.profile !== undefined && args.profile !== task.profile) throw new Error("profile cannot override a task's pinned profile.");
+        let task: TaskState | undefined;
+        if (args.task_id != null) {
+          task = taskFor(args.task_id, found.workspace, held);
+          if (args.profile != null && args.profile !== task.profile) throw new Error("profile cannot override a task's pinned profile.");
           snapshot = task.snapshot;
         } else snapshot = await guidanceLoader({ profile: selectedProfile(args.profile) });
-        if (args.reference !== undefined) {
-          if (typeof args.reference !== "string" || !args.reference) throw new Error("reference must be a non-empty string.");
-          const reference = snapshot.references[args.reference];
-          if (reference === undefined) throw new Error(`Unknown guidance reference ${args.reference}. Use an id from catalog.`);
-          return reply({ ok: true, profile: snapshot.profile, snapshot_id: snapshot.snapshotId, reference_id: args.reference, reference });
+        if (args.topic == null) {
+          if (args.part != null) throw new Error("part needs a topic.");
+          return reply({ ok: true, profile: snapshot.profile, snapshot_id: snapshot.snapshotId, topics: topicIndex([snapshot]),
+            next: "Read topic standards with your task_id before your first prompts_apply_ops." });
         }
-        return reply({ ok: true, profile: snapshot.profile, snapshot_id: snapshot.snapshotId, guidance: snapshot.text, catalog: snapshot.catalog, sources: snapshot.sources });
+        const topic = snapshot.topics.find((entry) => entry.id === args.topic);
+        if (!topic) throw new Error(`Unknown topic ${JSON.stringify(args.topic)}. Topics: ${snapshot.topics.map((entry) => entry.id).join(", ")}.`);
+        const parts = topicParts(topic);
+        const part = args.part ?? 1;
+        if (!Number.isInteger(part) || (part as number) < 1 || (part as number) > parts.length) throw new Error(`part must be an integer from 1 to ${parts.length} for topic ${topic.id}.`);
+        task?.topicsRead.add(`${topic.id}#${part}`);
+        return reply({ ok: true, profile: snapshot.profile, snapshot_id: snapshot.snapshotId, topic: topic.id, title: topic.title, part, parts: parts.length,
+          guidance: servedText(parts[(part as number) - 1]!),
+          ...((part as number) < parts.length ? { next: `Read part ${(part as number) + 1} of topic ${topic.id}: pass part ${(part as number) + 1}.` } : {}) });
       }
       const tool = tools.find((entry) => entry.name === name);
       if (!tool) throw new Error(`Unknown tool ${name}.`);
@@ -244,6 +324,10 @@ export function createInteractionService(options: InteractionServiceOptions = {}
       if (mutationNames.has(name)) {
         const task = taskFor(rawArgs.task_id, found.workspace, held);
         if (task.project !== project) throw new Error("This task belongs to a different project. Begin a task for the selected project before editing.");
+        for (const required of requiredTopics(name)) {
+          const unread = unreadParts(task, required);
+          if (unread.length) throw new Error(unread.length === partCount(task.snapshot, required) ? STANDARDS_GATE : `${STANDARDS_GATE} Unread: part ${unread.join(", ")} of ${partCount(task.snapshot, required)}.`);
+        }
         await assertTaskCanMutate(task, found);
         return await tool.execute(rawArgs);
       }

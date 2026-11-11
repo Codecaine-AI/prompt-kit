@@ -8,8 +8,15 @@ import { createPromptAnnotationFileStore, createPromptAnnotationRoutes, createPr
 const document = () => ({ kind: "prompt" as const, schemaVersion: "prompt-kit/v1" as const, id: "fixture", nodes: [{ type: "paragraph" as const, id: "body", content: ["before"] }] });
 const guidance = async ({ profile = "generic" }: { profile?: "agent" | "single-output" | "generic" } = {}) => ({
   profile, text: `guide:${profile}`, snapshotId: `snapshot:${profile}`, sources: [], references: { detail: "Detailed guidance" },
-  catalog: [{ id: "detail", title: "Detail", summary: "More", profiles: [profile] }],
+  catalog: [{ id: "detail", title: "Detail", summary: "More", topic: "catalog", profiles: [profile] }],
+  topics: [{ id: "standards", title: "Standards", summary: "The standards.", text: `# Standards\n\nguide:${profile}` }],
 });
+/** prompts_begin, then the standards read that prompts_apply_ops needs. */
+async function begin(service: ReturnType<typeof createInteractionService>, root: string, args: Record<string, unknown>): Promise<string> {
+  const task = (await service.call(root, "prompts_begin", args)).structuredContent.task_id as string;
+  expect((await service.call(root, "prompts_guidance", { task_id: task, topic: "standards" })).structuredContent.ok).toBe(true);
+  return task;
+}
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "prompt-service-"));
@@ -29,6 +36,7 @@ test("runs discover, begin, read, apply and check, and the check with task_id re
     const begun = (await service.call(root, "prompts_begin", { project, profile: "generic" })).structuredContent;
     expect(begun).toEqual({ ok: true, task_id: expect.any(String), profile: "generic", snapshot_id: "snapshot:generic", project: { id: project, name: "fixture-project" } });
     const task = begun.task_id as string;
+    await service.call(root, "prompts_guidance", { task_id: task, topic: "standards" });
     const read = (await service.call(root, "prompts_read", { project, prompt_id: "fixture" })).structuredContent;
     expect((read.address_map as { rootId: string }).rootId).toBe("$root");
     const changed = (await service.call(root, "prompts_apply_ops", {
@@ -63,7 +71,7 @@ test("rejects stale hashes, cross-workspace tasks, and changed runtime contracts
   try {
     const service = createInteractionService({ runtimeFingerprint: () => runtime, guidance: guidance as never });
     const project = ((await service.call(first, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
-    const task = (await service.call(first, "prompts_begin", { project })).structuredContent.task_id as string;
+    const task = await begin(service, first, { project });
     const read = (await service.call(first, "prompts_read", { project, prompt_id: "fixture" })).structuredContent;
     const stale = await service.call(first, "prompts_apply_ops", { project, prompt_id: "fixture", task_id: task, expected_hash: "pk1-stale", ops: [{ op: "remove_node", nodeId: "body" }] });
     expect(stale.isError).toBe(true);
@@ -81,7 +89,7 @@ test("uses the task profile for completion while allowing incremental profile re
   try {
     const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never });
     const project = ((await service.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
-    const task = (await service.call(root, "prompts_begin", { project, profile: "agent" })).structuredContent.task_id as string;
+    const task = await begin(service, root, { project, profile: "agent" });
     const read = (await service.call(root, "prompts_read", { project, prompt_id: "fixture" })).structuredContent;
     const changed = (await service.call(root, "prompts_apply_ops", { project, prompt_id: "fixture", task_id: task, expected_hash: read.hash,
       ops: [{ op: "update_node", nodeId: "body", patch: { content: ["incremental repair"] } }] })).structuredContent;
@@ -98,14 +106,14 @@ test("durable undo survives service restart and the task report rechecks the dis
   try {
     const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never });
     const project = ((await service.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
-    const task = (await service.call(root, "prompts_begin", { project, profile: "generic" })).structuredContent.task_id as string;
+    const task = await begin(service, root, { project, profile: "generic" });
     const read = (await service.call(root, "prompts_read", { project, prompt_id: "fixture" })).structuredContent;
     const changed = (await service.call(root, "prompts_apply_ops", { project, prompt_id: "fixture", task_id: task, expected_hash: read.hash,
       ops: [{ op: "update_node", nodeId: "body", patch: { content: ["changed"] } }] })).structuredContent;
 
     const restarted = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never });
     await restarted.call(root, "prompts_discover", {});
-    const restartedTask = (await restarted.call(root, "prompts_begin", { project, profile: "generic" })).structuredContent.task_id as string;
+    const restartedTask = await begin(restarted, root, { project, profile: "generic" });
     const undone = (await restarted.call(root, "prompts_undo", { project, prompt_id: "fixture", task_id: restartedTask,
       change_id: changed.changeId, expected_hash: changed.hash })).structuredContent;
     expect(undone.ok).toBe(true);

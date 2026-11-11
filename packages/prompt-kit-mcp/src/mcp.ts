@@ -21,6 +21,7 @@ export async function startMcp(initialWorkspace: string) {
     if (!response.ok) throw new Error(`Prompt service error: ${response.status}`);
     const result = await response.json() as any;
     if (name === "prompts_discover" && !result.isError && typeof result.structuredContent?.workspace === "string") workspace = result.structuredContent.workspace;
+    if (name === "prompts_capabilities" && !result.isError && typeof result.structuredContent?.scope?.workspace === "string") workspace = result.structuredContent.scope.workspace;
     return result;
   };
   server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -29,15 +30,12 @@ export async function startMcp(initialWorkspace: string) {
     return response.json() as any;
   });
   server.setRequestHandler(CallToolRequestSchema, async request => call(request.params.name, request.params.arguments ?? {}));
-  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [{ uri: "codecaine://prompts/guidance", name: "prompt-authoring-guidance", description: "Current prompt-writing standards. Use prompts_begin to pin them for editing.", mimeType: "text/markdown" }] }));
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({ resources: [{ uri: "codecaine://prompts/guidance", name: "prompt-authoring-guidance", description: "The guidance topic index: each topic with its size, its parts and the writes it unlocks. Read a topic with prompts_guidance.", mimeType: "application/json" }] }));
   server.setRequestHandler(ReadResourceRequestSchema, async request => {
     if (request.params.uri !== "codecaine://prompts/guidance") throw new Error("Unknown resource");
     const result = await call("prompts_guidance");
     if (result.isError) throw new Error(result.structuredContent?.detail ?? "Guidance unavailable");
-    const text = typeof result.structuredContent?.guidance === "string"
-      ? result.structuredContent.guidance
-      : result.content?.find((item: any) => item.type === "text")?.text ?? JSON.stringify(result.structuredContent, null, 2);
-    return { contents: [{ uri: request.params.uri, mimeType: "text/markdown", text }] };
+    return { contents: [{ uri: request.params.uri, mimeType: "application/json", text: JSON.stringify(result.structuredContent, null, 2) }] };
   });
   const syncRoots = async () => {
     if (!server.getClientCapabilities()?.roots) return;
