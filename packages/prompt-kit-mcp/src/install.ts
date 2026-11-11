@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
-import { homedir, tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { lstat, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export type ClientName = "codex" | "claude" | "pi";
@@ -16,8 +16,6 @@ export interface InstallOptions {
   claudeDir?: string;
   claudeConfigFile?: string;
   piDir?: string;
-  /** Pre-rendered skill files, also useful for isolated installer tests. */
-  skillFiles?: Record<string, string>;
   /** Failure injection for transactional installer tests. */
   testFault?: (phase: "before-commit", path: string, index: number) => void | Promise<void>;
 }
@@ -37,7 +35,7 @@ export interface InstallResult {
   command: { command: string; args: string[] };
   notes: string[];
 }
-/** `after: null` removes a file this installer wrote under the legacy name. */
+/** `after: null` removes a file an earlier install wrote: a legacy entry or a retired skill copy's file. */
 type PlannedFile = { path: string; kind: InstallChange["kind"]; before: string | null; after: string | null };
 const NAME = "prompt-kit";
 const START = "# BEGIN PROMPT KIT MCP (managed by prompt-kit-mcp install)";
@@ -130,28 +128,66 @@ export function claudeConfig(before: string | null, command: string, args: strin
   return JSON.stringify(config) === JSON.stringify(after) && before ? before : JSON.stringify(after, null, 2) + "\n";
 }
 
-async function collectFiles(root: string, relative = ""): Promise<Record<string, string>> {
-  const files: Record<string, string> = {};
-  for (const entry of await readdir(join(root, relative), { withFileTypes: true })) {
-    const path = join(relative, entry.name);
-    if (entry.isDirectory()) Object.assign(files, await collectFiles(root, path));
-    else if (entry.isFile()) files[path] = await readFile(join(root, path), "utf8");
-    else throw new Error(`Skill sources must be ordinary files or directories: ${path}`);
+/** The skill copies earlier installs wrote. Agents now read the guidance through prompts_capabilities and prompts_guidance. */
+const RETIRED_SKILLS = [NAME, LEGACY_NAME];
+/**
+ * Every file the old skill generators wrote, as paths in the copy, with the owner markers snapshot.json and SKILL.md
+ * last, so a retry after a partial failure still recognizes the copy. A file a user added stays.
+ */
+const RETIRED_REFERENCES = ["standards.md", "catalog.md", "prompt-state-reference.md", "prompt-tool-guide.md"];
+const RETIRED_DETAILS = ["placement", "agent-structure", "workflow", "single-output-structure", "quality", "techniques", "document-model", "authoring-model",
+  "validation", "editing-model", "transactions", "edit-prompts", "work-requests", "editor-state-reference", "editor-tool-guide"];
+const SNAPSHOT_ID = /^sha256:[0-9a-f]{64}$/;
+
+async function regularFile(path: string): Promise<string | null> {
+  const stat = await lstat(path).catch(() => null);
+  return stat?.isFile() ? readFile(path, "utf8") : null;
+}
+const realDirectory = async (path: string) => (await lstat(path).catch(() => null))?.isDirectory() === true;
+
+/**
+ * An earlier install wrote the skill copy at `dir` when it is a real directory, its SKILL.md frontmatter names `name`,
+ * and its snapshot.json has the shape the skill generator wrote. A symlink or any other folder is not the installer's.
+ */
+async function installedSkill(dir: string, name: string): Promise<boolean> {
+  if (!await realDirectory(dir)) return false;
+  const frontmatter = (await regularFile(join(dir, "SKILL.md")))?.match(/^---\n([\s\S]*?)\n---\n/)?.[1];
+  if (frontmatter === undefined || !new RegExp(`^name: ${name}$`, "m").test(frontmatter)) return false;
+  try {
+    const snapshot = JSON.parse(await regularFile(join(dir, "snapshot.json")) ?? "");
+    return typeof snapshot?.schemaVersion === "number" && SNAPSHOT_ID.test(snapshot.snapshotId) && Array.isArray(snapshot.sources);
+  } catch {
+    return false;
   }
+}
+
+/** The generator's regular files in the copy at `dir`, owner markers last. A symlinked references or details folder is never entered. */
+async function generatedSkillFiles(dir: string): Promise<string[]> {
+  const references = join(dir, "references");
+  const inReferences = await realDirectory(references);
+  const inDetails = inReferences && await realDirectory(join(references, "details"));
+  const candidates = [
+    ...(inReferences ? RETIRED_REFERENCES.map((file) => join(references, file)) : []),
+    ...(inDetails ? RETIRED_DETAILS.map((id) => join(references, "details", `${id}.md`)) : []),
+    join(dir, "snapshot.json"), join(dir, "SKILL.md"),
+  ];
+  const files: string[] = [];
+  for (const path of candidates) if (await regularFile(path) !== null) files.push(path);
   return files;
 }
 
-async function skillFiles(options: InstallOptions, root: string): Promise<Record<string, string>> {
-  if (options.skillFiles) return options.skillFiles;
-  const template = await collectFiles(join(root, "skills", NAME));
-  const temp = await mkdtemp(join(tmpdir(), "codecaine-prompt-skills-"));
-  try {
-    const { generateSkillFolder } = await import("./guidance");
-    await generateSkillFolder(temp);
-    return { ...template, ...await collectFiles(temp) };
-  } finally {
-    await rm(temp, { recursive: true, force: true });
-  }
+/**
+ * True when another tool manages `root`: the root or a folder between `home` and the root is a symlink, as when a
+ * config sync links ~/.claude/skills into its own folder. Backups written there would not survive the next sync.
+ */
+async function managedElsewhere(root: string, home: string): Promise<boolean> {
+  const real = await realpath(root).catch(() => null);
+  if (real === null) return true;
+  const inside = relative(home, root);
+  const expected = !inside.startsWith("..") && inside !== root
+    ? join(await realpath(home), inside)
+    : join(await realpath(dirname(root)), basename(root));
+  return real !== expected;
 }
 
 async function plan(options: InstallOptions) {
@@ -183,26 +219,15 @@ async function plan(options: InstallOptions) {
     if ((await existing(legacyBridge))?.startsWith(LEGACY_PI_BANNER)) await add(legacyBridge, "extension", () => null);
     await add(join(dir, `extensions/${NAME}.ts`), "extension", () => `${PI_BANNER} Re-run install to update this checkout path.\nimport { createPiExtension } from ${JSON.stringify(join(root, "src/pi-extension.ts"))};\nexport default createPiExtension(${JSON.stringify(command)});\n`);
   }
-  const rendered = await skillFiles(options, root);
+  // Earlier installs wrote a skill copy into these roots. Retire the copies they own, file by file, with backups.
   const skillRoots = new Set<string>();
-  if (clients.includes("codex") || clients.includes("pi")) skillRoots.add(join(home, ".agents/skills"));
+  if (clients.includes("codex") || clients.includes("pi")) skillRoots.add(join(home, ".agents", "skills"));
   if (clients.includes("claude")) skillRoots.add(join(options.claudeDir ?? join(home, ".claude"), "skills"));
-  for (const skillRoot of skillRoots) {
-    // Remove the files this installer writes from a real legacy skill folder whose skill it named. Other files and backups stay.
-    const legacy = join(skillRoot, LEGACY_NAME);
-    const stat = await lstat(legacy).catch(() => null);
-    const legacySkill = stat?.isDirectory() ? await existing(join(legacy, "SKILL.md")) : null;
-    if (legacySkill?.includes(`\nname: ${LEGACY_NAME}\n`)) {
-      for (const relative of Object.keys(rendered)) {
-        if (await existing(join(legacy, relative)) !== null) await add(join(legacy, relative), "skill", () => null);
-      }
-    }
-    const destination = join(skillRoot, NAME);
-    for (const [relative, content] of Object.entries(rendered)) {
-      const path = resolve(destination, relative);
-      if (!path.startsWith(destination + "/")) throw new Error(`Invalid skill file path: ${relative}`);
-      await add(path, "skill", () => content);
-    }
+  for (const skillRoot of skillRoots) for (const name of RETIRED_SKILLS) {
+    if (await managedElsewhere(skillRoot, home)) continue;
+    const dir = join(skillRoot, name);
+    if (!await installedSkill(dir, name)) continue;
+    for (const path of await generatedSkillFiles(dir)) await add(path, "skill", () => null);
   }
   return { clients, command, files };
 }
@@ -212,7 +237,7 @@ export async function installClients(options: InstallOptions = {}): Promise<Inst
   const planned = await plan(options);
   const result: InstallResult = {
     mode: options.write ? "write" : "preview", clients: planned.clients, command: planned.command, changes: [],
-    notes: ["Restart Codex and Claude Code after installation. In pi, use /reload or start a new session.", "Each connection discovers its active workspace; no fixed project is written into user configuration.", "pi uses a native extension that forwards the same MCP tools. It has no built-in MCP client.", "Skills are selected by the host model. Verify automatic guidance and editing in each client before considering setup accepted."],
+    notes: ["Restart Codex and Claude Code after installation. In pi, use /reload or start a new session.", "Each connection discovers its active workspace; no fixed project is written into user configuration.", "pi uses a native extension that forwards the same MCP tools. It has no built-in MCP client.", "Agents read the guidance through prompts_capabilities and prompts_guidance. The installer writes no skill, and it removes the skill copies that earlier installs wrote."],
   };
   // Complete parsing and generation for all clients before changing any user file.
   for (const file of planned.files) {
@@ -275,7 +300,7 @@ export async function installClients(options: InstallOptions = {}): Promise<Inst
 
 export async function doctorClients(options: InstallOptions = {}) {
   const preview = await installClients({ ...options, write: false });
-  const checks = preview.changes.map((change) => ({ path: change.path, kind: change.kind, status: change.action === "unchanged" ? "ok" : change.action === "create" ? "missing" : "outdated" }));
+  const checks = preview.changes.map((change) => ({ path: change.path, kind: change.kind, status: change.action === "unchanged" ? "ok" : change.action === "create" ? "missing" : change.action === "remove" ? "leftover" : "outdated" }));
   return { ok: checks.every((check) => check.status === "ok"), checks, notes: [...preview.notes, "Doctor checks installed files against current sources. Client connection and model-driven editing require the acceptance exercises."] };
 }
 
