@@ -33,7 +33,7 @@ test("the skill folder generates the editor references and hashes every source",
       expect(entry.sha256).toBe(createHash("sha256").update(content).digest("hex"));
       if (source.output) expect(first[source.output]).toEndWith(content);
     }
-    expect(Object.keys(first)).toEqual(expect.arrayContaining(["references/prompt-state-reference.md", "references/prompt-tool-guide.md", "references/standards.md"]));
+    expect(Object.keys(first)).toEqual(expect.arrayContaining(["references/details/editor-state-reference.md", "references/details/editor-tool-guide.md", "references/standards.md"]));
 
     // The committed skill folder must match its sources. Run `bun packages/prompt-kit-mcp/src/cli.ts guidance --write` when this fails.
     const { "SKILL.md": _skill, ...committed } = await files(join(PACKAGE_ROOT, "skills", "prompt-kit"));

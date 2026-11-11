@@ -14,12 +14,12 @@ Use the connected Prompt Kit tools for reads and edits. They preserve typed stru
 ## Read or Edit
 
 1. Call `prompts_discover` in the active workspace and select a project explicitly.
-2. For edits, call `prompts_begin` with the applicable `agent`, `single-output`, or `generic` profile. Read its pinned standards and retain the returned task ID.
+2. For edits, call `prompts_begin` with the applicable `agent`, `single-output`, or `generic` profile, and retain the returned task ID. Read `prompts_guidance` with that `task_id` and topic `standards`. The topic can come in several parts: follow each result's `next` and read every part, because `prompts_apply_ops` is refused until you do.
 3. Call `prompts_read` for the target. Review the production render and use its current hash as `expected_hash`.
 4. Apply typed operations. Valid batches save immediately. On a revision conflict, read and reconcile the current document before retrying.
-5. Call `prompts_check`, repair required findings, then call `prompts_end`. Report changed prompts and unresolved findings.
+5. Call `prompts_check` with `task_id` and repair required findings. Its task report shows whether each changed prompt passed at its current revision. Report changed prompts and unresolved findings.
 
-Use `prompts_guidance` for detailed references from the task's pinned guidance snapshot. Treat structural and undeclared-variable errors as blockers. Treat prose findings as review criteria. A passing check does not replace an evaluation run.
+Use `prompts_guidance` with `task_id` and a topic for detailed guidance from the task's pinned guidance snapshot. Treat structural and undeclared-variable errors as blockers. Treat prose findings as review criteria. A passing check does not replace an evaluation run.
 
 Read-only work does not require a task. A task pins guidance and scope; it does not reserve a prompt. If the connection or a required operation is missing, report the setup gap instead of bypassing the prompt tools.
 
@@ -29,7 +29,7 @@ Humans file requests on a prompt in the Prompt UI. Each request is an annotation
 
 - `prompts_requests`: call first when you are asked to work a prompt's requests. It lists the open requests and the hash to pass as `expected_hash`.
 - `prompts_request_reply`: call when a request is ambiguous, to ask one question on its thread. The request stays open.
-- `prompts_request_resolve`: call after the request's edit is saved, or to decline it, with a one-sentence resolution.
+- `prompts_request_reply` with `close: true`: call after the request's edit is saved, or to decline it. `body` is then the one-sentence resolution.
 
 Both writes need a task from `prompts_begin` and the latest annotations hash. Each write returns the next `expected_hash`.
 
@@ -44,13 +44,13 @@ You change a prompt on behalf of the human who owns it. The prompt is a tree of 
 2. Work each request against the current tree.
    - A `prompt-node` target names one node. A `prompt-range` target names a quoted span inside one node. A target whose node ID equals the document ID is about the whole prompt.
    - If a request is ambiguous, ask with `prompts_request_reply`, leave it open, and keep working the others.
-   - If a change is needed, apply one minimal batch with `prompts_apply_ops` for that request. If no change is needed, apply none.
-   - Resolve each request on its own with `prompts_request_resolve`. Say what changed or why nothing changed.
+   - If a change is needed, apply one minimal batch with `prompts_apply_ops` for that request, after the task has read every part of topic `standards`. Then run `prompts_check` with `task_id` and repair required findings. If no change is needed, apply none.
+   - Close each request on its own with `prompts_request_reply` and `close: true`, after its check passes. Say what changed or why nothing changed.
    - Repeat until no request remains that you can close.
 3. Close out.
    - Call `prompts_requests` again. Every request you could close must be resolved one by one, never as a lump.
    - Every request left open must carry an unanswered question whose answer changes the edit.
-   - Run `prompts_check`, then `prompts_end`.
+   - Run `prompts_check` with `task_id`.
 
 When a batch fails validation, narrow it to repair the failure and apply it again. Never widen the edit.
 
@@ -68,6 +68,6 @@ Rules for every edit:
 
 Generated beside this file by `bun packages/prompt-kit-mcp/src/cli.ts guidance --write`. Do not edit them by hand. `snapshot.json` hashes every source.
 
-- `references/standards.md` and `references/catalog.md`: the prompt authoring standards, with one page per topic under `references/details/`.
-- `references/prompt-state-reference.md`: how the in-app prompt editor agent reads its request queue and diffs. The `R` aliases and compact target strings exist only in the editor. With MCP tools, pass a request's `id` from `prompts_requests` as `request_id`.
-- `references/prompt-tool-guide.md`: the in-app editor's tools. `read_prompt` maps to `prompts_read`, `propose_transaction` to `prompts_apply_ops`, `reply_request` to `prompts_request_reply`, and `resolve_request` to `prompts_request_resolve`. `add_note` has no MCP tool. Two differences apply to MCP tools. `prompts_apply_ops` saves at once, with no staged review. `prompts_request_resolve` takes one `resolution` sentence, not an outcome and a note.
+- `references/standards.md` and `references/catalog.md`: the prompt authoring standards and the catalog of every guidance source, with one page per source under `references/details/`.
+- `references/details/editor-state-reference.md`: how the in-app prompt editor agent reads its request queue and diffs. The `R` aliases and compact target strings exist only in the editor. With MCP tools, pass a request's `id` from `prompts_requests` as `request_id`.
+- `references/details/editor-tool-guide.md`: the in-app editor's tools. `read_prompt` maps to `prompts_read`, `propose_transaction` to `prompts_apply_ops`, `reply_request` to `prompts_request_reply`, and `resolve_request` to `prompts_request_reply` with `close: true`. `add_note` has no MCP tool. Two differences apply to MCP tools. `prompts_apply_ops` saves at once, with no staged review. A close takes one `body` sentence, not an outcome and a note.

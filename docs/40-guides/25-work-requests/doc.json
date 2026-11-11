@@ -1,0 +1,1050 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-6b422a24c4b45f931983286f8857de13",
+  "title": "Work Requests",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "wq-1",
+        "wq-2",
+        "wq-3",
+        "wq-4",
+        "wq-7",
+        "wq-10",
+        "wq-11",
+        "wq-12",
+        "wq-16",
+        "wq-25",
+        "wq-29",
+        "wq-30",
+        "wq-31",
+        "wq-32",
+        "wq-34",
+        "wq-37",
+        "wq-39",
+        "wq-41",
+        "wq-44",
+        "wq-45",
+        "wq-46",
+        "wq-47",
+        "wq-48",
+        "wq-49",
+        "wq-50"
+      ]
+    },
+    "wq-1": {
+      "id": "wq-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Humans file requests on a prompt in the Prompt UI. Each request is an annotation pinned to a node, a text range, or the whole prompt. You change the prompt on behalf of the human who owns it. "
+        },
+        {
+          "insert": "prompts_guidance",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " serves this page as topic "
+        },
+        {
+          "insert": "work-requests",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "wq-2": {
+      "id": "wq-2",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Request Tools"
+        }
+      ],
+      "children": []
+    },
+    "wq-3": {
+      "id": "wq-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two tools read and answer requests. Both answers need a task from "
+        },
+        {
+          "insert": "prompts_begin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the latest annotations hash, and each call returns the next "
+        },
+        {
+          "insert": "expected_hash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "wq-4": {
+      "id": "wq-4",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "prompts_requests",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        }
+      ],
+      "children": [
+        "wq-5",
+        "wq-6"
+      ]
+    },
+    "wq-5": {
+      "id": "wq-5",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Call it first when you are asked to work a prompt's requests."
+        }
+      ],
+      "children": []
+    },
+    "wq-6": {
+      "id": "wq-6",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "It lists the open requests and the hash to pass as "
+        },
+        {
+          "insert": "expected_hash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "wq-7": {
+      "id": "wq-7",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "prompts_request_reply",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        }
+      ],
+      "children": [
+        "wq-8",
+        "wq-9"
+      ]
+    },
+    "wq-8": {
+      "id": "wq-8",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Call it when a request is ambiguous, to ask one question on its thread. The request stays open."
+        }
+      ],
+      "children": []
+    },
+    "wq-9": {
+      "id": "wq-9",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Call it with "
+        },
+        {
+          "insert": "close: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " after the request's edit is saved, or to decline it. "
+        },
+        {
+          "insert": "body",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is then the one-sentence resolution."
+        }
+      ],
+      "children": []
+    },
+    "wq-10": {
+      "id": "wq-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Work the Queue"
+        }
+      ],
+      "children": []
+    },
+    "wq-11": {
+      "id": "wq-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt is a tree of identified nodes, and its rendered Markdown is a projection you never touch. Valid edits save at once, so the human reviews them in the prompt's history."
+        }
+      ],
+      "children": []
+    },
+    "wq-12": {
+      "id": "wq-12",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Survey the queue."
+        }
+      ],
+      "children": [
+        "wq-12a",
+        "wq-13",
+        "wq-14",
+        "wq-15"
+      ]
+    },
+    "wq-12a": {
+      "id": "wq-12a",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_begin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and read every part of topic "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with its "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " before you apply an edit."
+        }
+      ],
+      "children": []
+    },
+    "wq-13": {
+      "id": "wq-13",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_requests",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and read every request: its target, body, and replies."
+        }
+      ],
+      "children": []
+    },
+    "wq-14": {
+      "id": "wq-14",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_read",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for the current tree, the stamped node IDs, and the hash."
+        }
+      ],
+      "children": []
+    },
+    "wq-15": {
+      "id": "wq-15",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Note requests that touch the same nodes, and work them in the order they were filed."
+        }
+      ],
+      "children": []
+    },
+    "wq-16": {
+      "id": "wq-16",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Work each request against the current tree."
+        }
+      ],
+      "children": [
+        "wq-17",
+        "wq-21",
+        "wq-22",
+        "wq-23",
+        "wq-24"
+      ]
+    },
+    "wq-17": {
+      "id": "wq-17",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Read the target of the request."
+        }
+      ],
+      "children": [
+        "wq-18",
+        "wq-19",
+        "wq-20"
+      ]
+    },
+    "wq-18": {
+      "id": "wq-18",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "prompt-node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " target names one node."
+        }
+      ],
+      "children": []
+    },
+    "wq-19": {
+      "id": "wq-19",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "prompt-range",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " target names a quoted span inside one node."
+        }
+      ],
+      "children": []
+    },
+    "wq-20": {
+      "id": "wq-20",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "A target whose node ID equals the document ID is about the whole prompt."
+        }
+      ],
+      "children": []
+    },
+    "wq-21": {
+      "id": "wq-21",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "If a request is ambiguous, ask with "
+        },
+        {
+          "insert": "prompts_request_reply",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", leave it open, and keep working the others."
+        }
+      ],
+      "children": []
+    },
+    "wq-22": {
+      "id": "wq-22",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "If a change is needed, apply one minimal batch with "
+        },
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for that request, then run "
+        },
+        {
+          "insert": "prompts_check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and repair each required finding. If no change is needed, apply none."
+        }
+      ],
+      "children": []
+    },
+    "wq-23": {
+      "id": "wq-23",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Close each request on its own with "
+        },
+        {
+          "insert": "prompts_request_reply",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "close: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", after its check passes. Say what changed or why nothing changed."
+        }
+      ],
+      "children": []
+    },
+    "wq-24": {
+      "id": "wq-24",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Repeat until no request remains that you can close."
+        }
+      ],
+      "children": []
+    },
+    "wq-25": {
+      "id": "wq-25",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Close out the queue."
+        }
+      ],
+      "children": [
+        "wq-26",
+        "wq-27",
+        "wq-28"
+      ]
+    },
+    "wq-26": {
+      "id": "wq-26",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_requests",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " again. Close every request you could close one by one, never as a lump."
+        }
+      ],
+      "children": []
+    },
+    "wq-27": {
+      "id": "wq-27",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every request left open must carry an unanswered question whose answer changes the edit."
+        }
+      ],
+      "children": []
+    },
+    "wq-28": {
+      "id": "wq-28",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Run "
+        },
+        {
+          "insert": "prompts_check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "wq-29": {
+      "id": "wq-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "When a batch fails validation, narrow it to repair the failure and apply it again. Never widen the edit."
+        }
+      ],
+      "children": []
+    },
+    "wq-30": {
+      "id": "wq-30",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Rules for Every Edit"
+        }
+      ],
+      "children": []
+    },
+    "wq-31": {
+      "id": "wq-31",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These rules keep each edit small, structural, and true to the prompt."
+        }
+      ],
+      "children": []
+    },
+    "wq-32": {
+      "id": "wq-32",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Propose structure, never prose."
+        }
+      ],
+      "children": [
+        "wq-33"
+      ]
+    },
+    "wq-33": {
+      "id": "wq-33",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "An edit is a batch of ID-relative operations, never rewritten Markdown."
+        }
+      ],
+      "children": []
+    },
+    "wq-34": {
+      "id": "wq-34",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use the fewest operations that satisfy the request."
+        }
+      ],
+      "children": [
+        "wq-35",
+        "wq-36"
+      ]
+    },
+    "wq-35": {
+      "id": "wq-35",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Touch nothing the request did not name."
+        }
+      ],
+      "children": []
+    },
+    "wq-36": {
+      "id": "wq-36",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prefer "
+        },
+        {
+          "insert": "update_node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " over remove and insert, because removal destroys IDs."
+        }
+      ],
+      "children": []
+    },
+    "wq-37": {
+      "id": "wq-37",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Change nodes in place, because IDs anchor requests and undo."
+        }
+      ],
+      "children": [
+        "wq-38"
+      ]
+    },
+    "wq-38": {
+      "id": "wq-38",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Keep every variable placeholder declared."
+        }
+      ],
+      "children": []
+    },
+    "wq-39": {
+      "id": "wq-39",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Match the prompt's voice and names."
+        }
+      ],
+      "children": [
+        "wq-40"
+      ]
+    },
+    "wq-40": {
+      "id": "wq-40",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Change style only when a request asks for style."
+        }
+      ],
+      "children": []
+    },
+    "wq-41": {
+      "id": "wq-41",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Never silently follow a conflicting request."
+        }
+      ],
+      "children": [
+        "wq-42",
+        "wq-43"
+      ]
+    },
+    "wq-42": {
+      "id": "wq-42",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Name the conflict, then narrow or decline it."
+        }
+      ],
+      "children": []
+    },
+    "wq-43": {
+      "id": "wq-43",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "State any assumption in the resolution."
+        }
+      ],
+      "children": []
+    },
+    "wq-44": {
+      "id": "wq-44",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Write Replies and Resolutions"
+        }
+      ],
+      "children": []
+    },
+    "wq-45": {
+      "id": "wq-45",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Write tersely. Replies and resolutions are a sentence or two, never a restatement of the diff."
+        }
+      ],
+      "children": []
+    },
+    "wq-46": {
+      "id": "wq-46",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The In-App Editor"
+        }
+      ],
+      "children": []
+    },
+    "wq-47": {
+      "id": "wq-47",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The in-app prompt editor works the same queue with its own tools. Topic "
+        },
+        {
+          "insert": "editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds its state reference and its tool guide."
+        }
+      ],
+      "children": []
+    },
+    "wq-48": {
+      "id": "wq-48",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "R",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " aliases and compact target strings exist only in the editor. With MCP tools, pass a request's "
+        },
+        {
+          "insert": "id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "prompts_requests",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as "
+        },
+        {
+          "insert": "request_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "wq-49": {
+      "id": "wq-49",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "read_prompt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " maps to "
+        },
+        {
+          "insert": "prompts_read",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "propose_transaction",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to "
+        },
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "reply_request",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to "
+        },
+        {
+          "insert": "prompts_request_reply",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "resolve_request",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to "
+        },
+        {
+          "insert": "prompts_request_reply",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with "
+        },
+        {
+          "insert": "close: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "add_note",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " has no MCP tool."
+        }
+      ],
+      "children": []
+    },
+    "wq-50": {
+      "id": "wq-50",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two differences apply to MCP tools."
+        }
+      ],
+      "children": [
+        "wq-51",
+        "wq-52"
+      ]
+    },
+    "wq-51": {
+      "id": "wq-51",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " saves at once, with no staged review."
+        }
+      ],
+      "children": []
+    },
+    "wq-52": {
+      "id": "wq-52",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "A close takes one "
+        },
+        {
+          "insert": "body",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sentence, not an outcome and a note."
+        }
+      ],
+      "children": []
+    }
+  }
+}

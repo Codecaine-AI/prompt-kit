@@ -9,6 +9,7 @@ import { createPromptTools } from "./tools";
 
 const guidance = async ({ profile = "generic" }: { profile?: "agent" | "single-output" | "generic" } = {}) => ({
   profile, text: "guide", snapshotId: `snapshot:${profile}`, sources: [], references: {}, catalog: [],
+  topics: [{ id: "standards", title: "Standards", summary: "The standards.", text: "# Standards\n\nguide" }],
 });
 
 async function standaloneFixture(variables: string[] | undefined, nodes: unknown[]) {
@@ -21,7 +22,6 @@ async function standaloneFixture(variables: string[] | undefined, nodes: unknown
 
 test("published apply schema compiles with draft 2020-12 refs rooted at the MCP input", async () => {
   const tools = createPromptTools({
-    resolveProject: async () => { throw new Error("unused"); },
     resolvePrompt: async () => { throw new Error("unused"); },
   });
   const apply = tools.find((tool) => tool.name === "prompts_apply_ops")!;
@@ -35,7 +35,7 @@ test("published apply schema compiles with draft 2020-12 refs rooted at the MCP 
   expect(opsSchema.$schema).toBeUndefined();
 });
 
-test("unknown standalone declarations block check completion and task end", async () => {
+test("unknown standalone declarations block the check and its task report", async () => {
   const root = await standaloneFixture(undefined, [{ type: "paragraph", id: "body", content: ["text"] }]);
   try {
     const service = createInteractionService({ runtimeFingerprint: () => "runtime", guidance: guidance as never });
@@ -45,8 +45,7 @@ test("unknown standalone declarations block check completion and task end", asyn
     expect(checked.ok).toBe(false);
     expect(checked.variable_declarations_known).toBe(false);
     expect(JSON.stringify(checked.blocking)).toContain("variable_declarations_unknown");
-    const ended = (await service.call(root, "prompts_end", { task_id: task })).structuredContent;
-    expect(ended.all_current_revisions_checked).toBe(false);
+    expect(checked.all_current_revisions_checked).toBe(false);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
@@ -56,7 +55,7 @@ test("mutation lock rejects standalone declaration drift from its discovered ent
     const discovery = await discoverPromptProjects(root);
     const project = discovery.projects[0]!;
     const prompt = project.prompts[0]!;
-    const tools = createPromptTools({ resolveProject: async () => project, resolvePrompt: async () => ({ project, prompt }) });
+    const tools = createPromptTools({ resolvePrompt: async () => ({ project, prompt }) });
     const read = await tools.find((tool) => tool.name === "prompts_read")!.execute({ project: project.id, prompt_id: prompt.id });
     await writeFile(join(root, "codecaine.prompts.json"), JSON.stringify({ name: "standalone-project",
       standalonePrompts: [{ path: "prompt.json", variables: ["changed"] }] }));
@@ -77,6 +76,7 @@ test("fresh standalone declarations validate rendered placeholder references", a
     const service = createInteractionService({ runtimeFingerprint: () => "runtime", guidance: guidance as never });
     const project = ((await service.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
     const task = (await service.call(root, "prompts_begin", { project })).structuredContent.task_id as string;
+    await service.call(root, "prompts_guidance", { task_id: task, topic: "standards" });
     const read = (await service.call(root, "prompts_read", { project, prompt_id: "standalone" })).structuredContent;
     const changed = await service.call(root, "prompts_apply_ops", { project, prompt_id: "standalone", task_id: task,
       expected_hash: read.hash, ops: [{ op: "update_node", nodeId: "raw", patch: { value: "Hello {{undeclared}}" } }] });

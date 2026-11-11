@@ -9,6 +9,7 @@ import { createInteractionService } from "./service";
 
 const guidance = async ({ profile = "generic" }: { profile?: string } = {}) => ({
   profile, text: "guide", snapshotId: `snapshot:${profile}`, sources: [], references: {}, catalog: [],
+  topics: [{ id: "standards", title: "Standards", summary: "The standards.", text: "# Standards\n\nguide" }],
 });
 // The daemon opens its log once per process, so every test shares one file and uses its own run id.
 const logDir = mkdtempSync(join(tmpdir(), "prompt-action-log-file-"));
@@ -43,9 +44,9 @@ test("prompts_begin with thread_id binds the run so later calls resolve to the t
   const project = (found.structuredContent.projects as Array<{ id: string }>)[0]!.id;
   const begun = await handleRpc(service, { workspace: root, name: "prompts_begin", arguments: { project, thread_id: "thread-b" }, identity });
   await handleRpc(service, { workspace: root, name: "prompts_read", arguments: { project, prompt_id: "nope" }, identity });
-  await handleRpc(service, { workspace: root, name: "prompts_end", arguments: { task_id: begun.structuredContent.task_id }, identity });
+  await handleRpc(service, { workspace: root, name: "prompts_check", arguments: { project, prompt_id: "fixture", task_id: begun.structuredContent.task_id }, identity });
   const records = ActionLog.open({ path: logPath }).query({ threadId: "thread-b" });
-  expect(records.map(r => r.tool)).toEqual(["prompts_discover", "prompts_begin", "prompts_read", "prompts_end"]);
+  expect(records.map(r => r.tool)).toEqual(["prompts_discover", "prompts_begin", "prompts_read", "prompts_check"]);
   expect(records[0]!.agent).toBe("prompt-kit-mcp");
   expect(records[1]!.snapshotId).toBe("snapshot:generic");
   expect(records[2]).toMatchObject({ target: "nope", result: "refused" });

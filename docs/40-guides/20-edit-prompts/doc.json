@@ -9,117 +9,811 @@
       "type": "paragraph",
       "props": {},
       "children": [
-        "authored-1",
-        "authored-2",
-        "authored-3",
-        "authored-4",
-        "authored-5",
-        "authored-6",
-        "authored-7",
-        "authored-8",
-        "authored-9",
-        "authored-10",
-        "authored-11"
+        "wf-1",
+        "wf-2",
+        "wf-3",
+        "wf-4",
+        "wf-5",
+        "wf-6",
+        "wf-7",
+        "wf-8",
+        "wf-9",
+        "wf-10",
+        "wf-11",
+        "wf-15",
+        "wf-17",
+        "wf-19",
+        "wf-20",
+        "wf-21",
+        "wf-22",
+        "wf-24",
+        "wf-26",
+        "wf-27",
+        "wf-28",
+        "wf-29",
+        "wf-30",
+        "wf-31",
+        "wf-32",
+        "wf-33",
+        "wf-34",
+        "wf-35",
+        "wf-36",
+        "wf-37",
+        "wf-38",
+        "wf-39",
+        "wf-40",
+        "wf-41",
+        "wf-42",
+        "wf-43"
       ]
     },
-    "authored-1": {
-      "id": "authored-1",
+    "wf-1": {
+      "id": "wf-1",
       "type": "paragraph",
       "props": {},
       "text": [
         {
-          "insert": "Use the MCP tools to edit an existing registered prompt. The "
+          "insert": "Agents read and edit Prompt Kit documents through the Prompt Kit tools. The tools keep typed structure, stable IDs, revision checks, canonical JSON, production renders, and recovery history. Codex and Claude Code reach the tools through MCP, and pi reaches them through the installed bridge extension. "
         },
         {
-          "insert": "MCP Protocol",
+          "insert": "prompts_guidance",
           "attributes": {
-            "reference": {
-              "kind": "doc",
-              "path": "10-system-design/90-external-authoring/10-protocol"
-            }
+            "code": true
           }
         },
         {
-          "insert": " defines the task contract. The "
+          "insert": " serves this page as topic "
         },
         {
-          "insert": "Prompt Edit Transaction Guide",
+          "insert": "workflow",
           "attributes": {
-            "reference": {
-              "kind": "doc",
-              "path": "10-system-design/90-external-authoring/20-operations"
-            }
+            "code": true
           }
         },
         {
-          "insert": " defines the operation batch."
+          "insert": "."
         }
       ],
       "children": []
     },
-    "authored-2": {
-      "id": "authored-2",
-      "type": "process-outline",
-      "props": {
-        "steps": [
-          {
-            "text": "Complete an external prompt edit",
-            "steps": [
-              {
-                "text": "Discover the workspace and list prompts"
-              },
-              {
-                "text": "Begin a task for the explicit project and writing profile"
-              },
-              {
-                "text": "Read the target document, address map, and production render"
-              },
-              {
-                "text": "Apply an operation batch with task ID and current hash",
-                "steps": [
-                  {
-                    "text": "On conflict, read and reconcile the latest revision before retrying."
-                  },
-                  {
-                    "text": "Inspect the saved render and resolve remaining profile findings."
-                  }
-                ]
-              },
-              {
-                "text": "Check the latest revision and end the task"
-              }
-            ]
-          }
-        ]
-      },
-      "children": []
-    },
-    "authored-3": {
-      "id": "authored-3",
+    "wf-2": {
+      "id": "wf-2",
       "type": "heading",
       "props": {
         "level": 2
       },
       "text": [
         {
-          "insert": "Choose Guidance"
+          "insert": "When to Use the Prompt Kit Tools"
         }
       ],
       "children": []
     },
-    "authored-4": {
-      "id": "authored-4",
+    "wf-3": {
+      "id": "wf-3",
       "type": "paragraph",
       "props": {},
       "text": [
         {
-          "insert": "Use prompts_guidance with the task ID to retrieve the pinned reference catalog or one reference. Agent profile applies the agent section order; single-output profile applies the bounded response contract; generic profile avoids forcing either template. All profiles keep structural and variable checks."
+          "insert": "An agent uses the Prompt Kit tools for each read and each edit of a prompt."
         }
       ],
       "children": []
     },
-    "authored-5": {
-      "id": "authored-5",
+    "wf-4": {
+      "id": "wf-4",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use them when a project has a Prompt Kit catalog."
+        }
+      ],
+      "children": []
+    },
+    "wf-5": {
+      "id": "wf-5",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use them when the user asks you to inspect, author, or revise model-facing prompts."
+        }
+      ],
+      "children": []
+    },
+    "wf-6": {
+      "id": "wf-6",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Never rewrite prompt JSON or rendered Markdown directly."
+        }
+      ],
+      "children": []
+    },
+    "wf-7": {
+      "id": "wf-7",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Read-only work needs no task. A task pins the guidance and the scope, and it does not reserve a prompt."
+        }
+      ],
+      "children": []
+    },
+    "wf-8": {
+      "id": "wf-8",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "If the connection or a tool you need is missing, report that setup gap. Do not bypass the prompt tools."
+        }
+      ],
+      "children": []
+    },
+    "wf-9": {
+      "id": "wf-9",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Start a Task"
+        }
+      ],
+      "children": []
+    },
+    "wf-10": {
+      "id": "wf-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A task is the in-memory record that pins the profile and the guidance snapshot for your edits. Each write needs the "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " of a live task. A task expires 12 hours after "
+        },
+        {
+          "insert": "prompts_begin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or after 30 minutes without a call that passes its "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Expiry keeps your saved edits."
+        }
+      ],
+      "children": []
+    },
+    "wf-11": {
+      "id": "wf-11",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_discover",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for the active workspace, and use a project ID that it returns."
+        }
+      ],
+      "children": [
+        "wf-12",
+        "wf-13",
+        "wf-14"
+      ]
+    },
+    "wf-12": {
+      "id": "wf-12",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Select the requested project explicitly."
+        }
+      ],
+      "children": []
+    },
+    "wf-13": {
+      "id": "wf-13",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Pass "
+        },
+        {
+          "insert": "project",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to list only the prompts and discovery errors of that project."
+        }
+      ],
+      "children": []
+    },
+    "wf-14": {
+      "id": "wf-14",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "prompts_capabilities",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " lists the project IDs, the guidance topics, and the writes that each topic unlocks."
+        }
+      ],
+      "children": []
+    },
+    "wf-15": {
+      "id": "wf-15",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_begin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with the "
+        },
+        {
+          "insert": "agent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "single-output",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "generic",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " profile that fits the prompt, and keep its "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": [
+        "wf-16"
+      ]
+    },
+    "wf-16": {
+      "id": "wf-16",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Without a profile, the task uses the default profile of the project."
+        }
+      ],
+      "children": []
+    },
+    "wf-17": {
+      "id": "wf-17",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Read "
+        },
+        {
+          "insert": "prompts_guidance",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with that "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and topic "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": [
+        "wf-18",
+        "wf-18b"
+      ]
+    },
+    "wf-18": {
+      "id": "wf-18",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "The service refuses "
+        },
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " until the task reads every part of topic "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". One read of each part in each task is enough."
+        }
+      ],
+      "children": []
+    },
+    "wf-18b": {
+      "id": "wf-18b",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Topic "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " can come in several parts. Follow the "
+        },
+        {
+          "insert": "next",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " text of each result, and read every part before "
+        },
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "wf-19": {
+      "id": "wf-19",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Edit and Check a Prompt"
+        }
+      ],
+      "children": []
+    },
+    "wf-20": {
+      "id": "wf-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each edit is a typed operation batch at the current revision hash. A valid batch saves at once."
+        }
+      ],
+      "children": []
+    },
+    "wf-21": {
+      "id": "wf-21",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_read",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for the target. Review the production render, and pass its "
+        },
+        {
+          "insert": "hash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as "
+        },
+        {
+          "insert": "expected_hash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "wf-22": {
+      "id": "wf-22",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Apply typed operations with "
+        },
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": [
+        "wf-23"
+      ]
+    },
+    "wf-23": {
+      "id": "wf-23",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "On a revision conflict, read the current document and reconcile the requested change before you retry."
+        }
+      ],
+      "children": []
+    },
+    "wf-24": {
+      "id": "wf-24",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and repair each required finding."
+        }
+      ],
+      "children": [
+        "wf-25"
+      ]
+    },
+    "wf-25": {
+      "id": "wf-25",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "With "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the check also reports each prompt the task changed and whether its current revision passed."
+        }
+      ],
+      "children": []
+    },
+    "wf-26": {
+      "id": "wf-26",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Report the changed prompts and each finding you could not repair."
+        }
+      ],
+      "children": []
+    },
+    "wf-27": {
+      "id": "wf-27",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Read the Findings"
+        }
+      ],
+      "children": []
+    },
+    "wf-28": {
+      "id": "wf-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Treat structural and undeclared-variable errors as blockers. Treat prose findings as review criteria. A passing check does not replace an evaluation run."
+        }
+      ],
+      "children": []
+    },
+    "wf-29": {
+      "id": "wf-29",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Read the Guidance Topics"
+        }
+      ],
+      "children": []
+    },
+    "wf-30": {
+      "id": "wf-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Read "
+        },
+        {
+          "insert": "prompts_guidance",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and a topic for the detailed guidance of the task's pinned snapshot. "
+        },
+        {
+          "insert": "prompts_capabilities",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " lists all six topics. A topic over 24,576 bytes comes in parts, and each part names the next one."
+        }
+      ],
+      "children": []
+    },
+    "wf-31": {
+      "id": "wf-31",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Topic "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds the prompt authoring standards for the task's profile."
+        }
+      ],
+      "children": []
+    },
+    "wf-32": {
+      "id": "wf-32",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Topic "
+        },
+        {
+          "insert": "operations",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds the PromptDocument model and the operation batch."
+        }
+      ],
+      "children": []
+    },
+    "wf-33": {
+      "id": "wf-33",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Topic "
+        },
+        {
+          "insert": "catalog",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " lists every guidance source with the topic that serves it."
+        }
+      ],
+      "children": []
+    },
+    "wf-34": {
+      "id": "wf-34",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Choose a Profile"
+        }
+      ],
+      "children": []
+    },
+    "wf-35": {
+      "id": "wf-35",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The profile decides which structure rules apply. The "
+        },
+        {
+          "insert": "agent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " profile applies the agent section order. The "
+        },
+        {
+          "insert": "single-output",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " profile applies the bounded response contract. The "
+        },
+        {
+          "insert": "generic",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " profile forces neither template, and all profiles keep the structural and variable checks."
+        }
+      ],
+      "children": []
+    },
+    "wf-36": {
+      "id": "wf-36",
       "type": "heading",
       "props": {
         "level": 2
@@ -131,19 +825,75 @@
       ],
       "children": []
     },
-    "authored-6": {
-      "id": "authored-6",
+    "wf-37": {
+      "id": "wf-37",
       "type": "paragraph",
       "props": {},
       "text": [
         {
-          "insert": "Keep the changeId returned by the save. Call prompts_undo with that ID, the task ID, and the saved current hash. Undo refuses an intervening edit; re-read and decide how to reconcile instead of replacing the expected hash blindly. Check the undo revision before ending."
+          "insert": "Keep the "
+        },
+        {
+          "insert": "changeId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " that the save returns. Call "
+        },
+        {
+          "insert": "prompts_undo",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with that ID as "
+        },
+        {
+          "insert": "change_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the saved current hash. Undo refuses an intervening edit. Read the prompt again and decide how to reconcile, instead of replacing the expected hash."
         }
       ],
       "children": []
     },
-    "authored-7": {
-      "id": "authored-7",
+    "wf-38": {
+      "id": "wf-38",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Run "
+        },
+        {
+          "insert": "prompts_check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on the undo revision before you report."
+        }
+      ],
+      "children": []
+    },
+    "wf-39": {
+      "id": "wf-39",
       "type": "heading",
       "props": {
         "level": 2
@@ -155,8 +905,8 @@
       ],
       "children": []
     },
-    "authored-8": {
-      "id": "authored-8",
+    "wf-40": {
+      "id": "wf-40",
       "type": "paragraph",
       "props": {},
       "text": [
@@ -166,31 +916,19 @@
       ],
       "children": []
     },
-    "authored-9": {
-      "id": "authored-9",
+    "wf-41": {
+      "id": "wf-41",
       "type": "paragraph",
       "props": {},
       "text": [
         {
-          "insert": "A changed render layout or unrelated canonical revision requires inspecting the reported storage error. Restore the intended path/layout before retrying. Root-scoped undo does not transfer when the project root moves. The complete contract is "
-        },
-        {
-          "insert": "Persistence and Recovery",
-          "attributes": {
-            "reference": {
-              "kind": "doc",
-              "path": "10-system-design/90-external-authoring/30-persistence"
-            }
-          }
-        },
-        {
-          "insert": "."
+          "insert": "A changed render layout or unrelated canonical revision requires inspecting the reported storage error. Restore the intended path and layout before you retry. Root-scoped undo does not transfer when the project root moves. The complete contract is Persistence and Recovery."
         }
       ],
       "children": []
     },
-    "authored-10": {
-      "id": "authored-10",
+    "wf-42": {
+      "id": "wf-42",
       "type": "heading",
       "props": {
         "level": 2
@@ -202,8 +940,8 @@
       ],
       "children": []
     },
-    "authored-11": {
-      "id": "authored-11",
+    "wf-43": {
+      "id": "wf-43",
       "type": "paragraph",
       "props": {},
       "text": [

@@ -28,7 +28,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The prompt-kit connection exposes nine tools over MCP stdio. An authenticated loopback service owns task snapshots while prompt files remain authoritative across service restarts."
+          "insert": "The prompt-kit connection exposes ten tools over MCP stdio. An authenticated loopback service owns task snapshots while prompt files remain authoritative across service restarts."
         }
       ],
       "children": []
@@ -92,32 +92,28 @@
         "operations": [
           {
             "name": "prompts_discover",
-            "kind": "query",
+            "description": "Scans explicit roots and bounded workspace members. Reports malformed entries without importing executable context or starting a Kernel. With project, returns only that project's prompts and errors, and refuses a project outside the workspace.",
             "params": [
               {
                 "name": "workspace",
                 "type": "string",
-                "description": "Absolute workspace path; defaults to the connected workspace.",
-                "required": false
+                "required": false,
+                "description": "Absolute workspace path. Defaults to the connected workspace."
+              },
+              {
+                "name": "project",
+                "type": "string",
+                "required": false,
+                "description": "A project ID from this workspace. Limits the result to that project's prompts and discovery errors."
               }
             ],
             "returns": "DiscoveryResult",
-            "description": "Scans explicit roots and bounded workspace members. Reports malformed entries without importing executable context or starting a Kernel."
-          },
-          {
-            "name": "prompts_list",
-            "kind": "query",
-            "params": [
-              {
-                "name": "project",
-                "type": "string"
-              }
-            ],
-            "returns": "PromptListResult"
+            "exampleCall": "prompts_discover({ project: \"example-0641b415\" })",
+            "kind": "query"
           },
           {
             "name": "prompts_begin",
-            "kind": "action",
+            "description": "Pins the profile and the guidance snapshot, and returns task_id, profile, snapshot_id, and project. It returns no guidance text.",
             "params": [
               {
                 "name": "project",
@@ -126,16 +122,17 @@
               {
                 "name": "profile",
                 "type": "agent | single-output | generic",
-                "description": "Defaults to the project profile.",
-                "required": false
+                "required": false,
+                "description": "Defaults to the project profile."
               }
             ],
-            "returns": "TaskResult",
-            "description": "Returns task_id, fresh standards, the operation guide, and the pinned guidance snapshot."
+            "returns": "TaskState",
+            "exampleCall": "prompts_begin({ project: \"example-0641b415\", profile: \"generic\" })",
+            "kind": "action"
           },
           {
             "name": "prompts_guidance",
-            "kind": "query",
+            "description": "With task_id, reads the task snapshot and records the topic part as read. Without a task, loads current guidance. Without topic, lists the topics with sizes, parts, and required_for.",
             "params": [
               {
                 "name": "task_id",
@@ -143,9 +140,16 @@
                 "required": false
               },
               {
-                "name": "reference",
-                "type": "string",
-                "required": false
+                "name": "topic",
+                "type": "standards | workflow | operations | work-requests | catalog | editor",
+                "required": false,
+                "description": "Omit for the topic list."
+              },
+              {
+                "name": "part",
+                "type": "integer",
+                "required": false,
+                "description": "The part of a topic over 24,576 bytes, from 1."
               },
               {
                 "name": "profile",
@@ -154,7 +158,28 @@
               }
             ],
             "returns": "GuidanceResult",
-            "description": "With task_id, reads the task snapshot. Without a task, loads current guidance."
+            "exampleCall": "prompts_guidance({ task_id: \"2d493d1e-0271-4c1f-8ee7-0c95c50814b9\", topic: \"standards\" })",
+            "kind": "query"
+          },
+          {
+            "name": "prompts_capabilities",
+            "description": "Returns the capabilities index in pages of at most 4,096 bytes. It holds versions, the guidance snapshot, the tool order, and each topic with its size and required_for. It also names prompts_discover with the prompt count and lists the project IDs.",
+            "params": [
+              {
+                "name": "workspace",
+                "type": "string",
+                "required": false
+              },
+              {
+                "name": "cursor",
+                "type": "string",
+                "required": false,
+                "description": "next_cursor from the previous page."
+              }
+            ],
+            "returns": "CapabilitiesIndex",
+            "exampleCall": "prompts_capabilities({})",
+            "kind": "query"
           }
         ],
         "title": "Discovery and Knowledge"
@@ -168,7 +193,7 @@
         "operations": [
           {
             "name": "prompts_read",
-            "kind": "query",
+            "description": "Returns normalized document, production render, address map, hash, declarations, and findings without saving.",
             "params": [
               {
                 "name": "project",
@@ -180,11 +205,12 @@
               }
             ],
             "returns": "PromptReadResult",
-            "description": "Returns normalized document, production render, address map, hash, declarations, and findings without saving."
+            "exampleCall": "prompts_read({ project: \"example-0641b415\", prompt_id: \"rewritePrompt\" })",
+            "kind": "query"
           },
           {
             "name": "prompts_apply_ops",
-            "kind": "action",
+            "description": "Saves a valid operation batch immediately and returns the canonical document, render, revision, and durable changeId. Refuses until the task reads every part of topic standards.",
             "params": [
               {
                 "name": "project",
@@ -208,11 +234,12 @@
               }
             ],
             "returns": "PromptSaveResult",
-            "description": "Saves a valid operation batch immediately; returns the canonical document, render, revision, and durable changeId."
+            "exampleCall": "prompts_apply_ops({ project: \"example-0641b415\", prompt_id: \"rewritePrompt\", task_id: \"2d493d1e-0271-4c1f-8ee7-0c95c50814b9\", expected_hash: \"pk1-7e8f94a2e9a1517a46c53f412a9940b1ce5eff2a09153e8acf58a72fd6a558ab\", ops: [{ op: \"update_node\", nodeId: \"opening\", patch: { content: [\"Rewrite the paragraph in two sentences.\"] } }] })",
+            "kind": "action"
           },
           {
             "name": "prompts_undo",
-            "kind": "action",
+            "description": "Requires the recorded resulting revision to remain current and revalidates the restored document against current declarations.",
             "params": [
               {
                 "name": "project",
@@ -236,11 +263,12 @@
               }
             ],
             "returns": "PromptSaveResult",
-            "description": "Requires the recorded resulting revision to remain current and revalidates the restored document against current declarations."
+            "exampleCall": "prompts_undo({ project: \"example-0641b415\", prompt_id: \"rewritePrompt\", task_id: \"2d493d1e-0271-4c1f-8ee7-0c95c50814b9\", expected_hash: \"pk1-<saved revision>\", change_id: \"<changeId from the save>\" })",
+            "kind": "action"
           },
           {
             "name": "prompts_check",
-            "kind": "query",
+            "description": "Checks structure, variables, and profile rules at the current revision. With task_id, it also rereads each changed prompt and reports missing or outdated successful checks.",
             "params": [
               {
                 "name": "project",
@@ -253,8 +281,8 @@
               {
                 "name": "task_id",
                 "type": "string",
-                "description": "Supply to record completion against the task.",
-                "required": false
+                "required": false,
+                "description": "Supply to record completion against the task and to add the task report."
               }
             ],
             "returns": "PromptCheckResult",
@@ -295,22 +323,91 @@
                 {
                   "name": "blocking",
                   "type": "Finding[]"
+                },
+                {
+                  "name": "snapshot_id",
+                  "type": "string",
+                  "required": false,
+                  "description": "With task_id: the task's pinned snapshot."
+                },
+                {
+                  "name": "changed",
+                  "type": "ChangedPrompt[]",
+                  "required": false,
+                  "description": "With task_id: each prompt the task changed, its current hash, and whether that revision passed."
+                },
+                {
+                  "name": "all_current_revisions_checked",
+                  "type": "boolean",
+                  "required": false,
+                  "description": "With task_id: true when every changed prompt passed at its current hash."
                 }
-              ]
+              ],
+              "example": "{\n  \"ok\": true,\n  \"hash\": \"pk1-7e8f94a2e9a1517a46c53f412a9940b1ce5eff2a09153e8acf58a72fd6a558ab\",\n  \"expected_hash\": \"pk1-7e8f94a2e9a1517a46c53f412a9940b1ce5eff2a09153e8acf58a72fd6a558ab\",\n  \"structurally_valid\": true,\n  \"variable_declarations_known\": true,\n  \"profile\": \"generic\",\n  \"validation\": {\n    \"ok\": true,\n    \"diagnostics\": []\n  },\n  \"findings\": [],\n  \"blocking\": [],\n  \"snapshot_id\": \"sha256:67bd89b192312291ba426c458e08bfab0be9688068433ee5ddd56f357e1cf0f8\",\n  \"changed\": [],\n  \"all_current_revisions_checked\": true\n}"
             },
-            "description": "Checks structure, variables, and profile rules at the current revision."
+            "exampleCall": "prompts_check({ project: \"example-0641b415\", prompt_id: \"rewritePrompt\", task_id: \"2d493d1e-0271-4c1f-8ee7-0c95c50814b9\" })",
+            "kind": "query"
           },
           {
-            "name": "prompts_end",
-            "kind": "action",
+            "name": "prompts_requests",
+            "description": "Lists the open agent requests on one prompt and the annotations hash to pass as expected_hash.",
             "params": [
+              {
+                "name": "project",
+                "type": "string"
+              },
+              {
+                "name": "prompt_id",
+                "type": "string"
+              },
+              {
+                "name": "task_id",
+                "type": "string",
+                "required": false
+              }
+            ],
+            "returns": "PromptRequestsResult",
+            "exampleCall": "prompts_requests({ project: \"example-0641b415\", prompt_id: \"rewritePrompt\" })",
+            "kind": "query"
+          },
+          {
+            "name": "prompts_request_reply",
+            "description": "Without close, adds body as a reply and leaves the request open. With close true, resolves the request with body as its one-sentence resolution.",
+            "params": [
+              {
+                "name": "project",
+                "type": "string"
+              },
+              {
+                "name": "prompt_id",
+                "type": "string"
+              },
               {
                 "name": "task_id",
                 "type": "string"
+              },
+              {
+                "name": "request_id",
+                "type": "string"
+              },
+              {
+                "name": "expected_hash",
+                "type": "string"
+              },
+              {
+                "name": "body",
+                "type": "string"
+              },
+              {
+                "name": "close",
+                "type": "boolean",
+                "required": false,
+                "description": "true closes the request with body as its resolution."
               }
             ],
-            "returns": "TaskCompletionResult",
-            "description": "Rereads changed prompts and reports missing or outdated successful checks. Ending does not roll back saved edits."
+            "returns": "PromptRequestResult",
+            "exampleCall": "prompts_request_reply({ project: \"example-0641b415\", prompt_id: \"rewritePrompt\", task_id: \"2d493d1e-0271-4c1f-8ee7-0c95c50814b9\", request_id: \"<id from prompts_requests>\", expected_hash: \"<hash from prompts_requests>\", body: \"Cut the intro to two sentences.\", close: true })",
+            "kind": "action"
           }
         ],
         "title": "Read, Save, and Complete"
@@ -336,7 +433,34 @@
       "props": {},
       "text": [
         {
-          "insert": "Every mutation requires a task in the same workspace and project plus a current prompt hash. Guidance is pinned within a task. New tasks observe updated canonical standards. Configuration and runtime/tool fingerprints reject writes when their contract changes."
+          "insert": "Every mutation requires a task in the same workspace and project plus a current prompt hash. "
+        },
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " also requires that the task read every part of topic "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Guidance is pinned within a task, and new tasks observe updated canonical standards. A task expires 30 minutes after its last call or 12 hours after "
+        },
+        {
+          "insert": "prompts_begin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []

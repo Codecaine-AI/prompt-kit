@@ -1,4 +1,5 @@
 import { version } from "../package.json";
+import { MCP_INSTRUCTIONS } from "./instructions";
 /** pi has no built-in MCP client. This extension exposes the server's real schemas. */
 export interface PiLaunchConfig { command: string; args: string[] }
 interface ToolSchema { name: string; description?: string; inputSchema: Record<string, unknown> }
@@ -6,7 +7,6 @@ interface ToolResult { content: Array<Record<string, unknown>>; isError?: boolea
 export interface BridgeConnection {
   listTools(params?: { cursor?: string }): Promise<{ tools: ToolSchema[]; nextCursor?: string }>;
   callTool(params: { name: string; arguments: Record<string, unknown> }, options?: { signal?: AbortSignal }): Promise<ToolResult>;
-  instructions?: string;
   close(): Promise<void>;
 }
 export interface PiContext { cwd: string; ui?: { notify(message: string, level?: "info" | "warning" | "error"): void } }
@@ -35,7 +35,6 @@ async function connect(config: PiLaunchConfig, cwd: string): Promise<BridgeConne
     return {
       listTools: (params) => client.listTools(params),
       callTool: async (params, options) => await client.callTool(params, undefined, { signal: options?.signal, timeout: 120_000 }) as ToolResult,
-      instructions: client.getInstructions(),
       close: () => client.close(),
     };
   } catch (error) {
@@ -47,11 +46,9 @@ async function connect(config: PiLaunchConfig, cwd: string): Promise<BridgeConne
 export function createPiExtension(config: PiLaunchConfig, connectClient = connect) {
   return (pi: PiExtensionAPI) => {
     let connection: BridgeConnection | undefined;
-    let instructions = "";
     const close = async () => {
       const previous = connection;
       connection = undefined;
-      instructions = "";
       await previous?.close();
     };
     // Factories also run without a session. Start processes only after session_start.
@@ -59,7 +56,6 @@ export function createPiExtension(config: PiLaunchConfig, connectClient = connec
       await close();
       try {
         connection = await connectClient(config, ctx.cwd);
-        instructions = connection.instructions ?? "";
         let cursor: string | undefined;
         const seenCursors = new Set<string>();
         do {
@@ -89,7 +85,8 @@ export function createPiExtension(config: PiLaunchConfig, connectClient = connec
         throw error;
       }
     });
-    pi.on("before_agent_start", async (event) => instructions ? { systemPrompt: `${event.systemPrompt ?? ""}\n\n${instructions}` } : undefined);
+    // The prompt block is the same constant the MCP server sends as its instructions, appended while connected.
+    pi.on("before_agent_start", async (event) => connection ? { systemPrompt: `${event.systemPrompt ?? ""}\n\n${MCP_INSTRUCTIONS}` } : undefined);
     pi.on("session_shutdown", async () => { await close(); });
   };
 }

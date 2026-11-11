@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "snapshotId": "sha256:452156cf3f095aadbdad094ad0838a5791716c52cc908882eccd743c8a0f047e",
+  "snapshotId": "sha256:822b09354a77fc052df9e983ea2747d09c0edf29e9ded5f750b92e909a32bdd5",
   "profile": "generic",
   "sources": [
     {
@@ -76,22 +76,40 @@
     {
       "path": "docs/10-system-design/90-external-authoring/20-operations/doc.json",
       "kind": "transaction",
-      "sourceSha256": "cbe0ac86d15af33ac5a70c4affcf7bfd9e7428607281dfb79ac05d3147fe253a",
-      "renderedSha256": "6887cb44e9899d09b1dde7042d3ddb3b2479b8e7a49161db832ab0c08bf6355b",
-      "sha256": "de12dca8a7be6457ca4d809d616978b3cde4c15df9537e1064e9323ba512e88a"
-    }
-  ],
-  "skillSources": [
+      "sourceSha256": "dbc5d552713ce30af39ceac227930a911b8e69272cc44450f6705152a6625bee",
+      "renderedSha256": "1ec1995c58f5d318a2557195e8e95ba3ef05f92ce911e8462218d95e8c1df3ce",
+      "sha256": "9c5dfc4fb085643c3668f018c03a1863d790152ce80852e410f46111a37e25ad"
+    },
+    {
+      "path": "docs/40-guides/20-edit-prompts/doc.json",
+      "kind": "guide",
+      "sourceSha256": "05198e70889e6784f8d5d63c796ae53c60768010fbd18848d3a5bca24a76002b",
+      "renderedSha256": "956f1bf014f433439c4c9aa60b4cfa66238a2bca1666a088677797445723bcaf",
+      "sha256": "f8415fabfd5889711845b101489a657bb82cb19ad5e0e11257faa1e5aff6e876"
+    },
+    {
+      "path": "docs/40-guides/25-work-requests/doc.json",
+      "kind": "guide",
+      "sourceSha256": "1982ae3b4c0f5e512968f8b1932d1bcba0cd385d449c8c46a7beba352234a92d",
+      "renderedSha256": "6deb49d37975904881c5b6fcc47145dedd78799a0ef685ffb1bd0aaf15c596b0",
+      "sha256": "c1ec194e27d453bc433c154fb61692583442d0022c1feed0372f0b5a89b46b51"
+    },
     {
       "path": "packages/prompt-kit-mcp/catalog/prompt-editor/context/blocks/10-state-reference.md",
-      "sha256": "ab5b8bd34220923be9cd2f2056586b9b55faa6d9ac6485e5a23dedca9f640ee5",
-      "output": "references/prompt-state-reference.md"
+      "kind": "editor",
+      "sourceSha256": "ab5b8bd34220923be9cd2f2056586b9b55faa6d9ac6485e5a23dedca9f640ee5",
+      "renderedSha256": "ab5b8bd34220923be9cd2f2056586b9b55faa6d9ac6485e5a23dedca9f640ee5",
+      "sha256": "b124950cbf3d533444979dba3b795944dac5c69f69affb6dc73121542d5224f8"
     },
     {
       "path": "packages/prompt-kit-mcp/catalog/prompt-editor/context/blocks/20-tool-guide.md",
-      "sha256": "c7a1461e1fdbd08e37bfe5048cf68fc782005abaccfffc85f347008ca06c560f",
-      "output": "references/prompt-tool-guide.md"
-    },
+      "kind": "editor",
+      "sourceSha256": "c7a1461e1fdbd08e37bfe5048cf68fc782005abaccfffc85f347008ca06c560f",
+      "renderedSha256": "c7a1461e1fdbd08e37bfe5048cf68fc782005abaccfffc85f347008ca06c560f",
+      "sha256": "f5b41ac3b6da84fe4459f1c01f2a7f59d05828624a74fa2c73305f29ca6df0a2"
+    }
+  ],
+  "skillSources": [
     {
       "path": "packages/prompt-kit-mcp/catalog/prompt-editor/prompt/prompt.json",
       "sha256": "87318b49c6ef0462e8b906bfce2edfdf015f27e851de4cca4a7728b37f16e1e8"

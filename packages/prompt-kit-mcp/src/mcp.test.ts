@@ -5,10 +5,20 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { PACKAGE_ROOT } from "./lifecycle";
+import { MCP_INSTRUCTIONS } from "./instructions";
+import { CLI_PATH, PACKAGE_ROOT } from "./lifecycle";
 
 const clients: Client[] = [];
 afterEach(async () => { await Promise.all(clients.splice(0).map(client => client.close())); });
+
+test("the prompt block stays within 12 lines and 800 bytes, names the first calls, and the CLI prints it unchanged", async () => {
+  expect(MCP_INSTRUCTIONS.split("\n").length).toBeLessThanOrEqual(12);
+  expect(Buffer.byteLength(MCP_INSTRUCTIONS)).toBeLessThanOrEqual(800);
+  for (const phrase of ["prompts_capabilities first", 'topic "standards"', "prompts_check with task_id", "compaction"]) expect(MCP_INSTRUCTIONS).toContain(phrase);
+  const run = Bun.spawn([process.execPath, CLI_PATH, "instructions"], { stdout: "pipe", stderr: "pipe" });
+  expect(await new Response(run.stdout).text()).toBe(`${MCP_INSTRUCTIONS}\n`);
+  expect(await run.exited).toBe(0);
+});
 
 describe("stdio MCP bridge", () => {
   test("forwards real MCP tool and resource requests to the authenticated loopback daemon", async () => {
@@ -23,7 +33,7 @@ describe("stdio MCP bridge", () => {
       if (url.pathname === "/tools") return Response.json({ tools: [{ name: "prompts_discover", description: "Discover prompts", inputSchema: { type: "object", properties: {} } }, { name: "prompts_guidance", description: "Read guidance", inputSchema: { type: "object", properties: {} } }] });
       if (url.pathname === "/rpc") {
         const body = await request.json() as typeof requests[number]; requests.push(body);
-        if (body.name === "prompts_guidance") return Response.json({ content: [{ type: "text", text: "serialized fallback" }], structuredContent: { ok: true, guidance: "# Prompt guidance\nPinned standards." } });
+        if (body.name === "prompts_guidance") return Response.json({ content: [{ type: "text", text: "serialized" }], structuredContent: { ok: true, topics: [{ id: "standards", title: "Prompt Authoring Standards", bytes: 100, parts: 1, required_for: ["prompts_apply_ops"] }] } });
         return Response.json({ content: [{ type: "text", text: "discovered" }], structuredContent: { ok: true, workspace: body.workspace, projects: [] } });
       }
       return new Response("Not found", { status: 404 });
@@ -34,14 +44,15 @@ describe("stdio MCP bridge", () => {
       const client = new Client({ name: "prompt-protocol-test", version: "1.0.0" }); clients.push(client);
       const moduleUrl = pathToFileURL(join(PACKAGE_ROOT, "src/mcp.ts")).href;
       await client.connect(new StdioClientTransport({ command: process.execPath, args: ["-e", `import { startMcp } from ${JSON.stringify(moduleUrl)}; await startMcp(${JSON.stringify(root)});`], env: { ...process.env, CODECAINE_PROMPTS_STATE_DIR: stateDir } as Record<string, string> }));
-      expect(client.getInstructions()).toContain("prompts_begin");
+      expect(client.getInstructions()).toBe(MCP_INSTRUCTIONS);
       expect((await client.listTools()).tools.map(tool => tool.name)).toEqual(["prompts_discover", "prompts_guidance"]);
       const called = await client.callTool({ name: "prompts_discover", arguments: {} });
       expect(called.structuredContent).toMatchObject({ ok: true, workspace: root });
       const resources = await client.listResources();
       expect(resources.resources[0]?.uri).toBe("codecaine://prompts/guidance");
       const resource = await client.readResource({ uri: "codecaine://prompts/guidance" });
-      expect((resource.contents[0] as { text: string }).text).toContain("Pinned standards");
+      expect(resource.contents[0]).toMatchObject({ mimeType: "application/json" });
+      expect(JSON.parse((resource.contents[0] as { text: string }).text).topics[0]).toMatchObject({ id: "standards", required_for: ["prompts_apply_ops"] });
       expect(requests.map(item => item.name)).toEqual(["prompts_discover", "prompts_guidance"]);
       expect(requests.every(item => item.workspace === root)).toBe(true);
     } finally { server.stop(true); await rm(root, { recursive: true, force: true }); }
