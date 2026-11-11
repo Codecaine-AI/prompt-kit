@@ -159,7 +159,7 @@ export function createPromptTools(context: PromptToolContext): PromptTool[] {
         variable_declarations_known: choice.prompt.target.declaredVariables !== undefined, profile: selectedProfile,
         validation, findings, prompt_path: read.promptPath, rendered_path: read.renderedPath };
     }),
-    tool("prompts_apply_ops", "Apply an atomic batch of ID-relative prompt operations at the expected revision. Requires prompts_begin and task_id.", { ...schema({ ...targetProperties, task_id: string, expected_hash: string, ops: embeddedPromptEditOpsSchema }), $defs: promptEditOpsDefinitions }, async (raw) => {
+    tool("prompts_apply_ops", "Apply an atomic batch of ID-relative prompt operations at the expected revision. Requires prompts_begin, task_id, and the task's read of every part of prompts_guidance topic \"standards\".", { ...schema({ ...targetProperties, task_id: string, expected_hash: string, ops: embeddedPromptEditOpsSchema }), $defs: promptEditOpsDefinitions }, async (raw) => {
       const args = exact(raw, ["project", "prompt_id", "task_id", "expected_hash", "ops"]);
       strictOps(args.ops);
       const parsed = parsePromptEditOps(args.ops);
