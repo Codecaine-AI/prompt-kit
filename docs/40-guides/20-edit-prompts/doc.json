@@ -390,7 +390,8 @@
         }
       ],
       "children": [
-        "wf-18"
+        "wf-18",
+        "wf-18b"
       ]
     },
     "wf-18": {
@@ -418,6 +419,44 @@
         },
         {
           "insert": ". One read of each part in each task is enough."
+        }
+      ],
+      "children": []
+    },
+    "wf-18b": {
+      "id": "wf-18b",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Topic "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " can come in several parts. Follow the "
+        },
+        {
+          "insert": "next",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " text of each result, and read every part before "
+        },
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []

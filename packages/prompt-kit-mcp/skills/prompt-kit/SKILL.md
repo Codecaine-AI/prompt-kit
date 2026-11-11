@@ -14,7 +14,7 @@ Use the connected Prompt Kit tools for reads and edits. They preserve typed stru
 ## Read or Edit
 
 1. Call `prompts_discover` in the active workspace and select a project explicitly.
-2. For edits, call `prompts_begin` with the applicable `agent`, `single-output`, or `generic` profile, and retain the returned task ID. Read `prompts_guidance` with that `task_id` and topic `standards`: `prompts_apply_ops` is refused until you do.
+2. For edits, call `prompts_begin` with the applicable `agent`, `single-output`, or `generic` profile, and retain the returned task ID. Read `prompts_guidance` with that `task_id` and topic `standards`. The topic can come in several parts: follow each result's `next` and read every part, because `prompts_apply_ops` is refused until you do.
 3. Call `prompts_read` for the target. Review the production render and use its current hash as `expected_hash`.
 4. Apply typed operations. Valid batches save immediately. On a revision conflict, read and reconcile the current document before retrying.
 5. Call `prompts_check` with `task_id` and repair required findings. Its task report shows whether each changed prompt passed at its current revision. Report changed prompts and unresolved findings.
@@ -44,8 +44,8 @@ You change a prompt on behalf of the human who owns it. The prompt is a tree of 
 2. Work each request against the current tree.
    - A `prompt-node` target names one node. A `prompt-range` target names a quoted span inside one node. A target whose node ID equals the document ID is about the whole prompt.
    - If a request is ambiguous, ask with `prompts_request_reply`, leave it open, and keep working the others.
-   - If a change is needed, apply one minimal batch with `prompts_apply_ops` for that request. If no change is needed, apply none.
-   - Close each request on its own with `prompts_request_reply` and `close: true`. Say what changed or why nothing changed.
+   - If a change is needed, apply one minimal batch with `prompts_apply_ops` for that request, after the task has read every part of topic `standards`. Then run `prompts_check` with `task_id` and repair required findings. If no change is needed, apply none.
+   - Close each request on its own with `prompts_request_reply` and `close: true`, after its check passes. Say what changed or why nothing changed.
    - Repeat until no request remains that you can close.
 3. Close out.
    - Call `prompts_requests` again. Every request you could close must be resolved one by one, never as a lump.

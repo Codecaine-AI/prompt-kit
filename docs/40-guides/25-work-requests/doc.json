@@ -250,10 +250,49 @@
         }
       ],
       "children": [
+        "wq-12a",
         "wq-13",
         "wq-14",
         "wq-15"
       ]
+    },
+    "wq-12a": {
+      "id": "wq-12a",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_begin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and read every part of topic "
+        },
+        {
+          "insert": "standards",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with its "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " before you apply an edit."
+        }
+      ],
+      "children": []
     },
     "wq-13": {
       "id": "wq-13",
@@ -426,7 +465,25 @@
           }
         },
         {
-          "insert": " for that request. If no change is needed, apply none."
+          "insert": " for that request, then run "
+        },
+        {
+          "insert": "prompts_check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and repair each required finding. If no change is needed, apply none."
         }
       ],
       "children": []
@@ -455,7 +512,7 @@
           }
         },
         {
-          "insert": ". Say what changed or why nothing changed."
+          "insert": ", after its check passes. Say what changed or why nothing changed."
         }
       ],
       "children": []

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "snapshotId": "sha256:3a213f64fb72928c7078f85092107b1e33682a5c2106e62d27858c691a8f521b",
+  "snapshotId": "sha256:822b09354a77fc052df9e983ea2747d09c0edf29e9ded5f750b92e909a32bdd5",
   "profile": "generic",
   "sources": [
     {
@@ -83,16 +83,16 @@
     {
       "path": "docs/40-guides/20-edit-prompts/doc.json",
       "kind": "guide",
-      "sourceSha256": "e1c043da0ede475828196241e1a735ed6738940aec863e2194e3fa4b00e4b790",
-      "renderedSha256": "165fd36ba7a104e81fec1bca1d595953e52eeaf7a030f712d5e86518a97aa091",
-      "sha256": "330d0d1fd622536cdc908c58119c8628712370b2c789cead9882ad19482e54fa"
+      "sourceSha256": "05198e70889e6784f8d5d63c796ae53c60768010fbd18848d3a5bca24a76002b",
+      "renderedSha256": "956f1bf014f433439c4c9aa60b4cfa66238a2bca1666a088677797445723bcaf",
+      "sha256": "f8415fabfd5889711845b101489a657bb82cb19ad5e0e11257faa1e5aff6e876"
     },
     {
       "path": "docs/40-guides/25-work-requests/doc.json",
       "kind": "guide",
-      "sourceSha256": "9813162b025cb6f52d41433341f6573b5999a3130e79fc0e1082d4a94845ee8a",
-      "renderedSha256": "f693f6482fdfe3e6015c44b64bbd29bb0ec17ff27574d3f4dea1450097f59317",
-      "sha256": "86f6a2858aee4072bac925f79290ead3919115cd2798a97d7d098aedfa39f1aa"
+      "sourceSha256": "1982ae3b4c0f5e512968f8b1932d1bcba0cd385d449c8c46a7beba352234a92d",
+      "renderedSha256": "6deb49d37975904881c5b6fcc47145dedd78799a0ef685ffb1bd0aaf15c596b0",
+      "sha256": "c1ec194e27d453bc433c154fb61692583442d0022c1feed0372f0b5a89b46b51"
     },
     {
       "path": "packages/prompt-kit-mcp/catalog/prompt-editor/context/blocks/10-state-reference.md",
