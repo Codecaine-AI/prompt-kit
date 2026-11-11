@@ -187,6 +187,8 @@ test("an agent reads, replies to, and closes a request filed through the Prompt 
     const resolved = (await service.call(root, "prompts_request_reply", { project, prompt_id: "fixture", task_id: task, request_id: requestId, expected_hash: hash, body: "Changed body to say after.", close: true })).structuredContent;
     expect(resolved).toMatchObject({ ok: true, request: { status: "resolved", resolution: "Changed body to say after." } });
     expect(resolved.reply).toBeUndefined();
+    // The close result points at the last step of a request: list the requests again.
+    expect(resolved.next).toBe("Call prompts_requests again and confirm that the request is closed, then work the next open request.");
 
     expect((await service.call(root, "prompts_requests", { project, prompt_id: "fixture" })).structuredContent.requests).toEqual([]);
     const reopened = await createPromptAnnotationFileStore({ root }).list(promptPath);

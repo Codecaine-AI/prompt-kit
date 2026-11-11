@@ -17,6 +17,10 @@
         "wf-6",
         "wf-7",
         "wf-8",
+        "rd-1",
+        "rd-2",
+        "rd-3",
+        "rd-4",
         "wf-9",
         "wf-10",
         "wf-11",
@@ -151,6 +155,74 @@
       "text": [
         {
           "insert": "If the connection or a tool you need is missing, report that setup gap. Do not bypass the prompt tools."
+        }
+      ],
+      "children": []
+    },
+    "rd-1": {
+      "id": "rd-1",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Read a Prompt"
+        }
+      ],
+      "children": []
+    },
+    "rd-2": {
+      "id": "rd-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Read-only work opens no task, but it starts the same way as an edit."
+        }
+      ],
+      "children": []
+    },
+    "rd-3": {
+      "id": "rd-3",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "For read-only work, call "
+        },
+        {
+          "insert": "prompts_discover",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for the active workspace, and select the requested project explicitly."
+        }
+      ],
+      "children": []
+    },
+    "rd-4": {
+      "id": "rd-4",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_read",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with that project ID and the prompt ID."
         }
       ],
       "children": []

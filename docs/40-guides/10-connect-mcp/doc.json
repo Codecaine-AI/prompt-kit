@@ -15,6 +15,7 @@
         "authored-4",
         "authored-5",
         "authored-6",
+        "retire-1",
         "authored-7",
         "authored-8",
         "authored-9",
@@ -33,7 +34,25 @@
       "props": {},
       "text": [
         {
-          "insert": "Install the prompt-kit connection from the Prompt Kit repository root. The installer adds client bindings and generated authoring skills while preserving unrelated settings."
+          "insert": "Install the prompt-kit connection from the Prompt Kit repository root. The installer adds client bindings while preserving unrelated settings, and it writes no skill. Agents read the guidance through "
+        },
+        {
+          "insert": "prompts_capabilities",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "prompts_guidance",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -87,17 +106,38 @@
         "rows": [
           [
             "Codex",
-            "~/.codex/config.toml and ~/.agents/skills/prompt-kit",
+            [
+              {
+                "insert": "~/.codex/config.toml",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
             "Restart Codex."
           ],
           [
             "Claude Code",
-            "~/.claude.json and ~/.claude/skills/prompt-kit",
+            [
+              {
+                "insert": "~/.claude.json",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
             "Restart Claude Code."
           ],
           [
             "pi",
-            "~/.pi/agent/extensions/prompt-kit.ts and shared skill directory",
+            [
+              {
+                "insert": "~/.pi/agent/extensions/prompt-kit.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
             "Run /reload or start a new session."
           ]
         ]
@@ -111,6 +151,62 @@
       "text": [
         {
           "insert": "pi uses an extension that forwards MCP tools. Codex and Claude use stdio MCP. The connection discovers the active workspace; it does not hardcode one project. Custom client directories require the supported installer options rather than overwriting unrelated installations."
+        }
+      ],
+      "children": []
+    },
+    "retire-1": {
+      "id": "retire-1",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Earlier installs wrote a skill copy named "
+        },
+        {
+          "insert": "prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "codecaine-prompts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " into "
+        },
+        {
+          "insert": "~/.agents/skills",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the Claude skills folder. The installer removes a copy it owns: a real folder whose "
+        },
+        {
+          "insert": "SKILL.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " frontmatter names it and whose "
+        },
+        {
+          "insert": "snapshot.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " has the generator's shape. It removes only the generator's files, keeps a file you added, and backs up each removed file for restore. It skips a skills folder that another tool links, and doctor lists each file of a remaining copy as a leftover."
         }
       ],
       "children": []

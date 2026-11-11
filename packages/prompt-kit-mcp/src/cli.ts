@@ -8,7 +8,6 @@ import { guidanceManifest } from "./guidance-manifest";
 import { MCP_INSTRUCTIONS } from "./instructions";
 import { startMcp } from "./mcp";
 import { createInteractionService } from "./service";
-import { loadGuidance, generateSkillFolder } from "./guidance";
 import { createDevelopmentSnapshot } from "./snapshot";
 import { identityFromEnv, newRunId } from "@codecaine-ai/action-log";
 import { loadCodecaineEnv } from "./codecaine-env";
@@ -46,14 +45,8 @@ try {
       await mkdir(resolve(destination, ".."), { recursive: true }); await writeFile(destination, JSON.stringify(snapshot, null, 2) + "\n");
       out({ path: destination, snapshot: snapshot.snapshotId }); break;
     }
-    case "guidance": {
-      const profile = option("--profile") as "agent" | "single-output" | "generic" | undefined;
-      const snapshot = await loadGuidance({ profile });
-      if (args.includes("--write")) await generateSkillFolder(join(PACKAGE_ROOT, "skills", "prompt-kit"), snapshot);
-      out({ snapshotId: snapshot.snapshotId, profile: snapshot.profile, sources: snapshot.sources }); break;
-    }
     case "instructions": console.log(MCP_INSTRUCTIONS); break;
     case "manifest": out(await guidanceManifest()); break;
-    default: console.log(`Prompt Kit\n\n  install [--write] [--clients codex,claude,pi]  Install connection and skills (preview by default)\n  restore REPORT [--write]                  Restore a saved installation report\n  doctor                                    Check installed bindings\n  mcp [--workspace PATH]                    Start stdio MCP bridge\n  discover [--workspace PATH]               List prompt projects\n  tools                                     List typed tools\n  call TOOL --args JSON [--workspace PATH]  Invoke a tool for testing\n  guidance [--profile PROFILE] [--write]    Inspect/regenerate skill references\n  snapshot [--out FILE]                     Record development snapshot\n  instructions                              Print the prompt block (MCP instructions)\n  manifest                                  Print the rule-unit manifest as JSON\n  start | status | stop                     Control the shared local service`);
+    default: console.log(`Prompt Kit\n\n  install [--write] [--clients codex,claude,pi]  Install the connection (preview by default)\n  restore REPORT [--write]                  Restore a saved installation report\n  doctor                                    Check installed bindings\n  mcp [--workspace PATH]                    Start stdio MCP bridge\n  discover [--workspace PATH]               List prompt projects\n  tools                                     List typed tools\n  call TOOL --args JSON [--workspace PATH]  Invoke a tool for testing\n  snapshot [--out FILE]                     Record development snapshot\n  instructions                              Print the prompt block (MCP instructions)\n  manifest                                  Print the rule-unit manifest as JSON\n  start | status | stop                     Control the shared local service`);
   }
 } catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; }

@@ -1,17 +1,16 @@
 /**
- * The rule-unit manifest of the prompt-kit skill, and the Prompt Kit guidance contract. Every non-blank line of
- * SKILL.md and of each file under references/ sits in one unit, and each unit names the served guidance that now
- * carries it: a prompts_guidance topic, or a drop with a reason. capabilities.test.ts pins each file's sha256, checks
- * the line spans, runs each unit's contract against the served topic and strips each unit to prove its contract
- * fails. cli.ts manifest prints the units as JSON for the prose judge. SKILL.md unit text is a frozen literal, and a
- * generated unit reads its lines from the skill folder.
+ * The rule-unit manifest of the deleted prompt-kit skill, and the Prompt Kit guidance contract. Each unit keeps a run
+ * of the hand-written SKILL.md lines as the skill wrote them, with the line range it came from, and names the served
+ * guidance that now carries it: a prompts_guidance topic, or a drop with a reason. The units are frozen literals,
+ * because the skill folder, its generated references and its generator are gone. capabilities.test.ts runs each
+ * unit's contract against the served topic and strips each unit to prove its contract fails. cli.ts manifest prints
+ * the units as JSON for the prose judge.
  */
-import { readFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import type { GuidanceProfile, GuidanceTopicId } from "@codecaine-ai/prompt-kit-server";
 
-export const SKILL_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../skills/prompt-kit");
+/** The text prompts_apply_ops returns until the task has read every part of topic standards. */
+export const STANDARDS_GATE =
+  "Read the prompt standards before your first edit: call prompts_guidance(task_id, topic='standards'), that is prompts_guidance with your task_id and topic \"standards\", and read every part it names. Required once per task.";
 
 /** The eval scenario that exercises a unit. The gate runners build one task per scenario. */
 export const SCENARIOS = {
@@ -25,8 +24,8 @@ export const SCENARIOS = {
 } as const;
 export type ScenarioId = keyof typeof SCENARIOS;
 
-/** metadata: skill frontmatter. rule, step, link: hand-written prose. generated: a generated reference file's body. */
-export type UnitKind = "metadata" | "rule" | "step" | "link" | "generated";
+/** metadata: skill frontmatter. rule, step, link: hand-written prose. */
+export type UnitKind = "metadata" | "rule" | "step" | "link";
 /**
  * Where the unit is served now. A drop to instruments is allowed only for a unit that routes output to another
  * system, and its anchors are phrases of the instruments skill. A drop to skill-folder is allowed only for a unit that
@@ -38,15 +37,13 @@ export type Behavior = { tools?: readonly string[]; refusal?: string };
 export type ManifestUnit = {
   id: string;
   kind: UnitKind;
-  /** Path relative to SKILL_ROOT. */
+  /** The deleted skill file the unit came from, as a path in the deleted skill folder of prompt-kit-mcp. */
   file: string;
   /** First and last line, 1-based and inclusive. */
   lines: readonly [number, number];
-  /** sha256 of the whole file the unit comes from. */
-  sha256: string;
-  /** The unit's lines as the file holds them. */
+  /** The unit's lines as the file held them. */
   text: string;
-  /** Exact phrases of the served topic that carry the unit's rule, each held by one sentence only. A generated unit and a skill-folder drop have none. */
+  /** Exact phrases of the served topic that carry the unit's rule, each held by one sentence only. A skill-folder drop has none. */
   anchors: readonly string[];
   scenario: ScenarioId;
   destination: Destination;
@@ -54,43 +51,10 @@ export type ManifestUnit = {
   profile?: GuidanceProfile;
   behavior?: Behavior;
 };
-type UnitSpec = Omit<ManifestUnit, "sha256" | "text"> & { text?: string };
-
-/** The sha256 of each file the manifest covers. A changed file fails the line-span test until its units are re-cut and re-pinned. */
-export const PINNED_SHA256: Readonly<Record<string, string>> = {
-  "SKILL.md": "a047f50614ca0bb6329b6e34c239cbe39d330d0ac3d70d1737b47ccc7766ffa7",
-  "references/catalog.md": "fea68803fd0a9893bb19803cbf555142afbc9cccd2dce2201819ba97433369bd",
-  "references/standards.md": "20825b624717fb7b1d9bacd122d9b9c8a53a074c4705db46f3ccdf4ebaed4916",
-  "references/details/agent-structure.md": "798b085fe34a624fc70cae6c3c7e102c5d34f1932e635bd6da35675087334582",
-  "references/details/authoring-model.md": "09c3d2dc416f9ffb9191572463098677f06188316c3e9072c6e98f201f27d1cc",
-  "references/details/document-model.md": "3777e82b8444e4308bfc4220579539f2fb0b808dd3c32c209b688954123067cd",
-  "references/details/edit-prompts.md": "6027a1cfa6688e583a6825c99a47bff7ebaacb48dadbca36049064d32531c21b",
-  "references/details/editing-model.md": "4437d2e2d2d6a471f4218cf6ca2708f1a59e209bd9504b084c65488af6174f2e",
-  "references/details/editor-state-reference.md": "037f72c7259f1c2cb1c052b6b5eac16e56cc85f8c157fa76eb5a60e0aabb13a3",
-  "references/details/editor-tool-guide.md": "3da8547364d930aecab6f887cb5337438d1283248ff2e1107907b1e040ce5e88",
-  "references/details/placement.md": "8121ae14abe65c3615f8adf2256f60eaeb26dba30fca7aafada03cdf176a6843",
-  "references/details/quality.md": "f7c0b4550fd659029438cf312f4bbc81db00d3dfd0a19b2c7e74fef026933b4c",
-  "references/details/single-output-structure.md": "dffc363b964b7fd7f03ea993a7411e240a357711a6fcb40b0595c8606d5d65a3",
-  "references/details/techniques.md": "6a4f3a32484f5062f5950f591e71c7618bec0e928a23f22809b598473b91b099",
-  "references/details/transactions.md": "29a90eb1d8dbdda0ecc7b394fc903649dc54426c94463a39fc32b1fbb00ff72d",
-  "references/details/validation.md": "deee94181b9e4846b45bb7c90092a83e1ba28ccca10f763fa0e3b1e0bcbc4522",
-  "references/details/work-requests.md": "261d185c40d0d8e28b60607b1096f71a2fa8c30d478de9235f6f4caa39e92cff",
-  "references/details/workflow.md": "8d3f47b52e9dca2d2d54210abf3b4426dcb4f77e3e996732753148783ac93a51",
-};
 
 const workflow = { topic: "workflow" } as const;
 const requests = { topic: "work-requests" } as const;
-const STAMP_REASON = "The generator's stamp records the snapshot that wrote the file and how to regenerate it. It maintains the skill folder, which cp18 deletes. Each topic carries its own snapshot_id.";
-/** A generated reference file: line 1 is the generator's stamp, a skill-folder drop, and lines 2 to last are one unit its topic serves line for line. */
-const generated = (file: string, last: number, scenario: ScenarioId, topic: GuidanceTopicId, profile?: GuidanceProfile): UnitSpec[] => {
-  const id = `reference.${file.replace(/^references\//, "").replace(/\.md$/, "").replace(/\//g, ".")}`;
-  return [
-    { id: `${id}.stamp`, kind: "link", file, lines: [1, 1], anchors: [], scenario, destination: { drop: "skill-folder", reason: STAMP_REASON } },
-    { id, kind: "generated", file, lines: [2, last], anchors: [], scenario, destination: { topic }, ...(profile ? { profile } : {}) },
-  ];
-};
-
-const UNITS: readonly UnitSpec[] = [
+const UNITS: readonly ManifestUnit[] = [
   {
     id: "skill.frontmatter", kind: "metadata", file: "SKILL.md", lines: [1, 8], scenario: "edit-prompt", destination: workflow,
     text: "---\nname: prompt-kit\ndescription: Read and update Prompt Kit documents through connected prompt tools. Use when a project has a Prompt Kit catalog or the user asks to inspect, author, or revise model-facing prompts.\nmetadata:\n  version: \"0.1.0\"\n  product: prompt-kit\ncompatibility: Requires the Prompt Kit connection. Codex and Claude Code use MCP; pi Agent uses the installed bridge extension.\n---",
@@ -104,14 +68,14 @@ const UNITS: readonly UnitSpec[] = [
   {
     id: "skill.read.discover", kind: "step", file: "SKILL.md", lines: [14, 16], scenario: "edit-prompt", destination: workflow,
     text: "## Read or Edit\n\n1. Call `prompts_discover` in the active workspace and select a project explicitly.",
-    anchors: ["Call `prompts_discover` for the active workspace, and use a project ID that it returns", "Select the requested project explicitly"],
+    anchors: ["Call `prompts_discover` for the active workspace, and use a project ID that it returns", "Select the requested project explicitly", "For read-only work, call `prompts_discover` for the active workspace, and select the requested project explicitly"],
     behavior: { tools: ["prompts_discover"] },
   },
   {
     id: "skill.read.begin", kind: "step", file: "SKILL.md", lines: [17, 17], scenario: "edit-prompt", destination: workflow,
     text: "2. For edits, call `prompts_begin` with the applicable `agent`, `single-output`, or `generic` profile, and retain the returned task ID. Read `prompts_guidance` with that `task_id` and topic `standards`. The topic can come in several parts: follow each result's `next` and read every part, because `prompts_apply_ops` is refused until you do.",
     anchors: ["Call `prompts_begin` with the `agent`, `single-output`, or `generic` profile that fits the prompt", "and keep its `task_id`", "Read `prompts_guidance` with that `task_id` and topic `standards`", "Topic `standards` can come in several parts", "Follow the `next` text of each result, and read every part before `prompts_apply_ops`", "The service refuses `prompts_apply_ops` until the task reads every part of topic `standards`"],
-    behavior: { tools: ["prompts_begin", "prompts_guidance", "prompts_apply_ops"], refusal: "STANDARDS_GATE" },
+    behavior: { tools: ["prompts_begin", "prompts_guidance", "prompts_apply_ops"], refusal: STANDARDS_GATE },
   },
   {
     id: "skill.read.read", kind: "step", file: "SKILL.md", lines: [18, 18], scenario: "edit-prompt", destination: workflow,
@@ -208,7 +172,7 @@ const UNITS: readonly UnitSpec[] = [
   {
     id: "skill.work.close-out", kind: "step", file: "SKILL.md", lines: [50, 53], scenario: "work-requests", destination: requests,
     text: "3. Close out.\n   - Call `prompts_requests` again. Every request you could close must be resolved one by one, never as a lump.\n   - Every request left open must carry an unanswered question whose answer changes the edit.\n   - Run `prompts_check` with `task_id`.",
-    anchors: ["Close out the queue.", "Call `prompts_requests` again", "Close every request you could close one by one, never as a lump", "Every request left open must carry an unanswered question whose answer changes the edit", "Run `prompts_check` with `task_id`"],
+    anchors: ["Close out the queue.", "Call `prompts_requests` again and confirm that the request is closed", "Close every request you could close one by one, never as a lump", "Every request left open must carry an unanswered question whose answer changes the edit", "Run `prompts_check` with `task_id`"],
     behavior: { tools: ["prompts_requests", "prompts_check"] },
   },
   {
@@ -269,38 +233,12 @@ const UNITS: readonly UnitSpec[] = [
     anchors: ["`read_prompt` maps to `prompts_read`, `propose_transaction` to `prompts_apply_ops`, `reply_request` to `prompts_request_reply`, and `resolve_request` to `prompts_request_reply` with `close: true`", "`add_note` has no MCP tool", "Two differences apply to MCP tools", "`prompts_apply_ops` saves at once, with no staged review", "A close takes one `body` sentence, not an outcome and a note"],
     behavior: { tools: ["prompts_read", "prompts_apply_ops", "prompts_request_reply"] },
   },
-  ...generated("references/standards.md", 352, "choose-profile", "standards"),
-  ...generated("references/catalog.md", 48, "choose-profile", "catalog"),
-  ...generated("references/details/placement.md", 84, "choose-profile", "standards"),
-  ...generated("references/details/agent-structure.md", 179, "choose-profile", "standards", "agent"),
-  ...generated("references/details/workflow.md", 133, "choose-profile", "standards", "agent"),
-  ...generated("references/details/single-output-structure.md", 121, "choose-profile", "standards", "single-output"),
-  ...generated("references/details/quality.md", 260, "choose-profile", "standards"),
-  ...generated("references/details/techniques.md", 205, "choose-profile", "catalog"),
-  ...generated("references/details/document-model.md", 82, "build-ops", "operations"),
-  ...generated("references/details/authoring-model.md", 170, "build-ops", "catalog"),
-  ...generated("references/details/validation.md", 76, "build-ops", "catalog"),
-  ...generated("references/details/editing-model.md", 119, "editor-mapping", "editor"),
-  ...generated("references/details/transactions.md", 55, "build-ops", "operations"),
-  ...generated("references/details/edit-prompts.md", 88, "edit-prompt", "workflow"),
-  ...generated("references/details/work-requests.md", 106, "work-requests", "work-requests"),
-  ...generated("references/details/editor-state-reference.md", 51, "editor-mapping", "editor"),
-  ...generated("references/details/editor-tool-guide.md", 39, "editor-mapping", "editor"),
 ];
 
-/** The full manifest. Each unit carries its file's pinned sha256, and a generated or stamp unit reads its lines from root. */
-export async function guidanceManifest(root = SKILL_ROOT): Promise<ManifestUnit[]> {
-  return Promise.all(UNITS.map(async ({ behavior, ...unit }) => ({
-    ...unit,
-    sha256: PINNED_SHA256[unit.file]!,
-    text: unit.text ?? (await readFile(join(root, unit.file), "utf8")).split("\n").slice(unit.lines[0] - 1, unit.lines[1]).join("\n"),
-    ...(behavior ? { behavior: behavior.refusal === "STANDARDS_GATE" ? { ...behavior, refusal: STANDARDS_GATE } : behavior } : {}),
-  })));
+/** The full manifest, as frozen literals. */
+export async function guidanceManifest(): Promise<ManifestUnit[]> {
+  return structuredClone(UNITS) as ManifestUnit[];
 }
-
-/** The text prompts_apply_ops returns until the task has read every part of topic standards. */
-export const STANDARDS_GATE =
-  "Read the prompt standards before your first edit: call prompts_guidance(task_id, topic='standards'), that is prompts_guidance with your task_id and topic \"standards\", and read every part it names. Required once per task.";
 
 /** The writes that need a topic read in the same task. Every other tool stays open. */
 const REQUIRED_TOPICS: Readonly<Record<string, readonly string[]>> = { prompts_apply_ops: ["standards"] };

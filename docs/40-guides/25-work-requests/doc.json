@@ -20,6 +20,13 @@
         "wq-16",
         "wq-25",
         "wq-29",
+        "rq-h",
+        "rq-p",
+        "rq-1",
+        "rq-2",
+        "rq-3",
+        "rq-4",
+        "rq-5",
         "wq-30",
         "wq-31",
         "wq-32",
@@ -353,177 +360,7 @@
       },
       "text": [
         {
-          "insert": "Work each request against the current tree."
-        }
-      ],
-      "children": [
-        "wq-17",
-        "wq-21",
-        "wq-22",
-        "wq-23",
-        "wq-24"
-      ]
-    },
-    "wq-17": {
-      "id": "wq-17",
-      "type": "list-item",
-      "props": {},
-      "text": [
-        {
-          "insert": "Read the target of the request."
-        }
-      ],
-      "children": [
-        "wq-18",
-        "wq-19",
-        "wq-20"
-      ]
-    },
-    "wq-18": {
-      "id": "wq-18",
-      "type": "list-item",
-      "props": {},
-      "text": [
-        {
-          "insert": "A "
-        },
-        {
-          "insert": "prompt-node",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " target names one node."
-        }
-      ],
-      "children": []
-    },
-    "wq-19": {
-      "id": "wq-19",
-      "type": "list-item",
-      "props": {},
-      "text": [
-        {
-          "insert": "A "
-        },
-        {
-          "insert": "prompt-range",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " target names a quoted span inside one node."
-        }
-      ],
-      "children": []
-    },
-    "wq-20": {
-      "id": "wq-20",
-      "type": "list-item",
-      "props": {},
-      "text": [
-        {
-          "insert": "A target whose node ID equals the document ID is about the whole prompt."
-        }
-      ],
-      "children": []
-    },
-    "wq-21": {
-      "id": "wq-21",
-      "type": "list-item",
-      "props": {},
-      "text": [
-        {
-          "insert": "If a request is ambiguous, ask with "
-        },
-        {
-          "insert": "prompts_request_reply",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ", leave it open, and keep working the others."
-        }
-      ],
-      "children": []
-    },
-    "wq-22": {
-      "id": "wq-22",
-      "type": "list-item",
-      "props": {},
-      "text": [
-        {
-          "insert": "If a change is needed, apply one minimal batch with "
-        },
-        {
-          "insert": "prompts_apply_ops",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " for that request, then run "
-        },
-        {
-          "insert": "prompts_check",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " with "
-        },
-        {
-          "insert": "task_id",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " and repair each required finding. If no change is needed, apply none."
-        }
-      ],
-      "children": []
-    },
-    "wq-23": {
-      "id": "wq-23",
-      "type": "list-item",
-      "props": {},
-      "text": [
-        {
-          "insert": "Close each request on its own with "
-        },
-        {
-          "insert": "prompts_request_reply",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " and "
-        },
-        {
-          "insert": "close: true",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ", after its check passes. Say what changed or why nothing changed."
-        }
-      ],
-      "children": []
-    },
-    "wq-24": {
-      "id": "wq-24",
-      "type": "list-item",
-      "props": {},
-      "text": [
-        {
-          "insert": "Repeat until no request remains that you can close."
+          "insert": "Work each request against the current tree, with the steps in Work One Request."
         }
       ],
       "children": []
@@ -540,10 +377,22 @@
         }
       ],
       "children": [
+        "wq-24r",
         "wq-26",
         "wq-27",
         "wq-28"
       ]
+    },
+    "wq-24r": {
+      "id": "wq-24r",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Repeat until no request remains that you can close."
+        }
+      ],
+      "children": []
     },
     "wq-26": {
       "id": "wq-26",
@@ -551,16 +400,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Call "
-        },
-        {
-          "insert": "prompts_requests",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " again. Close every request you could close one by one, never as a lump."
+          "insert": "Close every request you could close one by one, never as a lump."
         }
       ],
       "children": []
@@ -612,6 +452,213 @@
       "text": [
         {
           "insert": "When a batch fails validation, narrow it to repair the failure and apply it again. Never widen the edit."
+        }
+      ],
+      "children": []
+    },
+    "rq-h": {
+      "id": "rq-h",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Work One Request"
+        }
+      ],
+      "children": []
+    },
+    "rq-p": {
+      "id": "rq-p",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Take each request through these steps, one request at a time. The last step confirms the close, so never end a request on the close itself."
+        }
+      ],
+      "children": []
+    },
+    "rq-1": {
+      "id": "rq-1",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Read the target of the request."
+        }
+      ],
+      "children": [
+        "rq-1a",
+        "rq-1b",
+        "rq-1c"
+      ]
+    },
+    "rq-1a": {
+      "id": "rq-1a",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "prompt-node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " target names one node."
+        }
+      ],
+      "children": []
+    },
+    "rq-1b": {
+      "id": "rq-1b",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "prompt-range",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " target names a quoted span inside one node."
+        }
+      ],
+      "children": []
+    },
+    "rq-1c": {
+      "id": "rq-1c",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "A target whose node ID equals the document ID is about the whole prompt."
+        }
+      ],
+      "children": []
+    },
+    "rq-2": {
+      "id": "rq-2",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "If a request is ambiguous, ask with "
+        },
+        {
+          "insert": "prompts_request_reply",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", leave it open, and keep working the others."
+        }
+      ],
+      "children": []
+    },
+    "rq-3": {
+      "id": "rq-3",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "If a change is needed, apply one minimal batch with "
+        },
+        {
+          "insert": "prompts_apply_ops",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for that request, then run "
+        },
+        {
+          "insert": "prompts_check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with "
+        },
+        {
+          "insert": "task_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and repair each required finding. If no change is needed, apply none."
+        }
+      ],
+      "children": []
+    },
+    "rq-4": {
+      "id": "rq-4",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Close each request on its own with "
+        },
+        {
+          "insert": "prompts_request_reply",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "close: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", after its check passes. Say what changed or why nothing changed."
+        }
+      ],
+      "children": []
+    },
+    "rq-5": {
+      "id": "rq-5",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Call "
+        },
+        {
+          "insert": "prompts_requests",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " again and confirm that the request is closed."
         }
       ],
       "children": []

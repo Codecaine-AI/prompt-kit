@@ -158,20 +158,25 @@
       "props": {},
       "text": [
         {
-          "insert": "Decision: "
+          "insert": "The guidance module, packages/prompt-kit-server/src/guidance.ts, validates native Docs bundles and projects them through the shared Docs model renderer. The maintained manifest assigns each source to a guidance topic, and each topic serves its sources for the task's profile. "
         },
         {
-          "insert": "packages/prompt-kit-server/src/guidance.ts",
+          "insert": "writeGuidanceBundle",
           "attributes": {
-            "code": true,
-            "reference": {
-              "kind": "source",
-              "path": "packages/prompt-kit-server/src/guidance.ts"
-            }
+            "code": true
           }
         },
         {
-          "insert": " validates native Docs bundles and projects them through the shared Docs model renderer. The maintained manifest selects standards and profile essentials. Generated references are portable derived artifacts."
+          "insert": " writes the portable bundle in packages/prompt-kit-server/guidance, and "
+        },
+        {
+          "insert": "bun run --cwd packages/prompt-kit-server guidance:bundle",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " rewrites it from the canonical docs."
         }
       ],
       "children": []
@@ -182,7 +187,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Why: external clients and the internal prompt editor consume the same normative content. An incomplete checkout fails visibly. Only a packaged installation with no canonical sources uses the bundled snapshot. Applies to guidance consumers, tests, and installation generation."
+          "insert": "External clients and the internal prompt editor consume the same normative content. An incomplete checkout fails visibly. Only a packaged installation with no canonical sources uses the bundled snapshot. The rule applies to guidance consumers, tests, and the bundle."
         }
       ],
       "children": []
@@ -206,7 +211,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Store tests cover cross-process conflicts, fresh declarations, partial commits, recovery, root-scoped undo, and path confinement. Guidance tests cover native projection, invalid sources, snapshot changes, and generated-reference provenance."
+          "insert": "Store tests cover cross-process conflicts, fresh declarations, partial commits, recovery, root-scoped undo, and path confinement. Guidance tests cover native projection, invalid sources, snapshot changes, and bundle provenance. A guidance test fails while the committed bundle differs from a fresh build."
         }
       ],
       "children": []

@@ -16,6 +16,7 @@
   },
   "scripts": {
     "test": "bun test tests",
+    "guidance:bundle": "bun scripts/write-guidance-bundle.ts",
     "typecheck": "bunx --bun tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

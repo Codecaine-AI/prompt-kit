@@ -1,5 +1,5 @@
 /**
- * The rule-unit manifest of the prompt-kit skill against the served topics, the prompts_capabilities index, the
+ * The rule-unit manifest of the deleted skill against the served topics, the prompts_capabilities index, the
  * standards gate and the tool list. Every check runs in process on the real guidance, with no network call.
  */
 import { createHash } from "node:crypto";
@@ -10,45 +10,13 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { GUIDANCE_PROFILES, GUIDANCE_TOPICS, loadGuidance } from "@codecaine-ai/prompt-kit-server";
 import pkg from "../package.json";
 import { TOPIC_PART_BYTES, setServedTextHook, topicParts } from "./guidance";
-import { PINNED_SHA256, SCENARIOS, SKILL_ROOT, STANDARDS_GATE, guidanceManifest, type ManifestUnit } from "./guidance-manifest";
+import { SCENARIOS, STANDARDS_GATE, guidanceManifest, type ManifestUnit } from "./guidance-manifest";
 import { createInteractionService } from "./service";
 import { createPromptTools } from "./tools";
 
 const manifest = await guidanceManifest();
 const sha256 = (text: string) => createHash("sha256").update(text).digest("hex");
 const TOPIC_IDS: readonly string[] = GUIDANCE_TOPICS.map((topic) => topic.id);
-/** A file's lines without the empty string after its last newline. */
-const fileLines = (text: string) => { const lines = text.split("\n"); return lines.at(-1) === "" ? lines.slice(0, -1) : lines; };
-
-/** SKILL.md and every file under references/, read from disk. */
-async function skillFiles(): Promise<Record<string, string>> {
-  const files = ["SKILL.md", ...await Array.fromAsync(new Bun.Glob("references/**/*").scan({ cwd: SKILL_ROOT, onlyFiles: true }))].sort();
-  return Object.fromEntries(await Promise.all(files.map(async (file) => [file, await readFile(join(SKILL_ROOT, file), "utf8")] as const)));
-}
-
-/** Every way the units fail to cover the files: a file with no pin or a changed sha256, a non-blank line in no unit or in two, and a unit whose text is not its lines. */
-function lineSpanFindings(files: Record<string, string>, units: readonly ManifestUnit[], pins: Readonly<Record<string, string>>): string[] {
-  const findings: string[] = [];
-  for (const file of new Set([...Object.keys(files), ...Object.keys(pins)])) {
-    const text = files[file];
-    if (text === undefined) { findings.push(`${file}: pinned but missing`); continue; }
-    if (sha256(text) !== pins[file]) findings.push(`${file}: sha256 ${sha256(text)} is not the pinned ${pins[file] ?? "(none)"}`);
-    const lines = fileLines(text);
-    const owners = lines.map(() => [] as string[]);
-    for (const unit of units.filter((unit) => unit.file === file)) {
-      const [first, last] = unit.lines;
-      if (first < 1 || last > lines.length || first > last) { findings.push(`${unit.id}: lines ${first}-${last} are outside ${file} (${lines.length} lines)`); continue; }
-      for (let line = first; line <= last; line++) owners[line - 1]!.push(unit.id);
-      if (unit.text !== lines.slice(first - 1, last).join("\n")) findings.push(`${unit.id}: text differs from ${file}:${first}-${last}`);
-    }
-    lines.forEach((line, index) => {
-      if (line.trim() !== "" && owners[index]!.length === 0) findings.push(`${file}:${index + 1} is in no unit`);
-      if (owners[index]!.length > 1) findings.push(`${file}:${index + 1} is in ${owners[index]!.join(" and ")}`);
-    });
-  }
-  return findings;
-}
-
 describe("coverage", () => {
   test("every unit has a destination topic or a named drop, a scenario, and anchors only where prose proves it", () => {
     const findings = manifest.flatMap((unit) => {
@@ -61,28 +29,14 @@ describe("coverage", () => {
     expect(findings).toEqual([]);
     expect(new Set(manifest.map((unit) => unit.id)).size).toBe(manifest.length);
     expect(manifest.filter((unit) => !(unit.scenario in SCENARIOS)).map((unit) => unit.id)).toEqual([]);
-    // Prose is proved by its anchors. A generated unit is proved by its lines, and a skill-folder drop by nothing.
-    const anchorless = (unit: ManifestUnit) => unit.kind === "generated" || ("drop" in unit.destination && unit.destination.drop === "skill-folder");
+    // Prose is proved by its anchors, and a skill-folder drop by nothing.
+    const anchorless = (unit: ManifestUnit) => "drop" in unit.destination && unit.destination.drop === "skill-folder";
     expect(manifest.filter((unit) => anchorless(unit) !== (unit.anchors.length === 0)).map((unit) => unit.id)).toEqual([]);
-    expect(manifest.filter((unit) => unit.kind === "generated" && "drop" in unit.destination).map((unit) => unit.id)).toEqual([]);
+    // The frozen record: the 32 hand-written SKILL.md units, each with its file and line range.
+    expect(manifest).toHaveLength(32);
+    expect(manifest.filter((unit) => unit.file !== "SKILL.md" || unit.lines[0] > unit.lines[1]).map((unit) => unit.id)).toEqual([]);
   });
 
-  test("every non-blank line of SKILL.md and of each references/ file sits in one unit, and each file keeps its pinned sha256", async () => {
-    const files = await skillFiles();
-    expect(Object.keys(files).length).toBe(18);
-    expect(lineSpanFindings(files, manifest, PINNED_SHA256)).toEqual([]);
-  });
-
-  test("the line-span check fails on an uncovered line, a changed file and a file with no pin", async () => {
-    const files = await skillFiles();
-    const dropped = manifest.find((unit) => unit.id === "skill.rules.voice")!;
-    expect(lineSpanFindings(files, manifest.filter((unit) => unit !== dropped), PINNED_SHA256)).toEqual([`SKILL.md:${dropped.lines[0]} is in no unit`]);
-    expect(lineSpanFindings({ ...files, "SKILL.md": `${files["SKILL.md"]}\n` }, manifest, PINNED_SHA256)[0]).toStartWith("SKILL.md: sha256 ");
-    expect(lineSpanFindings({ ...files, "references/new.md": "# New\n" }, manifest, PINNED_SHA256)).toEqual([
-      `references/new.md: sha256 ${sha256("# New\n")} is not the pinned (none)`,
-      "references/new.md:1 is in no unit",
-    ]);
-  });
 });
 
 /** A workspace with one catalog prompt, as the contract and gate tests use it. */
@@ -101,8 +55,6 @@ async function workspace(names = ["fixture"]): Promise<string> {
 type Service = ReturnType<typeof createInteractionService>;
 const callIn = (service: Service, root: string) => async (name: string, args: Record<string, unknown> = {}) => (await service.call(root, name, args)).structuredContent as Record<string, any>;
 
-/** A served line in the form the skill file holds it: no indent, and a catalog title without its link to the skill folder. */
-const servedForm = (line: string) => line.trim().replace(/\[([^\]]+)\]\(details\/[^)]+\.md\)/g, "$1");
 /** The tools in tools/list, and the text prompts_apply_ops gets before the standards read. */
 type Observed = { tools: ReadonlySet<string>; refusal: string };
 const occurrences = (text: string, phrase: string) => text.split(phrase).length - 1;
@@ -110,11 +62,6 @@ const occurrences = (text: string, phrase: string) => text.split(phrase).length 
 /** Every way the served topic fails to keep a unit. */
 function contractFindings(unit: ManifestUnit, served: string, observed: Observed): string[] {
   const findings: string[] = [];
-  if (unit.kind === "generated") {
-    const lines = new Set(served.split("\n").map(servedForm));
-    const missing = unit.text.split("\n").filter((line) => line.trim() !== "" && !lines.has(servedForm(line)));
-    if (missing.length) findings.push(`${unit.id}: the served topic lacks ${missing.length} lines, first "${missing[0]!.trim()}"`);
-  }
   for (const anchor of unit.anchors) {
     const count = occurrences(served, anchor);
     if (count !== 1) findings.push(`${unit.id}: the served topic holds "${anchor}" ${count} times, not once`);
@@ -127,10 +74,9 @@ function contractFindings(unit: ManifestUnit, served: string, observed: Observed
   return findings;
 }
 
-/** The test hook body: each served part without the unit's lines and anchor phrases. */
+/** The test hook body: each served part without the unit's anchor phrases. */
 const strip = (unit: ManifestUnit) => (text: string) => {
-  const lines = new Set(unit.text.split("\n").filter((line) => line.trim() !== "").map(servedForm));
-  let out = text.split("\n").filter((line) => !lines.has(servedForm(line))).join("\n");
+  let out = text;
   for (const anchor of unit.anchors) out = out.replaceAll(anchor, "");
   return out;
 };
@@ -164,7 +110,7 @@ describe("manifest contract", () => {
   });
   afterAll(async () => { setServedTextHook(); service.close(); await rm(root, { recursive: true, force: true }); });
 
-  test("each unit's served topic keeps its lines or each anchor once, and its recorded behavior, with no network call", async () => {
+  test("each unit's served topic keeps each anchor once and its recorded behavior, with no network call", async () => {
     const findings: string[] = [];
     for (const unit of manifest) {
       const served = await servedFor(unit);
