@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { discoverPromptProjects } from "./discovery";
 import { createInteractionService } from "./service";
 import { createPromptAnnotationFileStore, createPromptAnnotationRoutes, createPromptStore } from "@codecaine-ai/prompt-kit-server";
 
@@ -254,5 +255,65 @@ test("a task expires 30 minutes after its last call or 12 hours after prompts_be
       const elsewhere = await service.call(other, "prompts_check", { project, prompt_id: "fixture", task_id: idle });
       expect(elsewhere.structuredContent.detail).not.toContain("expired");
     } finally { await rm(other, { recursive: true, force: true }); }
+  } finally { service.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test("a new call on a task past its 12 hours is refused while another call on the task runs, and the running call keeps its task", async () => {
+  const root = await fixture();
+  let clock = 1_000_000;
+  let gate: Promise<void> | undefined;
+  let entered!: () => void;
+  // The fingerprint check of a mutation awaits the gate once, after the task is pinned.
+  const runtimeFingerprint = async () => { const held = gate; gate = undefined; if (held) { entered(); await held; } return "runtime-1"; };
+  const service = createInteractionService({ runtimeFingerprint, guidance: guidance as never, now: () => clock });
+  try {
+    const project = ((await service.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
+    const task = await begin(service, root, { project });
+    const read = (await service.call(root, "prompts_read", { project, prompt_id: "fixture" })).structuredContent;
+    const edit = (text: string) => service.call(root, "prompts_apply_ops", { project, prompt_id: "fixture", task_id: task, expected_hash: read.hash, ops: [{ op: "update_node", nodeId: "body", patch: { content: [text] } }] });
+    let release!: () => void;
+    gate = new Promise((resolve) => { release = resolve; });
+    const reached = new Promise<void>((resolve) => { entered = resolve; });
+    const running = edit("First.");
+    await reached;
+    clock += 13 * 60 * 60_000;
+    const late = await edit("Second.");
+    expect(late.structuredContent.detail).toBe(`Task ${task} reached its 12 hours limit and was closed. Saved edits are kept. Call prompts_begin again.`);
+    release();
+    expect((await running).structuredContent.ok).toBe(true);
+    // The next sweep after the running call retires the task.
+    expect(service.stats().tasks).toBe(0);
+  } finally { service.close(); await rm(root, { recursive: true, force: true }); }
+});
+
+test("a slow discovery cannot expire the task of a call that is already running", async () => {
+  const root = await fixture();
+  let clock = 1_000_000;
+  let gate: Promise<void> | undefined;
+  let entered!: () => void;
+  const discover = async (workspace: string) => { const held = gate; gate = undefined; if (held) { entered(); await held; } return discoverPromptProjects(workspace); };
+  const service = createInteractionService({ runtimeFingerprint: () => "runtime-1", guidance: guidance as never, now: () => clock, discover });
+  try {
+    const project = ((await service.call(root, "prompts_discover", {})).structuredContent.projects as Array<{ id: string }>)[0]!.id;
+    const task = await begin(service, root, { project });
+    clock += 29 * 60_000;
+    let release!: () => void;
+    gate = new Promise((resolve) => { release = resolve; });
+    const reached = new Promise<void>((resolve) => { entered = resolve; });
+    const running = service.call(root, "prompts_check", { project, prompt_id: "fixture", task_id: task });
+    await reached;
+    // 34 minutes after the task's last call, another call sweeps while the check is still in discovery.
+    clock += 5 * 60_000;
+    expect((await service.call(root, "prompts_discover", {})).structuredContent.ok).toBe(true);
+    expect(service.stats().tasks).toBe(1);
+    release();
+    const checked = (await running).structuredContent;
+    expect(checked.ok).toBe(true);
+    expect(checked.all_current_revisions_checked).toBe(true);
+    // The idle limit counts from the end of that call.
+    clock += 29 * 60_000;
+    expect((await service.call(root, "prompts_check", { project, prompt_id: "fixture", task_id: task })).isError).toBeUndefined();
+    clock += 31 * 60_000;
+    expect((await service.call(root, "prompts_check", { project, prompt_id: "fixture", task_id: task })).structuredContent.detail).toContain("expired after 30 minutes");
   } finally { service.close(); await rm(root, { recursive: true, force: true }); }
 });

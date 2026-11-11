@@ -119,16 +119,24 @@ export function createInteractionService(options: InteractionServiceOptions = {}
     return found;
   }
 
-  /** The live task with this id in this workspace, pinned against expiry in held until its call returns. */
-  function taskFor(id: unknown, workspace: string, held: TaskState[]): TaskState {
-    const task = typeof id === "string" ? tasks.get(id) : undefined;
+  /**
+   * The task a call names, taken at admission before the call's first await. expired is the limit the task was past
+   * when the call arrived. admitted is set once taskFor accepts the task for this workspace.
+   */
+  type Admission = { task?: TaskState; expired?: RetireReason; admitted: boolean };
+  /**
+   * The call's admitted task, if it lives in this workspace. A call already running keeps its task, but a new call on a
+   * task past its 12 hours is refused, even while another call on the task runs.
+   */
+  function taskFor(id: unknown, workspace: string, admission: Admission): TaskState {
+    const task = admission.task;
     if (!task || task.workspace !== workspace) {
       const gone = typeof id === "string" ? retired.get(id) : undefined;
       if (gone && gone.workspace === workspace) throw new Error(retiredMessage(id as string, gone.reason));
       throw new Error("Unknown task for this workspace. Call prompts_begin and use its task_id.");
     }
-    task.inFlight++;
-    held.push(task);
+    if (admission.expired) throw new Error(retiredMessage(id as string, admission.expired));
+    admission.admitted = true;
     return task;
   }
 
@@ -249,17 +257,24 @@ export function createInteractionService(options: InteractionServiceOptions = {}
       all_current_revisions_checked: changed.every((entry) => entry.checked && entry.check_ok) && [...task.checked.values()].every((check) => check.ok) };
   }
 
+  /**
+   * Admission runs before the call's first await. The sweep retires each expired task outside a call, and the task the
+   * call names is pinned, so neither the sweeper nor a slow discovery retires it mid-call. Only an admitted call
+   * refreshes the task, at its end, so the idle limit counts from the end of the last call that used it.
+   */
   async function call(workspace: string, name: string, rawArgs: Record<string, unknown> = {}): Promise<PromptToolResult> {
     sweep();
-    const held: TaskState[] = [];
+    const task = typeof rawArgs.task_id === "string" ? tasks.get(rawArgs.task_id) : undefined;
+    const admission: Admission = { task, expired: task && now() - task.createdAt > maxAgeMs ? "max-age" : undefined, admitted: false };
+    if (task) task.inFlight++;
     try {
-      return await dispatch(workspace, name, rawArgs, held);
+      return await dispatch(workspace, name, rawArgs, admission);
     } finally {
-      for (const task of held) { task.inFlight--; task.lastUsedAt = now(); }
+      if (task) { task.inFlight--; if (admission.admitted) task.lastUsedAt = now(); }
     }
   }
 
-  async function dispatch(workspace: string, name: string, rawArgs: Record<string, unknown>, held: TaskState[]): Promise<PromptToolResult> {
+  async function dispatch(workspace: string, name: string, rawArgs: Record<string, unknown>, admission: Admission): Promise<PromptToolResult> {
     try {
       if (name === "prompts_capabilities") {
         const args = input(rawArgs, [], ["workspace", "cursor"]);
@@ -298,7 +313,7 @@ export function createInteractionService(options: InteractionServiceOptions = {}
         let snapshot: GuidanceSnapshot;
         let task: TaskState | undefined;
         if (args.task_id != null) {
-          task = taskFor(args.task_id, found.workspace, held);
+          task = taskFor(args.task_id, found.workspace, admission);
           if (args.profile != null && args.profile !== task.profile) throw new Error("profile cannot override a task's pinned profile.");
           snapshot = task.snapshot;
         } else snapshot = await guidanceLoader({ profile: selectedProfile(args.profile) });
@@ -322,7 +337,7 @@ export function createInteractionService(options: InteractionServiceOptions = {}
       const project = typeof rawArgs.project === "string" ? rawArgs.project : undefined;
       if (!project || !workspaces.get(found.workspace)?.has(project)) throw new Error("Project is not in this workspace. Call prompts_discover and use a returned project ID.");
       if (mutationNames.has(name)) {
-        const task = taskFor(rawArgs.task_id, found.workspace, held);
+        const task = taskFor(rawArgs.task_id, found.workspace, admission);
         if (task.project !== project) throw new Error("This task belongs to a different project. Begin a task for the selected project before editing.");
         for (const required of requiredTopics(name)) {
           const unread = unreadParts(task, required);
@@ -334,7 +349,7 @@ export function createInteractionService(options: InteractionServiceOptions = {}
       // A read with task_id null runs as a read without one.
       const { task_id: taskId, ...readArgs } = rawArgs;
       if (taskId == null) return await tool.execute(readArgs);
-      const task = taskFor(taskId, found.workspace, held);
+      const task = taskFor(taskId, found.workspace, admission);
       if (task.project !== project) throw new Error("This task belongs to a different project.");
       const result = await tool.execute(rawArgs);
       if (name !== "prompts_check" || result.structuredContent.hash === undefined) return result;
