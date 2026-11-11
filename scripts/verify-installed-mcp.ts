@@ -33,7 +33,7 @@ try {
   const a = await create();
   const b = await create();
   const listedTools = await a.listTools();
-  for (const name of ["prompts_discover", "prompts_begin", "prompts_guidance", "prompts_read", "prompts_apply_ops", "prompts_undo", "prompts_check", "prompts_requests", "prompts_request_reply"]) {
+  for (const name of ["prompts_capabilities", "prompts_discover", "prompts_begin", "prompts_guidance", "prompts_read", "prompts_apply_ops", "prompts_undo", "prompts_check", "prompts_requests", "prompts_request_reply"]) {
     assert(listedTools.tools.some(tool => tool.name === name), `Missing tool ${name}`);
   }
   const live = await call(a, "prompts_discover", { workspace });
@@ -56,8 +56,9 @@ try {
   assert.equal((await call(b, "prompts_discover", { workspace: fixture })).ok, true);
   const task = await call(a, "prompts_begin", { project, profile: "generic" });
   assert.equal(task.ok, true);
-  const guidance = await call(a, "prompts_guidance", { task_id: task.task_id });
-  assert(typeof guidance.guidance === "string" && guidance.guidance.length > 1000);
+  const standards = await call(a, "prompts_guidance", { task_id: task.task_id, topic: "standards" });
+  assert(typeof standards.guidance === "string" && standards.guidance.length > 1000);
+  for (let part = 2; part <= standards.parts; part++) await call(a, "prompts_guidance", { task_id: task.task_id, topic: "standards", part });
   const target = { project, prompt_id: doc.id };
   const before = await call(a, "prompts_read", target);
   assert.equal(before.ok, true);
@@ -79,7 +80,7 @@ try {
   const report = await call(a, "prompts_check", { ...target, task_id: task.task_id });
   assert.equal(report.ok, true, JSON.stringify(report));
   assert.equal(report.all_current_revisions_checked, true, JSON.stringify(report));
-  console.log(JSON.stringify({ ok: true, client: clientName, installedConnection: "prompt-kit", toolCount: listedTools.tools.length, realProject: actualProject.id, realPrompt: actualList.prompts[0].id, checks: ["real catalog read", "guidance loaded", "two-client saved revision visibility", "derived render", "stale revision rejection", "completion check", "guarded undo", "task report"], verifiedAt: new Date().toISOString() }, null, 2));
+  console.log(JSON.stringify({ ok: true, client: clientName, installedConnection: "prompt-kit", toolCount: listedTools.tools.length, realProject: actualProject.id, realPrompt: actualList.prompts[0].id, checks: ["real catalog read", "standards topic read", "two-client saved revision visibility", "derived render", "stale revision rejection", "completion check", "guarded undo", "task report"], verifiedAt: new Date().toISOString() }, null, 2));
 } finally {
   await Promise.all(clients.map(client => client.close()));
   await rm(fixture, { recursive: true, force: true });
