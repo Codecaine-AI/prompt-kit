@@ -189,7 +189,23 @@ describe("manifest contract", () => {
   });
 });
 
+/** The bodies of a topic's served parts, joined in order: each part without its heading and its part line. */
+const partBodies = (topic: { title: string; text: string }) =>
+  topicParts(topic).map((part) => part.replace(/^# [^\n]*\n\n(Part \d+ of \d+\.\n\n)?/, "")).join("");
+
 describe("topics", () => {
+  test("a --- line inside a fenced example at a part boundary stays in one part, and its bytes count", () => {
+    const head = "Intro.\n\n```markdown\n";
+    const body = `${head}${"a ".repeat(12_200)}\n\n---\n\n${"b ".repeat(1000)}\n\`\`\``;
+    const topic = { title: "Fence", text: `# Fence\n\n${body}` };
+    const parts = topicParts(topic);
+    expect(parts).toHaveLength(2);
+    expect(parts[1]).toStartWith("# Fence\n\nPart 2 of 2.\n\n\n\n---\n\n");
+    for (const part of parts) expect(Buffer.byteLength(part)).toBeLessThanOrEqual(TOPIC_PART_BYTES);
+    expect(partBodies(topic)).toBe(body);
+    expect(parts.join("\n").split("\n").filter((line) => line === "---")).toHaveLength(1);
+  });
+
   test("each tool name that tools/list returns and a served topic mentions appears with its exact name, and no topic holds prompts*", async () => {
     const service = createInteractionService();
     const tools = service.listTools().map((tool) => tool.name);
@@ -220,6 +236,10 @@ describe("topics", () => {
         const served = new Set(parts.join("\n").split("\n"));
         expect(topic.text.split("\n").filter((line) => !served.has(line))).toEqual([]);
       }
+    }
+    // The part bodies joined in order are the topic body: no break is dropped between parts.
+    for (const profile of GUIDANCE_PROFILES) {
+      for (const topic of (await loadGuidance({ profile })).topics) expect(partBodies(topic), topic.id).toBe(topic.text.slice(`# ${topic.title}\n\n`.length));
     }
     // The agent standards topic is the one that needs two parts.
     expect(topicParts((await loadGuidance({ profile: "agent" })).topics[0]!).length).toBe(2);
