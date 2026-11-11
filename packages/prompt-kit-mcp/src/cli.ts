@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { runDaemon } from "./daemon";
 import { doctorClients, installClients, restoreInstallation } from "./install";
 import { daemonFetch, daemonHealthy, ensureDaemon, PACKAGE_ROOT, readDaemonState, stateDirectory, stopDaemon } from "./lifecycle";
+import { guidanceManifest } from "./guidance-manifest";
 import { MCP_INSTRUCTIONS } from "./instructions";
 import { startMcp } from "./mcp";
 import { createInteractionService } from "./service";
@@ -52,6 +53,7 @@ try {
       out({ snapshotId: snapshot.snapshotId, profile: snapshot.profile, sources: snapshot.sources }); break;
     }
     case "instructions": console.log(MCP_INSTRUCTIONS); break;
-    default: console.log(`Prompt Kit\n\n  install [--write] [--clients codex,claude,pi]  Install connection and skills (preview by default)\n  restore REPORT [--write]                  Restore a saved installation report\n  doctor                                    Check installed bindings\n  mcp [--workspace PATH]                    Start stdio MCP bridge\n  discover [--workspace PATH]               List prompt projects\n  tools                                     List typed tools\n  call TOOL --args JSON [--workspace PATH]  Invoke a tool for testing\n  guidance [--profile PROFILE] [--write]    Inspect/regenerate skill references\n  snapshot [--out FILE]                     Record development snapshot\n  instructions                              Print the prompt block (MCP instructions)\n  start | status | stop                     Control the shared local service`);
+    case "manifest": out(await guidanceManifest()); break;
+    default: console.log(`Prompt Kit\n\n  install [--write] [--clients codex,claude,pi]  Install connection and skills (preview by default)\n  restore REPORT [--write]                  Restore a saved installation report\n  doctor                                    Check installed bindings\n  mcp [--workspace PATH]                    Start stdio MCP bridge\n  discover [--workspace PATH]               List prompt projects\n  tools                                     List typed tools\n  call TOOL --args JSON [--workspace PATH]  Invoke a tool for testing\n  guidance [--profile PROFILE] [--write]    Inspect/regenerate skill references\n  snapshot [--out FILE]                     Record development snapshot\n  instructions                              Print the prompt block (MCP instructions)\n  manifest                                  Print the rule-unit manifest as JSON\n  start | status | stop                     Control the shared local service`);
   }
 } catch (error) { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 1; }

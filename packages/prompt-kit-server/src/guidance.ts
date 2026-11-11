@@ -331,9 +331,9 @@ export function assembleGuidanceText(
 const sourceSection = (source: GuidanceSourceDefinition, content: string) =>
 	`## ${source.title}\n\n${stripFrontmatter(content)}`;
 
-/** The catalog topic's list: each source's title, summary, profiles, and topic. No links, so it reads outside the skill folder. */
-function servedCatalog(catalog: readonly GuidanceCatalogEntry[]): string {
-	return catalog
+/** The catalog topic's list: every source's title, summary, profiles, and topic, for every profile. No links, so it reads outside the skill folder. */
+function servedCatalog(): string {
+	return GUIDANCE_SOURCE_MANIFEST
 		.map(
 			(entry) =>
 				`- ${entry.title}\n  - ${entry.summary}\n  - Profiles: ${entry.profiles.join(", ")}\n  - Topic: ${entry.topic}`,
@@ -345,7 +345,6 @@ function servedCatalog(catalog: readonly GuidanceCatalogEntry[]): string {
 export function assembleGuidanceTopics(
 	profile: GuidanceProfile,
 	contents: Readonly<Record<string, string>>,
-	catalog: readonly GuidanceCatalogEntry[],
 ): GuidanceTopic[] {
 	assertProfile(profile);
 	return GUIDANCE_TOPICS.map((topic) => {
@@ -356,7 +355,7 @@ export function assembleGuidanceTopics(
 			if (content === undefined) throw new Error(`Missing guidance source: ${source.path}`);
 			return sourceSection(source, content);
 		});
-		const body = [...(topic.id === "catalog" ? [servedCatalog(catalog)] : []), ...sections].join("\n\n---\n\n");
+		const body = [...(topic.id === "catalog" ? [servedCatalog()] : []), ...sections].join("\n\n---\n\n");
 		return { id: topic.id, title: topic.title, summary: topic.summary, text: `# ${topic.title}\n\n${body}` };
 	});
 }
@@ -379,7 +378,7 @@ function buildSnapshot(
 				}),
 		),
 	);
-	const topics = Object.freeze(assembleGuidanceTopics(profile, contents, catalog).map((topic) => Object.freeze(topic)));
+	const topics = Object.freeze(assembleGuidanceTopics(profile, contents).map((topic) => Object.freeze(topic)));
 	const text = assembleGuidanceText(profile, contents);
 	const frozenSources = Object.freeze(sources.map((source) => Object.freeze({ ...source })));
 	const snapshotId = `sha256:${hashGuidanceContent(
