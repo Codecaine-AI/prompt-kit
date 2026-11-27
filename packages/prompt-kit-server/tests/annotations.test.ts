@@ -153,14 +153,21 @@ describe("Prompt UI remote annotation store", () => {
     const server = serve(root);
     let releaseGet!: () => void;
     const getHeld = new Promise<void>((resolve) => (releaseGet = resolve));
+    let getAnswered!: () => void;
+    const getRead = new Promise<void>((resolve) => (getAnswered = resolve));
     const slowGet = (async (input: string, init?: RequestInit) => {
       const response = await server.fetch(input, init);
-      if ((init?.method ?? "GET") === "GET") await getHeld;
+      if ((init?.method ?? "GET") === "GET") {
+        getAnswered();
+        await getHeld;
+      }
       return response;
     }) as typeof fetch;
     const page = createRemoteAnnotationStore({ baseUrl: "http://prompt.test", promptPath: PROMPT_PATH, fetch: slowGet });
 
     const loading = page.load();
+    // The server answers the GET (no annotations yet) before the write is filed.
+    await getRead;
     const filed = page.add({ target: request.target as never, body: request.body, intent: "agent-request", author: "ford" });
     await page.flush();
     releaseGet();

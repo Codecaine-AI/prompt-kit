@@ -136,13 +136,12 @@ describe("resolveBackspace decision table", () => {
 	});
 
 	test("paragraphs in different containers never merge", () => {
-		// The section's first paragraph sits below a top-level paragraph, but
-		// merging would pull text across the tag boundary.
-		const result = backspaceAt(
-			doc(paragraph("outside"), section("notes", paragraph("inside"))),
-			1,
-		);
-		expect(result.kind).toBe("focus-previous");
+		// The top-level paragraph's caret target follows the section's last
+		// paragraph directly, but merging would pull text across the tag boundary.
+		const input = doc(section("notes", paragraph("inside")), paragraph("outside"));
+		expect(backspaceAt(input, 2).kind).toBe("focus-previous");
+		const { lines, entriesById, points } = build(input);
+		expect(resolveDeleteForward(lines, points, 1, entriesById).kind).toBe("none");
 	});
 
 	test("an empty paragraph is removed and focus goes back", () => {
