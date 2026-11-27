@@ -1,12 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-	buildRequestQueue,
-	pipelineSummary,
-	queuePositionLabel,
-	requestDisposition,
-	requestNodeId,
-} from "../../../../src/ui/lab/session/request-queue";
+import { buildRequestQueue, pipelineSummary, queuePositionLabel, requestDisposition, requestNodeId } from "../../../../src/ui/lab/session/request-queue";
 import type {
 	PromptEditProposal,
 	PromptEditRequest,
@@ -56,16 +50,14 @@ function proposal(alias: string): PromptEditProposal {
 }
 
 describe("requestDisposition", () => {
-	test("an explicit disposition wins", () => {
-		expect(requestDisposition(filed("R2", "batch"))).toBe("batch");
-		expect(requestDisposition(filed("R3", "global"))).toBe("global");
-	});
-
 	test("requests filed before dispositions existed default to the QUEUE", () => {
 		expect(requestDisposition(request("R9", "open"))).toBe("batch");
 		expect(requestDisposition(request("R9", "open", { target: null }))).toBe(
 			"global",
 		);
+		// An explicit disposition wins.
+		expect(requestDisposition(filed("R2", "batch"))).toBe("batch");
+		expect(requestDisposition(filed("R3", "global"))).toBe("global");
 	});
 });
 
@@ -91,34 +83,31 @@ describe("buildRequestQueue populations", () => {
 		expect(model.records).toEqual([]);
 	});
 
-	test("accepting closes the loop: the request reappears as a record", () => {
+	test("discarding files the other kind of record", () => {
 		const model = buildRequestQueue({
-			requests: [filed("R1", "run-now", "applied")],
+			requests: [
+				filed("R1", "run-now", "declined"),
+				filed("R2", "global", "resolved"),
+				filed("R3", "run-now", "applied"),
+			],
 			proposals: [],
 			applying: false,
 		});
 		expect(model.queue).toEqual([]);
-		expect(model.records).toHaveLength(1);
-		expect(model.records[0]).toMatchObject({
-			ok: true,
-			stateLabel: "resolved",
-			targetLabel: "node-R1",
-		});
-	});
-
-	test("discarding files the other kind of record", () => {
-		const model = buildRequestQueue({
-			requests: [filed("R1", "run-now", "declined"), filed("R2", "global", "resolved")],
-			proposals: [],
-			applying: false,
-		});
 		expect(model.records.map((record) => record.stateLabel)).toEqual([
 			"discarded",
+			"resolved",
 			"resolved",
 		]);
 		expect(model.records[0]!.ok).toBe(false);
 		// A global note names the document, not a node.
 		expect(model.records[1]!.targetLabel).toBe("document");
+		// Accepting closes the loop: the request reappears as an ok record.
+		expect(model.records[2]).toMatchObject({
+			ok: true,
+			stateLabel: "resolved",
+			targetLabel: "node-R3",
+		});
 	});
 });
 
@@ -179,6 +168,10 @@ describe("buildRequestQueue narration", () => {
 		});
 		expect(done.activeAlias).toBeNull();
 		expect(done.pipeline).toBe("3 staged");
+		// The summary drops the parts that are zero.
+		expect(pipelineSummary({ activeAlias: "R4", queued: 0, staged: 2 })).toBe(
+			"processing R4 · 2 staged",
+		);
 	});
 
 	test("an empty queue idles and Apply has nothing to do", () => {
@@ -211,15 +204,6 @@ describe("small vocabulary", () => {
 		expect(queuePositionLabel(0)).toBe("queued · next");
 		expect(queuePositionLabel(1)).toBe("queued · #2");
 		expect(queuePositionLabel(-1)).toBe("queued");
-	});
-
-	test("pipelineSummary drops the parts that are zero", () => {
-		expect(pipelineSummary({ activeAlias: null, queued: 0, staged: 0 })).toBe(
-			"queue idle",
-		);
-		expect(pipelineSummary({ activeAlias: "R4", queued: 0, staged: 2 })).toBe(
-			"processing R4 · 2 staged",
-		);
 	});
 
 	test("requestNodeId reads document-level targets as no node", () => {

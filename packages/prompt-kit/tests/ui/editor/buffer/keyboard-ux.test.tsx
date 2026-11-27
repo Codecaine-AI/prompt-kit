@@ -47,9 +47,7 @@ it("IME confirmation Enter does not split the composing paragraph",()=>{
 it("ArrowRight at paragraph end continues at next paragraph start",()=>{
  setup(); edit("p0",5); fireEvent.keyDown(textarea(),{key:"ArrowRight"});
  expect(textarea().value).toBe("Beta"); expect(textarea().selectionStart).toBe(0);
-});
-it("ArrowLeft at paragraph start continues at previous paragraph end",()=>{
- setup(); edit("p1",0); fireEvent.keyDown(textarea(),{key:"ArrowLeft"});
+ fireEvent.keyDown(textarea(),{key:"ArrowLeft"});
  expect(textarea().value).toBe("Alpha"); expect(textarea().selectionStart).toBe(5);
 });
 it("host undo of Enter retains a typing caret",()=>{

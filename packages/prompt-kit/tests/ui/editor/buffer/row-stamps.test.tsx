@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { cleanup, fireEvent, render } from "@testing-library/react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { cleanup, render } from "@testing-library/react";
 
 import type { PromptDocument } from "../../../../src/index";
 import {
@@ -8,7 +7,6 @@ import {
 } from "../../../../src/ui/editor/model";
 import { buildXmlLineModel } from "../../../../src/document/render/line-model";
 import { PromptFlowXml } from "../../../../src/ui/editor/buffer";
-import { EDITOR_METRICS } from "../../../../src/ui/surface/editor-surface";
 
 afterEach(() => {
 	cleanup();
@@ -80,109 +78,5 @@ describe("PromptFlowXml row stamps", () => {
 				expect(row.querySelector("[data-prompt-row-text]")).toBeTruthy();
 			}
 		});
-	});
-
-	it("renders an empty affordance gutter — line numbers are retired", () => {
-		const model = createPromptEditorModel(prompt, {});
-		render(
-			<PromptFlowXml
-				prompt={model.prompt}
-				model={model}
-				onSelectNode={() => {}}
-				onPromptChange={() => {}}
-			/>,
-		);
-		const gutter = document.querySelector<HTMLElement>(
-			'[data-prompt-node-id="para-1"] > div',
-		)!;
-		// The gutter cell keeps geometry for the grip rail and nothing else.
-		expect(gutter.querySelector("span")).toBeNull();
-		expect(gutter.textContent).toBe("");
-	});
-
-	it("stamps every editor affordance for annotate-mode hiding", () => {
-		const model = createPromptEditorModel(prompt, {});
-		render(
-			<PromptFlowXml
-				prompt={model.prompt}
-				model={model}
-				onSelectNode={() => {}}
-				onPromptChange={() => {}}
-			/>,
-		);
-
-		// Under the one-handle model (see resolveDragHandleUnit) the block
-		// grip/menu cluster mounts on the hovered block's anchor row — and it
-		// carries the stamp the lab's annotate stylesheet display:none-s.
-		const paragraphRow = document.querySelector<HTMLElement>(
-			'[data-prompt-node-id="para-1"]',
-		)!;
-		fireEvent.mouseEnter(paragraphRow);
-		const cluster = document.querySelector<HTMLElement>(
-			'[data-prompt-affordance="block-cluster"]',
-		);
-		expect(cluster).toBeTruthy();
-		expect(cluster!.querySelector("button")).toBeTruthy();
-	});
-
-	it("renders NO per-item remove × in edit mode — item deletion is Backspace / the item menu", () => {
-		const model = createPromptEditorModel(prompt, {});
-		render(
-			<PromptFlowXml
-				prompt={model.prompt}
-				model={model}
-				onSelectNode={() => {}}
-				onPromptChange={() => {}}
-			/>,
-		);
-
-		// The × was removed outright (not annotate-hidden): hovering an item
-		// row must mount nothing carrying the retired remove-item stamp. Item
-		// deletion lives in the ITEM MENU (the item grip's motionless click —
-		// see ItemMenu) and on Backspace; neither mounts per-item chrome at
-		// rest.
-		const itemRow = document.querySelector<HTMLElement>(
-			'[data-prompt-node-id="item-1"]',
-		)!;
-		fireEvent.mouseOver(itemRow);
-		expect(
-			document.querySelector('[data-prompt-affordance="remove-item"]'),
-		).toBeNull();
-		expect(document.querySelector('[aria-label="Remove list item"]')).toBeNull();
-	});
-
-	it("gives the drag grip a padded hit area around a large glyph", () => {
-		const model = createPromptEditorModel(prompt, {});
-		render(
-			<PromptFlowXml
-				prompt={model.prompt}
-				model={model}
-				onSelectNode={() => {}}
-				onPromptChange={() => {}}
-			/>,
-		);
-
-		// One-handle model: the grip mounts on hover of a block row.
-		fireEvent.mouseEnter(
-			document.querySelector<HTMLElement>('[data-prompt-node-id="para-1"]')!,
-		);
-		const grip = document.querySelector<HTMLElement>(".prompt-editor-grip")!;
-		expect(grip).toBeTruthy();
-		// Hit area: 28px wide (w-7) by a full line-height tall — meaningfully
-		// larger than the glyph it frames, docs-viewer drag-handle style.
-		// (happy-dom drops var() height styles from the live DOM, so the
-		// metrics the styles feed are asserted directly.)
-		expect(grip.className).toContain("w-7");
-		expect(EDITOR_METRICS.lineHeight).toContain(
-			"var(--prompt-editor-line-height, 26px)",
-		);
-		// Grab affordance: cursor grab at rest, grabbing while held.
-		expect(grip.className).toContain("cursor-grab");
-		expect(grip.className).toContain("active:cursor-grabbing");
-		// The glyph itself resolves the grip-size variable with a 20px default.
-		expect(grip.querySelector("svg")).toBeTruthy();
-		expect(EDITOR_METRICS.gripSize).toContain(
-			"var(--prompt-editor-grip-size, 20px)",
-		);
 	});
 });

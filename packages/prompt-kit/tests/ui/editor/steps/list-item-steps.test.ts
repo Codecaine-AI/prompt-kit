@@ -183,21 +183,6 @@ describe("list-item step composition", () => {
 		expect(result.focusItemIndex).toBe(1);
 	});
 
-	test("un-nest names the outer list and the hoisted slot", () => {
-		const before = docWith({
-			type: "bulletList",
-			id: "list1",
-			items: [
-				item("parent", [
-					{ type: "bulletList", items: [item("child")] } as BulletListNode,
-				]),
-			],
-		});
-		const result = unnestListItemStep(before, "list1", 0, 0);
-		expect(result.focusListId).toBe("list1");
-		expect(result.focusItemIndex).toBe(1);
-	});
-
 	// DELIBERATE CONTRACT CHANGE (2026-08-05): the old hoist left trailing
 	// nested siblings behind under the parent, so the outdented item jumped
 	// below its former context. Standard outliner semantics now: trailing
@@ -225,6 +210,9 @@ describe("list-item step composition", () => {
 		const carried = list.items[1]!.children?.[0] as BulletListNode;
 		expect(carried.type).toBe("bulletList");
 		expect(carried.items.map((i) => i.content)).toEqual([["nestedB"]]);
+		// Focus follows the hoisted item into the outer list.
+		expect(result.focusListId).toBe("list1");
+		expect(result.focusItemIndex).toBe(1);
 		expectRoundTrip(before, result.step!, result.prompt);
 	});
 
@@ -317,23 +305,6 @@ describe("list-item step composition", () => {
 		expectRoundTrip(before, result.step!, result.prompt);
 	});
 
-	test("unnest drops the child list when it empties", () => {
-		const before = docWith({
-			type: "bulletList",
-			id: "list1",
-			items: [
-				item("parent", [
-					{ type: "bulletList", items: [item("solo")] } as BulletListNode,
-				]),
-			],
-		});
-		const result = unnestListItemStep(before, "list1", 0, 0);
-		const list = firstList(result.prompt);
-		expect(list.items.map((i) => i.content)).toEqual([["parent"], ["solo"]]);
-		expect(list.items[0]!.children).toBeUndefined();
-		expectRoundTrip(before, result.step!, result.prompt);
-	});
-
 	test("nest then unnest returns to the original document", () => {
 		const before = bulletDoc("parent", "child");
 		const nested = nestListItemStep(before, "list1", 1);
@@ -356,16 +327,14 @@ describe("split / merge — the Enter and Backspace pair", () => {
 		]);
 		expect(result.focusListId).toBeUndefined();
 		expectRoundTrip(before, result.step!, result.prompt);
-	});
 
-	test("split at end-of-text is a clean add-next", () => {
-		const before = bulletDoc("a");
-		const result = splitListItemStep(before, "list1", 0, "a", "");
-		expect(firstList(result.prompt).items.map((i) => i.content)).toEqual([
+		// A caret at end-of-text is a clean add-next.
+		const atEnd = splitListItemStep(bulletDoc("a"), "list1", 0, "a", "");
+		expect(firstList(atEnd.prompt).items.map((i) => i.content)).toEqual([
 			["a"],
 			[""],
 		]);
-		expect(result.focusItemIndex).toBe(1);
+		expect(atEnd.focusItemIndex).toBe(1);
 	});
 
 	// DELIBERATE CONTRACT CHANGE (2026-08-05): splicing the new item at
@@ -466,6 +435,12 @@ describe("split / merge — the Enter and Backspace pair", () => {
 			["tail"],
 		]);
 		expectRoundTrip(before, result.step!, result.prompt);
+
+		// Split then merge returns to the original document.
+		const whole = bulletDoc("hello world");
+		const split = splitListItemStep(whole, "list1", 0, "hello ", "world");
+		const rejoined = mergeListItemsStep(split.prompt, "list1", 1);
+		expect(canonicalizePrompt(rejoined.prompt)).toBe(canonicalizePrompt(whole));
 	});
 
 	test("merge preserves nested children of BOTH items, in order", () => {
@@ -496,32 +471,37 @@ describe("split / merge — the Enter and Backspace pair", () => {
 		const before = bulletDoc("a", "b");
 		expect(mergeListItemsStep(before, "list1", 0).step).toBeUndefined();
 	});
-
-	test("split then merge returns to the original document", () => {
-		const before = bulletDoc("hello world");
-		const split = splitListItemStep(before, "list1", 0, "hello ", "world");
-		const merged = mergeListItemsStep(split.prompt, "list1", 1);
-		expect(canonicalizePrompt(merged.prompt)).toBe(canonicalizePrompt(before));
-	});
 });
 
 describe("moveListItemStep (drag-drop reorder)", () => {
 	test("moves an item down: slot named in ORIGINAL indexing", () => {
-		const before = bulletDoc("a", "b", "c");
+		// `a` is a multi-line item: its nested child list must move with it.
+		const before = docWith({
+			type: "bulletList",
+			id: "list1",
+			items: [
+				item("a", [
+					{
+						type: "bulletList",
+						id: "nested1",
+						items: [item("child")],
+					} as BulletListNode,
+				]),
+				item("b"),
+				item("c"),
+			],
+		});
 		// Slot 2 = "before the item currently at index 2" — a lands between b, c.
 		const result = moveListItemStep(before, "list1", 0, 2);
 		expect(result.step).toBeDefined();
 		expect(result.focusItemIndex).toBe(1);
-		expect(firstList(result.prompt).items.map((i) => i.content)).toEqual([
-			["b"],
-			["a"],
-			["c"],
-		]);
+		const items = firstList(result.prompt).items;
+		expect(items.map((i) => i.content)).toEqual([["b"], ["a"], ["c"]]);
+		const nested = items[1]!.children?.[0] as BulletListNode;
+		expect(nested.items.map((i) => i.content)).toEqual([["child"]]);
 		expectRoundTrip(before, result.step!, result.prompt);
-	});
 
-	test("moves an item up and to the end", () => {
-		const before = bulletDoc("a", "b", "c");
+		// Up to the front, and to the end (slot items.length = after the last).
 		const up = moveListItemStep(before, "list1", 2, 0);
 		expect(firstList(up.prompt).items.map((i) => i.content)).toEqual([
 			["c"],
@@ -529,7 +509,6 @@ describe("moveListItemStep (drag-drop reorder)", () => {
 			["b"],
 		]);
 		expectRoundTrip(before, up.step!, up.prompt);
-		// Slot items.length = after the last item.
 		const toEnd = moveListItemStep(before, "list1", 0, 3);
 		expect(firstList(toEnd.prompt).items.map((i) => i.content)).toEqual([
 			["b"],
@@ -537,47 +516,18 @@ describe("moveListItemStep (drag-drop reorder)", () => {
 			["a"],
 		]);
 		expectRoundTrip(before, toEnd.step!, toEnd.prompt);
-	});
 
-	test("dropping into either boundary around the item itself is a no-op", () => {
-		const before = bulletDoc("a", "b", "c");
-		// Before itself and immediately after itself both leave order unchanged,
-		// so no step is emitted and nothing enters the undo log.
+		// Either boundary around the item itself is a no-op: no undo entry.
 		expect(moveListItemStep(before, "list1", 1, 1).step).toBeUndefined();
 		expect(moveListItemStep(before, "list1", 1, 2).step).toBeUndefined();
-	});
-
-	test("out-of-range source is a no-op; out-of-range slot clamps", () => {
-		const before = bulletDoc("a", "b");
+		// An out-of-range source is a no-op; an out-of-range slot clamps.
 		expect(moveListItemStep(before, "list1", 5, 0).step).toBeUndefined();
 		const clamped = moveListItemStep(before, "list1", 0, 99);
 		expect(firstList(clamped.prompt).items.map((i) => i.content)).toEqual([
 			["b"],
+			["c"],
 			["a"],
 		]);
-	});
-
-	test("a multi-line item moves as a unit: nested children ride along", () => {
-		const before = docWith({
-			type: "bulletList",
-			id: "list1",
-			items: [
-				item("first", [
-					{
-						type: "bulletList",
-						id: "nested1",
-						items: [item("child")],
-					} as BulletListNode,
-				]),
-				item("second"),
-			],
-		});
-		const result = moveListItemStep(before, "list1", 0, 2);
-		const items = firstList(result.prompt).items;
-		expect(items.map((i) => i.content)).toEqual([["second"], ["first"]]);
-		const nested = items[1]!.children?.[0] as BulletListNode;
-		expect(nested.items.map((i) => i.content)).toEqual([["child"]]);
-		expectRoundTrip(before, result.step!, result.prompt);
 	});
 
 	test("reorders a NESTED list through its addressable ancestor", () => {
@@ -621,6 +571,11 @@ describe("moveListItemsStep (group drag-drop reorder)", () => {
 		]);
 		expect(result.focusItemIndex).toBe(2);
 		expectRoundTrip(before, result.step!, result.prompt);
+
+		// A run of one behaves exactly like moveListItemStep.
+		expect(canonicalizePrompt(moveListItemsStep(before, "list1", 0, 1, 2).prompt)).toBe(
+			canonicalizePrompt(moveListItemStep(before, "list1", 0, 2).prompt),
+		);
 	});
 
 	test("moves a run backward keeping order", () => {
@@ -634,15 +589,6 @@ describe("moveListItemsStep (group drag-drop reorder)", () => {
 			["b"],
 		]);
 		expectRoundTrip(before, result.step!, result.prompt);
-	});
-
-	test("count 1 behaves exactly like moveListItemStep", () => {
-		const before = bulletDoc("a", "b", "c");
-		const single = moveListItemStep(before, "list1", 0, 2);
-		const run = moveListItemsStep(before, "list1", 0, 1, 2);
-		expect(canonicalizePrompt(run.prompt)).toBe(
-			canonicalizePrompt(single.prompt),
-		);
 	});
 
 	test("no-ops on the run's own edges and on slots inside the run", () => {
@@ -699,15 +645,7 @@ describe("moveListItemsStep (group drag-drop reorder)", () => {
 
 describe("removeListItemsStep (structural-selection run delete)", () => {
 	test("removes a contiguous run as ONE invertible update step", () => {
-		const before = bulletDoc("a", "b", "c", "d", "e");
-		const result = removeListItemsStep(before, "list1", 1, 3);
-		const list = firstList(result.prompt);
-		expect(list.items.map((i) => i.content)).toEqual([["a"], ["e"]]);
-		expect(result.focusItemIndex).toBe(0);
-		expectRoundTrip(before, result.step!, result.prompt);
-	});
-
-	test("nested children of removed items come back on undo", () => {
+		// `b` carries a nested list: the round trip proves undo restores it.
 		const before = docWith({
 			type: "bulletList",
 			id: "list1",
@@ -721,12 +659,14 @@ describe("removeListItemsStep (structural-selection run delete)", () => {
 					} as BulletListNode,
 				]),
 				item("c"),
+				item("d"),
+				item("e"),
 			],
 		});
-		const result = removeListItemsStep(before, "list1", 1, 2);
-		expect(firstList(result.prompt).items.map((i) => i.content)).toEqual([
-			["a"],
-		]);
+		const result = removeListItemsStep(before, "list1", 1, 3);
+		const list = firstList(result.prompt);
+		expect(list.items.map((i) => i.content)).toEqual([["a"], ["e"]]);
+		expect(result.focusItemIndex).toBe(0);
 		expectRoundTrip(before, result.step!, result.prompt);
 	});
 
@@ -934,19 +874,16 @@ describe("moveListItemsAcrossStep (cross-list drag-drop)", () => {
 		expect(canonicalizePrompt(revertSteps(result.prompt, result.steps))).toBe(
 			canonicalizePrompt(before),
 		);
-	});
 
-	test("bullet → ordered is legal: the item node type is shared", () => {
-		const before = twoListDoc();
-		// list-b (bullet) → list-a (ordered), front slot.
-		const result = moveListItemsAcrossStep(before, "list-b", 0, 1, "list-a", 0);
-		expect(listById(result.prompt, "list-a").items.map((i) => i.id)).toEqual([
+		// Bullet → ordered is legal too: the item node type is shared.
+		const back = moveListItemsAcrossStep(before, "list-b", 0, 1, "list-a", 0);
+		expect(listById(back.prompt, "list-a").items.map((i) => i.id)).toEqual([
 			"b1",
 			"a1",
 			"a2",
 			"a3",
 		]);
-		expect(canonicalizePrompt(revertSteps(result.prompt, result.steps))).toBe(
+		expect(canonicalizePrompt(revertSteps(back.prompt, back.steps))).toBe(
 			canonicalizePrompt(before),
 		);
 	});

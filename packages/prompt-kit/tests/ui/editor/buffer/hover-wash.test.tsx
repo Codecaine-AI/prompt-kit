@@ -107,15 +107,11 @@ describe("PromptFlowXml unit-scoped hover wash", () => {
 			{ nodeId: "sec-1", role: "open" },
 			{ nodeId: "sec-1", role: "close" },
 		]);
-	});
 
-	it("hovering a paragraph washes exactly its own row", () => {
-		renderFlow();
-
+		// A paragraph washes exactly its own row.
 		fireEvent.mouseEnter(
 			document.querySelector<HTMLElement>('[data-prompt-node-id="para-1"]')!,
 		);
-
 		expect(washedRows()).toEqual([{ nodeId: "para-1", role: "content" }]);
 	});
 

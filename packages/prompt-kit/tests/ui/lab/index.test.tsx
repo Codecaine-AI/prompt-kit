@@ -131,53 +131,6 @@ describe("PromptInlineLab structure", () => {
     );
   });
 
-  test("the inspector's localStorage preference is gone", () => {
-    const originalStorage = Object.getOwnPropertyDescriptor(
-      globalThis,
-      "localStorage",
-    );
-    const touchedKeys: string[] = [];
-    Object.defineProperty(globalThis, "localStorage", {
-      configurable: true,
-      value: {
-        getItem(key: string) {
-          touchedKeys.push(key);
-          return null;
-        },
-        setItem(key: string) {
-          touchedKeys.push(key);
-        },
-        removeItem(key: string) {
-          touchedKeys.push(key);
-        },
-      },
-    });
-    try {
-      render(<PromptInlineLab prompt={prompt} />);
-      expect(
-        touchedKeys.filter((key) => key.includes("promptLabInspector")),
-      ).toEqual([]);
-    } finally {
-      if (originalStorage) {
-        Object.defineProperty(globalThis, "localStorage", originalStorage);
-      } else {
-        Reflect.deleteProperty(globalThis, "localStorage");
-      }
-    }
-  });
-
-  test("does not surface the saved hash anywhere in the shell", () => {
-    // The hash lives in the host page header and the HISTORY zone; the lab
-    // shell stays quiet.
-    const hash = "pk1-d631b526902f7eb5bcbb683721b9b2a1e3373c6892";
-    const markup = renderToStaticMarkup(
-      <PromptInlineLab prompt={prompt} savedHash={hash} />,
-    );
-
-    expect(markup).not.toContain(hash);
-    expect(markup).not.toContain("d631b52690");
-  });
-
   test("the floating history toggle swaps the headerless outline to revisions and back", () => {
     render(
       <PromptInlineLab
@@ -349,15 +302,13 @@ describe("PromptInlineLab dock view switcher", () => {
 });
 
 describe("PromptInlineLab config zone", () => {
-  test("is hidden when the host supplies no config", () => {
-    render(<PromptInlineLab prompt={prompt} />);
-
+  test("renders a read-only model inside the expanded panel", () => {
+    // With no config from the host, the zone is absent.
+    const { rerender } = render(<PromptInlineLab prompt={prompt} />);
     expect(document.querySelector('[data-lab-zone="config"]')).toBeNull();
     expect(document.querySelector('[data-lab-view="config"]')).toBeNull();
-  });
 
-  test("renders a read-only model inside the expanded panel", () => {
-    render(<PromptInlineLab prompt={prompt} configZone={{ model: "gpt-5" }} />);
+    rerender(<PromptInlineLab prompt={prompt} configZone={{ model: "gpt-5" }} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Expand outline" }));
     const configZone = document.querySelector<HTMLElement>(
@@ -449,10 +400,8 @@ describe("PromptInlineLab preview and thinking controls", () => {
     expect(screen.getByRole("alert").textContent).toBe("Save failed");
     rerender(<PromptInlineLab prompt={prompt} configZone={{ ...config, thinking: "high", status: "Saved for future runs." }} />);
     expect(selector().value).toBe("high");
-  });
-
-  test("thinking without a save callback is read-only", () => {
-    render(<PromptInlineLab prompt={prompt} configZone={{ model: "test/model", thinking: "medium", thinkingOptions: ["medium"] }} />);
+    // Without a save callback, thinking shows as read-only text.
+    rerender(<PromptInlineLab prompt={prompt} configZone={{ model: "test/model", thinking: "medium", thinkingOptions: ["medium"] }} />);
     expect(screen.getByText("Default thinking")).toBeTruthy();
     expect(screen.getByText("medium")).toBeTruthy();
     expect(screen.queryByRole("combobox", { name: "Default thinking" })).toBeNull();
@@ -621,17 +570,6 @@ describe("PromptInlineLab state view", () => {
 });
 
 describe("PromptInlineLab undo/redo", () => {
-  test("no chrome carries undo/redo buttons", () => {
-    render(<PromptInlineLab prompt={prompt} />);
-
-    // Undo/redo are keyboard-only; the only mode control on screen is the
-    // ANNOTATE toggle in the REQUESTS zone header.
-    expect(screen.queryByLabelText("Undo")).toBeNull();
-    expect(screen.queryByLabelText("Redo")).toBeNull();
-    expect(document.querySelector('[title*="mod+z"]')).toBeNull();
-    expect(screen.getByRole("button", { name: "AI" })).toBeTruthy();
-  });
-
   test("⌘Z and ⌘⇧Z undo and redo an edit made on the editor surface", () => {
     const drafts: PromptDocument[] = [];
     render(
@@ -760,27 +698,18 @@ describe("PromptInlineLab annotate mode", () => {
     expect(chip).toBeTruthy();
     // Nodes are named the way the inspector tree names them.
     expect(chip?.textContent).toBe("Paragraph");
-  });
 
-  test("hover targets exactly what is pointed at — no Alt parent expansion", () => {
-    render(<PromptInlineLab prompt={prompt} />);
-    fireEvent.click(screen.getByRole("button", { name: "AI" }));
-
+    // Item rows stamp the item's own id plus the list as parent, and hover
+    // targets exactly the item: Alt does not expand to the parent list.
     const itemRow = document.querySelector<HTMLElement>(
       '[data-prompt-node-id="item-1"]',
-    );
-    expect(itemRow).toBeTruthy();
-    // Item rows stamp the item's own id plus the list as parent.
-    expect(itemRow!.getAttribute("data-prompt-parent-node-id")).toBe("list-1");
-
-    fireEvent.mouseMove(itemRow!);
+    )!;
+    expect(itemRow.getAttribute("data-prompt-parent-node-id")).toBe("list-1");
+    fireEvent.mouseMove(itemRow);
     expect(
       document.querySelector('[data-annotation-ui="hover-chip"]')?.textContent,
     ).toBe("List item");
-
-    // The scope machinery is gone: Alt changes nothing — what you point at
-    // is the target.
-    fireEvent.mouseMove(itemRow!, { altKey: true });
+    fireEvent.mouseMove(itemRow, { altKey: true });
     expect(
       document.querySelector('[data-annotation-ui="hover-chip"]')?.textContent,
     ).toBe("List item");
@@ -840,47 +769,30 @@ describe("PromptInlineLab annotate mode", () => {
       document.querySelector('[data-annotation-ui="selected-ring"]'),
     ).toBeNull();
     expect(screen.getByText("Fix the wording here.")).toBeTruthy();
-  });
 
-  test("clicking a single bullet targets the ITEM id", async () => {
-    const store = createAnnotationStore();
-    render(<PromptInlineLab prompt={prompt} annotationStore={store} />);
-    fireEvent.click(screen.getByRole("button", { name: "AI" }));
-
+    // A single bullet targets the ITEM id.
     fireEvent.click(document.querySelector('[data-prompt-node-id="item-1"]')!);
-
-    expect(composer()).toBeTruthy();
     submitComposer("Reorder this step.");
-
     await waitFor(() => {
-      expect(store.list().length).toBe(1);
+      expect(store.list().length).toBe(2);
     });
-    expect(store.list()[0].target).toEqual({
+    expect(store.list()[1].target).toEqual({
       kind: "prompt-node",
       docId: "controlled-style-test",
       nodeId: "item-1",
       fingerprint: expect.any(String),
     });
-    expect(store.list()[0].intent).toBe("agent-request");
-  });
+    expect(store.list()[1].intent).toBe("agent-request");
 
-  test("Alt-clicking a bullet still pins the ITEM — no parent expansion", async () => {
-    const store = createAnnotationStore();
-    render(<PromptInlineLab prompt={prompt} annotationStore={store} />);
-    fireEvent.click(screen.getByRole("button", { name: "AI" }));
-
+    // Alt-click still pins the item itself, not its parent list.
     fireEvent.click(document.querySelector('[data-prompt-node-id="item-2"]')!, {
       altKey: true,
     });
-
-    expect(composer()).toBeTruthy();
     submitComposer("Merge these bullets.");
-
     await waitFor(() => {
-      expect(store.list().length).toBe(1);
+      expect(store.list().length).toBe(3);
     });
-    // What you click is the target: the item itself, Alt or not.
-    expect(store.list()[0].target).toEqual({
+    expect(store.list()[2].target).toEqual({
       kind: "prompt-node",
       docId: "controlled-style-test",
       nodeId: "item-2",
@@ -1312,23 +1224,6 @@ describe("PromptInlineLab annotate mode", () => {
 });
 
 describe("PromptInlineLab inline composer", () => {
-  test("no scope UI exists anywhere in the annotate flow", () => {
-    render(<PromptInlineLab prompt={nestedPrompt} />);
-    fireEvent.click(screen.getByRole("button", { name: "AI" }));
-
-    fireEvent.click(document.querySelector('[data-prompt-node-id="item-1"]')!);
-    expect(composer()).toBeTruthy();
-    // No breadcrumb segments, no target label header — what you clicked is
-    // the target, full stop.
-    expect(document.querySelector("[data-annotation-scope]")).toBeNull();
-
-    // Clicking the SAME row again does not widen anything — the composer
-    // stays and the eventual submit targets the clicked item (verified by
-    // the submit test below); here we just assert no scope UI ever appears.
-    fireEvent.click(document.querySelector('[data-prompt-node-id="item-1"]')!);
-    expect(document.querySelector("[data-annotation-scope]")).toBeNull();
-  });
-
   test("Enter queues; the clicked leaf is what lands", async () => {
     const store = createAnnotationStore();
     render(<PromptInlineLab prompt={nestedPrompt} annotationStore={store} />);

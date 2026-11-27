@@ -106,26 +106,6 @@ describe("resolveBackspace decision table", () => {
 		});
 	});
 
-	for (const empty of [false, true]) {
-		test(`a list item removes its list level, empty=${empty}`, () => {
-			expect(backspaceAt(doc(bullets("a", empty ? "" : "b")), 1, empty)).toMatchObject({
-				kind: "unlist-item", itemIndex: 1,
-			});
-		});
-	}
-
-	test("the first list item removes its marker instead of moving up", () => {
-		expect(backspaceAt(doc(paragraph("intro"), bullets("a", "b")), 1)).toMatchObject({
-			kind: "unlist-item", itemIndex: 0,
-		});
-	});
-
-	test("a paragraph joins the preceding list", () => {
-		expect(backspaceAt(doc(bullets("a"), paragraph("b")), 1)).toMatchObject({
-			kind: "merge-paragraph-into-list", itemIndex: 0,
-		});
-	});
-
 	test("a paragraph cannot join a list across a section boundary", () => {
 		expect(backspaceAt(doc(section("notes", bullets("a")), paragraph("b")), 2).kind).toBe("focus-previous");
 	});
@@ -133,16 +113,29 @@ describe("resolveBackspace decision table", () => {
 	test("sibling paragraphs merge", () => {
 		const result = backspaceAt(doc(paragraph("one"), paragraph("two")), 1);
 		expect(result.kind).toBe("merge-paragraphs");
+		// A list item removes its list level, empty or not.
+		for (const empty of [false, true]) {
+			expect(backspaceAt(doc(bullets("a", empty ? "" : "b")), 1, empty)).toMatchObject({
+				kind: "unlist-item", itemIndex: 1,
+			});
+		}
+		// The first list item removes its marker instead of moving up.
+		expect(backspaceAt(doc(paragraph("intro"), bullets("a", "b")), 1)).toMatchObject({
+			kind: "unlist-item", itemIndex: 0,
+		});
+		// A paragraph joins the preceding list.
+		expect(backspaceAt(doc(bullets("a"), paragraph("b")), 1)).toMatchObject({
+			kind: "merge-paragraph-into-list", itemIndex: 0,
+		});
 	});
 
 	test("paragraphs in different containers never merge", () => {
-		// The section's first paragraph sits below a top-level paragraph, but
-		// merging would pull text across the tag boundary.
-		const result = backspaceAt(
-			doc(paragraph("outside"), section("notes", paragraph("inside"))),
-			1,
-		);
-		expect(result.kind).toBe("focus-previous");
+		// The top-level paragraph's caret target follows the section's last
+		// paragraph directly, but merging would pull text across the tag boundary.
+		const input = doc(section("notes", paragraph("inside")), paragraph("outside"));
+		expect(backspaceAt(input, 2).kind).toBe("focus-previous");
+		const { lines, entriesById, points } = build(input);
+		expect(resolveDeleteForward(lines, points, 1, entriesById).kind).toBe("none");
 	});
 
 	test("an empty paragraph is removed and focus goes back", () => {
@@ -168,14 +161,11 @@ describe("resolveDeleteForward", () => {
 		expect(result.kind).toBe("merge-items");
 		if (result.kind !== "merge-items") throw new Error("unreachable");
 		expect(result.nextItemIndex).toBe(1);
-	});
-
-	test("mirrors the paragraph merge", () => {
-		const { lines, entriesById, points } = build(
-			doc(paragraph("one"), paragraph("two")),
-		);
-		const result = resolveDeleteForward(lines, points, 0, entriesById);
-		expect(result.kind).toBe("merge-paragraphs");
+		// It mirrors the paragraph merge too.
+		const paragraphs = build(doc(paragraph("one"), paragraph("two")));
+		expect(
+			resolveDeleteForward(paragraphs.lines, paragraphs.points, 0, paragraphs.entriesById).kind,
+		).toBe("merge-paragraphs");
 	});
 
 	test("does nothing at the last caret target", () => {

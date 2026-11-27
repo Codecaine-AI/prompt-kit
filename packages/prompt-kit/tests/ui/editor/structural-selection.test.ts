@@ -90,22 +90,24 @@ describe("resolveMarqueeSelection (canonical structural resolution)", () => {
 			start: 1,
 			end: 2,
 		});
-	});
-
-	it("a band entering an item through its NESTED child rows covers that item", () => {
-		// para-c renders inside item-c; sweeping from it into item-d names the
-		// item run 2..3, the nested row promoting to its whole item.
-		const selection = resolveMarqueeSelection(
-			doc,
-			lines,
-			contentRow("para-c"),
-			itemRow("item-d"),
-		);
-		expect(selection).toEqual({
-			parentId: "list-1",
-			kind: "items",
-			start: 2,
-			end: 3,
+		// A band entering an item through its NESTED child row covers that item.
+		expect(
+			resolveMarqueeSelection(doc, lines, contentRow("para-c"), itemRow("item-d")),
+		).toEqual({ parentId: "list-1", kind: "items", start: 2, end: 3 });
+		// A band inside one item's nested child promotes to that single ITEM.
+		expect(
+			resolveMarqueeSelection(doc, lines, contentRow("para-c"), contentRow("para-c")),
+		).toEqual({ parentId: "list-1", kind: "items", start: 2, end: 2 });
+		// Band order is normalized.
+		expect(
+			resolveMarqueeSelection(doc, lines, itemRow("item-c"), itemRow("item-b")),
+		).toEqual({ parentId: "list-1", kind: "items", start: 1, end: 2 });
+		// Out-of-range rows are clamped.
+		expect(resolveMarqueeSelection(doc, lines, -10, lines.length + 10)).toEqual({
+			parentId: null,
+			kind: "blocks",
+			start: 0,
+			end: 2,
 		});
 	});
 
@@ -124,85 +126,26 @@ describe("resolveMarqueeSelection (canonical structural resolution)", () => {
 			start: 1,
 			end: 2,
 		});
-	});
-
-	it("rows sweeping across top-level sections resolve to the top-level run", () => {
-		// para-2 (inside sec-a) → para-3 (inside sec-b) covers sec-a's close
-		// tag on the way: both sections become the object, at their own level.
-		const selection = resolveMarqueeSelection(
-			doc,
-			lines,
-			contentRow("para-2"),
-			contentRow("para-3"),
-		);
-		expect(selection).toEqual({
-			parentId: null,
-			kind: "blocks",
-			start: 0,
-			end: 1,
-		});
-	});
-
-	it("sweeping the whole document selects the full top-level run", () => {
-		const selection = resolveMarqueeSelection(doc, lines, 0, lines.length - 1);
-		expect(selection).toEqual({
+		// Sweeping across top-level sections resolves to the top-level run.
+		expect(
+			resolveMarqueeSelection(doc, lines, contentRow("para-2"), contentRow("para-3")),
+		).toEqual({ parentId: null, kind: "blocks", start: 0, end: 1 });
+		// Sweeping the whole document selects the full top-level run.
+		expect(resolveMarqueeSelection(doc, lines, 0, lines.length - 1)).toEqual({
 			parentId: null,
 			kind: "blocks",
 			start: 0,
 			end: 2,
 		});
-	});
-
-	it("a band inside ONE leaf block resolves to that single block at its parent", () => {
-		const selection = resolveMarqueeSelection(
-			doc,
-			lines,
-			contentRow("para-1"),
-			contentRow("para-1"),
-		);
-		expect(selection).toEqual({
-			parentId: "sec-a",
-			kind: "blocks",
-			start: 0,
-			end: 0,
-		});
-	});
-
-	it("a band inside one item's nested child promotes to that single ITEM", () => {
-		const selection = resolveMarqueeSelection(
-			doc,
-			lines,
-			contentRow("para-c"),
-			contentRow("para-c"),
-		);
-		expect(selection).toEqual({
-			parentId: "list-1",
-			kind: "items",
-			start: 2,
-			end: 2,
-		});
+		// A band inside ONE leaf block resolves to that single block at its parent.
+		expect(
+			resolveMarqueeSelection(doc, lines, contentRow("para-1"), contentRow("para-1")),
+		).toEqual({ parentId: "sec-a", kind: "blocks", start: 0, end: 0 });
 	});
 
 	it("a gap-only band selects nothing", () => {
 		const gapRow = rowOf((line) => line.role === "gap");
 		expect(resolveMarqueeSelection(doc, lines, gapRow, gapRow)).toBeNull();
-	});
-
-	it("normalizes band order and clamps out-of-range rows", () => {
-		const forward = resolveMarqueeSelection(
-			doc,
-			lines,
-			itemRow("item-c"),
-			itemRow("item-b"),
-		);
-		expect(forward).toEqual({
-			parentId: "list-1",
-			kind: "items",
-			start: 1,
-			end: 2,
-		});
-		const clamped = resolveMarqueeSelection(doc, lines, -10, lines.length + 10);
-		expect(clamped).toEqual({ parentId: null, kind: "blocks", start: 0, end: 2 });
 	});
 
 	it("EXACT COVER: the resolved run names precisely the covered sibling span", () => {
@@ -235,16 +178,10 @@ describe("structuralSelectionRun (materialization = validity check)", () => {
 			unitIds: ["item-b", "item-c", "item-d"],
 			unitTotal: 4,
 		});
-	});
-
-	it("materializes the top-level block run", () => {
-		const selection: StructuralSelection = {
-			parentId: null,
-			kind: "blocks",
-			start: 1,
-			end: 2,
-		};
-		expect(structuralSelectionRun(doc, selection)).toEqual({
+		// The top-level block run materializes the same way.
+		expect(
+			structuralSelectionRun(doc, { parentId: null, kind: "blocks", start: 1, end: 2 }),
+		).toEqual({
 			parentId: null,
 			kind: "blocks",
 			fromIndex: 1,

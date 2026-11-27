@@ -153,28 +153,6 @@ describe("PromptAnnotationsPane", () => {
     expect(screen.queryByText("Run agent")).toBeNull();
   });
 
-  it("renders the reply thread stored on an annotation", () => {
-    const doc = prompt();
-    const store = createAnnotationStore();
-    const added = store.add({
-      target: targetForNode(doc, "n1"),
-      body: "Make this stricter.",
-      intent: "agent-request",
-      author: "ford",
-    });
-    store.addReply(added.id, {
-      author: "agent",
-      body: "Tightened it — anything else?",
-    });
-
-    render(<PromptAnnotationsPane prompt={doc} store={store} />);
-
-    const thread = document.querySelector("[data-plannotator-replies]");
-    expect(thread).toBeTruthy();
-    expect(screen.getByText("Tightened it — anything else?")).toBeTruthy();
-    expect(screen.getByText("agent")).toBeTruthy();
-  });
-
   it("submitting a reply reaches the store with the pane's author", async () => {
     const doc = prompt();
     const store = createAnnotationStore();

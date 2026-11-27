@@ -604,18 +604,17 @@ describe("convertParagraphToStep", () => {
 		expect(result.steps).toHaveLength(1);
 		expect(result.steps[0]!.op).toBe("update");
 		expectRoundTrip(before, result.steps, result.prompt);
-	});
 
-	test("text on the paragraph is carried into the first item", () => {
-		const before = doc(paragraph("write tests"));
-		const id = before.nodes[0]!.id!;
-		const result = convertParagraphToStep(before, id, "bulletList")!;
-		expect(itemTexts(result.prompt.nodes[0] as BulletListNode)).toEqual([
-			"write tests",
-		]);
-		expect(result.caretOffset).toBe("write tests".length);
-		expect(renderXmlMarkdown(result.prompt)).toBe("- write tests");
-		expectRoundTrip(before, result.steps, result.prompt);
+		const withText = doc(paragraph("write tests"));
+		const carried = convertParagraphToStep(withText, withText.nodes[0]!.id!, "bulletList")!;
+		expect(itemTexts(carried.prompt.nodes[0] as BulletListNode)).toEqual(["write tests"]);
+		expect(carried.caretOffset).toBe("write tests".length);
+		expect(renderXmlMarkdown(carried.prompt)).toBe("- write tests");
+		expectRoundTrip(withText, carried.steps, carried.prompt);
+
+		const siblings = doc(paragraph("one"), paragraph("two"), paragraph("three"));
+		const middle = convertParagraphToStep(siblings, siblings.nodes[1]!.id!, "bulletList")!;
+		expect(renderXmlMarkdown(middle.prompt)).toBe("one\n\n- two\n\nthree");
 	});
 
 	test("orderedList renders with a numeric marker", () => {
@@ -711,13 +710,6 @@ describe("convertParagraphToStep", () => {
 		expect(renderXmlMarkdown(result.prompt)).toBe(renderXmlMarkdown(typed));
 	});
 
-	test("preserves position among siblings", () => {
-		const before = doc(paragraph("one"), paragraph("two"), paragraph("three"));
-		const id = before.nodes[1]!.id!;
-		const result = convertParagraphToStep(before, id, "bulletList")!;
-		expect(renderXmlMarkdown(result.prompt)).toBe("one\n\n- two\n\nthree");
-	});
-
 	test("converts a paragraph nested inside a section", () => {
 		const before = rawDoc(section("rules", [paragraph("nested", "p1")], "sec1"));
 		const result = convertParagraphToStep(before, "p1", "bulletList")!;
@@ -765,18 +757,13 @@ describe("convertBlockToParagraphStep", () => {
 		// The caret sits after the characters that came back.
 		expect(reverted.caretOffset).toBe(2);
 		expectRoundTrip(converted.prompt, reverted.steps, reverted.prompt);
-	});
 
-	test("round-trips a fence back to its three backticks", () => {
-		const before = doc(paragraph("keep"), paragraph(""));
-		const id = before.nodes[1]!.id!;
-		const converted = convertParagraphToStep(before, id, "codeBlock")!;
-		const reverted = convertBlockToParagraphStep(converted.prompt, id, "```")!;
-
-		expect(canonicalizePrompt(reverted.prompt)).toBe(
-			canonicalizePrompt(
-				doc(paragraph("keep"), paragraph("```")),
-			),
+		const fenced = doc(paragraph("keep"), paragraph(""));
+		const fenceId = fenced.nodes[1]!.id!;
+		const fence = convertParagraphToStep(fenced, fenceId, "codeBlock")!;
+		const unfenced = convertBlockToParagraphStep(fence.prompt, fenceId, "```")!;
+		expect(canonicalizePrompt(unfenced.prompt)).toBe(
+			canonicalizePrompt(doc(paragraph("keep"), paragraph("```"))),
 		);
 	});
 
