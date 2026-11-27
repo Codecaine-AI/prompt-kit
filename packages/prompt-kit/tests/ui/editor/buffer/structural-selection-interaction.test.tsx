@@ -188,6 +188,17 @@ describe("PromptFlowXml plain-drag object selection", () => {
 				.querySelector("[data-prompt-selection-ring]")
 				?.getAttribute("data-prompt-selection-ring"),
 		).toBe("0-4");
+
+		// A gesture that ends back on its anchor unit rings JUST that unit:
+		// para-y → para-z → back to para-y leaves row 2 alone.
+		fireEvent.keyDown(window, { key: "Escape" });
+		ringSingle("para-y", 85);
+		expect(selectedIds()).toEqual(["para-y"]);
+		expect(
+			document
+				.querySelector("[data-prompt-selection-ring]")
+				?.getAttribute("data-prompt-selection-ring"),
+		).toBe("2-2");
 	});
 
 	it("a drag WITHIN one unit never creates a run and never suppresses native selection", () => {
@@ -234,19 +245,6 @@ describe("PromptFlowXml plain-drag object selection", () => {
 		expect(selectedIds()).toEqual(["para-x", "para-y"]);
 	});
 
-	it("a gesture that ends back on the anchor unit rings JUST the anchor unit", () => {
-		renderFlow(flatPrompt);
-		layoutRows();
-		// para-y → para-z → back to para-y: the completed band is row 2 alone.
-		ringSingle("para-y", 85);
-		expect(selectedIds()).toEqual(["para-y"]);
-		expect(
-			document
-				.querySelector("[data-prompt-selection-ring]")
-				?.getAttribute("data-prompt-selection-ring"),
-		).toBe("2-2");
-	});
-
 	it("the release click is swallowed once; the NEXT plain click clears", () => {
 		renderFlow(flatPrompt);
 		layoutRows();
@@ -273,15 +271,6 @@ describe("PromptFlowXml plain-drag object selection", () => {
 		fireEvent.pointerMove(window, { clientX: 2, clientY: 85 });
 		expect(selectedIds()).toEqual([]);
 		fireEvent.pointerUp(window, { clientX: 2, clientY: 85 });
-		expect(selectedIds()).toEqual([]);
-	});
-
-	it("Escape clears the kept selection after release", () => {
-		renderFlow(flatPrompt);
-		layoutRows();
-		dragSelect("para-x", "para-y");
-		expect(selectedIds()).toEqual(["para-x", "para-y"]);
-		fireEvent.keyDown(window, { key: "Escape" });
 		expect(selectedIds()).toEqual([]);
 	});
 
@@ -434,50 +423,42 @@ describe("PromptFlowXml structural delete (Backspace / Delete as one object)", (
 	});
 
 	it("Backspace removes a drag-selected ITEM run as ONE invertible update step", () => {
-		const { commits, prompt } = renderFlow(listPrompt);
-		layoutRows();
-		dragSelect("item-b", "item-d");
-		expect(selectedIds()).toEqual(["item-b", "item-c", "item-d"]);
+		// The same item run, selected by drag and by the unchanged
+		// shift-click range (anchor on item-b's text, shift-click item-d).
+		const selectItemRun = [
+			() => {
+				layoutRows();
+				dragSelect("item-b", "item-d");
+			},
+			() => {
+				fireEvent.click(
+					nodeRow("item-b").querySelector<HTMLElement>(
+						"[data-prompt-row-text] span",
+					)!,
+				);
+				fireEvent.click(nodeRow("item-d"), { shiftKey: true });
+			},
+		];
+		for (const select of selectItemRun) {
+			cleanup();
+			const { commits, prompt } = renderFlow(listPrompt);
+			select();
+			expect(selectedIds()).toEqual(["item-b", "item-c", "item-d"]);
 
-		fireEvent.keyDown(window, { key: "Backspace" });
-		const commit = commits[commits.length - 1]!;
-		const section = commit.prompt.nodes[0] as SectionNode;
-		const list = section.children[0] as Extract<
-			SectionNode["children"][number],
-			{ type: "orderedList" }
-		>;
-		expect(list.items.map((item) => item.id)).toEqual(["item-a", "item-e"]);
-		expect(commit.steps).toHaveLength(1);
-		expect(commit.steps![0]!.op).toBe("update");
-		expect(canonicalizePrompt(revertSteps(commit.prompt, commit.steps!))).toBe(
-			canonicalizePrompt(prompt),
-		);
-	});
-
-	it("Backspace removes a SHIFT-CLICK item range exactly as before (ranges unchanged)", () => {
-		const { commits, prompt } = renderFlow(listPrompt);
-		// Anchor on item-b (click its text), then shift-click item-d.
-		fireEvent.click(
-			nodeRow("item-b").querySelector<HTMLElement>(
-				"[data-prompt-row-text] span",
-			)!,
-		);
-		fireEvent.click(nodeRow("item-d"), { shiftKey: true });
-		expect(selectedIds()).toEqual(["item-b", "item-c", "item-d"]);
-
-		fireEvent.keyDown(window, { key: "Backspace" });
-		const commit = commits[commits.length - 1]!;
-		const section = commit.prompt.nodes[0] as SectionNode;
-		const list = section.children[0] as Extract<
-			SectionNode["children"][number],
-			{ type: "orderedList" }
-		>;
-		expect(list.items.map((item) => item.id)).toEqual(["item-a", "item-e"]);
-		expect(commit.steps).toHaveLength(1);
-		expect(commit.steps![0]!.op).toBe("update");
-		expect(canonicalizePrompt(revertSteps(commit.prompt, commit.steps!))).toBe(
-			canonicalizePrompt(prompt),
-		);
+			fireEvent.keyDown(window, { key: "Backspace" });
+			const commit = commits[commits.length - 1]!;
+			const section = commit.prompt.nodes[0] as SectionNode;
+			const list = section.children[0] as Extract<
+				SectionNode["children"][number],
+				{ type: "orderedList" }
+			>;
+			expect(list.items.map((item) => item.id)).toEqual(["item-a", "item-e"]);
+			expect(commit.steps).toHaveLength(1);
+			expect(commit.steps![0]!.op).toBe("update");
+			expect(
+				canonicalizePrompt(revertSteps(commit.prompt, commit.steps!)),
+			).toBe(canonicalizePrompt(prompt));
+		}
 	});
 
 	it("removing ALL items removes the list itself (the keymap's empty-list rule)", () => {
@@ -664,6 +645,8 @@ describe("PromptFlowXml structural selection paints as ONE object", () => {
 		).not.toBeNull();
 		fireEvent.keyDown(window, { key: "Escape" });
 		expect(document.querySelector("[data-prompt-selection-ring]")).toBeNull();
+		// Escape after release clears the kept selection itself, not only the ring.
+		expect(selectedIds()).toEqual([]);
 	});
 });
 

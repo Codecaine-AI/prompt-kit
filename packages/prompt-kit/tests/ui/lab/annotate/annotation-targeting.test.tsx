@@ -142,10 +142,8 @@ describe("annotationRowElements", () => {
 				row.getAttribute("data-prompt-node-id"),
 			),
 		).toEqual(["sec-1", "para-1", "sec-1"]);
-	});
 
-	it("resolves a leaf id to exactly its own rows", () => {
-		const { container } = renderSurface();
+		// A leaf id resolves to exactly its own rows.
 		expect(
 			annotationRowElements(container, "item-2").map((row) =>
 				row.getAttribute("data-prompt-node-id"),
@@ -237,6 +235,17 @@ describe("mapDomRangeToPromptRange", () => {
 			quote: "First",
 		});
 		expect(itemText.slice(target!.start, target!.end)).toBe("First");
+
+		// With parents supplied, a single-bullet drag still stays on the ITEM.
+		expect(
+			mapDomRangeToPromptRange({
+				container,
+				range,
+				lines,
+				docId: "map-doc",
+				parents: buildAnnotationParentMap(prompt),
+			}),
+		).toEqual(target);
 	});
 
 	it("clamps a multi-node drag to the anchor node's rendered text", () => {
@@ -332,35 +341,6 @@ describe("mapDomRangeToPromptRange", () => {
 		expect(target!.start).toBe(expectedStart);
 		expect(target!.end).toBe(expectedEnd);
 		expect(target!.quote).toBe(sectionText.slice(expectedStart, expectedEnd));
-	});
-
-	it("keeps single-bullet drags on the ITEM id when parents are supplied", () => {
-		const { container, lines } = renderSurface();
-		const parents = buildAnnotationParentMap(prompt);
-		const itemText = nodeRenderedText(lines, "item-1");
-
-		const textNode = findTextNode(container, "item-1", "First item");
-		const base = textNode.data.indexOf("First");
-		const range = document.createRange();
-		range.setStart(textNode, base);
-		range.setEnd(textNode, base + "First".length);
-
-		const target = mapDomRangeToPromptRange({
-			container,
-			range,
-			lines,
-			docId: "map-doc",
-			parents,
-		});
-		// Same start/end row → no widening; identical to the parentless path.
-		expect(target).toEqual({
-			kind: "prompt-range",
-			docId: "map-doc",
-			nodeId: "item-1",
-			start: itemText.indexOf("First"),
-			end: itemText.indexOf("First") + "First".length,
-			quote: "First",
-		});
 	});
 
 	it("rings only the rows the drag bounded, not the common ancestor's full extent", () => {

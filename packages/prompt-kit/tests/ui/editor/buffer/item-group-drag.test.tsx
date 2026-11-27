@@ -136,25 +136,22 @@ describe("PromptFlowXml multi-item selection (shift-click)", () => {
 		expect(selectedIds()).toEqual(["item-b", "item-c", "para-c", "item-d"]);
 		// The shift-click never opened an editor.
 		expect(document.querySelector("textarea")).toBeNull();
-	});
 
-	it("extends in either direction (head above the anchor)", () => {
+		// Extends in either direction (head above the anchor).
+		cleanup();
 		renderFlow();
-
 		selectRange("item-d", "item-b");
 		expect(selectedIds()).toEqual(["item-b", "item-c", "para-c", "item-d"]);
-	});
 
-	it("without an anchor in the same list, shift-click starts a fresh single-item range", () => {
+		// Without an anchor, shift-click starts a fresh single-item range.
+		cleanup();
 		renderFlow();
-
 		fireEvent.click(itemRow("item-d"), { shiftKey: true });
 		expect(selectedIds()).toEqual(["item-d"]);
-	});
 
-	it("never groups across lists: a cross-list shift-click restarts in the clicked list", () => {
+		// Never groups across lists: a cross-list shift-click restarts there.
+		cleanup();
 		renderFlow();
-
 		anchorOn("item-b");
 		fireEvent.click(itemRow("other-2"), { shiftKey: true });
 		expect(selectedIds()).toEqual(["other-2"]);
@@ -414,14 +411,11 @@ describe("enumerateItemSlotCandidates (group-aware boundaries)", () => {
 			false,
 			false,
 		]);
-	});
-
-	it("a group drag erases the slots strictly inside the run; its edges stay as the dead band", () => {
-		// Run = items 1..3 → interior boundaries 2 and 3 vanish; the run's own
-		// edges (1 and 4) remain only as dead candidates.
-		const slots = sourceSlots(enumerate(1, 3, "item-b", "item-c", "item-d"));
-		expect(slots.map((slot) => slot.slot)).toEqual([0, 1, 4, 5]);
-		expect(slots.map((slot) => slot.dead)).toEqual([false, true, true, false]);
+		// A group drag erases the slots strictly inside the run (2 and 3); its
+		// edges (1 and 4) stay only as the dead band.
+		const groupSlots = sourceSlots(enumerate(1, 3, "item-b", "item-c", "item-d"));
+		expect(groupSlots.map((slot) => slot.slot)).toEqual([0, 1, 4, 5]);
+		expect(groupSlots.map((slot) => slot.dead)).toEqual([false, true, true, false]);
 	});
 
 	it("the after-last boundary sits under the last item's full extent", () => {

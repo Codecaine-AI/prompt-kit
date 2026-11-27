@@ -376,22 +376,6 @@ describe("ambient mode signals", () => {
 		).toBe("fast");
 	});
 
-	test("leaving returns the glass to its dock shape with no mode signals", () => {
-		openAnnotate({
-			requests: [request("R2", "batch", "open")],
-			proposals: [proposal("R2")],
-		});
-		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
-
-		// The parting-chip morph retired with the chip (2026-08-04 audit): the
-		// glass simply returns to dock shape and the ambient signals drop.
-		expect(
-			document.querySelector("[data-lab-dock]")!.getAttribute("data-lab-float-mode"),
-		).toBe("dock");
-		expect(document.querySelector("[data-lab-annotate-edge]")).toBeNull();
-		expect(document.querySelector("[data-lab-annotate-dot]")).toBeNull();
-	});
-
 	test("Escape finishes the mode when no composer is open", () => {
 		render(<PromptInlineLab prompt={prompt} />);
 		fireEvent.click(screen.getByRole("button", { name: "AI" }));

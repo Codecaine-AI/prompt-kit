@@ -75,6 +75,8 @@ describe("splitParagraphSteps", () => {
 		expect(result.caretOffset).toBe(0);
 		expect(result.focusNodeId).toBe(idAt(result.prompt, 1));
 		expectRoundTrip(before, result.steps, result.prompt);
+		// ONE transaction of exactly two steps, so a single undo restores it.
+		expect(result.steps.map((step) => step.op)).toEqual(["update", "insert"]);
 	});
 
 	test("at end-of-text it degenerates to a clean add-below", () => {
@@ -88,13 +90,6 @@ describe("splitParagraphSteps", () => {
 		const before = doc(paragraph("text"));
 		const result = splitParagraphSteps(before, idAt(before, 0), "", "text");
 		expect(texts(result.prompt)).toEqual(["", "text"]);
-	});
-
-	test("commits as ONE transaction so a single undo restores the original", () => {
-		const before = doc(paragraph("a b"));
-		const result = splitParagraphSteps(before, idAt(before, 0), "a ", "b");
-		expect(result.steps).toHaveLength(2);
-		expect(result.steps.map((step) => step.op)).toEqual(["update", "insert"]);
 	});
 });
 

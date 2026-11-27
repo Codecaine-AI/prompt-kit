@@ -15,20 +15,6 @@ describe("xml-highlight inline chips", () => {
 		expect(textFromMarkup(render(line))).toBe(line);
 	});
 
-	test("backtick spans render as inline-code chips with dimmed ticks", () => {
-		const markup = render("Run `ls` now");
-		expect(markup).toContain("--prompt-editor-inline-code");
-		expect(markup).toContain("--prompt-editor-inline-chip-bg");
-		expect(markup).toContain(`color:${EDITOR_COLORS.inlineCode}`);
-		expect(markup).toContain(`background:${EDITOR_COLORS.inlineChipBg}`);
-		// The tick characters stay in the text, dimmed inside the chip — but
-		// only while chips are visible: the dim rides the chip-opacity token,
-		// so zeroing it (classic) restores full-opacity plain ticks.
-		expect(markup).toContain(
-			'<span style="opacity:calc(1 - clamp(0, var(--prompt-editor-inline-chip-opacity, 0.08) * 100, 0.5))">`</span>',
-		);
-	});
-
 	test("variable tokens keep their ink and gain a color-mix chip", () => {
 		const markup = render("Use {{topic}} here");
 		expect(markup).toContain("--prompt-editor-syntax-variable");

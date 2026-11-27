@@ -88,10 +88,7 @@ describe("moveBlocksStep (contiguous block-run reorder)", () => {
 		const result = moveBlocksStep(before, null, 1, 2, 2);
 		expect(result.steps).toEqual([]);
 		expect(result.prompt).toBe(before);
-	});
-
-	it("the run's own edges are no-op 'put it back' slots", () => {
-		const before = flatDoc("p1", "p2", "p3", "p4");
+		// The run's own edges are no-op "put it back" slots too.
 		expect(moveBlocksStep(before, null, 1, 2, 1).steps).toEqual([]);
 		expect(moveBlocksStep(before, null, 1, 2, 3).steps).toEqual([]);
 	});
@@ -113,17 +110,13 @@ describe("removeBlocksStep (structural-selection run delete)", () => {
 		expect(result.runIds).toEqual(["p2", "p3"]);
 		expect(result.steps.every((step) => step.op === "remove")).toBe(true);
 		expectTransactionRoundTrip(before, result.steps, result.prompt);
-	});
-
-	it("removes a run under a section parent (a whole subtree per block)", () => {
-		const result = removeBlocksStep(nestedDoc, "sec-1", 0, 3);
-		expect(sectionChildIds(result.prompt)).toEqual([]);
-		expectTransactionRoundTrip(nestedDoc, result.steps, result.prompt);
-	});
-
-	it("declines out-of-range runs", () => {
-		const before = flatDoc("p1", "p2");
-		expect(removeBlocksStep(before, null, 1, 2).steps).toEqual([]);
-		expect(removeBlocksStep(before, null, 0, 0).steps).toEqual([]);
+		// A run under a section parent removes a whole subtree per block.
+		const nested = removeBlocksStep(nestedDoc, "sec-1", 0, 3);
+		expect(sectionChildIds(nested.prompt)).toEqual([]);
+		expectTransactionRoundTrip(nestedDoc, nested.steps, nested.prompt);
+		// Out-of-range runs are declined.
+		const short = flatDoc("p1", "p2");
+		expect(removeBlocksStep(short, null, 1, 2).steps).toEqual([]);
+		expect(removeBlocksStep(short, null, 0, 0).steps).toEqual([]);
 	});
 });

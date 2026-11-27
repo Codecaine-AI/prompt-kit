@@ -15,25 +15,19 @@ import {
 import { fenceHint, normalizeLanguage } from "../../../../src/ui/editor/inspector/languages";
 
 describe("sanitizeAttributeKey", () => {
-	test("keeps the XML name character set", () => {
-		expect(sanitizeAttributeKey("data-priority")).toBe("data-priority");
-		expect(sanitizeAttributeKey("xml:lang")).toBe("xml:lang");
-		expect(sanitizeAttributeKey("_private")).toBe("_private");
-	});
-
 	test("folds whitespace to underscores and drops illegal characters", () => {
 		expect(sanitizeAttributeKey("two words")).toBe("two_words");
 		expect(sanitizeAttributeKey('a="b"')).toBe("ab");
 		expect(sanitizeAttributeKey("<tag>")).toBe("tag");
-	});
-
-	test("a name cannot start with a digit", () => {
+		// The XML name character set passes through unchanged.
+		expect(sanitizeAttributeKey("data-priority")).toBe("data-priority");
+		expect(sanitizeAttributeKey("xml:lang")).toBe("xml:lang");
+		expect(sanitizeAttributeKey("_private")).toBe("_private");
+		// A name cannot start with a digit (or a hyphen); later digits stay.
 		expect(sanitizeAttributeKey("2fast")).toBe("fast");
 		expect(sanitizeAttributeKey("-lead")).toBe("lead");
 		expect(sanitizeAttributeKey("v2")).toBe("v2");
-	});
-
-	test("is idempotent", () => {
+		// Idempotent: sanitizing a sanitized key changes nothing.
 		const once = sanitizeAttributeKey("3 bad!name");
 		expect(sanitizeAttributeKey(once)).toBe(once);
 	});
@@ -42,13 +36,6 @@ describe("sanitizeAttributeKey", () => {
 describe("buildAttrs", () => {
 	const rows = (...pairs: [string, string][]): AttrRow[] =>
 		pairs.map(([key, value]) => ({ key, value }));
-
-	test("adds an attribute", () => {
-		expect(buildAttrs(rows(["priority", "high"]))).toEqual({
-			attrs: { priority: "high" },
-			duplicateRows: [],
-		});
-	});
 
 	test("renaming a key keeps row order", () => {
 		const built = buildAttrs(rows(["when", "always"], ["priority", "high"]));

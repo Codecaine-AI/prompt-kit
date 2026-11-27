@@ -158,21 +158,20 @@ describe("address map", () => {
 				{ nodeId: "list", type: "bulletList", path: ["nodes", 0, "children", 0], parentNodeId: "outer", index: 0 },
 			],
 		});
+
+		// Blocks below nested list items stay addressable; the items do not.
+		const nested = readPromptAddressMap(nestedListDocument());
+		expect(nested.nodes.map((entry) => entry.nodeId)).toEqual([
+			"outer-list", "inner-list", "nested-section", "nested-paragraph", "root-reference",
+		]);
+		expect(nested.nodes.find((entry) => entry.nodeId === "nested-section")).toMatchObject({
+			path: ["nodes", 0, "items", 0, "children", 0, "items", 0, "children", 0],
+			parentNodeId: "inner-item",
+		});
 	});
 
 	test("rejects documents whose addressable blocks have not been normalized", () => {
 		expect(() => readPromptAddressMap(document([{ type: "paragraph", content: ["No id"] }]))).toThrow("ensurePromptNodeIds");
-	});
-
-	test("includes blocks below nested list items while omitting list-item targets", () => {
-		const map = readPromptAddressMap(nestedListDocument());
-		expect(map.nodes.map((entry) => entry.nodeId)).toEqual([
-			"outer-list", "inner-list", "nested-section", "nested-paragraph", "root-reference",
-		]);
-		expect(map.nodes.find((entry) => entry.nodeId === "nested-section")).toMatchObject({
-			path: ["nodes", 0, "items", 0, "children", 0, "items", 0, "children", 0],
-			parentNodeId: "inner-item",
-		});
 	});
 });
 
@@ -186,14 +185,11 @@ describe("writing profile lint", () => {
 		expect(findings).toContainEqual(expect.objectContaining({ code: "workflow_phase_missing_steps", nodeId: "phase" }));
 	});
 
-	test("a complete single-output profile passes", () => {
-		const findings = lintPrompt(document([
-			section("purpose"), section("instructions"), section("output_format"), section("constraints"),
-		]), "single-output");
-		expect(findings).toEqual([]);
-	});
-
 	test("requires the constraints section to remain last", () => {
+		expect(lintPrompt(document([
+			section("purpose"), section("instructions"), section("output_format"), section("constraints"),
+		]), "single-output")).toEqual([]);
+
 		const findings = lintPrompt(document([
 			section("purpose"), section("instructions"), section("output_format"), section("constraints"), section("appendix"),
 		]), "single-output");

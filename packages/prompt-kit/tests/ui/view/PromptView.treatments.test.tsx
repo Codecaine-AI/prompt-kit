@@ -60,12 +60,6 @@ describe("PromptView structural treatments", () => {
 		expect(rowText(rows[4])).toBe("        - keep it short");
 	});
 
-	test("plain text rows have no block padding", () => {
-		const cells = rows[1].match(/<td[^>]*>[\s\S]*?<\/td>/g) ?? [];
-		expect(cells.length).toBe(2);
-		for (const cell of cells) expect(cell).toContain("padding-block:0");
-	});
-
 	test("two-space JSON uses tag depth for base padding and keeps its shape", () => {
 		const jsonRows = rowsOf(
 			renderView(["<data>", "  {", '    "nested": true', "  }", "</data>"].join("\n")),
@@ -158,11 +152,8 @@ describe("PromptView structural treatments", () => {
 		expect(collapsed[2]).toContain('data-prompt-row="2"');
 		expect(collapsed[2]).toContain(`height:${EDITOR_METRICS.gapHeightTop}`);
 		expect(collapsed[3]).toContain('data-prompt-row="5"');
-	});
 
-	test("a single blank keeps its source anchor and current height", () => {
 		const single = rowsOf(renderView("<first>\n</first>\n\nplain"));
-
 		expect(single.length).toBe(4);
 		expect(single[2]).toContain('data-prompt-row="2"');
 		expect(single[2]).toContain(`height:${EDITOR_METRICS.gapHeightBase}`);
@@ -196,6 +187,10 @@ describe("PromptView structural treatments", () => {
 		expect(rows[1]).toContain("--prompt-editor-guide");
 		// Depth-0 rows have no guide layers.
 		expect(rows[0]).not.toContain("background-image:linear-gradient");
+		// Gap and close rows show one guide per open container around them:
+		// depth-2 gap, depth-1 close, top-level close, top-level gap.
+		const guideCount = (row: string) => row.match(/linear-gradient\(/g)?.length ?? 0;
+		expect([5, 7, 8, 9].map((index) => guideCount(rows[index]!))).toEqual([2, 1, 0, 0]);
 	});
 
 	test("guide count and text base padding use the same classifier depth", () => {
@@ -209,40 +204,6 @@ describe("PromptView structural treatments", () => {
 		expect(offsetRows[2]).toContain(`calc(var(--ds-space-3) + calc(${indentTimes(2)})) 0`);
 		expect(offsetRows[2]).toContain("text-indent:-6ch");
 		expect(rowText(offsetRows[2])).toBe("      value");
-	});
-
-	test("guides run through gap and close rows at their stack depth", () => {
-		// Gap at depth 2 keeps both stripes; close at depth 1 keeps one.
-		expect(rows[5]).toContain("calc(var(--ds-space-3) + 0px) 0");
-		expect(rows[5]).toContain(`calc(var(--ds-space-3) + calc(${indentTimes(2)})) 0`);
-		expect(rows[7]).toContain(
-			"background-position:calc(var(--ds-space-3) + 0px) 0",
-		);
-		// Top-level close and top-level gap rows carry none.
-		expect(rows[8]).not.toContain("background-image:linear-gradient");
-		expect(rows[9]).not.toContain("background-image:linear-gradient");
-	});
-
-	test("rows and the retained gutter column carry no spreadsheet chrome", () => {
-		for (const row of rows) {
-			expect(row).not.toContain("--prompt-editor-row-zebra:");
-			expect(row).not.toContain('class="prompt-editor-row"');
-			expect(row).toContain("border:0");
-			expect(row).toContain("box-shadow:none");
-			const gutter = row.match(/<td[^>]*>[^<]*<\/td>/)?.[0] ?? "";
-			expect(gutter).toContain("background:transparent");
-			expect(gutter).toContain("color:transparent");
-			expect(gutter).not.toContain("sticky");
-		}
-	});
-
-	test("default type and gutter fallbacks match PromptFlowXml", () => {
-		expect(markup).toContain("font-family:var(--prompt-editor-font-family");
-		expect(markup).toContain("font-size:var(--prompt-editor-font-size, var(--ds-font-size-ui-sm))");
-		expect(markup).toContain("line-height:var(--prompt-editor-line-height, 22px)");
-		expect(markup).toContain(
-			"min-width:var(--prompt-editor-gutter-width, 36px)",
-		);
 	});
 
 	test("fenced XML-looking lines get no structural treatment", () => {

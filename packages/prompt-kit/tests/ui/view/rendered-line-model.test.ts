@@ -60,23 +60,17 @@ describe("classifyRenderedLines", () => {
 		]);
 	});
 
-	test("returns one entry per split line, in order", () => {
-		const content = "<a>\nhello\n</a>";
-		const infos = classifyRenderedLines(content);
-		expect(infos.length).toBe(content.split("\n").length);
-	});
-
 	test("empty string classifies as a single depth-0 gap", () => {
 		expect(classifyRenderedLines("")).toEqual([{ role: "gap", depth: 0 }]);
 	});
 
 	test("nested sections: open/close depths pair with their openers", () => {
 		const content = [
-			"<outer>", // open, depth 0 (before push)
-			"    <inner>", // open, depth 1
+			"<state_grammar-v2>", // open, depth 0 (digits, _ and - in the name)
+			'    <inner name="rules" priority="high">', // attributed open, depth 1
 			"        text", // content, depth 2
 			"    </inner>", // close, depth 1 (matches its opener)
-			"</outer>", // close, depth 0
+			"</state_grammar-v2>", // close, depth 0
 		].join("\n");
 		expect(classifyRenderedLines(content)).toEqual([
 			{ role: "open", depth: 0 },
@@ -85,19 +79,6 @@ describe("classifyRenderedLines", () => {
 			{ role: "close", depth: 1 },
 			{ role: "close", depth: 0 },
 		] satisfies RenderedLineInfo[]);
-	});
-
-	test("attributed open tags still classify as open", () => {
-		const content = [
-			'<section name="rules" priority="high">',
-			"    body",
-			"</section>",
-		].join("\n");
-		expect(classifyRenderedLines(content)).toEqual([
-			{ role: "open", depth: 0 },
-			{ role: "content", depth: 1 },
-			{ role: "close", depth: 0 },
-		]);
 	});
 
 	test("list items: dash, star, and ordered markers at any indent", () => {
@@ -220,6 +201,8 @@ describe("classifyRenderedLines", () => {
 			"    Wrap output in <result> and </result> markers.",
 			"    a <b> c",
 			"</rules>",
+			"<name>value</name>",
+			"<a><b>",
 		].join("\n");
 		expect(roles(content)).toEqual([
 			"open",
@@ -227,12 +210,9 @@ describe("classifyRenderedLines", () => {
 			"content",
 			"content",
 			"close",
+			"content",
+			"content",
 		]);
-	});
-
-	test("open tag followed by text on the same line is content", () => {
-		expect(roles("<name>value</name>")).toEqual(["content"]);
-		expect(roles("<a><b>")).toEqual(["content"]);
 	});
 
 	test("self-closing tags are content and never push the stack", () => {
@@ -253,13 +233,6 @@ describe("classifyRenderedLines", () => {
 			{ role: "close", depth: 0 },
 			{ role: "content", depth: 0 },
 		]);
-	});
-
-	test("tag names with digits, underscores, and hyphens are recognized", () => {
-		const content = ["<state_grammar-v2>", "    x", "</state_grammar-v2>"].join(
-			"\n",
-		);
-		expect(roles(content)).toEqual(["open", "content", "close"]);
 	});
 
 	test("depth tracking survives siblings at multiple levels", () => {

@@ -74,17 +74,15 @@ describe("selectItemDropSlot (nearest boundary to the ghost anchor)", () => {
 	it("the asymmetry is gone: one row of travel moves the item, either way", () => {
 		// At rest the nearest boundaries are B's own edges: no target.
 		expect(selectItemDropSlot(dragB, rest, 1)).toBeNull();
+		// Half-row jitter stays on the run's own edges: still no target.
+		expect(selectItemDropSlot(dragB, rest - ROW / 2, 1)).toBeNull();
+		expect(selectItemDropSlot(dragB, rest + ROW / 2 - 2, 1)).toBeNull();
 		// One row UP: the anchor reaches A's center — before-A wins the tie
 		// against the dead edge (crossing a full row reads as intent).
 		expect(selectItemDropSlot(dragB, rest - ROW, 1)?.slot).toBe(0);
 		// One row DOWN: symmetric — after-C wins. The old raw-pointer compare
 		// needed ~1.5 rows here and ~0.5 rows upward.
 		expect(selectItemDropSlot(dragB, rest + ROW, 1)?.slot).toBe(3);
-	});
-
-	it("the run's own edges are never returned: half-row jitter yields no target", () => {
-		expect(selectItemDropSlot(dragB, rest - ROW / 2, 1)).toBeNull();
-		expect(selectItemDropSlot(dragB, rest + ROW / 2 - 2, 1)).toBeNull();
 	});
 
 	it("overshoot clamps to the outermost boundary instead of cancelling", () => {

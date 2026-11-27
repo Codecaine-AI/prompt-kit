@@ -45,11 +45,7 @@ describe("caretForLineClick", () => {
 		expect(lineIndentLength(row)).toBe(4);
 		// Click on the "w" of "world" (display offset 10) → offset 6 in the value.
 		expect(caretForLineClick(row, 10, lineIndentLength(row))).toBe(6);
-	});
-
-	test("clicks inside the indent clamp to the start of the value", () => {
-		const row = line("    hello world", paragraph);
-
+		// Clicks inside the indent clamp to the start of the value.
 		expect(caretForLineClick(row, 0, lineIndentLength(row))).toBe(0);
 		expect(caretForLineClick(row, 2, lineIndentLength(row))).toBe(0);
 	});
@@ -74,11 +70,7 @@ describe("caretForLineClick", () => {
 		expect(caretForLineClick(first, 3, 0)).toBe(3);
 		expect(caretForLineClick(second, 2, 0)).toBe("alpha\n".length + 2);
 		expect(caretForLineClick(third, 5, 0)).toBe("alpha\nbeta\n".length + 5);
-	});
-
-	test("a raw click past the end of its content line stops at that line's end", () => {
-		const second = line("beta", raw, { contentLineIndex: 1 });
-
+		// A click past the end of its content line stops at that line's end.
 		expect(caretForLineClick(second, 99, 0)).toBe(
 			"alpha\n".length + "beta".length,
 		);

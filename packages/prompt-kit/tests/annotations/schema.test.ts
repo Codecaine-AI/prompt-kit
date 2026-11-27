@@ -139,13 +139,8 @@ describe("promptNodeTargetAdapter", () => {
     expect(
       promptNodeTargetAdapter.dangling(targetForNode(doc, itemId), doc),
     ).toBeNull();
-  });
-
-  test("reports a removed list item id as dangling", () => {
-    const docWithoutItems = ensurePromptNodeIds({
-      ...doc,
-      nodes: [doc.nodes[0]!],
-    });
+    // Once the list item is removed, the same target is reported dangling.
+    const docWithoutItems = ensurePromptNodeIds({ ...doc, nodes: [doc.nodes[0]!] });
     expect(
       promptNodeTargetAdapter.dangling(targetForNode(doc, itemId), docWithoutItems),
     ).toBe(`Node "${itemId}" no longer exists.`);
@@ -166,11 +161,6 @@ describe("promptRangeTargetAdapter", () => {
     end: start + quote.length,
     quote,
   };
-
-  test("the fixture quote exists in the rendered node text", () => {
-    expect(start).toBeGreaterThanOrEqual(0);
-    expect(paragraphText.slice(rangeTarget.start, rangeTarget.end)).toBe(quote);
-  });
 
   test("validates a well-formed target", () => {
     const issues: { path: string; message: string }[] = [];
@@ -258,6 +248,8 @@ describe("promptRangeTargetAdapter", () => {
   describe("dangling", () => {
     test("skips while the document is not loaded", () => {
       expect(promptRangeTargetAdapter.dangling(rangeTarget, null)).toBe("skip");
+      // Once loaded, it resolves while the quote still appears in the text.
+      expect(promptRangeTargetAdapter.dangling(rangeTarget, doc)).toBeNull();
     });
 
     test("flags a document id mismatch", () => {
@@ -276,10 +268,6 @@ describe("promptRangeTargetAdapter", () => {
           doc,
         ),
       ).toBe('Node "node-gone" no longer exists.');
-    });
-
-    test("resolves while the quote still appears in the rendered text", () => {
-      expect(promptRangeTargetAdapter.dangling(rangeTarget, doc)).toBeNull();
     });
 
     test("resolves a range anchored on a LIST ITEM id", () => {

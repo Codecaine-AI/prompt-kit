@@ -32,31 +32,20 @@ function typeIntoFocusedParagraph(value: string) {
 }
 
 describe("insertion at visible document boundaries", () => {
-	for (const kind of ["paragraph", "section"] as const) {
-		it(`clicking between sibling ${kind}s starts a paragraph at that boundary`, () => {
+	for (const [kind, nested] of [["paragraph", false], ["section", false], ["section", true]] as const) {
+		it(`clicking between ${nested ? "nested " : ""}sibling ${kind}s starts a paragraph at that boundary`, () => {
 			const nodes = kind === "paragraph" ? [paragraph("first"), paragraph("last")] : [section("first"), section("last")];
-			const view = setup(nodes);
+			const view = setup(nested ? [section("parent", nodes)] : nodes);
 			fireEvent.click(view.container.querySelector('[data-prompt-row-role="gap"]')!);
 			typeIntoFocusedParagraph("Between");
-			expect(view.prompt().nodes.map(node => node.type)).toEqual([kind, "paragraph", kind]);
-			expect(view.prompt().nodes[0]).toEqual(nodes[0]);
-			expect(view.prompt().nodes[2]).toEqual(nodes[1]);
-			expect(view.prompt().nodes[1]).toMatchObject({ content: ["Between"] });
+			expect(view.prompt().nodes).toHaveLength(nested ? 1 : 3);
+			const siblings = nested ? (view.prompt().nodes[0] as SectionNode).children : view.prompt().nodes;
+			expect(siblings.map(node => node.type)).toEqual([kind, "paragraph", kind]);
+			expect(siblings[0]).toEqual(nodes[0]);
+			expect(siblings[2]).toEqual(nodes[1]);
+			expect(siblings[1]).toMatchObject({ content: ["Between"] });
 		});
 	}
-
-	it("a nested gap inserts inside its parent without changing sibling subsections", () => {
-		const children = [section("first"), section("last")];
-		const view = setup([section("parent", children)]);
-		fireEvent.click(view.container.querySelector('[data-prompt-row-role="gap"]')!);
-		typeIntoFocusedParagraph("Between");
-		const parent = view.prompt().nodes[0] as SectionNode;
-		expect(view.prompt().nodes).toHaveLength(1);
-		expect(parent.children).toHaveLength(3);
-		expect(parent.children[0]).toEqual(children[0]);
-		expect(parent.children[2]).toEqual(children[1]);
-		expect(parent.children[1]).toMatchObject({ type: "paragraph", content: ["Between"] });
-	});
 
 	it("Enter in an empty section starts its body instead of editing the following section", () => {
 		const next = section("next");
@@ -90,13 +79,6 @@ for (const boundary of ["start", "end"] as const) {
 	});
 }
 
-it("clicking an insertion button creates only one paragraph", () => {
-	const view = setup([section("first"), section("last")]);
-	fireEvent.click(view.getByRole("button", {name: "Insert text here"}));
-	expect(view.prompt().nodes.map(node => node.type)).toEqual(["section", "section"]);
-	expect(view.container.querySelector("textarea")).not.toBeNull();
-});
-
 it("clicking a gap in annotation mode does not insert content", () => {
 	const nodes = [section("first"), section("last")];
 	const view = setup(nodes);
@@ -106,18 +88,10 @@ it("clicking a gap in annotation mode does not insert content", () => {
 	expect(view.container.querySelector("textarea")).toBeNull();
 });
 
-it("clicking the blank scroll area below a document appends a typing paragraph", () => {
-	const original = section("existing");
-	const view = setup([original]);
-	fireEvent.click(view.container.querySelector('[data-prompt-flow-scroll="xml"]')!, {clientY: 1000});
-	typeIntoFocusedParagraph("At the end");
-	expect(view.prompt().nodes[0]).toEqual(original);
-	expect(view.prompt().nodes[1]).toMatchObject({type: "paragraph", content: ["At the end"]});
-});
-
 for (const boundary of ["start", "end", "below"] as const) {
 	it(`repeated ${boundary} clicks reuse the empty paragraph, then insert after typing`, () => {
-		const view = setup([section("existing")]);
+		const original = section("existing");
+		const view = setup([original]);
 		const click = () => boundary === "below"
 			? fireEvent.click(view.container.querySelector('[data-prompt-flow-scroll="xml"]')!, {clientY: 1000})
 			: fireEvent.click(view.getByRole("button", {name: `Insert text at ${boundary}`}));
@@ -127,6 +101,9 @@ for (const boundary of ["start", "end", "below"] as const) {
 		click();
 		expect(view.prompt()).toBe(afterInsert);
 		typeIntoFocusedParagraph("Written");
+		const insertedIndex = boundary === "start" ? 0 : 1;
+		expect(view.prompt().nodes[insertedIndex]).toMatchObject({type: "paragraph", content: ["Written"]});
+		expect(view.prompt().nodes[1 - insertedIndex]).toEqual(original);
 		click();
 		expect(view.prompt().nodes).toHaveLength(2);
 		expect(document.activeElement).toBe(view.container.querySelector("textarea"));

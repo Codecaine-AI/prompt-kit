@@ -10,18 +10,12 @@ describe("matchAutoformatMarker", () => {
 			markerLength: 2,
 		});
 		expect(matchAutoformatMarker("* ")?.target).toBe("bulletList");
-	});
-
-	it("reads numbered markers with either punctuation", () => {
 		expect(matchAutoformatMarker("1. ")).toEqual({
 			target: "orderedList",
 			rest: "",
 			markerLength: 3,
 		});
 		expect(matchAutoformatMarker("12) ")?.markerLength).toBe(4);
-	});
-
-	it("carries text that follows the marker", () => {
 		expect(matchAutoformatMarker("- buy milk")?.rest).toBe("buy milk");
 	});
 
@@ -52,12 +46,10 @@ describe("resolveAutoformat", () => {
 		expect(resolveAutoformat("-", "- ")?.target).toBe("bulletList");
 		expect(resolveAutoformat("1.", "1. ")?.target).toBe("orderedList");
 		expect(resolveAutoformat("``", "```")?.target).toBe("codeBlock");
-	});
-
-	it("fires on a paste that starts with a marker", () => {
-		const match = resolveAutoformat("", "- buy milk");
-		expect(match?.target).toBe("bulletList");
-		expect(match?.rest).toBe("buy milk");
+		const pasted = resolveAutoformat("", "- buy milk");
+		expect(pasted?.target).toBe("bulletList");
+		expect(pasted?.rest).toBe("buy milk");
+		expect(resolveAutoformat("xyz", "- ")).toBeNull();
 	});
 
 	it("does NOT fire when the paragraph already held prose", () => {
@@ -67,10 +59,6 @@ describe("resolveAutoformat", () => {
 
 	it("does not fire twice for the same marker", () => {
 		expect(resolveAutoformat("- ", "- x")).toBeNull();
-	});
-
-	it("does not fire when the edit was not an append", () => {
-		expect(resolveAutoformat("xyz", "- ")).toBeNull();
 	});
 });
 
